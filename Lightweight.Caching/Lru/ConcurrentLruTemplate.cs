@@ -109,15 +109,41 @@ namespace Lightweight.Caching.Lru
 			return this.GetOrAdd(key, valueFactory);
 		}
 
+		public async Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
+		{
+			if (this.TryGet(key, out var value))
+			{
+				return value;
+			}
+
+			// The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+			// This is identical logic to the ConcurrentDictionary.GetOrAdd method.
+			var newItem = this.policy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
+
+			if (this.dictionary.TryAdd(key, newItem))
+			{
+				this.hotQueue.Enqueue(newItem);
+				Interlocked.Increment(ref hotCount);
+				BumpItems();
+				return newItem.Value;
+			}
+
+			return await this.GetOrAddAsync(key, valueFactory).ConfigureAwait(false);
+		}
+
 		private void BumpItems()
 		{
 			// There will be races when queue count == queue capacity. Two threads may each dequeue items.
-			// This will prematurely free slots for the next caller. Each thread will still only bump at most 1 item in
-			// each queue, and potentially 2 in warm.
+			// This will prematurely free slots for the next caller. Each thread will still only bump at most 5 items.
 			// Since TryDequeue is thread safe, only 1 thread can dequeue each item. Thus counts and queue state will always
-			// converge on correct.
+			// converge on correct over time.
 			BumpHot();
+			// Multi-threaded stress tests show that due to races, the warm and cold count can increase beyond capacity when
+			// hit rate is very high. Double bump results in stable count under all conditions. When contention is low, 
+			// secondary bumps have no effect.
 			BumpWarm();
+			BumpWarm();
+			BumpCold();
 			BumpCold();
 		}
 
@@ -141,24 +167,29 @@ namespace Lightweight.Caching.Lru
 
 		private void BumpWarm()
 		{
-			// This mitigates the scenario where warm can grow indefinitely if keys are continuously requested in the order they were added.
-			// In the event of a race, n threads will drain multiple items into the cold queue, which is a benign side effect.
-			int c = this.warmCount - this.warmCapacity;
-			if (c > 0)
+			if (this.warmCount > this.warmCapacity)
 			{
-				for (int i = 0; i <= c; i++)
-				{
-					Interlocked.Decrement(ref this.warmCount);
+				Interlocked.Decrement(ref this.warmCount);
 
-					if (this.warmQueue.TryDequeue(out var item))
+				if (this.warmQueue.TryDequeue(out var item))
+				{
+					var where = this.policy.RouteWarm(item);
+
+					// When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
+					// This only happens when hit rate is high, in which case we can consider all items relatively equal in
+					// terms of which was least recently used.
+					if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
 					{
-						var where = this.policy.RouteWarm(item);
 						this.Move(item, where);
 					}
 					else
 					{
-						Interlocked.Increment(ref this.warmCount);
+						this.Move(item, ItemDestination.Cold);
 					}
+				}
+				else
+				{
+					Interlocked.Increment(ref this.warmCount);
 				}
 			}
 		}
@@ -172,7 +203,21 @@ namespace Lightweight.Caching.Lru
 				if (this.coldQueue.TryDequeue(out var item))
 				{
 					var where = this.policy.RouteCold(item);
-					this.Move(item, where);
+
+					if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
+					{
+						this.Move(item, where);
+					}
+					else
+					{
+						if (this.dictionary.TryRemove(item.Key, out var removedItem))
+						{
+							if (removedItem.Value is IDisposable d)
+							{
+								d.Dispose();
+							}
+						}
+					}
 				}
 				else
 				{
