@@ -1,6 +1,7 @@
 ﻿using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
+using Lightweight.Caching.Benchmarks.Lru;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +15,7 @@ namespace Lightweight.Caching.Benchmarks
         static void Main(string[] args)
         {
             var summary = BenchmarkRunner
-                .Run<Lightweight.Caching3.Benchmarks.LruGetOrAddTest>(ManualConfig.Create(DefaultConfig.Instance)
+                .Run<LruCycle>(ManualConfig.Create(DefaultConfig.Instance)
                 .AddJob(Job.RyuJitX64));
         }
     }

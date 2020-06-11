@@ -54,56 +54,92 @@ namespace Lightweight.Caching
 
 		public V GetOrAdd(K key, Func<K, V> valueFactory)
 		{
-			requestTotalCount++;
+			//requestTotalCount++;
 
-			// Keep a reference to the value returned from ConcurrentDictionary.GetOrAdd.
-			// It can invoke value factory and discard the value if it already has a value for the same key.
-			// We can detect this outcome by reference comparing the result.
-			var nodeFactory = new NodeValueFactory(valueFactory);
-			var node = this.dictionary.GetOrAdd(key, nodeFactory.ValueFactory);
+			//// Keep a reference to the value returned from ConcurrentDictionary.GetOrAdd.
+			//// It can invoke value factory and discard the value if it already has a value for the same key.
+			//// We can detect this outcome by reference comparing the result.
+			//var nodeFactory = new NodeValueFactory(valueFactory);
+			//var node = this.dictionary.GetOrAdd(key, nodeFactory.ValueFactory);
 
-			// If the value returned was the same reference as the value created, we added a new value.
-			// ReferenceEquals is safe on LinkedListNode since it is a reference type.
-			if (ReferenceEquals(node, nodeFactory.ValueCreated))
+			//// If the value returned was the same reference as the value created, we added a new value.
+			//// ReferenceEquals is safe on LinkedListNode since it is a reference type.
+			//if (ReferenceEquals(node, nodeFactory.ValueCreated))
+			//{
+			//	// At this point the dictionary contains an item not in the linked list. If this is retrieved
+			//	// from another thread the value is safe to use, and LockAndMoveToEnd will ignore since it is
+			//	// detached from the list. We will anyway add to the end, which is the same as what LockAndMoveToEnd
+			//	// would have done.
+			//	LinkedListNode<LruItem> first = null;
+
+			//	lock (this.linkedList)
+			//	{
+			//		if (linkedList.Count >= capacity)
+			//		{
+			//			first = linkedList.First;
+			//			linkedList.RemoveFirst();
+			//		}
+
+			//		linkedList.AddLast(node);
+			//	}
+
+			//	// Remove from the dictionary outside the lock. This means that the dictionary at this moment
+			//	// contains an item that is not in the linked list. If another thread fetches this item, 
+			//	// LockAndMoveToEnd will ignore it, since it is detached. This means we potentially 'lose' an 
+			//	// item just as it was about to move to the back of the LRU list and be preserved. The next request
+			//	// for the same key will be a miss. Dictionary and list are eventually consistent.
+			//	// However, all operations inside the lock are extremely fast, so contention is minimized.
+			//	if (first != null)
+			//	{
+			//		dictionary.TryRemove(first.Value.Key, out var removed);
+			//	}
+			//}
+
+			//// Else we effectively did a read - no new item was added to the dictionary (either valueFactory was not
+			//// invoked, or there was a race and the result was discarded).
+			//else
+			//{
+			//	LockAndMoveToEnd(node);
+			//	requestHitCount++;
+			//}
+
+			//return node.Value.Value;
+
+			if (this.TryGet(key, out var value))
 			{
-				// At this point the dictionary contains an item not in the linked list. If this is retrieved
-				// from another thread the value is safe to use, and LockAndMoveToEnd will ignore since it is
-				// detached from the list. We will anyway add to the end, which is the same as what LockAndMoveToEnd
-				// would have done.
+				return value;
+			}
+
+			var node = new LinkedListNode<LruItem>(new LruItem(key, valueFactory(key)));
+
+			if (this.dictionary.TryAdd(key, node))
+			{
 				LinkedListNode<LruItem> first = null;
 
 				lock (this.linkedList)
-				{
-					if (linkedList.Count >= capacity)
-					{
-						first = linkedList.First;
-						linkedList.RemoveFirst();
-					}
+                {
+                    if (linkedList.Count >= capacity)
+                    {
+                        first = linkedList.First;
+                        linkedList.RemoveFirst();
+                    }
 
-					linkedList.AddLast(node);
-				}
+                    linkedList.AddLast(node);
 
-				// Remove from the dictionary outside the lock. This means that the dictionary at this moment
-				// contains an item that is not in the linked list. If another thread fetches this item, 
-				// LockAndMoveToEnd will ignore it, since it is detached. This means we potentially 'lose' an 
-				// item just as it was about to move to the back of the LRU list and be preserved. The next request
-				// for the same key will be a miss. Dictionary and list are eventually consistent.
-				// However, all operations inside the lock are extremely fast, so contention is minimized.
-				if (first != null)
-				{
-					dictionary.TryRemove(first.Value.Key, out var removed);
-				}
+                    // Remove from the dictionary outside the lock. This means that the dictionary at this moment
+                    // contains an item that is not in the linked list. If another thread fetches this item, 
+                    // LockAndMoveToEnd will ignore it, since it is detached. This means we potentially 'lose' an 
+                    // item just as it was about to move to the back of the LRU list and be preserved. The next request
+                    // for the same key will be a miss. Dictionary and list are eventually consistent.
+                    // However, all operations inside the lock are extremely fast, so contention is minimized.
+                    if (first != null)
+                    {
+                        dictionary.TryRemove(first.Value.Key, out var removed);
+                    }
+                }
 			}
 
-			// Else we effectively did a read - no new item was added to the dictionary (either valueFactory was not
-			// invoked, or there was a race and the result was discarded).
-			else
-			{
-				LockAndMoveToEnd(node);
-				requestHitCount++;
-			}
-
-			return node.Value.Value;
+			return this.GetOrAdd(key, valueFactory);
 		}
 
 		// Thead A reads x from the dictionary. Thread B adds a new item. Thread A moves x to the end. Thread B now removes the new first Node (removal is atomic on both data structures).
