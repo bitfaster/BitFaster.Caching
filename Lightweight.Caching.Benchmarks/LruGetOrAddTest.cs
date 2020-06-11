@@ -38,6 +38,12 @@ namespace Lightweight.Caching3.Benchmarks
             dictionary.GetOrAdd(1, func);
         }
 
+        [Benchmark()]
+        public DateTime DateTimeUtcNow()
+        {
+            return DateTime.UtcNow;
+        }
+
         [Benchmark]
         public void SegmentedLruGetOrAdd()
         {
@@ -46,28 +52,28 @@ namespace Lightweight.Caching3.Benchmarks
         }
 
         [Benchmark]
-        public void OldLru2GetOrAdd()
+        public void ClassNoTtlPolicyGetOrAdd()
         {
             Func<int, int> func = x => x;
             segmentedLru2.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentLruGetOrAdd()
+        public void ConcurrentLruTemplGetOrAdd()
         {
             Func<int, int> func = x => x;
             concurrentLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentLruHitGetOrAdd()
+        public void ConcurrentLruTemplHitGetOrAdd()
         {
             Func<int, int> func = x => x;
             concurrentLruHit.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentLruNoExpireGetOrAdd()
+        public void ConcurrentLruGetOrAdd()
         {
             Func<int, int> func = x => x;
             concurrentLruNoExpire.GetOrAdd(1, func);
@@ -78,12 +84,6 @@ namespace Lightweight.Caching3.Benchmarks
         {
             Func<int, int> func = x => x;
             concurrentLruExpire.GetOrAdd(1, func);
-        }
-
-        [Benchmark()]
-        public DateTime Now()
-        {
-            return DateTime.UtcNow;
         }
 
         private int MyFunc(int i)
