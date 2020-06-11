@@ -14,27 +14,27 @@ namespace Lightweight.Caching
 
 		public Handle Acquire(TKey key)
 		{
-			ReferenceCount lockObjectHolder = this.cache.AddOrUpdate(key,
+			ReferenceCount refCount = this.cache.AddOrUpdate(key,
 					(_) => new ReferenceCount(),
-					(_, lockObjectHolder2) => lockObjectHolder2.PlusOneReferenceCountCopy());
+					(_, existingRefCount) => existingRefCount.IncrementCopy());
 
-			return new Handle(key, lockObjectHolder.Value, this);
+			return new Handle(key, refCount.Value, this);
 		}
 
 		private void Release(TKey key)
 		{
 			while (true)
 			{
-				ReferenceCount oldLockObjectHolder = this.cache[key];
-				ReferenceCount newLockObjectHolder = oldLockObjectHolder.MinusOneReferenceCountCopy();
-				if (this.cache.TryUpdate(key, newLockObjectHolder, oldLockObjectHolder))
+				ReferenceCount oldRefCount = this.cache[key];
+				ReferenceCount newRefCount = oldRefCount.DecrementCopy();
+				if (this.cache.TryUpdate(key, newRefCount, oldRefCount))
 				{
-					if (newLockObjectHolder.Count == 0)
+					if (newRefCount.Count == 0)
 					{
 						// This will remove from dictionary only if key and the value with ReferenceCount (== 0) matches (under a lock)
-						if (((IDictionary<TKey, ReferenceCount>)this.cache).Remove(new KeyValuePair<TKey, ReferenceCount>(key, newLockObjectHolder)))
+						if (((IDictionary<TKey, ReferenceCount>)this.cache).Remove(new KeyValuePair<TKey, ReferenceCount>(key, newRefCount)))
 						{
-							if (newLockObjectHolder.Value is IDisposable d)
+							if (newRefCount.Value is IDisposable d)
 							{
 								d.Dispose();
 							}
@@ -89,12 +89,12 @@ namespace Lightweight.Caching
 				return refCount != null && refCount.Value != null && refCount.Value.Equals(this.value) && refCount.referenceCount == this.referenceCount;
 			}
 
-			public ReferenceCount PlusOneReferenceCountCopy()
+			public ReferenceCount IncrementCopy()
 			{
 				return new ReferenceCount(this.value, this.referenceCount + 1);
 			}
 
-			public ReferenceCount MinusOneReferenceCountCopy()
+			public ReferenceCount DecrementCopy()
 			{
 				return new ReferenceCount(this.value, this.referenceCount - 1);
 			}
@@ -104,13 +104,13 @@ namespace Lightweight.Caching
 		{
 			private TKey key;
 			private TValue value;
-			private SingletonCache<TKey, TValue> lockObjectCache;
+			private SingletonCache<TKey, TValue> cache;
 
-			public Handle(TKey key, TValue lockObject, SingletonCache<TKey, TValue> lockObjectCache)
+			public Handle(TKey key, TValue value, SingletonCache<TKey, TValue> cache)
 			{
 				this.key = key;
-				this.value = lockObject;
-				this.lockObjectCache = lockObjectCache;
+				this.value = value;
+				this.cache = cache;
 			}
 
 			public TValue Value
@@ -123,10 +123,10 @@ namespace Lightweight.Caching
 
 			public void Dispose()
 			{
-				if (this.lockObjectCache != null)
+				if (this.cache != null)
 				{
-					this.lockObjectCache.Release(this.key);
-					this.lockObjectCache = null;
+					this.cache.Release(this.key);
+					this.cache = null;
 				}
 			}
 		}
