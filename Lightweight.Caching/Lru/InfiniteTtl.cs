@@ -1,0 +1,63 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Lightweight.Caching.Lru
+{
+	public readonly struct InfiniteTtl<K, V> : IPolicy<K, V, LruItem<K, V>>
+	{
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public LruItem<K, V> CreateItem(K key, V value)
+		{
+			return new LruItem<K, V>(key, value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Touch(LruItem<K, V> item)
+		{
+			item.WasAccessed = true;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool ShouldDiscard(LruItem<K, V> item)
+		{
+			return false;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ItemDestination RouteHot(LruItem<K, V> item)
+		{
+			if (item.WasAccessed)
+			{
+				return ItemDestination.Warm;
+			}
+
+			return ItemDestination.Cold;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ItemDestination RouteWarm(LruItem<K, V> item)
+		{
+			if (item.WasAccessed)
+			{
+				return ItemDestination.Warm;
+			}
+
+			return ItemDestination.Cold;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ItemDestination RouteCold(LruItem<K, V> item)
+		{
+			if (item.WasAccessed)
+			{
+				return ItemDestination.Warm;
+			}
+
+			return ItemDestination.Remove;
+		}
+	}
+}
