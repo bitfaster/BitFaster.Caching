@@ -1,1 +1,3 @@
-# Lightweight.Caching
+# ⚡ Lightweight.Caching
+
+A lightweight caching library.
