@@ -9,7 +9,7 @@ using System.Runtime.Caching;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Lightweight.Caching3.Benchmarks
+namespace Lightweight.Caching.Benchmarks
 {
     [MemoryDiagnoser]
     public class LruGetOrAddTest
