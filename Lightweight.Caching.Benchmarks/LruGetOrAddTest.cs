@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Caching;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -31,6 +32,15 @@ namespace Lightweight.Caching3.Benchmarks
         private static readonly ConcurrentLruWithExpiry<int, int, AbsoluteTtl<int, int>> concurrentLruExpire
             = new ConcurrentLruWithExpiry<int, int, AbsoluteTtl<int, int>>(8, 9, EqualityComparer<int>.Default, AbsoluteTtl<int, int>.FromMinutes(10));
 
+        private static readonly int key = 1;
+        private static MemoryCache memoryCache = MemoryCache.Default;
+
+        [GlobalSetup]
+        public void GlobalSetup()
+        {
+            memoryCache.Set(key.ToString(), "test", new CacheItemPolicy());
+        }
+
         [Benchmark(Baseline = true)]
         public void DictionaryGetOrAdd()
         {
@@ -42,6 +52,18 @@ namespace Lightweight.Caching3.Benchmarks
         public DateTime DateTimeUtcNow()
         {
             return DateTime.UtcNow;
+        }
+
+        [Benchmark()]
+        public void MemoryCacheGetIntKey()
+        {
+            memoryCache.Get(key.ToString());
+        }
+
+        [Benchmark()]
+        public void MemoryCacheGetStringKey()
+        {
+            memoryCache.Get("1");
         }
 
         [Benchmark]
