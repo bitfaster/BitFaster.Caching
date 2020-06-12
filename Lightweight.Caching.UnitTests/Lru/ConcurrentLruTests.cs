@@ -299,23 +299,6 @@ namespace Lightweight.Caching.UnitTests.Lru
 			disposableValueFactory.Items[1].IsDisposed.Should().BeFalse();
 		}
 
-		private class ValueFactory
-		{
-			public int timesCalled;
-
-			public string Create(int key)
-			{
-				timesCalled++;
-				return key.ToString();
-			}
-
-			public Task<string> CreateAsync(int key)
-			{
-				timesCalled++;
-				return Task.FromResult(key.ToString());
-			}
-		}
-
 		private class DisposableItem : IDisposable
 		{
 			public bool IsDisposed { get; private set; }

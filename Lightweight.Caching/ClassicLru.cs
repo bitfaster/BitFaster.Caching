@@ -86,6 +86,8 @@ namespace Lightweight.Caching
 				{
 					dictionary.TryRemove(first.Value.Key, out var removed);
 				}
+
+				return node.Value.Value;
 			}
 
 			return this.GetOrAdd(key, valueFactory);
