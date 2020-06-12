@@ -36,18 +36,15 @@ Intel Core i7-5600U CPU 2.60GHz (Broadwell), 1 CPU, 4 logical and 2 physical cor
 Job=RyuJitX64  Jit=RyuJit  Platform=X64
 ~~~
 
-|                        Method |      Mean |    Error |    StdDev |    Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|------------------------------ |----------:|---------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
-|            DictionaryGetOrAdd |  16.33 ns | 0.292 ns |  0.273 ns |  16.28 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-|                DateTimeUtcNow |  90.85 ns | 0.810 ns |  0.718 ns |  90.76 ns |  5.57 |    0.09 |      - |     - |     - |         - |
-|          MemoryCacheGetIntKey | 312.10 ns | 7.512 ns | 21.433 ns | 304.44 ns | 18.86 |    1.08 | 0.0153 |     - |     - |      32 B |
-|       MemoryCacheGetStringKey | 281.65 ns | 5.629 ns | 14.830 ns | 277.49 ns | 17.59 |    1.06 | 0.0153 |     - |     - |      32 B |
-|          SegmentedLruGetOrAdd |  24.73 ns | 0.523 ns |  0.943 ns |  24.47 ns |  1.51 |    0.07 |      - |     - |     - |         - |
-|      ClassNoTtlPolicyGetOrAdd |  69.11 ns | 1.406 ns |  3.231 ns |  68.86 ns |  4.24 |    0.22 | 0.0459 |     - |     - |      96 B |
-|    ConcurrentLruTemplGetOrAdd |  23.38 ns | 0.333 ns |  0.295 ns |  23.42 ns |  1.43 |    0.03 |      - |     - |     - |         - |
-| ConcurrentLruTemplHitGetOrAdd |  35.03 ns | 0.723 ns |  1.227 ns |  35.18 ns |  2.20 |    0.08 |      - |     - |     - |         - |
-|         ConcurrentLruGetOrAdd |  21.95 ns | 0.473 ns |  1.048 ns |  21.73 ns |  1.35 |    0.05 |      - |     - |     - |         - |
-|   ConcurrentLruExpireGetOrAdd | 117.02 ns | 2.187 ns |  2.046 ns | 116.68 ns |  7.17 |    0.16 |      - |     - |     - |         - |
+|                       Method |      Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------- |----------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
+|           DictionaryGetOrAdd |  18.30 ns | 0.208 ns | 0.195 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|               DateTimeUtcNow |  99.66 ns | 1.003 ns | 0.890 ns |  5.45 |    0.09 |      - |     - |     - |         - |
+|         MemoryCacheGetIntKey | 324.41 ns | 5.246 ns | 4.651 ns | 17.73 |    0.36 | 0.0153 |     - |     - |      32 B |
+|      MemoryCacheGetStringKey | 299.24 ns | 5.666 ns | 4.732 ns | 16.35 |    0.35 | 0.0153 |     - |     - |      32 B |
+| ConcurrentLruNoCountGetOrAdd |  25.78 ns | 0.497 ns | 0.415 ns |  1.41 |    0.03 |      - |     - |     - |         - |
+|        ConcurrentLruGetOrAdd |  33.72 ns | 0.669 ns | 0.559 ns |  1.84 |    0.03 |      - |     - |     - |         - |
+|       ConcurrentTLruGetOrAdd | 137.25 ns | 2.713 ns | 2.538 ns |  7.50 |    0.18 |      - |     - |     - |         - |
 
 ### Lookup speed with queue cycling
 
@@ -65,7 +62,8 @@ Job=RyuJitX64  Jit=RyuJit  Platform=X64
 
 |                       Method |      Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
 |----------------------------- |----------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
-| ConcurrentDictionaryGetOrAdd |  16.06 ns | 0.311 ns | 0.370 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-|      MemoryCacheGetStringKey | 272.16 ns | 1.708 ns | 1.427 ns | 16.93 |    0.44 | 0.0153 |     - |     - |      32 B |
-|           ClassicLruGetOrAdd |  65.74 ns | 1.101 ns | 0.976 ns |  4.08 |    0.13 |      - |     - |     - |         - |
-|        ConcurrentLruGetOrAdd |  22.01 ns | 0.251 ns | 0.210 ns |  1.37 |    0.04 |      - |     - |     - |         - |
+| ConcurrentDictionaryGetOrAdd |  17.75 ns | 0.264 ns | 0.206 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|      MemoryCacheGetStringKey | 303.91 ns | 5.963 ns | 5.578 ns | 17.07 |    0.41 | 0.0153 |     - |     - |      32 B |
+|           ClassicLruGetOrAdd |  73.06 ns | 1.249 ns | 1.282 ns |  4.12 |    0.11 |      - |     - |     - |         - |
+|        ConcurrentLruGetOrAdd |  35.00 ns | 0.452 ns | 0.377 ns |  1.97 |    0.03 |      - |     - |     - |         - |
+|       ConcurrentTLruGetOrAdd | 143.92 ns | 2.776 ns | 2.727 ns |  8.09 |    0.14 |      - |     - |     - |         - |

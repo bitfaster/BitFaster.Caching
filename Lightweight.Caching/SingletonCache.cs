@@ -7,6 +7,12 @@ using System.Threading.Tasks;
 
 namespace Lightweight.Caching
 {
+	/// <summary>
+	/// Cache a single value for each key, and maintain in memory only the values that have been acquired 
+	/// but not yet released.
+	/// </summary>
+	/// <typeparam name="TKey"></typeparam>
+	/// <typeparam name="TValue"></typeparam>
 	public class SingletonCache<TKey, TValue>
 			where TValue : new()
 	{
