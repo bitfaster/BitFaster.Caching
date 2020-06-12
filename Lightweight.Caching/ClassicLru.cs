@@ -12,7 +12,7 @@ namespace Lightweight.Caching
 	/// by a global lock. All list operations performed within the lock are fast O(1) operations. 
 	/// </summary>
 	/// <remarks>
-	/// Due to the global lock acquired on read and update, this class may suffer lock contention under heavy load.
+	/// Due to the lock protecting list operations, this class may suffer lock contention under heavy load.
 	/// </remarks>
 	/// <typeparam name="K">The type of the key</typeparam>
 	/// <typeparam name="V">The type of the value</typeparam>

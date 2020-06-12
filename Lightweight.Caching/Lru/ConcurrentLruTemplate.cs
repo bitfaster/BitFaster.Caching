@@ -29,7 +29,10 @@ namespace Lightweight.Caching.Lru
 		private readonly int coldCapacity;
 
 		private readonly P policy;
-		private readonly H hitCounter;
+
+		// Since H is a struct, making it readonly will force the runtime to make defensive copies
+		// if mutate methods are called. Therefore, field must be mutable to maintain count.
+		private H hitCounter;
 
 		public ConcurrentLruTemplate(
 			int concurrencyLevel,

@@ -15,16 +15,10 @@ namespace Lightweight.Caching.Benchmarks
     public class LruGetOrAddTest
     {
         private static readonly ConcurrentDictionary<int, int> dictionary = new ConcurrentDictionary<int, int>(8, 9, EqualityComparer<int>.Default);
-        private static readonly Lightweight.Caching.SegmentedLru<int, int> segmentedLru = new Lightweight.Caching.SegmentedLru<int, int>(8, 3, 3, 3, EqualityComparer<int>.Default);
-        private static readonly Lightweight.Caching2.SegmentedLruNoExpiration<int, int> segmentedLru2 = new Lightweight.Caching2.SegmentedLruNoExpiration<int, int>(8, 3, 3, 3, EqualityComparer<int>.Default);
-        
+         
         private static readonly ConcurrentLruTemplate<int, int, LruItem<int, int>, LruPolicy<int, int>, NullHitCounter> templateConcurrentLru 
             = new ConcurrentLruTemplate<int, int, LruItem<int, int>, LruPolicy<int, int>, NullHitCounter>(
                 8, 9, EqualityComparer<int>.Default, new LruPolicy<int, int>(), new NullHitCounter());
-
-        private static readonly ConcurrentLruTemplate<int, int, LruItem<int, int>, LruPolicy<int, int>, HitCounter> concurrentLruHit
-            = new ConcurrentLruTemplate<int, int, LruItem<int, int>, LruPolicy<int, int>, HitCounter>(
-                8, 9, EqualityComparer<int>.Default, new LruPolicy<int, int>(), new HitCounter());
 
         private static readonly ConcurrentLru<int, int> concurrentLru 
             = new ConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
@@ -66,32 +60,11 @@ namespace Lightweight.Caching.Benchmarks
             memoryCache.Get("1");
         }
 
-        [Benchmark]
-        public void SegmentedLruGetOrAdd()
-        {
-            Func<int, int> func = x => x;
-            segmentedLru.GetOrAdd(1, func);
-        }
-
-        [Benchmark]
-        public void ClassNoTtlPolicyGetOrAdd()
-        {
-            Func<int, int> func = x => x;
-            segmentedLru2.GetOrAdd(1, func);
-        }
-
         [Benchmark()]
-        public void ConcurrentLruTemplGetOrAdd()
+        public void ConcurrentLruNoCountGetOrAdd()
         {
             Func<int, int> func = x => x;
             templateConcurrentLru.GetOrAdd(1, func);
-        }
-
-        [Benchmark()]
-        public void ConcurrentLruTemplHitGetOrAdd()
-        {
-            Func<int, int> func = x => x;
-            concurrentLruHit.GetOrAdd(1, func);
         }
 
         [Benchmark()]
@@ -102,15 +75,10 @@ namespace Lightweight.Caching.Benchmarks
         }
 
         [Benchmark()]
-        public void ConcurrentLruExpireGetOrAdd()
+        public void ConcurrentTLruGetOrAdd()
         {
             Func<int, int> func = x => x;
             concurrentTlru.GetOrAdd(1, func);
-        }
-
-        private int MyFunc(int i)
-        {
-            return i;
         }
     }
 }
