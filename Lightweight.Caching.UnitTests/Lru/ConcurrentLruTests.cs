@@ -299,6 +299,35 @@ namespace Lightweight.Caching.UnitTests.Lru
 			disposableValueFactory.Items[1].IsDisposed.Should().BeFalse();
 		}
 
+		[Fact]
+		public void WhenKeyExistsTryRemoveRemovesItemAndReturnsTrue()
+		{
+			lru.GetOrAdd(1, valueFactory.Create);
+
+			lru.TryRemove(1).Should().BeTrue();
+			lru.TryGet(1, out var value).Should().BeFalse();
+		}
+
+		[Fact]
+		public void WhenItemIsRemovedItIsDisposed()
+		{
+			var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
+			var disposableValueFactory = new DisposableValueFactory();
+
+			lruOfDisposable.GetOrAdd(1, disposableValueFactory.Create);
+			lruOfDisposable.TryRemove(1);
+
+			disposableValueFactory.Items[1].IsDisposed.Should().BeTrue();
+		}
+
+		[Fact]
+		public void WhenKeyDoesNotExistTryRemoveReturnsFalse()
+		{
+			lru.GetOrAdd(1, valueFactory.Create);
+
+			lru.TryRemove(2).Should().BeFalse();
+		}
+
 		private class DisposableItem : IDisposable
 		{
 			public bool IsDisposed { get; private set; }

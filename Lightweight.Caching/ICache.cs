@@ -11,5 +11,9 @@ namespace Lightweight.Caching
         bool TryGet(K key, out V value);
 
         V GetOrAdd(K key, Func<K, V> valueFactory);
+
+        Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory);
+
+        bool TryRemove(K key);
     }
 }

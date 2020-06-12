@@ -30,5 +30,14 @@ namespace Lightweight.Caching.UnitTests.Lru
 
             lru.TryGet(1, out var value).Should().BeFalse();
         }
+
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedHitRatioIsHalf()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.HitRatio.Should().Be(0.5);
+        }
     }
 }

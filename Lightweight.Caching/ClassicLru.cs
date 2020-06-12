@@ -93,6 +93,71 @@ namespace Lightweight.Caching
 			return this.GetOrAdd(key, valueFactory);
 		}
 
+		public async Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
+		{
+			if (this.TryGet(key, out var value))
+			{
+				return value;
+			}
+
+			var node = new LinkedListNode<LruItem>(new LruItem(key, await valueFactory(key)));
+
+			if (this.dictionary.TryAdd(key, node))
+			{
+				LinkedListNode<LruItem> first = null;
+
+				lock (this.linkedList)
+				{
+					if (linkedList.Count >= capacity)
+					{
+						first = linkedList.First;
+						linkedList.RemoveFirst();
+					}
+
+					linkedList.AddLast(node);
+				}
+
+				// Remove from the dictionary outside the lock. This means that the dictionary at this moment
+				// contains an item that is not in the linked list. If another thread fetches this item, 
+				// LockAndMoveToEnd will ignore it, since it is detached. This means we potentially 'lose' an 
+				// item just as it was about to move to the back of the LRU list and be preserved. The next request
+				// for the same key will be a miss. Dictionary and list are eventually consistent.
+				// However, all operations inside the lock are extremely fast, so contention is minimized.
+				if (first != null)
+				{
+					dictionary.TryRemove(first.Value.Key, out var removed);
+				}
+
+				return node.Value.Value;
+			}
+
+			return await this.GetOrAddAsync(key, valueFactory);
+		}
+
+		public bool TryRemove(K key)
+        {
+			if (dictionary.TryRemove(key, out var node))
+			{
+				// If the node has already been removed from the list, ignore.
+				// E.g. thread A reads x from the dictionary. Thread B adds a new item, removes x from 
+				// the List & Dictionary. Now thread A will try to move x to the end of the list.
+				if (node.List != null)
+				{
+					lock (this.linkedList)
+					{
+						if (node.List != null)
+						{
+							linkedList.Remove(node);
+						}
+					}
+				}
+
+				return true;
+			}
+
+			return false;
+        }
+
 		// Thead A reads x from the dictionary. Thread B adds a new item. Thread A moves x to the end. Thread B now removes the new first Node (removal is atomic on both data structures).
 		private void LockAndMoveToEnd(LinkedListNode<LruItem> node)
 		{
