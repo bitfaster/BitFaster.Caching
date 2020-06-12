@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Lightweight.Caching.UnitTests.Lru;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -63,10 +64,32 @@ namespace Lightweight.Caching.UnitTests
 		}
 
 		[Fact]
+		public async Task WhenKeyIsRequesteItIsCreatedAndCachedAsync()
+		{
+			var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+			var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+
+			valueFactory.timesCalled.Should().Be(1);
+			result1.Should().Be(result2);
+		}
+
+		[Fact]
 		public void WhenDifferentKeysAreRequestedValueIsCreatedForEach()
 		{
 			var result1 = lru.GetOrAdd(1, valueFactory.Create);
 			var result2 = lru.GetOrAdd(2, valueFactory.Create);
+
+			valueFactory.timesCalled.Should().Be(2);
+
+			result1.Should().Be("1");
+			result2.Should().Be("2");
+		}
+
+		[Fact]
+		public async Task WhenDifferentKeysAreRequesteValueIsCreatedForEachAsync()
+		{
+			var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+			var result2 = await lru.GetOrAddAsync(2, valueFactory.CreateAsync).ConfigureAwait(false);
 
 			valueFactory.timesCalled.Should().Be(2);
 
@@ -80,6 +103,18 @@ namespace Lightweight.Caching.UnitTests
 			for (int i = 0; i < capacity + 1; i++)
 			{
 				lru.GetOrAdd(i, valueFactory.Create);
+			}
+
+			lru.Count.Should().Be(capacity);
+			valueFactory.timesCalled.Should().Be(capacity + 1);
+		}
+
+		[Fact]
+		public async Task WhenMoreKeysRequestedThanCapacityCountDoesNotIncreaseAsync()
+		{
+			for (int i = 0; i < capacity + 1; i++)
+			{
+				await lru.GetOrAddAsync(i, valueFactory.CreateAsync);
 			}
 
 			lru.Count.Should().Be(capacity);
@@ -132,15 +167,21 @@ namespace Lightweight.Caching.UnitTests
 			value.Should().Be("1");
 		}
 
-		private class ValueFactory
-		{
-			public int timesCalled;
+		[Fact]
+		public void WhenKeyExistsTryRemoveRemovesItemAndReturnsTrue()
+        {
+			lru.GetOrAdd(1, valueFactory.Create);
 
-			public string Create(int key)
-			{
-				timesCalled++;
-				return key.ToString();
-			}
+			lru.TryRemove(1).Should().BeTrue();
+			lru.TryGet(1, out var value).Should().BeFalse();
+		}
+
+		[Fact]
+		public void WhenKeyDoesNotExistTryRemoveReturnsFalse()
+		{
+			lru.GetOrAdd(1, valueFactory.Create);
+
+			lru.TryRemove(2).Should().BeFalse();
 		}
 	}
 }

@@ -8,6 +8,22 @@ using System.Threading.Tasks;
 
 namespace Lightweight.Caching.Lru
 {
+	/// <summary>
+	/// LRU implementation where LRU list is composed of 3 segments: hot, warm and cold. Cost of maintaining
+	/// segments is amortized across requests. Items are only cycled when capacity is exceeded. Pure read does
+	/// not cycle items if all segments are within capacity constraints.
+	/// There are no global locks. On cache miss, a new item is added. Tail items in each segment are dequeued,
+	/// examined, and are either enqueued or discarded.
+	/// </summary>
+	/// <remarks>
+	/// Each segment has a capacity. When segment capacity is exceeded, items are moved as follows:
+	/// 1. New items are added to hot, WasAccessed = false
+	/// 2. When items are accessed, update WasAccessed = true
+	/// 3. When items are moved WasAccessed is set to false.
+	/// 4. When hot is full, hot tail is moved to either Warm or Cold depending on WasAccessed. 
+	/// 5. When warm is full, warm tail is moved to warm head or cold depending on WasAccessed.
+	/// 6. When cold is full, cold tail is moved to warm head or removed from dictionary on depending on WasAccessed.
+	/// </remarks>
 	public class TemplateConcurrentLru<K, V, I, P, H> : ICache<K, V>
 		where I : LruItem<K, V>
 		where P : struct, IPolicy<K, V, I>
@@ -56,7 +72,7 @@ namespace Lightweight.Caching.Lru
 			this.hitCounter = hitCounter;
 		}
 
-		public int Count => this.hotCount + this.warmCount + this.coldCount;
+		public int Count => this.dictionary.Count;
 
 		public int HotCount => this.hotCount;
 
@@ -103,7 +119,7 @@ namespace Lightweight.Caching.Lru
 			{
 				this.hotQueue.Enqueue(newItem);
 				Interlocked.Increment(ref hotCount);
-				BumpItems();
+				Cycle();
 				return newItem.Value;
 			}
 
@@ -125,30 +141,51 @@ namespace Lightweight.Caching.Lru
 			{
 				this.hotQueue.Enqueue(newItem);
 				Interlocked.Increment(ref hotCount);
-				BumpItems();
+				Cycle();
 				return newItem.Value;
 			}
 
 			return await this.GetOrAddAsync(key, valueFactory).ConfigureAwait(false);
 		}
 
-		private void BumpItems()
+		public bool TryRemove(K key)
 		{
-			// There will be races when queue count == queue capacity. Two threads may each dequeue items.
-			// This will prematurely free slots for the next caller. Each thread will still only bump at most 5 items.
-			// Since TryDequeue is thread safe, only 1 thread can dequeue each item. Thus counts and queue state will always
-			// converge on correct over time.
-			BumpHot();
-			// Multi-threaded stress tests show that due to races, the warm and cold count can increase beyond capacity when
-			// hit rate is very high. Double bump results in stable count under all conditions. When contention is low, 
-			// secondary bumps have no effect.
-			BumpWarm();
-			BumpWarm();
-			BumpCold();
-			BumpCold();
+			if (this.dictionary.TryRemove(key, out var removedItem))
+            {
+				// Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
+				// from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
+				// from the queue.
+				removedItem.WasAccessed = false;
+
+				if (removedItem.Value is IDisposable d)
+				{
+					d.Dispose();
+				}
+
+				return true;
+            }
+
+			return false;
 		}
 
-		private void BumpHot()
+		private void Cycle()
+		{
+			// There will be races when queue count == queue capacity. Two threads may each dequeue items.
+			// This will prematurely free slots for the next caller. Each thread will still only cycle at most 5 items.
+			// Since TryDequeue is thread safe, only 1 thread can dequeue each item. Thus counts and queue state will always
+			// converge on correct over time.
+			CycleHot();
+
+			// Multi-threaded stress tests show that due to races, the warm and cold count can increase beyond capacity when
+			// hit rate is very high. Double cycle results in stable count under all conditions. When contention is low, 
+			// secondary cycles have no effect.
+			CycleWarm();
+			CycleWarm();
+			CycleCold();
+			CycleCold();
+		}
+
+		private void CycleHot()
 		{
 			if (this.hotCount > this.hotCapacity)
 			{
@@ -166,7 +203,7 @@ namespace Lightweight.Caching.Lru
 			}
 		}
 
-		private void BumpWarm()
+		private void CycleWarm()
 		{
 			if (this.warmCount > this.warmCapacity)
 			{
@@ -195,7 +232,7 @@ namespace Lightweight.Caching.Lru
 			}
 		}
 
-		private void BumpCold()
+		private void CycleCold()
 		{
 			if (this.coldCount > this.coldCapacity)
 			{
