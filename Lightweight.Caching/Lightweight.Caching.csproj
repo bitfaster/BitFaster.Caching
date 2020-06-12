@@ -8,7 +8,11 @@
     <Description>A collection of lightweight caching primitives for .NET</Description>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.1.0</Version>
+    <Version>0.8.0</Version>
+    <Copyright>Copyright © Alex Peck 2020</Copyright>
+    <PackageProjectUrl></PackageProjectUrl>
+    <RepositoryUrl>https://github.com/plexcake/Lightweight.Caching</RepositoryUrl>
+    <PackageTags>Cache</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
