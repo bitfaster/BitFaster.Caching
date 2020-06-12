@@ -8,8 +8,9 @@ LRU implementations are intended as an alternative to the System.Runtime.Caching
 
 | Class | Description | Example use |
 |:-------|:-------------|:-------------|
-| ClassicLru      | Bounded size LRU based on a linked list and dictionary. | If strict ordering is important, but data structures are synchronized with a global lock which limits scalability. |
+| ClassicLru      | Bounded size LRU based on a linked list and dictionary. | If strict ordering is important, but data structures are synchronized with a lock which limits scalability. |
 | ConcurrentLru      | Bounded size pseudo LRU, with LRU and TLRU policies. | Maintains psuedo order, but is faster than ClassicLru and not prone to lock contention. |
+| FastConcurrentLru/FastConcurrentTLru      | Same as ConcurrentLru/ConcurrentTLru, but with hit counting logic eliminated making them about 10% faster.   |
 | SingletonCache      | Cache singletons by key. Discard when not in use. | Cache a semaphore per user, where user population is large, but active user count is low.   |
 
 # Performance
