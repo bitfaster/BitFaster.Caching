@@ -287,7 +287,7 @@ namespace Lightweight.Caching.UnitTests.Lru
 		[Fact]
 		public void WhenValueExpiresItIsDisposed()
 		{
-			SegmentedLru<int, DisposableItem> lruOfDisposable = new SegmentedLru<int, DisposableItem>(1, 2, 2, 2, EqualityComparer<int>.Default);
+			var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
 			var disposableValueFactory = new DisposableValueFactory();
 
 			for (int i = 0; i < 5; i++)
