@@ -32,7 +32,7 @@ namespace Lightweight.Caching.Lru
 
 		// Since H is a struct, making it readonly will force the runtime to make defensive copies
 		// if mutate methods are called. Therefore, field must be mutable to maintain count.
-		private H hitCounter;
+		protected H hitCounter;
 
 		public ConcurrentLruTemplate(
 			int concurrencyLevel,
@@ -58,7 +58,7 @@ namespace Lightweight.Caching.Lru
 
 		public int Count => this.hotCount + this.warmCount + this.coldCount;
 
-		public double HitRatio => this.hitCounter.HitRatio;
+		
 
 		public int HotCount => this.hotCount;
 

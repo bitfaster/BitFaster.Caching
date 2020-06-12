@@ -12,5 +12,7 @@ namespace Lightweight.Caching.Lru
             : base(concurrencyLevel, capacity, comparer, new LruPolicy<K, V>(), new HitCounter())
         {
         }
+
+        public double HitRatio => this.hitCounter.HitRatio;
     }
 }
