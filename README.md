@@ -2,24 +2,21 @@
 
 A collection of lightweight caching primitives.
 
-LRU implementations are intended as an alternative to the System.Runtime.Caching.MemoryCache family of classes (e.g. HttpRuntime.Cache, System.Web.Caching et. al.), which cause heap allocations when the native object key is not type string.
+LRU implementations are intended as an alternative to the System.Runtime.Caching.MemoryCache family of classes (e.g. HttpRuntime.Cache, System.Web.Caching et. al.). MemoryCache makes heap allocations when the native object key is not type string, and does not offer the fastest possible performance.
+
+[![NuGet version](https://badge.fury.io/nu/Lightweight.Caching.svg)](https://badge.fury.io/nu/Lightweight.Caching)
 
 # Overview
 
-| Class | Description | Example use |
-|:-------|:-------------|:-------------|
-| ClassicLru      | Bounded size LRU based on a linked list and dictionary. | If strict ordering is important, but data structures are synchronized with a lock which limits scalability. |
-| ConcurrentLru      | Bounded size pseudo LRU, with LRU and TLRU policies. | Maintains psuedo order, but is faster than ClassicLru and not prone to lock contention. |
+| Class |  Example use |
+|:-------|:---------|
+| ClassicLru       | Bounded size LRU based with strict ordering.<br><br>Use if ordering is important, but data structures are synchronized with a lock which limits scalability. |
+| ConcurrentLru       |  Bounded size pseudo LRU.<br><br>For when you   want a ConcurrentDictionary, but with bounded size. Maintains psuedo order, but is faster than ClassicLru and not prone to lock contention. |
+| ConcurrentTlru        | Bounded size pseudo LRU, items have TTL.<br><br>Same as ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. |
 | FastConcurrentLru/FastConcurrentTLru      | Same as ConcurrentLru/ConcurrentTLru, but with hit counting logic eliminated making them about 10% faster.   |
-| SingletonCache      | Cache singletons by key. Discard when not in use. | Cache a semaphore per user, where user population is large, but active user count is low.   |
+| SingletonCache      | Cache singletons by key. Discard when not in use. <br><br> Cache a semaphore per user, where user population is large, but active user count is low.   |
 
 # Performance
-
-## Meta-programming using structs for JIT dead code removal and inlining
-
-ConcurrentLru features injectable policies defined as structs. Since structs are subject to special optimizations by the JITter, the implementation is much faster than if these policies were defined as classes. Using this technique, lookups without TTL are within 15% of the speed of a ConcurrentDictionary.
-
-Since DateTime.UtcNow is around 4x slower than a ConcurrentDictionary lookup, policies that involve time based expiry are significantly slower. Since these are injected as structs and the slow code is optimized away, it is possible maintain the fastest possible speed for the non-TTL policy.
 
 ## ConcurrentLru Benchmarks
 
@@ -49,7 +46,7 @@ Job=RyuJitX64  Jit=RyuJit  Platform=X64
 
 ### Lookup speed with queue cycling
 
-Cache contains 6 items, no items are evicted. The LRU caches maintaining item access order.
+Cache contains 6 items which are fetched repeatedly, no items are evicted. For LRU caches this measures time spent maintaining item access order.
 
 ~~~
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.18363.900 (1909/November2018Update/19H2)
@@ -68,3 +65,9 @@ Job=RyuJitX64  Jit=RyuJit  Platform=X64
 |           ClassicLruGetOrAdd |  73.06 ns | 1.249 ns | 1.282 ns |  4.12 |    0.11 |      - |     - |     - |         - |
 |        ConcurrentLruGetOrAdd |  35.00 ns | 0.452 ns | 0.377 ns |  1.97 |    0.03 |      - |     - |     - |         - |
 |       ConcurrentTLruGetOrAdd | 143.92 ns | 2.776 ns | 2.727 ns |  8.09 |    0.14 |      - |     - |     - |         - |
+
+## Meta-programming using structs for JIT dead code removal and inlining
+
+ConcurrentLru features injectable policies defined as structs. Since structs are subject to special optimizations by the JITter, the implementation is much faster than if these policies were defined as classes. Using this technique, lookups without TTL are within 15% of the speed of a ConcurrentDictionary.
+
+Since DateTime.UtcNow is around 4x slower than a ConcurrentDictionary lookup, policies that involve time based expiry are significantly slower. Since these are injected as structs and the slow code is optimized away, it is possible maintain the fastest possible speed for the non-TTL policy.
