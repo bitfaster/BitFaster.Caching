@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace Lightweight.Caching.Lru
 {
-    public class ConcurrentTLru<K, V> : ConcurrentLruTemplate<K, V, TimeStampedLruItem<K, V>, TlruPolicy<K, V>, HitCounter>
+    public class ConcurrentTLru<K, V> : TemplateConcurrentLru<K, V, TimeStampedLruItem<K, V>, TLruPolicy<K, V>, HitCounter>
     {
         public ConcurrentTLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer, TimeSpan timeToLive)
-            : base(concurrencyLevel, capacity, comparer, new TlruPolicy<K, V>(timeToLive), new HitCounter())
+            : base(concurrencyLevel, capacity, comparer, new TLruPolicy<K, V>(timeToLive), new HitCounter())
         {
         }
 

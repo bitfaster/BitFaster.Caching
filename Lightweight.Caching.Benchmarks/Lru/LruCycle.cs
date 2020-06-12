@@ -17,12 +17,10 @@ namespace Lightweight.Caching.Benchmarks.Lru
         private static readonly ConcurrentDictionary<int, int> dictionary = new ConcurrentDictionary<int, int>(8, 9, EqualityComparer<int>.Default);
 
         private static readonly ClassicLru<int, int> classicLru = new ClassicLru<int, int>(8, 9, EqualityComparer<int>.Default);
-
-        private static readonly ConcurrentLru<int, int> concurrentLru
-            = new ConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
-
-        private static readonly ConcurrentTLru<int, int> concurrentTLru
-            = new ConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
+        private static readonly ConcurrentLru<int, int> concurrentLru = new ConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
+        private static readonly ConcurrentTLru<int, int> concurrentTLru = new ConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
+        private static readonly FastConcurrentLru<int, int> fastConcurrentLru = new FastConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
+        private static readonly FastConcurrentTLru<int, int> fastConcurrentTLru = new FastConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
 
         private static MemoryCache memoryCache = MemoryCache.Default;
 
@@ -95,70 +93,38 @@ namespace Lightweight.Caching.Benchmarks.Lru
         }
 
         [Benchmark(OperationsPerInvoke = 24)]
-        public void MemoryCacheGetStringKey()
-        {
-            memoryCache.Get("1");
-            memoryCache.Get("2");
-            memoryCache.Get("3");
-            memoryCache.Get("4");
-            memoryCache.Get("5");
-            memoryCache.Get("6");
-
-            memoryCache.Get("1");
-            memoryCache.Get("2");
-            memoryCache.Get("3");
-            memoryCache.Get("4");
-            memoryCache.Get("5");
-            memoryCache.Get("6");
-
-            memoryCache.Get("1");
-            memoryCache.Get("2");
-            memoryCache.Get("3");
-            memoryCache.Get("4");
-            memoryCache.Get("5");
-            memoryCache.Get("6");
-
-            memoryCache.Get("1");
-            memoryCache.Get("2");
-            memoryCache.Get("3");
-            memoryCache.Get("4");
-            memoryCache.Get("5");
-            memoryCache.Get("6");
-        }
-
-        [Benchmark(OperationsPerInvoke=24)]
-        public void ClassicLruGetOrAdd()
+        public void FastConcurrentLruGetOrAdd()
         {
             // size is 9, so segment size is 3. 6 items will cause queue cycling
             // without eviction. Hot => cold when not accessed.
             Func<int, int> func = x => x;
-            classicLru.GetOrAdd(1, func);
-            classicLru.GetOrAdd(2, func);
-            classicLru.GetOrAdd(3, func);
-            classicLru.GetOrAdd(4, func);
-            classicLru.GetOrAdd(5, func);
-            classicLru.GetOrAdd(6, func);
+            fastConcurrentLru.GetOrAdd(1, func);
+            fastConcurrentLru.GetOrAdd(2, func);
+            fastConcurrentLru.GetOrAdd(3, func);
+            fastConcurrentLru.GetOrAdd(4, func);
+            fastConcurrentLru.GetOrAdd(5, func);
+            fastConcurrentLru.GetOrAdd(6, func);
 
-            classicLru.GetOrAdd(1, func);
-            classicLru.GetOrAdd(2, func);
-            classicLru.GetOrAdd(3, func);
-            classicLru.GetOrAdd(4, func);
-            classicLru.GetOrAdd(5, func);
-            classicLru.GetOrAdd(6, func);
+            fastConcurrentLru.GetOrAdd(1, func);
+            fastConcurrentLru.GetOrAdd(2, func);
+            fastConcurrentLru.GetOrAdd(3, func);
+            fastConcurrentLru.GetOrAdd(4, func);
+            fastConcurrentLru.GetOrAdd(5, func);
+            fastConcurrentLru.GetOrAdd(6, func);
 
-            classicLru.GetOrAdd(1, func);
-            classicLru.GetOrAdd(2, func);
-            classicLru.GetOrAdd(3, func);
-            classicLru.GetOrAdd(4, func);
-            classicLru.GetOrAdd(5, func);
-            classicLru.GetOrAdd(6, func);
+            fastConcurrentLru.GetOrAdd(1, func);
+            fastConcurrentLru.GetOrAdd(2, func);
+            fastConcurrentLru.GetOrAdd(3, func);
+            fastConcurrentLru.GetOrAdd(4, func);
+            fastConcurrentLru.GetOrAdd(5, func);
+            fastConcurrentLru.GetOrAdd(6, func);
 
-            classicLru.GetOrAdd(1, func);
-            classicLru.GetOrAdd(2, func);
-            classicLru.GetOrAdd(3, func);
-            classicLru.GetOrAdd(4, func);
-            classicLru.GetOrAdd(5, func);
-            classicLru.GetOrAdd(6, func);
+            fastConcurrentLru.GetOrAdd(1, func);
+            fastConcurrentLru.GetOrAdd(2, func);
+            fastConcurrentLru.GetOrAdd(3, func);
+            fastConcurrentLru.GetOrAdd(4, func);
+            fastConcurrentLru.GetOrAdd(5, func);
+            fastConcurrentLru.GetOrAdd(6, func);
         }
 
         [Benchmark(OperationsPerInvoke = 24)]
@@ -197,6 +163,41 @@ namespace Lightweight.Caching.Benchmarks.Lru
         }
 
         [Benchmark(OperationsPerInvoke = 24)]
+        public void FastConcurrentTLruGetOrAdd()
+        {
+            // size is 9, so segment size is 3. 6 items will cause queue cycling
+            // without eviction. Hot => cold when not accessed.
+            Func<int, int> func = x => x;
+            fastConcurrentTLru.GetOrAdd(1, func);
+            fastConcurrentTLru.GetOrAdd(2, func);
+            fastConcurrentTLru.GetOrAdd(3, func);
+            fastConcurrentTLru.GetOrAdd(4, func);
+            fastConcurrentTLru.GetOrAdd(5, func);
+            fastConcurrentTLru.GetOrAdd(6, func);
+
+            fastConcurrentTLru.GetOrAdd(1, func);
+            fastConcurrentTLru.GetOrAdd(2, func);
+            fastConcurrentTLru.GetOrAdd(3, func);
+            fastConcurrentTLru.GetOrAdd(4, func);
+            fastConcurrentTLru.GetOrAdd(5, func);
+            fastConcurrentTLru.GetOrAdd(6, func);
+
+            fastConcurrentTLru.GetOrAdd(1, func);
+            fastConcurrentTLru.GetOrAdd(2, func);
+            fastConcurrentTLru.GetOrAdd(3, func);
+            fastConcurrentTLru.GetOrAdd(4, func);
+            fastConcurrentTLru.GetOrAdd(5, func);
+            fastConcurrentTLru.GetOrAdd(6, func);
+
+            fastConcurrentTLru.GetOrAdd(1, func);
+            fastConcurrentTLru.GetOrAdd(2, func);
+            fastConcurrentTLru.GetOrAdd(3, func);
+            fastConcurrentTLru.GetOrAdd(4, func);
+            fastConcurrentTLru.GetOrAdd(5, func);
+            fastConcurrentTLru.GetOrAdd(6, func);
+        }
+
+        [Benchmark(OperationsPerInvoke = 24)]
         public void ConcurrentTLruGetOrAdd()
         {
             // size is 9, so segment size is 3. 6 items will cause queue cycling
@@ -229,6 +230,73 @@ namespace Lightweight.Caching.Benchmarks.Lru
             concurrentTLru.GetOrAdd(4, func);
             concurrentTLru.GetOrAdd(5, func);
             concurrentTLru.GetOrAdd(6, func);
+        }
+
+        [Benchmark(OperationsPerInvoke = 24)]
+        public void ClassicLruGetOrAdd()
+        {
+            // size is 9, so segment size is 3. 6 items will cause queue cycling
+            // without eviction. Hot => cold when not accessed.
+            Func<int, int> func = x => x;
+            classicLru.GetOrAdd(1, func);
+            classicLru.GetOrAdd(2, func);
+            classicLru.GetOrAdd(3, func);
+            classicLru.GetOrAdd(4, func);
+            classicLru.GetOrAdd(5, func);
+            classicLru.GetOrAdd(6, func);
+
+            classicLru.GetOrAdd(1, func);
+            classicLru.GetOrAdd(2, func);
+            classicLru.GetOrAdd(3, func);
+            classicLru.GetOrAdd(4, func);
+            classicLru.GetOrAdd(5, func);
+            classicLru.GetOrAdd(6, func);
+
+            classicLru.GetOrAdd(1, func);
+            classicLru.GetOrAdd(2, func);
+            classicLru.GetOrAdd(3, func);
+            classicLru.GetOrAdd(4, func);
+            classicLru.GetOrAdd(5, func);
+            classicLru.GetOrAdd(6, func);
+
+            classicLru.GetOrAdd(1, func);
+            classicLru.GetOrAdd(2, func);
+            classicLru.GetOrAdd(3, func);
+            classicLru.GetOrAdd(4, func);
+            classicLru.GetOrAdd(5, func);
+            classicLru.GetOrAdd(6, func);
+        }
+
+        [Benchmark(OperationsPerInvoke = 24)]
+        public void MemoryCacheGetStringKey()
+        {
+            memoryCache.Get("1");
+            memoryCache.Get("2");
+            memoryCache.Get("3");
+            memoryCache.Get("4");
+            memoryCache.Get("5");
+            memoryCache.Get("6");
+
+            memoryCache.Get("1");
+            memoryCache.Get("2");
+            memoryCache.Get("3");
+            memoryCache.Get("4");
+            memoryCache.Get("5");
+            memoryCache.Get("6");
+
+            memoryCache.Get("1");
+            memoryCache.Get("2");
+            memoryCache.Get("3");
+            memoryCache.Get("4");
+            memoryCache.Get("5");
+            memoryCache.Get("6");
+
+            memoryCache.Get("1");
+            memoryCache.Get("2");
+            memoryCache.Get("3");
+            memoryCache.Get("4");
+            memoryCache.Get("5");
+            memoryCache.Get("6");
         }
     }
 }

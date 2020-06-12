@@ -13,7 +13,7 @@ LRU implementations are intended as an alternative to the System.Runtime.Caching
 | ClassicLru       | Bounded size LRU based with strict ordering.<br><br>Use if ordering is important, but data structures are synchronized with a lock which limits scalability. |
 | ConcurrentLru       |  Bounded size pseudo LRU.<br><br>For when you   want a ConcurrentDictionary, but with bounded size. Maintains psuedo order, but is faster than ClassicLru and not prone to lock contention. |
 | ConcurrentTlru        | Bounded size pseudo LRU, items have TTL.<br><br>Same as ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. |
-| FastConcurrentLru/FastConcurrentTLru      | Same as ConcurrentLru/ConcurrentTLru, but with hit counting logic eliminated making them about 10% faster.   |
+| FastConcurrentLru/FastConcurrentTLru      | Same as ConcurrentLru/ConcurrentTLru, but with hit counting logic eliminated making them betweem 10 and 30% faster.   |
 | SingletonCache      | Cache singletons by key. Discard when not in use. <br><br> Cache a semaphore per user, where user population is large, but active user count is low.   |
 
 # Performance
@@ -34,15 +34,15 @@ Intel Core i7-5600U CPU 2.60GHz (Broadwell), 1 CPU, 4 logical and 2 physical cor
 Job=RyuJitX64  Jit=RyuJit  Platform=X64
 ~~~
 
-|                       Method |      Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|----------------------------- |----------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
-|           DictionaryGetOrAdd |  18.30 ns | 0.208 ns | 0.195 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-|               DateTimeUtcNow |  99.66 ns | 1.003 ns | 0.890 ns |  5.45 |    0.09 |      - |     - |     - |         - |
-|         MemoryCacheGetIntKey | 324.41 ns | 5.246 ns | 4.651 ns | 17.73 |    0.36 | 0.0153 |     - |     - |      32 B |
-|      MemoryCacheGetStringKey | 299.24 ns | 5.666 ns | 4.732 ns | 16.35 |    0.35 | 0.0153 |     - |     - |      32 B |
-| ConcurrentLruNoCountGetOrAdd |  25.78 ns | 0.497 ns | 0.415 ns |  1.41 |    0.03 |      - |     - |     - |         - |
-|        ConcurrentLruGetOrAdd |  33.72 ns | 0.669 ns | 0.559 ns |  1.84 |    0.03 |      - |     - |     - |         - |
-|       ConcurrentTLruGetOrAdd | 137.25 ns | 2.713 ns | 2.538 ns |  7.50 |    0.18 |      - |     - |     - |         - |
+|                     Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
+|--------------------------- |----------:|---------:|---------:|------:|-------:|----------:|
+|         DictionaryGetOrAdd |  16.54 ns | 0.359 ns | 0.353 ns |  1.00 |      - |         - |
+|  FastConcurrentLruGetOrAdd |  22.98 ns | 0.453 ns | 0.719 ns |  1.39 |      - |         - |
+|      ConcurrentLruGetOrAdd |  32.96 ns | 0.697 ns | 1.544 ns |  2.05 |      - |         - |
+| FastConcurrentTLruGetOrAdd | 118.62 ns | 2.406 ns | 3.746 ns |  7.29 |      - |         - |
+|     ConcurrentTLruGetOrAdd | 141.19 ns | 3.454 ns | 9.627 ns |  8.41 |      - |         - |
+|         ClassicLruGetOrAdd |  61.66 ns | 2.215 ns | 6.462 ns |  3.69 |      - |         - |
+|    MemoryCacheGetStringKey | 275.07 ns | 5.461 ns | 4.264 ns | 16.73 | 0.0153 |      32 B |
 
 ### Lookup speed with queue cycling
 
@@ -58,16 +58,18 @@ Intel Core i7-5600U CPU 2.60GHz (Broadwell), 1 CPU, 4 logical and 2 physical cor
 Job=RyuJitX64  Jit=RyuJit  Platform=X64
 ~~~
 
-|                       Method |      Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|----------------------------- |----------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
-| ConcurrentDictionaryGetOrAdd |  17.75 ns | 0.264 ns | 0.206 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-|      MemoryCacheGetStringKey | 303.91 ns | 5.963 ns | 5.578 ns | 17.07 |    0.41 | 0.0153 |     - |     - |      32 B |
-|           ClassicLruGetOrAdd |  73.06 ns | 1.249 ns | 1.282 ns |  4.12 |    0.11 |      - |     - |     - |         - |
-|        ConcurrentLruGetOrAdd |  35.00 ns | 0.452 ns | 0.377 ns |  1.97 |    0.03 |      - |     - |     - |         - |
-|       ConcurrentTLruGetOrAdd | 143.92 ns | 2.776 ns | 2.727 ns |  8.09 |    0.14 |      - |     - |     - |         - |
+|                       Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
+|----------------------------- |----------:|---------:|---------:|------:|-------:|----------:|
+| ConcurrentDictionaryGetOrAdd |  15.94 ns | 0.308 ns | 0.342 ns |  1.00 |      - |         - |
+|    FastConcurrentLruGetOrAdd |  22.01 ns | 0.427 ns | 0.555 ns |  1.39 |      - |         - |
+|        ConcurrentLruGetOrAdd |  32.98 ns | 0.643 ns | 1.038 ns |  2.06 |      - |         - |
+|   FastConcurrentTLruGetOrAdd | 120.79 ns | 2.247 ns | 3.994 ns |  7.59 |      - |         - |
+|       ConcurrentTLruGetOrAdd | 136.76 ns | 2.619 ns | 3.497 ns |  8.60 |      - |         - |
+|           ClassicLruGetOrAdd |  62.69 ns | 1.054 ns | 0.880 ns |  3.93 |      - |         - |
+|      MemoryCacheGetStringKey | 273.82 ns | 2.970 ns | 2.319 ns | 17.14 | 0.0153 |      32 B |
 
 ## Meta-programming using structs for JIT dead code removal and inlining
 
-ConcurrentLru features injectable policies defined as structs. Since structs are subject to special optimizations by the JITter, the implementation is much faster than if these policies were defined as classes. Using this technique, lookups without TTL are within 15% of the speed of a ConcurrentDictionary.
+TemplateConcurrentLru features injectable policies defined as structs. Since structs are subject to special optimizations by the JITter, the implementation is much faster than if these policies were defined as classes. Using this technique, lookups without TTL are within 15% of the speed of a ConcurrentDictionary.
 
 Since DateTime.UtcNow is around 4x slower than a ConcurrentDictionary lookup, policies that involve time based expiry are significantly slower. Since these are injected as structs and the slow code is optimized away, it is possible maintain the fastest possible speed for the non-TTL policy.

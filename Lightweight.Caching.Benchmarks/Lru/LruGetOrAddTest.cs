@@ -15,16 +15,12 @@ namespace Lightweight.Caching.Benchmarks
     public class LruGetOrAddTest
     {
         private static readonly ConcurrentDictionary<int, int> dictionary = new ConcurrentDictionary<int, int>(8, 9, EqualityComparer<int>.Default);
-         
-        private static readonly ConcurrentLruTemplate<int, int, LruItem<int, int>, LruPolicy<int, int>, NullHitCounter> templateConcurrentLru 
-            = new ConcurrentLruTemplate<int, int, LruItem<int, int>, LruPolicy<int, int>, NullHitCounter>(
-                8, 9, EqualityComparer<int>.Default, new LruPolicy<int, int>(), new NullHitCounter());
 
-        private static readonly ConcurrentLru<int, int> concurrentLru 
-            = new ConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
-
-        private static readonly ConcurrentTLru<int, int> concurrentTlru
-            = new ConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(10));
+        private static readonly ClassicLru<int, int> classicLru = new ClassicLru<int, int>(8, 9, EqualityComparer<int>.Default);
+        private static readonly ConcurrentLru<int, int> concurrentLru = new ConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
+        private static readonly ConcurrentTLru<int, int> concurrentTlru = new ConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(10));
+        private static readonly FastConcurrentLru<int, int> fastConcurrentLru = new FastConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
+        private static readonly FastConcurrentTLru<int, int> fastConcurrentTLru = new FastConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
 
         private static readonly int key = 1;
         private static MemoryCache memoryCache = MemoryCache.Default;
@@ -36,35 +32,23 @@ namespace Lightweight.Caching.Benchmarks
         }
 
         [Benchmark(Baseline = true)]
-        public void DictionaryGetOrAdd()
+        public void ConcurrentDictionaryGetOrAdd()
         {
             Func<int, int> func = x => x;
             dictionary.GetOrAdd(1, func);
         }
 
-        [Benchmark()]
-        public DateTime DateTimeUtcNow()
-        {
-            return DateTime.UtcNow;
-        }
+        //[Benchmark()]
+        //public DateTime DateTimeUtcNow()
+        //{
+        //    return DateTime.UtcNow;
+        //}
 
         [Benchmark()]
-        public void MemoryCacheGetIntKey()
-        {
-            memoryCache.Get(key.ToString());
-        }
-
-        [Benchmark()]
-        public void MemoryCacheGetStringKey()
-        {
-            memoryCache.Get("1");
-        }
-
-        [Benchmark()]
-        public void ConcurrentLruNoCountGetOrAdd()
+        public void FastConcurrentLruGetOrAdd()
         {
             Func<int, int> func = x => x;
-            templateConcurrentLru.GetOrAdd(1, func);
+            fastConcurrentLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
@@ -75,10 +59,36 @@ namespace Lightweight.Caching.Benchmarks
         }
 
         [Benchmark()]
+        public void FastConcurrentTLruGetOrAdd()
+        {
+            Func<int, int> func = x => x;
+            fastConcurrentTLru.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
         public void ConcurrentTLruGetOrAdd()
         {
             Func<int, int> func = x => x;
             concurrentTlru.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void ClassicLruGetOrAdd()
+        {
+            Func<int, int> func = x => x;
+            classicLru.GetOrAdd(1, func);
+        }
+
+        //[Benchmark()]
+        //public void MemoryCacheGetIntKey()
+        //{
+        //    memoryCache.Get(key.ToString());
+        //}
+
+        [Benchmark()]
+        public void MemoryCacheGetStringKey()
+        {
+            memoryCache.Get("1");
         }
     }
 }
