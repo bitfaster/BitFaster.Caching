@@ -31,7 +31,7 @@ namespace Lightweight.Caching
 		public Handle Acquire(TKey key)
 		{
 			var refCount = this.cache.AddOrUpdate(key,
-					(_) => new ReferenceCount<TValue>(),
+					(_) => new ReferenceCount<TValue>(new TValue()),
 					(_, existingRefCount) => existingRefCount.IncrementCopy());
 
 			return new Handle(key, refCount.Value, this);

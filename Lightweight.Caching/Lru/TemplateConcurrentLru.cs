@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Lightweight.Caching.Lru
 {
-	public class ConcurrentLruTemplate<K, V, I, P, H> : ICache<K, V>
+	public class TemplateConcurrentLru<K, V, I, P, H> : ICache<K, V>
 		where I : LruItem<K, V>
 		where P : struct, IPolicy<K, V, I>
 		where H : struct, IHitCounter
@@ -34,7 +34,7 @@ namespace Lightweight.Caching.Lru
 		// if mutate methods are called. Therefore, field must be mutable to maintain count.
 		protected H hitCounter;
 
-		public ConcurrentLruTemplate(
+		public TemplateConcurrentLru(
 			int concurrencyLevel,
 			int capacity,
 			IEqualityComparer<K> comparer,
@@ -57,8 +57,6 @@ namespace Lightweight.Caching.Lru
 		}
 
 		public int Count => this.hotCount + this.warmCount + this.coldCount;
-
-		
 
 		public int HotCount => this.hotCount;
 

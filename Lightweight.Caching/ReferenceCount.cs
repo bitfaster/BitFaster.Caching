@@ -8,21 +8,21 @@ namespace Lightweight.Caching
 	/// A reference counting class suitable for use with compare and swap algorithms.
 	/// </summary>
 	/// <typeparam name="TValue">The value type.</typeparam>
-	public class ReferenceCount<TValue> where TValue : new()
+	public class ReferenceCount<TValue>
 	{
 		private readonly TValue value;
-		private readonly int referenceCount;
+		private readonly int count;
 
-		public ReferenceCount()
+		public ReferenceCount(TValue value)
 		{
-			this.value = new TValue();
-			this.referenceCount = 1;
+			this.value = value;
+			this.count = 1;
 		}
 
 		private ReferenceCount(TValue value, int referenceCount)
 		{
 			this.value = value;
-			this.referenceCount = referenceCount;
+			this.count = referenceCount;
 		}
 
 		public TValue Value
@@ -37,29 +37,29 @@ namespace Lightweight.Caching
 		{
 			get
 			{
-				return this.referenceCount;
+				return this.count;
 			}
 		}
 
 		public override int GetHashCode()
 		{
-			return this.value.GetHashCode() ^ this.referenceCount;
+			return this.value.GetHashCode() ^ this.count;
 		}
 
 		public override bool Equals(object obj)
 		{
 			ReferenceCount<TValue> refCount = obj as ReferenceCount<TValue>;
-			return refCount != null && refCount.Value != null && refCount.Value.Equals(this.value) && refCount.referenceCount == this.referenceCount;
+			return refCount != null && refCount.Value != null && refCount.Value.Equals(this.value) && refCount.count == this.count;
 		}
 
 		public ReferenceCount<TValue> IncrementCopy()
 		{
-			return new ReferenceCount<TValue>(this.value, this.referenceCount + 1);
+			return new ReferenceCount<TValue>(this.value, this.count + 1);
 		}
 
 		public ReferenceCount<TValue> DecrementCopy()
 		{
-			return new ReferenceCount<TValue>(this.value, this.referenceCount - 1);
+			return new ReferenceCount<TValue>(this.value, this.count - 1);
 		}
 	}
 }

@@ -10,9 +10,9 @@ using Xunit;
 
 namespace Lightweight.Caching.UnitTests.Lru
 {
-    public class TlruPolicyTests
+    public class TLruPolicyTests
     {
-        private readonly TlruPolicy<int, int> policy = new TlruPolicy<int, int>(TimeSpan.FromSeconds(10));
+        private readonly TLruPolicy<int, int> policy = new TLruPolicy<int, int>(TimeSpan.FromSeconds(10));
 
         [Fact]
         public void CreateItemInitializesKeyAndValue()

@@ -11,11 +11,11 @@ namespace Lightweight.Caching.Lru
     /// Time aware Least Recently Used (TLRU) is a variant of LRU which discards the least 
     /// recently used items first, and any item that has expired.
     /// </summary>
-    public readonly struct TlruPolicy<K, V> : IPolicy<K, V, TimeStampedLruItem<K, V>>
+    public readonly struct TLruPolicy<K, V> : IPolicy<K, V, TimeStampedLruItem<K, V>>
     {
         private readonly TimeSpan timeToLive;
 
-        public TlruPolicy(TimeSpan timeToLive)
+        public TLruPolicy(TimeSpan timeToLive)
         {
             this.timeToLive = timeToLive;
         }
