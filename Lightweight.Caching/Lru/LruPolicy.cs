@@ -7,7 +7,10 @@ using System.Threading.Tasks;
 
 namespace Lightweight.Caching.Lru
 {
-	public readonly struct InfiniteTtl<K, V> : IPolicy<K, V, LruItem<K, V>>
+	/// <summary>
+	/// Discards the least recently used items first. 
+	/// </summary>
+	public readonly struct LruPolicy<K, V> : IPolicy<K, V, LruItem<K, V>>
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public LruItem<K, V> CreateItem(K key, V value)

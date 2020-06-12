@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Lightweight.Caching.UnitTests
+namespace Lightweight.Caching.UnitTests.Lru
 {
 	public class ConcurrentLruTests
 	{

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -12,7 +13,7 @@ namespace Lightweight.Caching.Lru
         private long requestHitCount;
         private long requestTotalCount;
 
-        public double HitRatio => (double)requestHitCount / (double)requestTotalCount;
+        public double HitRatio => requestTotalCount == 0 ? 0 : (double)requestHitCount / (double)requestTotalCount;
 
         public void IncrementTotalCount()
         {

@@ -18,6 +18,9 @@ namespace Lightweight.Caching.Benchmarks.Lru
         private static readonly ConcurrentLru<int, int> concurrentLru
             = new ConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
 
+        private static readonly ConcurrentTLru<int, int> concurrentTLru
+            = new ConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
+
         private static MemoryCache memoryCache = MemoryCache.Default;
 
         [GlobalSetup]
@@ -188,6 +191,41 @@ namespace Lightweight.Caching.Benchmarks.Lru
             concurrentLru.GetOrAdd(4, func);
             concurrentLru.GetOrAdd(5, func);
             concurrentLru.GetOrAdd(6, func);
+        }
+
+        [Benchmark(OperationsPerInvoke = 24)]
+        public void ConcurrentTLruGetOrAdd()
+        {
+            // size is 9, so segment size is 3. 6 items will cause queue cycling
+            // without eviction. Hot => cold when not accessed.
+            Func<int, int> func = x => x;
+            concurrentTLru.GetOrAdd(1, func);
+            concurrentTLru.GetOrAdd(2, func);
+            concurrentTLru.GetOrAdd(3, func);
+            concurrentTLru.GetOrAdd(4, func);
+            concurrentTLru.GetOrAdd(5, func);
+            concurrentTLru.GetOrAdd(6, func);
+
+            concurrentTLru.GetOrAdd(1, func);
+            concurrentTLru.GetOrAdd(2, func);
+            concurrentTLru.GetOrAdd(3, func);
+            concurrentTLru.GetOrAdd(4, func);
+            concurrentTLru.GetOrAdd(5, func);
+            concurrentTLru.GetOrAdd(6, func);
+
+            concurrentTLru.GetOrAdd(1, func);
+            concurrentTLru.GetOrAdd(2, func);
+            concurrentTLru.GetOrAdd(3, func);
+            concurrentTLru.GetOrAdd(4, func);
+            concurrentTLru.GetOrAdd(5, func);
+            concurrentTLru.GetOrAdd(6, func);
+
+            concurrentTLru.GetOrAdd(1, func);
+            concurrentTLru.GetOrAdd(2, func);
+            concurrentTLru.GetOrAdd(3, func);
+            concurrentTLru.GetOrAdd(4, func);
+            concurrentTLru.GetOrAdd(5, func);
+            concurrentTLru.GetOrAdd(6, func);
         }
     }
 }

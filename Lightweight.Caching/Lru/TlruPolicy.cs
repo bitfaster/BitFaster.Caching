@@ -7,11 +7,15 @@ using System.Threading.Tasks;
 
 namespace Lightweight.Caching.Lru
 {
-    public readonly struct SlidingTtl<K, V> : IPolicy<K, V, TimeStampedLruItem<K, V>>
+    /// <summary>
+    /// Time aware Least Recently Used (TLRU) is a variant of LRU which discards the least 
+    /// recently used items first, and any item that has expired.
+    /// </summary>
+    public readonly struct TlruPolicy<K, V> : IPolicy<K, V, TimeStampedLruItem<K, V>>
     {
         private readonly TimeSpan timeToLive;
 
-        public SlidingTtl(TimeSpan timeToLive)
+        public TlruPolicy(TimeSpan timeToLive)
         {
             this.timeToLive = timeToLive;
         }
@@ -26,7 +30,6 @@ namespace Lightweight.Caching.Lru
         public void Touch(TimeStampedLruItem<K, V> item)
         {
             item.WasAccessed = true;
-            item.TimeStamp = DateTime.UtcNow;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
