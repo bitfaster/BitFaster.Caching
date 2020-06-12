@@ -9,9 +9,21 @@ namespace Lightweight.Caching.UnitTests
 	public class SingletonCacheTests
 	{
 		[Fact]
+		public void AcquireWithSameKeyUsingCustomComparerReturnsSameHandle()
+		{
+			var cache = new SingletonCache<string, object>(1, 3, StringComparer.OrdinalIgnoreCase);
+
+			var handle1 = cache.Acquire("foo");
+			var handle2 = cache.Acquire("FOO");
+			handle1.Value.Should().BeSameAs(handle2.Value);
+			handle1.Dispose();
+			handle2.Dispose();
+		}
+
+		[Fact]
 		public void AcquireWithSameKeyReturnsSameHandle()
 		{
-			SingletonCache<string, object> cache = new SingletonCache<string, object>();
+			var cache = new SingletonCache<string, object>();
 
 			var handle1 = cache.Acquire("Foo");
 			var handle2 = cache.Acquire("Foo");
@@ -23,7 +35,7 @@ namespace Lightweight.Caching.UnitTests
 		[Fact]
 		public void AcquireReleaseAcquireReturnsDifferentValue()
 		{
-			SingletonCache<string, object> cache = new SingletonCache<string, object>();
+			var cache = new SingletonCache<string, object>();
 
 			var handle1 = cache.Acquire("Foo");
 			handle1.Dispose();
@@ -34,11 +46,10 @@ namespace Lightweight.Caching.UnitTests
 			handle1.Value.Should().NotBeSameAs(handle2.Value);
 		}
 
-
 		[Fact]
 		public async Task AcquireWithSameKeyOnTwoDifferentThreadsReturnsSameValue()
 		{
-			SingletonCache<string, object> cache = new SingletonCache<string, object>();
+			var cache = new SingletonCache<string, object>();
 
 			EventWaitHandle event1 = new EventWaitHandle(false, EventResetMode.AutoReset);
 			EventWaitHandle event2 = new EventWaitHandle(false, EventResetMode.AutoReset);
@@ -78,7 +89,7 @@ namespace Lightweight.Caching.UnitTests
 		{
 			int count = 0;
 
-			SingletonCache<string, object> cache = new SingletonCache<string, object>();
+			var cache = new SingletonCache<string, object>();
 
 			int maxConcurrency = Environment.ProcessorCount + 1;
 			Task[] tasks = new Task[maxConcurrency];
@@ -103,5 +114,28 @@ namespace Lightweight.Caching.UnitTests
 
 			await Task.WhenAll(tasks);
 		}
+
+		[Fact]
+		public void WhenValueIsDisposableItIsDisposedWhenReleased()
+		{
+			var cache = new SingletonCache<string, DisposeTest>();
+
+			using (var handle = cache.Acquire("Foo"))
+			{
+				DisposeTest.WasDisposed.Should().BeFalse();
+			}
+
+			DisposeTest.WasDisposed.Should().BeTrue();
+		}
+
+		public class DisposeTest : IDisposable
+        {
+			public static bool WasDisposed { get; set; }
+
+            public void Dispose()
+            {
+				WasDisposed = true;
+            }
+        }
 	}
 }

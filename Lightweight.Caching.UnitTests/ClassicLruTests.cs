@@ -44,6 +44,15 @@ namespace Lightweight.Caching.UnitTests
 		}
 
 		[Fact]
+		public void WhenItemIsAddedThenRetrievedHitRatioIsHalf()
+		{
+			lru.GetOrAdd(1, valueFactory.Create);
+			bool result = lru.TryGet(1, out var value);
+
+			lru.HitRatio.Should().Be(0.5);
+		}
+
+		[Fact]
 		public void WhenKeyIsRequestedItIsCreatedAndCached()
 		{
 			var result1 = lru.GetOrAdd(1, valueFactory.Create);

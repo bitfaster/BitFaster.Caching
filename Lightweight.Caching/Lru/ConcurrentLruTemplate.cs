@@ -75,7 +75,7 @@ namespace Lightweight.Caching.Lru
 			{
 				if (this.policy.ShouldDiscard(item))
 				{
-					this.dictionary.TryRemove(item.Key, out var removed);
+					this.Move(item, ItemDestination.Remove);
 					value = default(V);
 					return false;
 				}
@@ -213,13 +213,7 @@ namespace Lightweight.Caching.Lru
 					}
 					else
 					{
-						if (this.dictionary.TryRemove(item.Key, out var removedItem))
-						{
-							if (removedItem.Value is IDisposable d)
-							{
-								d.Dispose();
-							}
-						}
+						this.Move(item, ItemDestination.Remove);
 					}
 				}
 				else
@@ -244,7 +238,13 @@ namespace Lightweight.Caching.Lru
 					Interlocked.Increment(ref this.coldCount);
 					break;
 				case ItemDestination.Remove:
-					this.dictionary.TryRemove(item.Key, out var removedItem);
+					if (this.dictionary.TryRemove(item.Key, out var removedItem))
+					{
+						if (removedItem.Value is IDisposable d)
+						{
+							d.Dispose();
+						}
+					}
 					break;
 			}
 		}

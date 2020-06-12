@@ -16,22 +16,22 @@ namespace Lightweight.Caching
 	public class SingletonCache<TKey, TValue>
 			where TValue : new()
 	{
-		private readonly ConcurrentDictionary<TKey, ReferenceCount> cache;
+		private readonly ConcurrentDictionary<TKey, ReferenceCount<TValue>> cache;
 
 		public SingletonCache()
 		{
-			this.cache = new ConcurrentDictionary<TKey, ReferenceCount>();
+			this.cache = new ConcurrentDictionary<TKey, ReferenceCount<TValue>>();
 		}
 
 		public SingletonCache(int concurrencyLevel, int capacity, IEqualityComparer<TKey> comparer)
 		{
-			this.cache = new ConcurrentDictionary<TKey, ReferenceCount>(concurrencyLevel, capacity, comparer);
+			this.cache = new ConcurrentDictionary<TKey, ReferenceCount<TValue>>(concurrencyLevel, capacity, comparer);
 		}
 
 		public Handle Acquire(TKey key)
 		{
-			ReferenceCount refCount = this.cache.AddOrUpdate(key,
-					(_) => new ReferenceCount(),
+			var refCount = this.cache.AddOrUpdate(key,
+					(_) => new ReferenceCount<TValue>(),
 					(_, existingRefCount) => existingRefCount.IncrementCopy());
 
 			return new Handle(key, refCount.Value, this);
@@ -41,14 +41,14 @@ namespace Lightweight.Caching
 		{
 			while (true)
 			{
-				ReferenceCount oldRefCount = this.cache[key];
-				ReferenceCount newRefCount = oldRefCount.DecrementCopy();
+				var oldRefCount = this.cache[key];
+				var newRefCount = oldRefCount.DecrementCopy();
 				if (this.cache.TryUpdate(key, newRefCount, oldRefCount))
 				{
 					if (newRefCount.Count == 0)
 					{
 						// This will remove from dictionary only if key and the value with ReferenceCount (== 0) matches (under a lock)
-						if (((IDictionary<TKey, ReferenceCount>)this.cache).Remove(new KeyValuePair<TKey, ReferenceCount>(key, newRefCount)))
+						if (((IDictionary<TKey, ReferenceCount<TValue>>)this.cache).Remove(new KeyValuePair<TKey, ReferenceCount<TValue>>(key, newRefCount)))
 						{
 							if (newRefCount.Value is IDisposable d)
 							{
@@ -58,61 +58,6 @@ namespace Lightweight.Caching
 					}
 					break;
 				}
-			}
-		}
-
-		private class ReferenceCount
-		{
-			private readonly TValue value;
-			private readonly int referenceCount;
-
-			public ReferenceCount()
-			{
-				this.value = new TValue();
-				this.referenceCount = 1;
-			}
-
-			private ReferenceCount(TValue value, int referenceCount)
-			{
-				this.value = value;
-				this.referenceCount = referenceCount;
-			}
-
-			public TValue Value
-			{
-				get
-				{
-					return this.value;
-				}
-			}
-
-			public int Count
-			{
-				get
-				{
-					return this.referenceCount;
-				}
-			}
-
-			public override int GetHashCode()
-			{
-				return this.value.GetHashCode() ^ this.referenceCount;
-			}
-
-			public override bool Equals(object obj)
-			{
-				ReferenceCount refCount = obj as ReferenceCount;
-				return refCount != null && refCount.Value != null && refCount.Value.Equals(this.value) && refCount.referenceCount == this.referenceCount;
-			}
-
-			public ReferenceCount IncrementCopy()
-			{
-				return new ReferenceCount(this.value, this.referenceCount + 1);
-			}
-
-			public ReferenceCount DecrementCopy()
-			{
-				return new ReferenceCount(this.value, this.referenceCount - 1);
 			}
 		}
 
