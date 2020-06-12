@@ -4,6 +4,8 @@ A collection of lightweight caching primitives.
 
 LRU implementations are intended as an alternative to the System.Runtime.Caching.MemoryCache family of classes (e.g. HttpRuntime.Cache, System.Web.Caching et. al.), which cause heap allocations when the native object key is not type string.
 
+[![NuGet version](https://badge.fury.io/nu/Lightweight.Caching.svg)](https://badge.fury.io/nu/Lightweight.Caching)
+
 # Overview
 
 | Class | Description | Example use |
