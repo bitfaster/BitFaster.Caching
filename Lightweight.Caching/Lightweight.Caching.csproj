@@ -8,6 +8,7 @@
     <Description>A collection of lightweight caching primitives for .NET</Description>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

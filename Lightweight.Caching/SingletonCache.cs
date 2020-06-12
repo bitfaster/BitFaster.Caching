@@ -10,7 +10,17 @@ namespace Lightweight.Caching
 	public class SingletonCache<TKey, TValue>
 			where TValue : new()
 	{
-		private readonly ConcurrentDictionary<TKey, ReferenceCount> cache = new ConcurrentDictionary<TKey, ReferenceCount>();
+		private readonly ConcurrentDictionary<TKey, ReferenceCount> cache;
+
+		public SingletonCache()
+		{
+			this.cache = new ConcurrentDictionary<TKey, ReferenceCount>();
+		}
+
+		public SingletonCache(int concurrencyLevel, int capacity, IEqualityComparer<TKey> comparer)
+		{
+			this.cache = new ConcurrentDictionary<TKey, ReferenceCount>(concurrencyLevel, capacity, comparer);
+		}
 
 		public Handle Acquire(TKey key)
 		{

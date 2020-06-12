@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Lightweight.Caching.Lru
 {
-    public struct NoHitCounter : IHitCounter
+    public struct NullHitCounter : IHitCounter
     {
         public double HitRatio => 0.0;
 

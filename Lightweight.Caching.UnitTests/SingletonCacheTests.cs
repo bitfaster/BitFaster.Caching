@@ -9,51 +9,51 @@ namespace Lightweight.Caching.UnitTests
 	public class SingletonCacheTests
 	{
 		[Fact]
-		public void LockObjectCache_AcquireReturnsSameLock()
+		public void AcquireWithSameKeyReturnsSameHandle()
 		{
-			SingletonCache<string, object> lockObjectCache = new SingletonCache<string, object>();
+			SingletonCache<string, object> cache = new SingletonCache<string, object>();
 
-			var lock1 = lockObjectCache.Acquire("Foo");
-			var lock2 = lockObjectCache.Acquire("Foo");
-			lock1.Value.Should().BeSameAs(lock2.Value);
-			lock1.Dispose();
-			lock2.Dispose();
+			var handle1 = cache.Acquire("Foo");
+			var handle2 = cache.Acquire("Foo");
+			handle1.Value.Should().BeSameAs(handle2.Value);
+			handle1.Dispose();
+			handle2.Dispose();
 		}
 
 		[Fact]
-		public void LockObjectCache_AcquireReleaseAcquireReturnsDifferentLock()
+		public void AcquireReleaseAcquireReturnsDifferentValue()
 		{
-			SingletonCache<string, object> lockObjectCache = new SingletonCache<string, object>();
+			SingletonCache<string, object> cache = new SingletonCache<string, object>();
 
-			var lock1 = lockObjectCache.Acquire("Foo");
-			lock1.Dispose();
+			var handle1 = cache.Acquire("Foo");
+			handle1.Dispose();
 
-			var lock2 = lockObjectCache.Acquire("Foo");
-			lock2.Dispose();
+			var handle2 = cache.Acquire("Foo");
+			handle2.Dispose();
 
-			lock1.Value.Should().NotBeSameAs(lock2.Value);
+			handle1.Value.Should().NotBeSameAs(handle2.Value);
 		}
 
 
 		[Fact]
-		public void LockObjectCache_SimpleAcquireReleaseOnDifferentThreads()
+		public async Task AcquireWithSameKeyOnTwoDifferentThreadsReturnsSameValue()
 		{
-			SingletonCache<string, object> lockObjectCache = new SingletonCache<string, object>();
+			SingletonCache<string, object> cache = new SingletonCache<string, object>();
 
 			EventWaitHandle event1 = new EventWaitHandle(false, EventResetMode.AutoReset);
 			EventWaitHandle event2 = new EventWaitHandle(false, EventResetMode.AutoReset);
 
-			SingletonCache<string, object>.Handle lock1 = null;
-			SingletonCache<string, object>.Handle lock2 = null;
+			SingletonCache<string, object>.Handle handle1 = null;
+			SingletonCache<string, object>.Handle handle2 = null;
 
 			Task task1 = Task.Run(() =>
 			{
 				event1.WaitOne();
-				lock1 = lockObjectCache.Acquire("Foo");
+				handle1 = cache.Acquire("Foo");
 				event2.Set();
 
 				event1.WaitOne();
-				lock1.Dispose();
+				handle1.Dispose();
 				event2.Set();
 			});
 
@@ -61,24 +61,26 @@ namespace Lightweight.Caching.UnitTests
 			{
 				event1.Set();
 				event2.WaitOne();
-				lock2 = lockObjectCache.Acquire("Foo");
+				handle2 = cache.Acquire("Foo");
 
 				event1.Set();
 				event2.WaitOne();
-				lock2.Dispose();
+				handle2.Dispose();
 			});
 
-			Task.WaitAll(task1, task2);
+			await Task.WhenAll(task1, task2);
 
-			lock1.Value.Should().BeSameAs(lock2.Value);
+			handle1.Value.Should().BeSameAs(handle2.Value);
 		}
 
 		[Fact]
-		public void LockObjectCache_StressTest()
+		public async Task AcquireWithSameKeyOnManyDifferentThreadsReturnsSameValue()
 		{
-			SingletonCache<string, object> lockObjectCache = new SingletonCache<string, object>();
+			int count = 0;
 
-			int maxConcurrency = 10;
+			SingletonCache<string, object> cache = new SingletonCache<string, object>();
+
+			int maxConcurrency = Environment.ProcessorCount + 1;
 			Task[] tasks = new Task[maxConcurrency];
 			for (int concurrency = 0; concurrency < maxConcurrency; concurrency++)
 			{
@@ -86,13 +88,20 @@ namespace Lightweight.Caching.UnitTests
 				{
 					for (int i = 0; i < 100000; i++)
 					{
-						using (lockObjectCache.Acquire("Foo"))
+						using (var handle = cache.Acquire("Foo"))
 						{
+							lock (handle.Value)
+							{
+								int result = Interlocked.Increment(ref count);
+								result.Should().Be(1);
+								Interlocked.Decrement(ref count);
+							}
 						}
 					}
 				});
 			}
-			Task.WaitAll(tasks);
+
+			await Task.WhenAll(tasks);
 		}
 	}
 }
