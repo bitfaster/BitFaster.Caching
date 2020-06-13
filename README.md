@@ -21,9 +21,15 @@ LRU implementations are intended as an alternative to the System.Runtime.Caching
 
 ## Lru Benchmarks
 
-### Lookup speed with queue cycling
+### Lookup speed
 
-Cache contains 6 items which are fetched repeatedly, no items are evicted. For LRU caches this measures time spent maintaining item access order. For all other classes (including MemoryCache), it is a pure lookup. FastConcurrentLru does not allocate and is approximately 10x faster than MemoryCache.
+Cache contains 6 items which are fetched repeatedly, no items are evicted. 
+
+- ConcurrentLru family does not move items in the queues, it is just marking as accessed for pure cache hits.
+- ClassicLru must maintain item order, and is internally splicing the fetched item to the head of the linked list.
+- MemoryCache and ConcurrentDictionary represent a pure lookup. This is the best case scenario for MemoryCache, since the lookup key is a string (if the key were a Guid, using MemoryCache adds string conversion overhead). 
+
+FastConcurrentLru does not allocate and is approximately 10x faster than MemoryCache.
 
 ~~~
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.18363.900 (1909/November2018Update/19H2)

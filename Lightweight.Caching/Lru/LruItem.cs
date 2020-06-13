@@ -9,8 +9,9 @@ namespace Lightweight.Caching.Lru
 	public class LruItem<K, V>
 	{
 		private bool wasAccessed;
+        private bool wasRemoved;
 
-		public LruItem(K k, V v)
+        public LruItem(K k, V v)
 		{
 			this.Key = k;
 			this.Value = v;
@@ -25,5 +26,11 @@ namespace Lightweight.Caching.Lru
 			get => this.wasAccessed;
 			set => this.wasAccessed = value;
 		}
-	}
+
+        public bool WasRemoved
+        {
+            get => this.wasRemoved;
+            set => this.wasRemoved = value;
+        }
+    }
 }
