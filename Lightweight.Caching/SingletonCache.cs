@@ -11,8 +11,8 @@ namespace Lightweight.Caching
 	/// Cache a single value for each key, and maintain in memory only the values that have been acquired 
 	/// but not yet released.
 	/// </summary>
-	/// <typeparam name="TKey"></typeparam>
-	/// <typeparam name="TValue"></typeparam>
+	/// <typeparam name="TKey">The type of the key.</typeparam>
+	/// <typeparam name="TValue">The type of the value.</typeparam>
 	public class SingletonCache<TKey, TValue>
 			where TValue : new()
 	{

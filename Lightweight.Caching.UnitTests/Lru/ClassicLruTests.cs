@@ -1,5 +1,5 @@
 ﻿using FluentAssertions;
-using Lightweight.Caching.UnitTests.Lru;
+using Lightweight.Caching.Lru;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Lightweight.Caching.UnitTests
+namespace Lightweight.Caching.UnitTests.Lru
 {
 	public class ClassicLruTests
 	{

@@ -54,6 +54,11 @@ namespace Lightweight.Caching
 
 		public ReferenceCount<TValue> IncrementCopy()
 		{
+			if (this.count < 0)
+			{
+				throw new InvalidOperationException($"{typeof(TValue).Name} is no longer referenced.");
+			}
+
 			return new ReferenceCount<TValue>(this.value, this.count + 1);
 		}
 
