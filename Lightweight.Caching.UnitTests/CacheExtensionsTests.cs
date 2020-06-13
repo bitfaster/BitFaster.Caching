@@ -10,7 +10,7 @@ namespace Lightweight.Caching.UnitTests
     public class CacheExtensionsTests
     {
         private ConcurrentLru<int, Scoped<MemoryStream>> lru 
-            = new ConcurrentLru<int, Scoped<MemoryStream>>(2, 2, EqualityComparer<int>.Default);
+            = new ConcurrentLru<int, Scoped<MemoryStream>>(2, 9, EqualityComparer<int>.Default);
 
         [Fact]
         public void TestGettingLifetime()

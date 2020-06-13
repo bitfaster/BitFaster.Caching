@@ -28,25 +28,18 @@ namespace Lightweight.Caching
 				throw new ObjectDisposedException($"{nameof(T)} is disposed.");
 			}
 
-			try
-            {
-				while (true)
-				{
-					// IncrementCopy will throw InvalidOperationException if the referenced object has no references.
-					// This mitigates the race where the value is disposed after the above check is run.
-					var oldRefCount = this.refCount;
-					var newRefCount = oldRefCount.IncrementCopy();
+			while (true)
+			{
+				// IncrementCopy will throw InvalidOperationException if the referenced object has no references.
+				// This mitigates the race where the value is disposed after the above check is run.
+				var oldRefCount = this.refCount;
+				var newRefCount = oldRefCount.IncrementCopy();
 
-					if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
-					{
-						// When Lease is disposed, it calls DecrementReferenceCount
-						return new Lifetime(oldRefCount.Value, this.DecrementReferenceCount);
-					}
+				if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
+				{
+					// When Lease is disposed, it calls DecrementReferenceCount
+					return new Lifetime(oldRefCount.Value, this.DecrementReferenceCount);
 				}
-			}
-			catch (InvalidOperationException)
-            {
-				throw new ObjectDisposedException($"{nameof(T)} is disposed.");
 			}
 		}
 
