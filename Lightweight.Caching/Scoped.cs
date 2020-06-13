@@ -5,12 +5,18 @@ using System.Threading;
 
 namespace Lightweight.Caching
 {
-	public class ScopedDisposable<T> : IDisposable where T : IDisposable
+	/// <summary>
+	/// A wrapper for IDisposable objects stored in a cache. If the object is used in a long
+	/// running operation and disposed by the cache, the scope can create a lifetime that
+	/// prevents the wrapped object from being diposed until the calling code completes.
+	/// </summary>
+	/// <typeparam name="T">The type of scoped value.</typeparam>
+	public class Scoped<T> : IDisposable where T : IDisposable
     {
 		private ReferenceCount<T> refCount;
 		private bool isDisposed;
 
-        public ScopedDisposable(T value)
+        public Scoped(T value)
         {
             this.refCount = new ReferenceCount<T>(value);
         }

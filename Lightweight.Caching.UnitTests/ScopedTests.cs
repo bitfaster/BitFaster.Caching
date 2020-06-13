@@ -12,7 +12,7 @@ namespace Lightweight.Caching.UnitTests
 		public void WhenScopeIsCreatedThenScopeDisposedLifetimeDisposesValue()
 		{
 			var disposable = new Disposable();
-			var scope = new ScopedDisposable<Disposable>(disposable);
+			var scope = new Scoped<Disposable>(disposable);
 			var lifetime = scope.CreateLifetime();
 
 			scope.Dispose();
@@ -27,7 +27,7 @@ namespace Lightweight.Caching.UnitTests
 		public void WhenScopeIsCreatedThenLifetimeDisposedScopeDisposesValue()
 		{
 			var disposable = new Disposable();
-			var scope = new ScopedDisposable<Disposable>(disposable);
+			var scope = new Scoped<Disposable>(disposable);
 			var lifetime = scope.CreateLifetime();
 
 			lifetime.Dispose();
@@ -43,7 +43,7 @@ namespace Lightweight.Caching.UnitTests
 		public void WhenScopeIsDisposedCreateScopeThrows()
 		{
 			var disposable = new Disposable();
-			var scope = new ScopedDisposable<Disposable>(disposable);
+			var scope = new Scoped<Disposable>(disposable);
 			scope.Dispose();
 
 			scope.Invoking(s => s.CreateLifetime()).Should().Throw<ObjectDisposedException>();
