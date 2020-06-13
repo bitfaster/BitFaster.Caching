@@ -54,6 +54,11 @@ namespace Lightweight.Caching
 
 		public ReferenceCount<TValue> IncrementCopy()
 		{
+			if (this.count < 0 && this.value is IDisposable)
+			{
+				throw new ObjectDisposedException($"{typeof(TValue).Name} is disposed.");
+			}
+
 			return new ReferenceCount<TValue>(this.value, this.count + 1);
 		}
 

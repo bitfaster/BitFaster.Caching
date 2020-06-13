@@ -25,7 +25,31 @@ namespace Lightweight.Caching.UnitTests.Lru
 			this.testOutputHelper = testOutputHelper;
 		}
 
-		[Fact]
+        [Fact]
+        public void WhenConcurrencyIsLessThan1CtorThrows()
+        {
+            Action constructor = () => { var x = new ConcurrentLru<int, string>(0, 3, EqualityComparer<int>.Default); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenCapacityIsLessThan3CtorThrows()
+        {
+            Action constructor = () => { var x = new ConcurrentLru<int, string>(1, 2, EqualityComparer<int>.Default); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenComparerIsNullCtorThrows()
+        {
+            Action constructor = () => { var x = new ConcurrentLru<int, string>(1, 3, null); };
+
+            constructor.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact]
 		public void WhenItemIsAddedCountIsCorrect()
 		{
 			lru.Count.Should().Be(0);

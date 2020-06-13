@@ -8,280 +8,297 @@ using System.Threading.Tasks;
 
 namespace Lightweight.Caching.Lru
 {
-	/// <summary>
-	/// LRU implementation where LRU list is composed of 3 segments: hot, warm and cold. Cost of maintaining
-	/// segments is amortized across requests. Items are only cycled when capacity is exceeded. Pure read does
-	/// not cycle items if all segments are within capacity constraints.
-	/// There are no global locks. On cache miss, a new item is added. Tail items in each segment are dequeued,
-	/// examined, and are either enqueued or discarded.
-	/// </summary>
-	/// <remarks>
-	/// Each segment has a capacity. When segment capacity is exceeded, items are moved as follows:
-	/// 1. New items are added to hot, WasAccessed = false
-	/// 2. When items are accessed, update WasAccessed = true
-	/// 3. When items are moved WasAccessed is set to false.
-	/// 4. When hot is full, hot tail is moved to either Warm or Cold depending on WasAccessed. 
-	/// 5. When warm is full, warm tail is moved to warm head or cold depending on WasAccessed.
-	/// 6. When cold is full, cold tail is moved to warm head or removed from dictionary on depending on WasAccessed.
-	/// </remarks>
-	public class TemplateConcurrentLru<K, V, I, P, H> : ICache<K, V>
-		where I : LruItem<K, V>
-		where P : struct, IPolicy<K, V, I>
-		where H : struct, IHitCounter
-	{
-		private readonly ConcurrentDictionary<K, I> dictionary;
+    /// <summary>
+    /// Pseudo LRU implementation where LRU list is composed of 3 segments: hot, warm and cold. Cost of maintaining
+    /// segments is amortized across requests. Items are only cycled when capacity is exceeded. Pure read does
+    /// not cycle items if all segments are within capacity constraints.
+    /// There are no global locks. On cache miss, a new item is added. Tail items in each segment are dequeued,
+    /// examined, and are either enqueued or discarded.
+    /// This scheme of hot, warm and cold is based on the implementation used in MemCached described online here:
+    /// https://memcached.org/blog/modern-lru/
+    /// </summary>
+    /// <remarks>
+    /// Each segment has a capacity. When segment capacity is exceeded, items are moved as follows:
+    /// 1. New items are added to hot, WasAccessed = false
+    /// 2. When items are accessed, update WasAccessed = true
+    /// 3. When items are moved WasAccessed is set to false.
+    /// 4. When hot is full, hot tail is moved to either Warm or Cold depending on WasAccessed. 
+    /// 5. When warm is full, warm tail is moved to warm head or cold depending on WasAccessed.
+    /// 6. When cold is full, cold tail is moved to warm head or removed from dictionary on depending on WasAccessed.
+    /// </remarks>
+    public class TemplateConcurrentLru<K, V, I, P, H> : ICache<K, V>
+        where I : LruItem<K, V>
+        where P : struct, IPolicy<K, V, I>
+        where H : struct, IHitCounter
+    {
+        private readonly ConcurrentDictionary<K, I> dictionary;
 
-		private readonly ConcurrentQueue<I> hotQueue;
-		private readonly ConcurrentQueue<I> warmQueue;
-		private readonly ConcurrentQueue<I> coldQueue;
+        private readonly ConcurrentQueue<I> hotQueue;
+        private readonly ConcurrentQueue<I> warmQueue;
+        private readonly ConcurrentQueue<I> coldQueue;
 
-		// maintain count outside ConcurrentQueue, since ConcurrentQueue.Count holds a global lock
-		private int hotCount;
-		private int warmCount;
-		private int coldCount;
+        // maintain count outside ConcurrentQueue, since ConcurrentQueue.Count holds a global lock
+        private int hotCount;
+        private int warmCount;
+        private int coldCount;
 
-		private readonly int hotCapacity;
-		private readonly int warmCapacity;
-		private readonly int coldCapacity;
+        private readonly int hotCapacity;
+        private readonly int warmCapacity;
+        private readonly int coldCapacity;
 
-		private readonly P policy;
+        private readonly P policy;
 
-		// Since H is a struct, making it readonly will force the runtime to make defensive copies
-		// if mutate methods are called. Therefore, field must be mutable to maintain count.
-		protected H hitCounter;
+        // Since H is a struct, making it readonly will force the runtime to make defensive copies
+        // if mutate methods are called. Therefore, field must be mutable to maintain count.
+        protected H hitCounter;
 
-		public TemplateConcurrentLru(
-			int concurrencyLevel,
-			int capacity,
-			IEqualityComparer<K> comparer,
-			P itemPolicy,
-			H hitCounter)
-		{
-			this.hotCapacity = capacity / 3;
-			this.warmCapacity = capacity / 3;
-			this.coldCapacity = capacity / 3;
-
-			this.hotQueue = new ConcurrentQueue<I>();
-			this.warmQueue = new ConcurrentQueue<I>();
-			this.coldQueue = new ConcurrentQueue<I>();
-
-			int dictionaryCapacity = this.hotCapacity + this.warmCapacity + this.coldCapacity + 1;
-
-			this.dictionary = new ConcurrentDictionary<K, I>(concurrencyLevel, dictionaryCapacity, comparer);
-			this.policy = itemPolicy;
-			this.hitCounter = hitCounter;
-		}
-
-		public int Count => this.dictionary.Count;
-
-		public int HotCount => this.hotCount;
-
-		public int WarmCount => this.warmCount;
-
-		public int ColdCount => this.coldCount;
-
-		public bool TryGet(K key, out V value)
-		{
-			this.hitCounter.IncrementTotalCount();
-
-			I item;
-			if (dictionary.TryGetValue(key, out item))
-			{
-				if (this.policy.ShouldDiscard(item))
-				{
-					this.Move(item, ItemDestination.Remove);
-					value = default(V);
-					return false;
-				}
-
-				value = item.Value;
-				this.policy.Touch(item);
-				this.hitCounter.IncrementHitCount();
-				return true;
-			}
-
-			value = default(V);
-			return false;
-		}
-
-		public V GetOrAdd(K key, Func<K, V> valueFactory)
-		{
-			if (this.TryGet(key, out var value))
-			{
-				return value;
-			}
-
-			// The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-			// This is identical logic to the ConcurrentDictionary.GetOrAdd method.
-			var newItem = this.policy.CreateItem(key, valueFactory(key));
-
-			if (this.dictionary.TryAdd(key, newItem))
-			{
-				this.hotQueue.Enqueue(newItem);
-				Interlocked.Increment(ref hotCount);
-				Cycle();
-				return newItem.Value;
-			}
-
-			return this.GetOrAdd(key, valueFactory);
-		}
-
-		public async Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
-		{
-			if (this.TryGet(key, out var value))
-			{
-				return value;
-			}
-
-			// The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-			// This is identical logic to the ConcurrentDictionary.GetOrAdd method.
-			var newItem = this.policy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
-
-			if (this.dictionary.TryAdd(key, newItem))
-			{
-				this.hotQueue.Enqueue(newItem);
-				Interlocked.Increment(ref hotCount);
-				Cycle();
-				return newItem.Value;
-			}
-
-			return await this.GetOrAddAsync(key, valueFactory).ConfigureAwait(false);
-		}
-
-		public bool TryRemove(K key)
-		{
-			if (this.dictionary.TryRemove(key, out var removedItem))
+        public TemplateConcurrentLru(
+            int concurrencyLevel,
+            int capacity,
+            IEqualityComparer<K> comparer,
+            P itemPolicy,
+            H hitCounter)
+        {
+            if (capacity < 1)
             {
-				// Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
-				// from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
-				// from the queue.
-				removedItem.WasAccessed = false;
-
-				if (removedItem.Value is IDisposable d)
-				{
-					d.Dispose();
-				}
-
-				return true;
+                throw new ArgumentOutOfRangeException("Capacity must be greater than or equal to 3.");
             }
 
-			return false;
-		}
+            if (capacity < 3)
+            {
+                throw new ArgumentOutOfRangeException("Capacity must be greater than or equal to 3.");
+            }
 
-		private void Cycle()
-		{
-			// There will be races when queue count == queue capacity. Two threads may each dequeue items.
-			// This will prematurely free slots for the next caller. Each thread will still only cycle at most 5 items.
-			// Since TryDequeue is thread safe, only 1 thread can dequeue each item. Thus counts and queue state will always
-			// converge on correct over time.
-			CycleHot();
+            if (comparer == null)
+            {
+                throw new ArgumentNullException(nameof(comparer));
+            }    
 
-			// Multi-threaded stress tests show that due to races, the warm and cold count can increase beyond capacity when
-			// hit rate is very high. Double cycle results in stable count under all conditions. When contention is low, 
-			// secondary cycles have no effect.
-			CycleWarm();
-			CycleWarm();
-			CycleCold();
-			CycleCold();
-		}
+            this.hotCapacity = capacity / 3;
+            this.warmCapacity = capacity / 3;
+            this.coldCapacity = capacity / 3;
 
-		private void CycleHot()
-		{
-			if (this.hotCount > this.hotCapacity)
-			{
-				Interlocked.Decrement(ref this.hotCount);
+            this.hotQueue = new ConcurrentQueue<I>();
+            this.warmQueue = new ConcurrentQueue<I>();
+            this.coldQueue = new ConcurrentQueue<I>();
 
-				if (this.hotQueue.TryDequeue(out var item))
-				{
-					var where = this.policy.RouteHot(item);
-					this.Move(item, where);
-				}
-				else
-				{
-					Interlocked.Increment(ref this.hotCount);
-				}
-			}
-		}
+            int dictionaryCapacity = this.hotCapacity + this.warmCapacity + this.coldCapacity + 1;
 
-		private void CycleWarm()
-		{
-			if (this.warmCount > this.warmCapacity)
-			{
-				Interlocked.Decrement(ref this.warmCount);
+            this.dictionary = new ConcurrentDictionary<K, I>(concurrencyLevel, dictionaryCapacity, comparer);
+            this.policy = itemPolicy;
+            this.hitCounter = hitCounter;
+        }
 
-				if (this.warmQueue.TryDequeue(out var item))
-				{
-					var where = this.policy.RouteWarm(item);
+        public int Count => this.dictionary.Count;
 
-					// When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
-					// This only happens when hit rate is high, in which case we can consider all items relatively equal in
-					// terms of which was least recently used.
-					if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
-					{
-						this.Move(item, where);
-					}
-					else
-					{
-						this.Move(item, ItemDestination.Cold);
-					}
-				}
-				else
-				{
-					Interlocked.Increment(ref this.warmCount);
-				}
-			}
-		}
+        public int HotCount => this.hotCount;
 
-		private void CycleCold()
-		{
-			if (this.coldCount > this.coldCapacity)
-			{
-				Interlocked.Decrement(ref this.coldCount);
+        public int WarmCount => this.warmCount;
 
-				if (this.coldQueue.TryDequeue(out var item))
-				{
-					var where = this.policy.RouteCold(item);
+        public int ColdCount => this.coldCount;
 
-					if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
-					{
-						this.Move(item, where);
-					}
-					else
-					{
-						this.Move(item, ItemDestination.Remove);
-					}
-				}
-				else
-				{
-					Interlocked.Increment(ref this.coldCount);
-				}
-			}
-		}
+        public bool TryGet(K key, out V value)
+        {
+            this.hitCounter.IncrementTotalCount();
 
-		private void Move(I item, ItemDestination where)
-		{
-			item.WasAccessed = false;
+            I item;
+            if (dictionary.TryGetValue(key, out item))
+            {
+                if (this.policy.ShouldDiscard(item))
+                {
+                    this.Move(item, ItemDestination.Remove);
+                    value = default(V);
+                    return false;
+                }
 
-			switch (where)
-			{
-				case ItemDestination.Warm:
-					this.warmQueue.Enqueue(item);
-					Interlocked.Increment(ref this.warmCount);
-					break;
-				case ItemDestination.Cold:
-					this.coldQueue.Enqueue(item);
-					Interlocked.Increment(ref this.coldCount);
-					break;
-				case ItemDestination.Remove:
-					if (this.dictionary.TryRemove(item.Key, out var removedItem))
-					{
-						if (removedItem.Value is IDisposable d)
-						{
-							d.Dispose();
-						}
-					}
-					break;
-			}
-		}
-	}
+                value = item.Value;
+                this.policy.Touch(item);
+                this.hitCounter.IncrementHitCount();
+                return true;
+            }
+
+            value = default(V);
+            return false;
+        }
+
+        public V GetOrAdd(K key, Func<K, V> valueFactory)
+        {
+            if (this.TryGet(key, out var value))
+            {
+                return value;
+            }
+
+            // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+            // This is identical logic to the ConcurrentDictionary.GetOrAdd method.
+            var newItem = this.policy.CreateItem(key, valueFactory(key));
+
+            if (this.dictionary.TryAdd(key, newItem))
+            {
+                this.hotQueue.Enqueue(newItem);
+                Interlocked.Increment(ref hotCount);
+                Cycle();
+                return newItem.Value;
+            }
+
+            return this.GetOrAdd(key, valueFactory);
+        }
+
+        public async Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
+        {
+            if (this.TryGet(key, out var value))
+            {
+                return value;
+            }
+
+            // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+            // This is identical logic to the ConcurrentDictionary.GetOrAdd method.
+            var newItem = this.policy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
+
+            if (this.dictionary.TryAdd(key, newItem))
+            {
+                this.hotQueue.Enqueue(newItem);
+                Interlocked.Increment(ref hotCount);
+                Cycle();
+                return newItem.Value;
+            }
+
+            return await this.GetOrAddAsync(key, valueFactory).ConfigureAwait(false);
+        }
+
+        public bool TryRemove(K key)
+        {
+            if (this.dictionary.TryRemove(key, out var removedItem))
+            {
+                // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
+                // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
+                // from the queue.
+                removedItem.WasAccessed = false;
+
+                if (removedItem.Value is IDisposable d)
+                {
+                    d.Dispose();
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private void Cycle()
+        {
+            // There will be races when queue count == queue capacity. Two threads may each dequeue items.
+            // This will prematurely free slots for the next caller. Each thread will still only cycle at most 5 items.
+            // Since TryDequeue is thread safe, only 1 thread can dequeue each item. Thus counts and queue state will always
+            // converge on correct over time.
+            CycleHot();
+
+            // Multi-threaded stress tests show that due to races, the warm and cold count can increase beyond capacity when
+            // hit rate is very high. Double cycle results in stable count under all conditions. When contention is low, 
+            // secondary cycles have no effect.
+            CycleWarm();
+            CycleWarm();
+            CycleCold();
+            CycleCold();
+        }
+
+        private void CycleHot()
+        {
+            if (this.hotCount > this.hotCapacity)
+            {
+                Interlocked.Decrement(ref this.hotCount);
+
+                if (this.hotQueue.TryDequeue(out var item))
+                {
+                    var where = this.policy.RouteHot(item);
+                    this.Move(item, where);
+                }
+                else
+                {
+                    Interlocked.Increment(ref this.hotCount);
+                }
+            }
+        }
+
+        private void CycleWarm()
+        {
+            if (this.warmCount > this.warmCapacity)
+            {
+                Interlocked.Decrement(ref this.warmCount);
+
+                if (this.warmQueue.TryDequeue(out var item))
+                {
+                    var where = this.policy.RouteWarm(item);
+
+                    // When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
+                    // This only happens when hit rate is high, in which case we can consider all items relatively equal in
+                    // terms of which was least recently used.
+                    if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
+                    {
+                        this.Move(item, where);
+                    }
+                    else
+                    {
+                        this.Move(item, ItemDestination.Cold);
+                    }
+                }
+                else
+                {
+                    Interlocked.Increment(ref this.warmCount);
+                }
+            }
+        }
+
+        private void CycleCold()
+        {
+            if (this.coldCount > this.coldCapacity)
+            {
+                Interlocked.Decrement(ref this.coldCount);
+
+                if (this.coldQueue.TryDequeue(out var item))
+                {
+                    var where = this.policy.RouteCold(item);
+
+                    if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
+                    {
+                        this.Move(item, where);
+                    }
+                    else
+                    {
+                        this.Move(item, ItemDestination.Remove);
+                    }
+                }
+                else
+                {
+                    Interlocked.Increment(ref this.coldCount);
+                }
+            }
+        }
+
+        private void Move(I item, ItemDestination where)
+        {
+            item.WasAccessed = false;
+
+            switch (where)
+            {
+                case ItemDestination.Warm:
+                    this.warmQueue.Enqueue(item);
+                    Interlocked.Increment(ref this.warmCount);
+                    break;
+                case ItemDestination.Cold:
+                    this.coldQueue.Enqueue(item);
+                    Interlocked.Increment(ref this.coldCount);
+                    break;
+                case ItemDestination.Remove:
+                    if (this.dictionary.TryRemove(item.Key, out var removedItem))
+                    {
+                        if (removedItem.Value is IDisposable d)
+                        {
+                            d.Dispose();
+                        }
+                    }
+                    break;
+            }
+        }
+    }
 }

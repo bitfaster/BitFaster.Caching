@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Lightweight.Caching
+namespace Lightweight.Caching.Lru
 {
 	/// <summary>
 	/// LRU implementation where Lookup operations are backed by a ConcurrentDictionary and the LRU list is protected

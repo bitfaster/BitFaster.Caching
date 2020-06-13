@@ -15,7 +15,7 @@ namespace Lightweight.Caching.Benchmarks
         static void Main(string[] args)
         {
             var summary = BenchmarkRunner
-                .Run<LruGetOrAddTest>(ManualConfig.Create(DefaultConfig.Instance)
+                .Run<LruCycle>(ManualConfig.Create(DefaultConfig.Instance)
                 .AddJob(Job.RyuJitX64));
         }
     }
