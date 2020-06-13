@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Lightweight.Caching.Lru;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -47,6 +48,34 @@ namespace Lightweight.Caching.UnitTests
             scope.Dispose();
 
             scope.Invoking(s => s.CreateLifetime()).Should().Throw<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public void WhenScopeIsCreatedFromCacheLifetimeCanBeCreatedAndDisposed()
+        {
+            var lru = new ConcurrentLru<int, Scoped<Disposable>>(2, 9, EqualityComparer<int>.Default);
+            var valueFactory = new DisposableValueFactory();
+
+            using (var lifetime = lru.GetOrAdd(1, valueFactory.Create).CreateLifetime())
+            {
+                lifetime.Value.IsDisposed.Should().BeFalse();
+            }
+
+            valueFactory.Disposable.IsDisposed.Should().BeFalse();
+
+            lru.TryRemove(1);
+
+            valueFactory.Disposable.IsDisposed.Should().BeTrue();
+        }
+
+        private class DisposableValueFactory
+        {
+            public Disposable Disposable { get; } = new Disposable();
+
+            public Scoped<Disposable> Create(int key)
+            {
+                return new Scoped<Disposable>(this.Disposable);
+            }
         }
 
         private class Disposable : IDisposable

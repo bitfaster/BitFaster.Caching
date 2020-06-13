@@ -9,11 +9,13 @@ using System.Threading.Tasks;
 namespace Lightweight.Caching.Lru
 {
 	/// <summary>
-	/// LRU implementation where LRU list is composed of 3 segments: hot, warm and cold. Cost of maintaining
+	/// Pseudo LRU implementation where LRU list is composed of 3 segments: hot, warm and cold. Cost of maintaining
 	/// segments is amortized across requests. Items are only cycled when capacity is exceeded. Pure read does
 	/// not cycle items if all segments are within capacity constraints.
 	/// There are no global locks. On cache miss, a new item is added. Tail items in each segment are dequeued,
 	/// examined, and are either enqueued or discarded.
+	/// This scheme of hot, warm and cold is based on the implementation used in MemCached described online here:
+	/// https://memcached.org/blog/modern-lru/
 	/// </summary>
 	/// <remarks>
 	/// Each segment has a capacity. When segment capacity is exceeded, items are moved as follows:
