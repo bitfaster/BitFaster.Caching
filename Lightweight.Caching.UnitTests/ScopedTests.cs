@@ -51,7 +51,7 @@ namespace Lightweight.Caching.UnitTests
         }
 
         [Fact]
-        public void WhenScopeIsCreatedFromCacheLifetimeCanBeCreatedAndDisposed()
+        public void WhenScopedIsCreatedFromCacheItemHasExpectedLifetime()
         {
             var lru = new ConcurrentLru<int, Scoped<Disposable>>(2, 9, EqualityComparer<int>.Default);
             var valueFactory = new DisposableValueFactory();
