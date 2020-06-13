@@ -37,13 +37,13 @@ Job=RyuJitX64  Jit=RyuJit  Platform=X64
 
 |                       Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
 |----------------------------- |----------:|---------:|---------:|------:|-------:|----------:|
-| ConcurrentDictionaryGetOrAdd |  15.94 ns | 0.308 ns | 0.342 ns |  1.00 |      - |         - |
-|    FastConcurrentLruGetOrAdd |  22.01 ns | 0.427 ns | 0.555 ns |  1.39 |      - |         - |
-|        ConcurrentLruGetOrAdd |  32.98 ns | 0.643 ns | 1.038 ns |  2.06 |      - |         - |
-|   FastConcurrentTLruGetOrAdd | 120.79 ns | 2.247 ns | 3.994 ns |  7.59 |      - |         - |
-|       ConcurrentTLruGetOrAdd | 136.76 ns | 2.619 ns | 3.497 ns |  8.60 |      - |         - |
-|           ClassicLruGetOrAdd |  62.69 ns | 1.054 ns | 0.880 ns |  3.93 |      - |         - |
-|      MemoryCacheGetStringKey | 273.82 ns | 2.970 ns | 2.319 ns | 17.14 | 0.0153 |      32 B |
+| ConcurrentDictionaryGetOrAdd |  18.72 ns | 0.289 ns | 0.641 ns |  1.00 |      - |         - |
+|    FastConcurrentLruGetOrAdd |  25.64 ns | 0.434 ns | 0.427 ns |  1.35 |      - |         - |
+|        ConcurrentLruGetOrAdd |  35.53 ns | 0.259 ns | 0.216 ns |  1.86 |      - |         - |
+|   FastConcurrentTLruGetOrAdd | 132.75 ns | 1.493 ns | 1.397 ns |  6.96 |      - |         - |
+|       ConcurrentTLruGetOrAdd | 144.87 ns | 2.179 ns | 1.819 ns |  7.59 |      - |         - |
+|           ClassicLruGetOrAdd |  75.67 ns | 1.513 ns | 1.554 ns |  3.99 |      - |         - |
+|      MemoryCacheGetStringKey | 309.14 ns | 2.155 ns | 1.910 ns | 16.17 | 0.0153 |      32 B |
 
 ## Meta-programming using structs for JIT dead code removal and inlining
 
