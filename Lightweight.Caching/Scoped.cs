@@ -30,7 +30,7 @@ namespace Lightweight.Caching
 
             while (true)
             {
-                // IncrementCopy will throw InvalidOperationException if the referenced object has no references.
+                // IncrementCopy will throw ObjectDisposedException if the referenced object has no references.
                 // This mitigates the race where the value is disposed after the above check is run.
                 var oldRefCount = this.refCount;
                 var newRefCount = oldRefCount.IncrementCopy();
