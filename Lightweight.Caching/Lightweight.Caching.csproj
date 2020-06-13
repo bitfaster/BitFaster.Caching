@@ -11,7 +11,7 @@
     <Version>0.9.1</Version>
     <Copyright>Copyright © Alex Peck 2020</Copyright>
     <PackageProjectUrl></PackageProjectUrl>
-    <RepositoryUrl>https://github.com/plexcake/Lightweight.Caching</RepositoryUrl>
+    <RepositoryUrl>https://github.com/peck-a/Lightweight.Caching</RepositoryUrl>
     <PackageTags>Cache</PackageTags>
   </PropertyGroup>
 
