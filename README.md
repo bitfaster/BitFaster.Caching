@@ -1,21 +1,65 @@
 # ⚡ BitFaster.Caching
 
-High performance, thread safe in-memory caching primitives for .NET.
+High performance, thread-safe in-memory caching primitives for .NET.
 
 LRU implementations are intended as an alternative to the System.Runtime.Caching.MemoryCache family of classes (e.g. HttpRuntime.Cache, System.Web.Caching et. al.). MemoryCache makes heap allocations when the native object key is not type string, and does not offer the fastest possible performance.
 
 [![NuGet version](https://badge.fury.io/nu/BitFaster.Caching.svg)](https://badge.fury.io/nu/BitFaster.Caching)
 
-# Overview
+# Installing via NuGet
+`Install-Package BitFaster.Caching`
+
+# Caching primitives
 
 | Class |  Description |
 |:-------|:---------|
 | ClassicLru       | Bounded size LRU based with strict ordering.<br><br>Use if ordering is important, but data structures are synchronized with a lock which limits scalability. |
 | ConcurrentLru       |  Bounded size pseudo LRU.<br><br>For when you   want a ConcurrentDictionary, but with bounded size. Maintains psuedo order, but is faster than ClassicLru and not prone to lock contention. |
 | ConcurrentTlru        | Bounded size pseudo LRU, items have TTL.<br><br>Same as ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. |
-| FastConcurrentLru/FastConcurrentTLru      | Same as ConcurrentLru/ConcurrentTLru, but with hit counting logic eliminated making them between 10 and 30% faster.   |
+| FastConcurrentLru/FastConcurrentTLru      | Same as ConcurrentLru/ConcurrentTLru, but with hit counting logic eliminated making them  10-30% faster.   |
 | SingletonCache      | Cache singletons by key. Discard when no longer in use. <br><br> For example, cache a SemaphoreSlim per user, where user population is large, but active user count is low.   |
 | Scoped<IDisposable>      | A threadsafe wrapper for storing IDisposable objects in a cache that may dispose and invalidate them. The scope keeps the object alive until all callers have finished.   |
+
+# Usage
+
+## Caching IDisposable objects
+
+All cache classes in BitFaster.Caching own the lifetime of cached values, and will automatically dispose values when they are evicted. 
+
+To avoid races using objects after they have been disposed by the cache, wrap them with `Scoped`. The call to `CreateLifetime` creates a `Lifetime` that guarantees the scoped object will not be disposed until the lifetime is disposed. `Scoped` is thread safe, and lifetimes are valid for concurrent callers. 
+
+```csharp
+var lru = new ConcurrentLru<int, Scoped<SomeDisposable>>(2, 9, EqualityComparer<int>.Default);
+var valueFactory = new SomeDisposableValueFactory();
+
+using (var lifetime = lru.GetOrAdd(1, valueFactory.Create).CreateLifetime())
+{
+    // lifetime.Value is guaranteed to be alive until the lifetime is disposed
+}
+```
+
+## Caching Singletons by key
+
+`SingletonCache` enables mapping every key to a single instance of a value, and keeping the value alive only while it is in use. This is useful when the total number of keys is large, but few will be in use at any moment.
+
+The example below shows how to implement exclusive Url access using a lock object per Url. 
+
+```csharp
+
+var urlLocks = new SingletonCache<Url, object>();
+
+Url url = new Url("https://foo.com");
+
+using (var handle = urlLocks.Acquire(url))
+{
+   lock (handle.Value)
+   {
+      // exclusive url access
+   }
+}
+
+```
+
 
 # Performance
 
