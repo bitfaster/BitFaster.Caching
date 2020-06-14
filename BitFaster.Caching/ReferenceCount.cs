@@ -54,7 +54,7 @@ namespace BitFaster.Caching
 
 		public ReferenceCount<TValue> IncrementCopy()
 		{
-			if (this.count < 0 && this.value is IDisposable)
+			if (this.count <= 0 && this.value is IDisposable)
 			{
 				throw new ObjectDisposedException($"{typeof(TValue).Name} is disposed.");
 			}
