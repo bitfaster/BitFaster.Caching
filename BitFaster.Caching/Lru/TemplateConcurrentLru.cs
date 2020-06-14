@@ -94,8 +94,6 @@ namespace BitFaster.Caching.Lru
 
         public bool TryGet(K key, out V value)
         {
-            this.hitCounter.IncrementTotalCount();
-
             I item;
             if (dictionary.TryGetValue(key, out item))
             {
@@ -108,11 +106,12 @@ namespace BitFaster.Caching.Lru
 
                 value = item.Value;
                 this.policy.Touch(item);
-                this.hitCounter.IncrementHitCount();
+                this.hitCounter.IncrementHit();
                 return true;
             }
 
             value = default(V);
+            this.hitCounter.IncrementMiss();
             return false;
         }
 
@@ -124,7 +123,7 @@ namespace BitFaster.Caching.Lru
             }
 
             // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-            // This is identical logic to the ConcurrentDictionary.GetOrAdd method.
+            // This is identical logic in ConcurrentDictionary.GetOrAdd method.
             var newItem = this.policy.CreateItem(key, valueFactory(key));
 
             if (this.dictionary.TryAdd(key, newItem))
@@ -146,7 +145,7 @@ namespace BitFaster.Caching.Lru
             }
 
             // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-            // This is identical logic to the ConcurrentDictionary.GetOrAdd method.
+            // This is identical logic in ConcurrentDictionary.GetOrAdd method.
             var newItem = this.policy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
 
             if (this.dictionary.TryAdd(key, newItem))
