@@ -10,19 +10,21 @@ namespace BitFaster.Caching.Lru
 {
     public struct HitCounter : IHitCounter
     {
-        private long requestHitCount;
-        private long requestTotalCount;
+        private long hitCount;
+        private long missCount;
 
-        public double HitRatio => requestTotalCount == 0 ? 0 : (double)requestHitCount / (double)requestTotalCount;
+        public double HitRatio => Total == 0 ? 0 : (double)hitCount / (double)Total;
 
-        public void IncrementTotalCount()
+        public long Total => this.hitCount + this.missCount;
+
+        public void IncrementMiss()
         {
-            Interlocked.Increment(ref this.requestTotalCount);
+            Interlocked.Increment(ref this.missCount);
         }
 
-        public void IncrementHitCount()
+        public void IncrementHit()
         {
-            Interlocked.Increment(ref this.requestHitCount);
+            Interlocked.Increment(ref this.hitCount);
         }
     }
 }

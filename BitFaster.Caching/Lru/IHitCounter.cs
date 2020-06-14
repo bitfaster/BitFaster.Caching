@@ -8,9 +8,9 @@ namespace BitFaster.Caching.Lru
 {
     public interface IHitCounter
     {
-        void IncrementTotalCount();
+        void IncrementMiss();
 
-        void IncrementHitCount();
+        void IncrementHit();
 
         double HitRatio { get; }
     }

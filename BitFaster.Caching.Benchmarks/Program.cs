@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Benchmarks
         static void Main(string[] args)
         {
             var summary = BenchmarkRunner
-                .Run<LruCycle2>(ManualConfig.Create(DefaultConfig.Instance)
+                .Run<MissHitHitRemove>(ManualConfig.Create(DefaultConfig.Instance)
                 .AddJob(Job.RyuJitX64));
         }
     }

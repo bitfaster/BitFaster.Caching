@@ -20,13 +20,13 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void IncrementHitCountIsNoOp()
         {
-            counter.Invoking(c => c.IncrementHitCount()).Should().NotThrow();
+            counter.Invoking(c => c.IncrementHit()).Should().NotThrow();
         }
 
         [Fact]
         public void IncrementTotalCountIsNoOp()
         {
-            counter.Invoking(c => c.IncrementTotalCount()).Should().NotThrow();
+            counter.Invoking(c => c.IncrementMiss()).Should().NotThrow();
         }
     }
 }

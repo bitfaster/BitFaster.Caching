@@ -43,15 +43,15 @@ Cache contains 6 items which are fetched repeatedly, no items are evicted. Repre
 
 FastConcurrentLru does not allocate and is approximately 10x faster than MemoryCache.
 
-|                       Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
-|----------------------------- |----------:|---------:|---------:|------:|-------:|----------:|
-| ConcurrentDictionaryGetOrAdd |  18.72 ns | 0.289 ns | 0.641 ns |  1.00 |      - |         - |
-|    FastConcurrentLruGetOrAdd |  25.64 ns | 0.434 ns | 0.427 ns |  1.35 |      - |         - |
-|        ConcurrentLruGetOrAdd |  35.53 ns | 0.259 ns | 0.216 ns |  1.86 |      - |         - |
-|   FastConcurrentTLruGetOrAdd | 132.75 ns | 1.493 ns | 1.397 ns |  6.96 |      - |         - |
-|       ConcurrentTLruGetOrAdd | 144.87 ns | 2.179 ns | 1.819 ns |  7.59 |      - |         - |
-|           ClassicLruGetOrAdd |  75.67 ns | 1.513 ns | 1.554 ns |  3.99 |      - |         - |
-|      MemoryCacheGetStringKey | 309.14 ns | 2.155 ns | 1.910 ns | 16.17 | 0.0153 |      32 B |
+|               Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
+|--------------------- |----------:|---------:|---------:|------:|-------:|----------:|
+| ConcurrentDictionary |  15.83 ns | 0.242 ns | 0.215 ns |  1.00 |      - |         - |
+|    FastConcurrentLru |  20.42 ns | 0.319 ns | 0.283 ns |  1.29 |      - |         - |
+|        ConcurrentLru |  24.59 ns | 0.484 ns | 0.594 ns |  1.56 |      - |         - |
+|   FastConcurrentTLru | 110.76 ns | 0.664 ns | 0.518 ns |  6.98 |      - |         - |
+|       ConcurrentTLru | 114.99 ns | 1.652 ns | 1.465 ns |  7.27 |      - |         - |
+|           ClassicLru |  69.01 ns | 0.503 ns | 0.446 ns |  4.36 |      - |         - |
+|          MemoryCache | 257.83 ns | 4.786 ns | 4.700 ns | 16.30 | 0.0153 |      32 B |
 
 ### Mixed workload
 
@@ -59,16 +59,15 @@ Tests 4 operations, 1 miss (adding the item), 2 hits then remove.
 
 This test needs to be improved to provoke queue cycling.
 
-
 |               Method |       Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
 |--------------------- |-----------:|---------:|---------:|------:|-------:|----------:|
-| ConcurrentDictionary |   178.1 ns |  1.47 ns |  1.23 ns |  1.00 | 0.0381 |      80 B |
-|    FastConcurrentLru |   420.4 ns |  7.52 ns |  6.67 ns |  2.36 | 0.0534 |     112 B |
-|        ConcurrentLru |   423.7 ns |  3.17 ns |  2.64 ns |  2.38 | 0.0534 |     112 B |
-|   FastConcurrentTlru |   941.6 ns |  6.69 ns |  5.93 ns |  5.29 | 0.0572 |     120 B |
-|       ConcurrentTlru |   960.3 ns | 17.73 ns | 14.80 ns |  5.39 | 0.0572 |     120 B |
-|           ClassicLru |   363.5 ns |  3.65 ns |  3.23 ns |  2.04 | 0.0763 |     160 B |
-|          MemoryCache | 2,380.9 ns | 33.22 ns | 27.74 ns | 13.37 | 2.3460 |    4912 B |
+| ConcurrentDictionary |   151.7 ns |  2.34 ns |  1.96 ns |  1.00 | 0.0381 |      80 B |
+|    FastConcurrentLru |   369.2 ns |  7.29 ns |  7.16 ns |  2.44 | 0.0534 |     112 B |
+|        ConcurrentLru |   373.6 ns |  2.97 ns |  2.64 ns |  2.46 | 0.0534 |     112 B |
+|   FastConcurrentTlru |   838.6 ns | 11.49 ns | 13.68 ns |  5.53 | 0.0572 |     120 B |
+|       ConcurrentTlru |   852.7 ns | 16.12 ns | 13.46 ns |  5.62 | 0.0572 |     120 B |
+|           ClassicLru |   347.3 ns |  2.67 ns |  2.08 ns |  2.29 | 0.0763 |     160 B |
+|          MemoryCache | 1,987.5 ns | 38.29 ns | 57.31 ns | 13.15 | 2.3460 |    4912 B |
 
 
 ### LruCycle2
