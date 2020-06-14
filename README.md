@@ -1,6 +1,6 @@
-# ⚡ Lightweight.Caching
+# ⚡ BitFaster.Caching
 
-A collection of lightweight caching primitives.
+High performance, thread safe in-memory caching primitives for .NET.
 
 LRU implementations are intended as an alternative to the System.Runtime.Caching.MemoryCache family of classes (e.g. HttpRuntime.Cache, System.Web.Caching et. al.). MemoryCache makes heap allocations when the native object key is not type string, and does not offer the fastest possible performance.
 
