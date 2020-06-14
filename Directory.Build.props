@@ -3,7 +3,7 @@
   <PropertyGroup>
   	<!-- Work around generated csproj can't find the signing key. -->
     <!-- https://github.com/dotnet/BenchmarkDotNet/issues/836 -->
-    <AssemblyOriginatorKeyFile Condition="EXISTS('..\Lightweight.snk')">..\Lightweight.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile Condition="EXISTS('..\BitFaster.snk')">..\BitFaster.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
 </Project>
