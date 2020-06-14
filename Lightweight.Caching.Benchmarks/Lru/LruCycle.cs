@@ -22,7 +22,7 @@ namespace Lightweight.Caching.Benchmarks.Lru
         private static readonly FastConcurrentLru<int, int> fastConcurrentLru = new FastConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
         private static readonly FastConcurrentTLru<int, int> fastConcurrentTLru = new FastConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
 
-        private static MemoryCache memoryCache = MemoryCache.Default;
+        private static MemoryCache memoryCache = System.Runtime.Caching.MemoryCache.Default;
 
         [GlobalSetup]
         public void GlobalSetup()
