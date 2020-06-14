@@ -59,11 +59,6 @@ namespace BitFaster.Caching.Lru
             P itemPolicy,
             H hitCounter)
         {
-            if (capacity < 1)
-            {
-                throw new ArgumentOutOfRangeException("Capacity must be greater than or equal to 3.");
-            }
-
             if (capacity < 3)
             {
                 throw new ArgumentOutOfRangeException("Capacity must be greater than or equal to 3.");

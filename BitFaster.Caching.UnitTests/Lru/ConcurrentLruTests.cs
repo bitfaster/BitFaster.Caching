@@ -365,29 +365,5 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lru.TryRemove(1);
             }
         }
-
-        private class DisposableItem : IDisposable
-		{
-			public bool IsDisposed { get; private set; }
-
-			public void Dispose()
-			{
-				this.IsDisposed = true;
-			}
-		}
-
-		private class DisposableValueFactory
-		{
-			private Dictionary<int, DisposableItem> items = new Dictionary<int, DisposableItem>();
-
-			public Dictionary<int, DisposableItem> Items => this.items;
-
-			public DisposableItem Create(int key)
-			{
-				var item = new DisposableItem();
-				items.Add(key, item);
-				return item;
-			}
-		}
 	}
 }

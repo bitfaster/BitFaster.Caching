@@ -16,7 +16,31 @@ namespace BitFaster.Caching.UnitTests.Lru
 		private ClassicLru<int, string> lru = new ClassicLru<int, string>(1, capacity, EqualityComparer<int>.Default);
 		ValueFactory valueFactory = new ValueFactory();
 
-		[Fact]
+        [Fact]
+        public void WhenConcurrencyIsLessThan1CtorThrows()
+        {
+            Action constructor = () => { var x = new ClassicLru<int, string>(0, 3, EqualityComparer<int>.Default); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenCapacityIsLessThan3CtorThrows()
+        {
+            Action constructor = () => { var x = new ClassicLru<int, string>(1, 2, EqualityComparer<int>.Default); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenComparerIsNullCtorThrows()
+        {
+            Action constructor = () => { var x = new ClassicLru<int, string>(1, 3, null); };
+
+            constructor.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact]
 		public void WhenItemIsAddedCountIsCorrect()
 		{
 			lru.Count.Should().Be(0);
@@ -149,7 +173,37 @@ namespace BitFaster.Caching.UnitTests.Lru
 			valueFactory.timesCalled.Should().Be(capacity + 2);
 		}
 
-		[Fact]
+        [Fact]
+        public void WhenValueExpiresItIsDisposed()
+        {
+            var lruOfDisposable = new ClassicLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
+            var disposableValueFactory = new DisposableValueFactory();
+
+            for (int i = 0; i < 7; i++)
+            {
+                lruOfDisposable.GetOrAdd(i, disposableValueFactory.Create);
+            }
+
+            disposableValueFactory.Items[0].IsDisposed.Should().BeTrue();
+            disposableValueFactory.Items[1].IsDisposed.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task WhenValueExpiresAsyncItIsDisposed()
+        {
+            var lruOfDisposable = new ClassicLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
+            var disposableValueFactory = new DisposableValueFactory();
+
+            for (int i = 0; i < 7; i++)
+            {
+                await lruOfDisposable.GetOrAddAsync(i, disposableValueFactory.CreateAsync);
+            }
+
+            disposableValueFactory.Items[0].IsDisposed.Should().BeTrue();
+            disposableValueFactory.Items[1].IsDisposed.Should().BeFalse();
+        }
+
+        [Fact]
 		public void WhenKeyDoesNotExistTryGetReturnsFalse()
 		{
 			lru.GetOrAdd(1, valueFactory.Create);
@@ -176,7 +230,19 @@ namespace BitFaster.Caching.UnitTests.Lru
 			lru.TryGet(1, out var value).Should().BeFalse();
 		}
 
-		[Fact]
+        [Fact]
+        public void WhenItemIsRemovedItIsDisposed()
+        {
+            var lruOfDisposable = new ClassicLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
+            var disposableValueFactory = new DisposableValueFactory();
+
+            lruOfDisposable.GetOrAdd(1, disposableValueFactory.Create);
+            lruOfDisposable.TryRemove(1);
+
+            disposableValueFactory.Items[1].IsDisposed.Should().BeTrue();
+        }
+
+        [Fact]
 		public void WhenKeyDoesNotExistTryRemoveReturnsFalse()
 		{
 			lru.GetOrAdd(1, valueFactory.Create);
