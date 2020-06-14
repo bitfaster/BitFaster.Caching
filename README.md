@@ -51,6 +51,18 @@ Job=RyuJitX64  Jit=RyuJit  Platform=X64
 |           ClassicLruGetOrAdd |  75.67 ns | 1.513 ns | 1.554 ns |  3.99 |      - |         - |
 |      MemoryCacheGetStringKey | 309.14 ns | 2.155 ns | 1.910 ns | 16.17 | 0.0153 |      32 B |
 
+MissHitHitRemove
+
+|               Method |       Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
+|--------------------- |-----------:|---------:|---------:|------:|-------:|----------:|
+| ConcurrentDictionary |   175.4 ns |  1.80 ns |  1.50 ns |  1.00 | 0.0381 |      80 B |
+|    FastConcurrentLru |   370.8 ns |  3.86 ns |  3.02 ns |  2.11 | 0.0534 |     112 B |
+|        ConcurrentLru |   379.8 ns |  3.50 ns |  2.93 ns |  2.17 | 0.0534 |     112 B |
+|   FastConcurrentTlru |   891.8 ns | 13.16 ns | 11.67 ns |  5.09 | 0.0572 |     120 B |
+|       ConcurrentTlru |   917.0 ns | 13.07 ns | 16.05 ns |  5.24 | 0.0572 |     120 B |
+|           ClassicLru |   356.9 ns |  5.13 ns |  4.80 ns |  2.04 | 0.0763 |     160 B |
+|          MemoryCache | 2,366.7 ns | 46.05 ns | 47.29 ns | 13.49 | 2.3460 |    4912 B |
+
 ## Meta-programming using structs for JIT dead code removal and inlining
 
 TemplateConcurrentLru features injectable policies defined as structs. Since structs are subject to special JIT optimizations, the implementation is much faster than if these policies were defined as classes. Using this technique, 'Fast' versions without hit counting are within 30% of the speed of a ConcurrentDictionary.
