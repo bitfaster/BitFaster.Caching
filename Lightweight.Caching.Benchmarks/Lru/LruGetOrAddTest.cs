@@ -38,12 +38,6 @@ namespace Lightweight.Caching.Benchmarks
             dictionary.GetOrAdd(1, func);
         }
 
-        //[Benchmark()]
-        //public DateTime DateTimeUtcNow()
-        //{
-        //    return DateTime.UtcNow;
-        //}
-
         [Benchmark()]
         public void FastConcurrentLruGetOrAdd()
         {
@@ -78,12 +72,6 @@ namespace Lightweight.Caching.Benchmarks
             Func<int, int> func = x => x;
             classicLru.GetOrAdd(1, func);
         }
-
-        //[Benchmark()]
-        //public void MemoryCacheGetIntKey()
-        //{
-        //    memoryCache.Get(key.ToString());
-        //}
 
         [Benchmark()]
         public void MemoryCacheGetStringKey()

@@ -141,14 +141,14 @@ namespace Lightweight.Caching.UnitTests.Lru
 		[Fact]
 		public void WhenValuesAreNotReadAndMoreKeysRequestedThanCapacityCountDoesNotIncrease()
 		{
-			int capacity = hotCap + coldCap;
-			for (int i = 0; i < capacity + 1; i++)
+			int hotColdCapacity = hotCap + coldCap;
+			for (int i = 0; i < hotColdCapacity + 1; i++)
 			{
 				lru.GetOrAdd(i, valueFactory.Create);
 			}
 
-			lru.Count.Should().Be(capacity);
-			valueFactory.timesCalled.Should().Be(capacity + 1);
+			lru.Count.Should().Be(hotColdCapacity);
+			valueFactory.timesCalled.Should().Be(hotColdCapacity + 1);
 		}
 
 		[Fact]
@@ -352,7 +352,21 @@ namespace Lightweight.Caching.UnitTests.Lru
 			lru.TryRemove(2).Should().BeFalse();
 		}
 
-		private class DisposableItem : IDisposable
+        [Fact]
+        public void WhenRepeatedlyAddingAndRemovingSameValueLruRemainsInConsistentState()
+        {
+            int capacity = hotCap + coldCap + warmCap;
+            for (int i = 0; i < capacity; i++)
+            {
+                // Because TryRemove leaves the item in the queue, when it is eventually removed
+                // from the cold queue, it should not remove the newly created value.
+                lru.GetOrAdd(1, valueFactory.Create);
+                lru.TryGet(1, out var value).Should().BeTrue();
+                lru.TryRemove(1);
+            }
+        }
+
+        private class DisposableItem : IDisposable
 		{
 			public bool IsDisposed { get; private set; }
 

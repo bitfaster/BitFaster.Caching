@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace Lightweight.Caching.Benchmarks
 {
     [MemoryDiagnoser]
-    public class SegmentedLruTests
+    public class PrimitiveBenchmarks
     {
         private static readonly ConcurrentDictionary<int, int> dictionary = new ConcurrentDictionary<int, int>(8, 9, EqualityComparer<int>.Default);
         LinkedList<int> intList = new LinkedList<int>(new int[] { 1, 2, 3 });
@@ -43,6 +43,12 @@ namespace Lightweight.Caching.Benchmarks
                 intList.RemoveFirst();
                 intList.AddLast(first);
             }
+        }
+
+        [Benchmark()]
+        public DateTime DateTimeUtcNow()
+        {
+            return DateTime.UtcNow;
         }
 
         [Benchmark()]

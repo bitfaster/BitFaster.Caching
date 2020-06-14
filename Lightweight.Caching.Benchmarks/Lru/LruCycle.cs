@@ -22,7 +22,7 @@ namespace Lightweight.Caching.Benchmarks.Lru
         private static readonly FastConcurrentLru<int, int> fastConcurrentLru = new FastConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
         private static readonly FastConcurrentTLru<int, int> fastConcurrentTLru = new FastConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
 
-        private static MemoryCache memoryCache = MemoryCache.Default;
+        private static MemoryCache memoryCache = System.Runtime.Caching.MemoryCache.Default;
 
         [GlobalSetup]
         public void GlobalSetup()
@@ -60,7 +60,7 @@ namespace Lightweight.Caching.Benchmarks.Lru
         }
 
         [Benchmark(Baseline = true, OperationsPerInvoke = 24)]
-        public void ConcurrentDictionaryGetOrAdd()
+        public void ConcurrentDictionary()
         {
             Func<int, int> func = x => x;
             dictionary.GetOrAdd(1, func);
@@ -93,7 +93,7 @@ namespace Lightweight.Caching.Benchmarks.Lru
         }
 
         [Benchmark(OperationsPerInvoke = 24)]
-        public void FastConcurrentLruGetOrAdd()
+        public void FastConcurrentLru()
         {
             // size is 9, so segment size is 3. 6 items will cause queue cycling
             // without eviction. Hot => cold when not accessed.
@@ -128,7 +128,7 @@ namespace Lightweight.Caching.Benchmarks.Lru
         }
 
         [Benchmark(OperationsPerInvoke = 24)]
-        public void ConcurrentLruGetOrAdd()
+        public void ConcurrentLru()
         {
             // size is 9, so segment size is 3. 6 items will cause queue cycling
             // without eviction. Hot => cold when not accessed.
@@ -163,7 +163,7 @@ namespace Lightweight.Caching.Benchmarks.Lru
         }
 
         [Benchmark(OperationsPerInvoke = 24)]
-        public void FastConcurrentTLruGetOrAdd()
+        public void FastConcurrentTLru()
         {
             // size is 9, so segment size is 3. 6 items will cause queue cycling
             // without eviction. Hot => cold when not accessed.
@@ -198,7 +198,7 @@ namespace Lightweight.Caching.Benchmarks.Lru
         }
 
         [Benchmark(OperationsPerInvoke = 24)]
-        public void ConcurrentTLruGetOrAdd()
+        public void ConcurrentTLru()
         {
             // size is 9, so segment size is 3. 6 items will cause queue cycling
             // without eviction. Hot => cold when not accessed.
@@ -233,7 +233,7 @@ namespace Lightweight.Caching.Benchmarks.Lru
         }
 
         [Benchmark(OperationsPerInvoke = 24)]
-        public void ClassicLruGetOrAdd()
+        public void ClassicLru()
         {
             // size is 9, so segment size is 3. 6 items will cause queue cycling
             // without eviction. Hot => cold when not accessed.
@@ -268,7 +268,7 @@ namespace Lightweight.Caching.Benchmarks.Lru
         }
 
         [Benchmark(OperationsPerInvoke = 24)]
-        public void MemoryCacheGetStringKey()
+        public void MemoryCache()
         {
             memoryCache.Get("1");
             memoryCache.Get("2");

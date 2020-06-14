@@ -167,19 +167,48 @@ namespace Lightweight.Caching.Lru
 
         public bool TryRemove(K key)
         {
-            if (this.dictionary.TryRemove(key, out var removedItem))
+            // Possible race condition:
+            // Thread A TryRemove(1), removes LruItem1, has reference to removed item but not yet marked as removed
+            // Thread B GetOrAdd(1) => Adds LruItem1*
+            // Thread C GetOrAdd(2), Cycle, Move(LruItem1, Removed)
+            // 
+            // Thread C can run and remove LruItem1* from this.dictionary before Thread A has marked LruItem1 as removed.
+            // 
+            // In this situation, a subsequent attempt to fetch 1 will be a miss. The queues will still contain LruItem1*, 
+            // and it will not be marked as removed. If key 1 is fetched while LruItem1* is still in the queue, there will 
+            // be two queue entries for key 1, and neither is marked as removed. Thus when LruItem1 * ages out, it will  
+            // incorrectly remove 1 from the dictionary, and this cycle can repeat.
+            if (this.dictionary.TryGetValue(key, out var existing))
             {
-                // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
-                // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
-                // from the queue.
-                removedItem.WasAccessed = false;
-
-                if (removedItem.Value is IDisposable d)
+                if (existing.WasRemoved)
                 {
-                    d.Dispose();
+                    return false;
                 }
 
-                return true;
+                lock (existing)
+                {
+                    if (existing.WasRemoved)
+                    {
+                        return false;
+                    }
+
+                    existing.WasRemoved = true;
+                }
+
+                if (this.dictionary.TryRemove(key, out var removedItem))
+                {
+                    // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
+                    // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
+                    // from the queue.
+                    removedItem.WasAccessed = false;
+
+                    if (removedItem.Value is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
+
+                    return true;
+                }
             }
 
             return false;
@@ -290,11 +319,24 @@ namespace Lightweight.Caching.Lru
                     Interlocked.Increment(ref this.coldCount);
                     break;
                 case ItemDestination.Remove:
-                    if (this.dictionary.TryRemove(item.Key, out var removedItem))
-                    {
-                        if (removedItem.Value is IDisposable d)
-                        {
-                            d.Dispose();
+                    if (!item.WasRemoved)
+                    {   
+                        // avoid race where 2 threads could remove the same key - see TryRemove for details.
+                        lock (item)
+                        { 
+                            if (item.WasRemoved)
+                            {
+                                break;
+                            }
+
+                            if (this.dictionary.TryRemove(item.Key, out var removedItem))
+                            {
+                                item.WasRemoved = true;
+                                if (removedItem.Value is IDisposable d)
+                                {
+                                    d.Dispose();
+                                }
+                            }
                         }
                     }
                     break;
