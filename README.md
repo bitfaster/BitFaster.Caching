@@ -21,16 +21,6 @@ LRU implementations are intended as an alternative to the System.Runtime.Caching
 
 ## Lru Benchmarks
 
-### Lookup speed
-
-Cache contains 6 items which are fetched repeatedly, no items are evicted. 
-
-- ConcurrentLru family does not move items in the queues, it is just marking as accessed for pure cache hits.
-- ClassicLru must maintain item order, and is internally splicing the fetched item to the head of the linked list.
-- MemoryCache and ConcurrentDictionary represent a pure lookup. This is the best case scenario for MemoryCache, since the lookup key is a string (if the key were a Guid, using MemoryCache adds string conversion overhead). 
-
-FastConcurrentLru does not allocate and is approximately 10x faster than MemoryCache.
-
 ~~~
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.18363.900 (1909/November2018Update/19H2)
 Intel Core i7-5600U CPU 2.60GHz (Broadwell), 1 CPU, 4 logical and 2 physical cores
@@ -40,6 +30,16 @@ Intel Core i7-5600U CPU 2.60GHz (Broadwell), 1 CPU, 4 logical and 2 physical cor
 
 Job=RyuJitX64  Jit=RyuJit  Platform=X64
 ~~~
+
+### Lookup speed
+
+Cache contains 6 items which are fetched repeatedly, no items are evicted. Representative of high hit rate scenario.
+
+- ConcurrentLru family does not move items in the queues, it is just marking as accessed for pure cache hits.
+- ClassicLru must maintain item order, and is internally splicing the fetched item to the head of the linked list.
+- MemoryCache and ConcurrentDictionary represent a pure lookup. This is the best case scenario for MemoryCache, since the lookup key is a string (if the key were a Guid, using MemoryCache adds string conversion overhead). 
+
+FastConcurrentLru does not allocate and is approximately 10x faster than MemoryCache.
 
 |                       Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
 |----------------------------- |----------:|---------:|---------:|------:|-------:|----------:|
@@ -51,17 +51,22 @@ Job=RyuJitX64  Jit=RyuJit  Platform=X64
 |           ClassicLruGetOrAdd |  75.67 ns | 1.513 ns | 1.554 ns |  3.99 |      - |         - |
 |      MemoryCacheGetStringKey | 309.14 ns | 2.155 ns | 1.910 ns | 16.17 | 0.0153 |      32 B |
 
-MissHitHitRemove
+### Mixed workload
+
+Tests 4 operations, 1 miss (adding the item), 2 hits then remove.
+
+This test needs to be improved to provoke queue cycling.
+
 
 |               Method |       Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
 |--------------------- |-----------:|---------:|---------:|------:|-------:|----------:|
-| ConcurrentDictionary |   175.4 ns |  1.80 ns |  1.50 ns |  1.00 | 0.0381 |      80 B |
-|    FastConcurrentLru |   370.8 ns |  3.86 ns |  3.02 ns |  2.11 | 0.0534 |     112 B |
-|        ConcurrentLru |   379.8 ns |  3.50 ns |  2.93 ns |  2.17 | 0.0534 |     112 B |
-|   FastConcurrentTlru |   891.8 ns | 13.16 ns | 11.67 ns |  5.09 | 0.0572 |     120 B |
-|       ConcurrentTlru |   917.0 ns | 13.07 ns | 16.05 ns |  5.24 | 0.0572 |     120 B |
-|           ClassicLru |   356.9 ns |  5.13 ns |  4.80 ns |  2.04 | 0.0763 |     160 B |
-|          MemoryCache | 2,366.7 ns | 46.05 ns | 47.29 ns | 13.49 | 2.3460 |    4912 B |
+| ConcurrentDictionary |   178.1 ns |  1.47 ns |  1.23 ns |  1.00 | 0.0381 |      80 B |
+|    FastConcurrentLru |   420.4 ns |  7.52 ns |  6.67 ns |  2.36 | 0.0534 |     112 B |
+|        ConcurrentLru |   423.7 ns |  3.17 ns |  2.64 ns |  2.38 | 0.0534 |     112 B |
+|   FastConcurrentTlru |   941.6 ns |  6.69 ns |  5.93 ns |  5.29 | 0.0572 |     120 B |
+|       ConcurrentTlru |   960.3 ns | 17.73 ns | 14.80 ns |  5.39 | 0.0572 |     120 B |
+|           ClassicLru |   363.5 ns |  3.65 ns |  3.23 ns |  2.04 | 0.0763 |     160 B |
+|          MemoryCache | 2,380.9 ns | 33.22 ns | 27.74 ns | 13.37 | 2.3460 |    4912 B |
 
 ## Meta-programming using structs for JIT dead code removal and inlining
 
