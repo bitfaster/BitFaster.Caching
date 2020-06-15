@@ -8,16 +8,6 @@ using CsvHelper;
 
 namespace BitFaster.Caching.HitRateAnalysis
 {
-    // Cache         | cache size % |   s   |  Hit Ratio 
-    //---------------+--------------+-------+------------
-    // ClassicLru    |    5 %       | 0.86  |    20%
-    // ClassicLru    |    10 %      | 0.86  |    20%
-    // ClassicLru    |    20 %      | 0.86  |    20%
-    // ClassicLru    |    30 %      | 0.86  |    20%
-    // ClassicLru    |    40 %      | 0.86  |    20%
-    // ConcurrentLru |    5 %       | 0.86  |    20%
-    // etc.          |    10 %      | 0.86  |    20%
-
     public class AnalysisResult
     {
         public string Cache { get; set; }
