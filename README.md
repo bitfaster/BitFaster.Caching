@@ -79,12 +79,12 @@ Job=RyuJitX64  Jit=RyuJit  Platform=X64
 
 ### Lookup keys with a Zipf distribution
 
-Take 1000 samples of a [Zipfan distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) over a set of keys of size $N$ and use the keys to lookup values in the cache. If there are $N$ items, the probability of accessing an item numbered $i$ or less is $(i / N)^s$. 
+Take 1000 samples of a [Zipfan distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) over a set of keys of size *N* and use the keys to lookup values in the cache. If there are $N$ items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
 
-$s$ = 0.86 (yields approx 80/20 distribution)
-$N$ = 500
+*s* = 0.86 (yields approx 80/20 distribution)<br>
+*N* = 500
 
-Cache size = $N$ / 10 (so we can cache 10% of the total set). ConcurrentLru has approximately the same performance as ClassicLru in this single threaded test.
+Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has approximately the same performance as ClassicLru in this single threaded test.
 
 
 |             Method |     Mean |   Error |  StdDev | Ratio | RatioSD |
