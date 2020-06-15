@@ -75,6 +75,23 @@ MemoryCache is perfectly servicable. But in some situations, it can be a bottlen
 
 # Performance
 
+## Lru Hit rate
+
+Analysis of 1 million samples of a Zipfan distribution with different *s* values. There are 50,000 total keys, and the test was run with the cache configured to different sizes expressed as a percentage of the total key space.
+
+When the cache is small, below 15% of the total key space, ConcurrentLru significantly outperforms ClassicLru.
+
+<table>
+  <tr>
+    <td>
+<img src="https://user-images.githubusercontent.com/12851828/84707621-e2a62480-af13-11ea-91e7-726911bce162.png" width="400"/>
+</td>
+    <td>
+<img src="https://user-images.githubusercontent.com/12851828/84707663-f81b4e80-af13-11ea-96d4-1ba71444d333.png" width="400"/>
+</td>
+   </tr> 
+</table>
+
 ## Lru Benchmarks
 
 Benchmarks are based on BenchmarkDotNet, so are single threaded. The ConcurrentLru family of classes can outperform ClassicLru in multithreaded workloads.
