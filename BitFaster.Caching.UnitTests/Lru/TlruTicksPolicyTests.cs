@@ -12,7 +12,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 {
     public class TLruTicksPolicyTests
     {
-        private readonly TLruPolicyTicks<int, int> policy = new TLruPolicyTicks<int, int>(TimeSpan.FromSeconds(10));
+        private readonly TLruTicksPolicy<int, int> policy = new TLruTicksPolicy<int, int>(TimeSpan.FromSeconds(10));
 
         [Fact]
         public void CreateItemInitializesKeyAndValue()
