@@ -77,9 +77,12 @@ MemoryCache is perfectly servicable. But in some situations, it can be a bottlen
 
 ## Lru Hit rate
 
-Analysis of 1 million samples of a Zipfan distribution with different *s* values. There are 50,000 total keys, and the test was run with the cache configured to different sizes expressed as a percentage of the total key space.
+The charts below show the relative hit rate of classic LRU vs Concurrent LRU on a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) of input keys, with parameter *s* = 0.5 and *s* = 0.86 respectively. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
 
-When the cache is small, below 15% of the total key space, ConcurrentLru significantly outperforms ClassicLru.
+Here *N* = 50000, and we take 1 million sample keys. The hit rate is the number of times we get a cache hit divided by 1 million.
+This test was repeated with the cache configured to different sizes expressed as a percentage *N* (e.g. 10% would be a cache with a capacity 5000).
+
+When the cache is small, below 15% of the total key space, ConcurrentLru outperforms ClassicLru.
 
 <table>
   <tr>
@@ -93,6 +96,8 @@ When the cache is small, below 15% of the total key space, ConcurrentLru signifi
 </table>
 
 ## Lru Benchmarks
+
+In the benchmarks, a cache miss is essentially free. These tests exist purely to compare the raw execution speed of the cache code. In a real setting, where a cache miss is presumably quite expensive, the relative overhead of the cache will be very small.
 
 Benchmarks are based on BenchmarkDotNet, so are single threaded. The ConcurrentLru family of classes can outperform ClassicLru in multithreaded workloads.
 
@@ -108,7 +113,7 @@ Job=RyuJitX64  Jit=RyuJit  Platform=X64
 
 ### Lookup keys with a Zipf distribution
 
-Take 1000 samples of a [Zipfan distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) over a set of keys of size *N* and use the keys to lookup values in the cache. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
+Take 1000 samples of a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) over a set of keys of size *N* and use the keys to lookup values in the cache. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
 
 *s* = 0.86 (yields approx 80/20 distribution)<br>
 *N* = 500
