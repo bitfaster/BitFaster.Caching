@@ -140,6 +140,7 @@ After
 
 ### LruCycle2
 
+Before
 |               Method |       Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
 |--------------------- |-----------:|---------:|---------:|------:|-------:|----------:|
 | ConcurrentDictionary |   111.0 ns |  1.60 ns |  1.33 ns |  1.00 | 0.0079 |      17 B |
@@ -149,6 +150,17 @@ After
 |       ConcurrentTLru | 2,419.7 ns | 46.90 ns | 52.13 ns | 21.82 | 0.1577 |     333 B |
 |           ClassicLru |   834.3 ns | 10.84 ns |  9.61 ns |  7.52 | 0.2225 |     467 B |
 |          MemoryCache | 1,572.9 ns | 30.94 ns | 44.37 ns | 14.14 | 0.1424 |     313 B |
+
+After
+|               Method |       Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
+|--------------------- |-----------:|---------:|---------:|------:|-------:|----------:|
+| ConcurrentDictionary |   104.6 ns |  0.63 ns |  0.56 ns |  1.00 | 0.0079 |      17 B |
+|    FastConcurrentLru | 1,014.6 ns | 19.10 ns | 17.86 ns |  9.71 | 0.1424 |     300 B |
+|        ConcurrentLru | 1,014.3 ns |  8.66 ns |  8.10 ns |  9.70 | 0.1424 |     300 B |
+|   FastConcurrentTLru | 2,581.1 ns | 12.95 ns | 10.81 ns | 24.68 | 0.1577 |     333 B |
+|       ConcurrentTLru | 2,642.3 ns | 34.09 ns | 51.02 ns | 25.48 | 0.1577 |     333 B |
+|           ClassicLru |   810.2 ns | 15.91 ns | 19.53 ns |  7.77 | 0.2708 |     567 B |
+|          MemoryCache | 1,422.9 ns | 18.50 ns | 15.44 ns | 13.60 | 0.1475 |     313 B |
 
 ## Meta-programming using structs for JIT dead code removal and inlining
 
