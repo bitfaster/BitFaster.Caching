@@ -2,8 +2,6 @@
 
 High performance, thread-safe in-memory caching primitives for .NET.
 
-LRU implementations are intended as an alternative to the System.Runtime.Caching.MemoryCache family of classes (e.g. HttpRuntime.Cache, System.Web.Caching et. al.). MemoryCache makes heap allocations when the native object key is not type string, and does not offer the fastest possible performance.
-
 [![NuGet version](https://badge.fury.io/nu/BitFaster.Caching.svg)](https://badge.fury.io/nu/BitFaster.Caching)
 
 # Installing via NuGet
@@ -21,6 +19,11 @@ LRU implementations are intended as an alternative to the System.Runtime.Caching
 | Scoped<IDisposable>      | A threadsafe wrapper for storing IDisposable objects in a cache that may dispose and invalidate them. The scope keeps the object alive until all callers have finished.   |
 
 # Usage
+
+## LRU: ClassicLru, ConcurrentLru, ConcurrentTLru
+
+LRU implementations are intended as an alternative to the System.Runtime.Caching.MemoryCache family of classes (e.g. HttpRuntime.Cache, System.Web.Caching et. al.). 
+
 
 ## Caching IDisposable objects
 
@@ -60,6 +63,15 @@ using (var handle = urlLocks.Acquire(url))
 
 ```
 
+
+### Why not use MemoryCache?
+
+MemoryCache is perfectly servicable. But in some situations, it can be a bottleneck.
+
+- Makes heap allocations when the native object key is not type string.
+- Does not scale well with concurrent writes.
+- Executes code for perf counters that can't be disabled
+- Uses an heuristic to estimate memory used, and the 'trim' process may remove useful items. If many items are added quickly, runaway is a problem.
 
 # Performance
 
