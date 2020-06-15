@@ -5,10 +5,10 @@
     <Authors>Alex Peck</Authors>
     <Company />
     <Product>BitFaster.Caching</Product>
-    <Description>High performance, thread safe in-memory caching primitives for .NET.</Description>
+    <Description>High performance, thread-safe in-memory caching primitives for .NET.</Description>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.9.1</Version>
+    <Version>0.9.2</Version>
     <Copyright>Copyright © Alex Peck 2020</Copyright>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitfaster/BitFaster.Caching</RepositoryUrl>
