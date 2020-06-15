@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Benchmarks
         static void Main(string[] args)
         {
             var summary = BenchmarkRunner
-                .Run<ZipDistribution>(ManualConfig.Create(DefaultConfig.Instance)
+                .Run<LruCycle>(ManualConfig.Create(DefaultConfig.Instance)
                 .AddJob(Job.RyuJitX64));
         }
     }
