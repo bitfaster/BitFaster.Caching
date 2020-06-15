@@ -14,6 +14,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitFaster.Caching.UnitTests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitFaster.Caching.Benchmarks", "BitFaster.Caching.Benchmarks\BitFaster.Caching.Benchmarks.csproj", "{8CDE3FA5-B08A-4375-9EF0-F1F044B841C4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitFaster.Sampling", "BitFaster.Sampling\BitFaster.Sampling.csproj", "{EAAE8DD3-EA1C-4BDF-920B-A0C858E853CB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{8CDE3FA5-B08A-4375-9EF0-F1F044B841C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8CDE3FA5-B08A-4375-9EF0-F1F044B841C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8CDE3FA5-B08A-4375-9EF0-F1F044B841C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAAE8DD3-EA1C-4BDF-920B-A0C858E853CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAAE8DD3-EA1C-4BDF-920B-A0C858E853CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAAE8DD3-EA1C-4BDF-920B-A0C858E853CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAAE8DD3-EA1C-4BDF-920B-A0C858E853CB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

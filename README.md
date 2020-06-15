@@ -77,9 +77,27 @@ Intel Core i7-5600U CPU 2.60GHz (Broadwell), 1 CPU, 4 logical and 2 physical cor
 Job=RyuJitX64  Jit=RyuJit  Platform=X64
 ~~~
 
-### Lookup speed
+### Lookup keys with a Zipf distribution
 
-Cache contains 6 items which are fetched repeatedly, no items are evicted. Representative of high hit rate scenario, when there are a low number of hot items.
+Take 1000 samples of a [Zipfan distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) over a set of keys of size *N* and use the keys to lookup values in the cache. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
+
+*s* = 0.86 (yields approx 80/20 distribution)<br>
+*N* = 500
+
+Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has approximately the same performance as ClassicLru in this single threaded test.
+
+
+|             Method |     Mean |   Error |  StdDev | Ratio | RatioSD |
+|------------------- |---------:|--------:|--------:|------:|--------:|
+|         ClassicLru | 176.1 ns | 2.74 ns | 2.56 ns |  1.00 |    0.00 |
+|  FastConcurrentLru | 178.0 ns | 2.76 ns | 2.45 ns |  1.01 |    0.02 |
+|      ConcurrentLru | 185.2 ns | 1.87 ns | 1.56 ns |  1.06 |    0.01 |
+| FastConcurrentTLru | 435.7 ns | 2.88 ns | 2.41 ns |  2.48 |    0.03 |
+|     ConcurrentTLru | 425.1 ns | 8.46 ns | 7.91 ns |  2.41 |    0.07 |
+
+### Raw Lookup speed
+
+In this test the same items are fetched repeatedly, no items are evicted. Representative of high hit rate scenario, when there are a low number of hot items.
 
 - ConcurrentLru family does not move items in the queues, it is just marking as accessed for pure cache hits.
 - ClassicLru must maintain item order, and is internally splicing the fetched item to the head of the linked list.
