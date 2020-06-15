@@ -18,24 +18,42 @@ High performance, thread-safe in-memory caching primitives for .NET.
 
 # Usage
 
-## LRU: ClassicLru, ConcurrentLru, ConcurrentTLru
+## LRU: ConcurrentLru, ConcurrentTLru
 
-LRU implementations are intended as an alternative to the System.Runtime.Caching.MemoryCache family of classes (e.g. HttpRuntime.Cache, System.Web.Caching et. al.). 
+LRU implementations are intended as a drop in replacement for ConcurrentDictionary, and a much faster alternative to the System.Runtime.Caching.MemoryCache family of classes (e.g. HttpRuntime.Cache, System.Web.Caching et. al.). 
+
+```csharp
+int concurrency = 4;
+int capacity = 666;
+var lru = new ConcurrentLru<int, SomeItem>(concurrency, capacity, EqualityComparer<int>.Default);
+
+var value = lru.GetOrAdd(1, (k) => new SomeItem(k));
+```
 
 
 ## Caching IDisposable objects
 
 All cache classes in BitFaster.Caching own the lifetime of cached values, and will automatically dispose values when they are evicted. 
 
-To avoid races using objects after they have been disposed by the cache, wrap them with `Scoped`. The call to `CreateLifetime` creates a `Lifetime` that guarantees the scoped object will not be disposed until the lifetime is disposed. `Scoped` is thread safe, and lifetimes are valid for concurrent callers. 
+To avoid races using objects after they have been disposed by the cache, wrap them with `Scoped`. The call to `CreateLifetime` creates a `Lifetime` that guarantees the scoped object will not be disposed until the lifetime is disposed. `Scoped` is thread safe, and guarantees correct disposal for concurrent lifetimes. 
 
 ```csharp
-var lru = new ConcurrentLru<int, Scoped<SomeDisposable>>(2, 9, EqualityComparer<int>.Default);
+int concurrency = 4;
+int capacity = 666;
+var lru = new ConcurrentLru<int, Scoped<SomeDisposable>>(concurrency, capacity, EqualityComparer<int>.Default);
 var valueFactory = new SomeDisposableValueFactory();
 
 using (var lifetime = lru.GetOrAdd(1, valueFactory.Create).CreateLifetime())
 {
     // lifetime.Value is guaranteed to be alive until the lifetime is disposed
+}
+
+class SomeDisposableValueFactory
+{
+   public Scoped<SomeDisposable>> Create(int key)
+   {
+      return new Scoped<SomeDisposable>(new SomeDisposable(key));
+   }
 }
 ```
 
