@@ -4,10 +4,10 @@ using System.Text;
 
 namespace BitFaster.Caching.Lru
 {
-    public sealed class FastConcurrentTLru<K, V> : TemplateConcurrentLru<K, V, TimeStampedLruItem<K, V>, TLruPolicy<K, V>, NullHitCounter>
+    public sealed class FastConcurrentTLru<K, V> : TemplateConcurrentLru<K, V, TickCountLruItem<K, V>, TLruTicksPolicy<K, V>, NullHitCounter>
     {
         public FastConcurrentTLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer, TimeSpan timeToLive)
-            : base(concurrencyLevel, capacity, comparer, new TLruPolicy<K, V>(timeToLive), new NullHitCounter())
+            : base(concurrencyLevel, capacity, comparer, new TLruTicksPolicy<K, V>(timeToLive), new NullHitCounter())
         {
         }
     }
