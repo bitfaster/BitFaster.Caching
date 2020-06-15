@@ -15,6 +15,8 @@ namespace BitFaster.Caching.Lru
     {
         private readonly TimeSpan timeToLive;
 
+        public DateTime UtcNow() { return DateTime.UtcNow; }
+
         public TLruPolicy(TimeSpan timeToLive)
         {
             this.timeToLive = timeToLive;
@@ -33,7 +35,7 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool ShouldDiscard(TimeStampedLruItem<K, V> item)
+        public bool ShouldDiscard(TimeStampedLruItem<K, V> item, ref DateTime now)
         {
             if (DateTime.UtcNow - item.TimeStamp > this.timeToLive)
             {
@@ -44,9 +46,9 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ItemDestination RouteHot(TimeStampedLruItem<K, V> item)
+        public ItemDestination RouteHot(TimeStampedLruItem<K, V> item, ref DateTime now)
         {
-            if (this.ShouldDiscard(item))
+            if (this.ShouldDiscard(item, ref now))
             {
                 return ItemDestination.Remove;
             }
@@ -60,9 +62,9 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ItemDestination RouteWarm(TimeStampedLruItem<K, V> item)
+        public ItemDestination RouteWarm(TimeStampedLruItem<K, V> item, ref DateTime now)
         {
-            if (this.ShouldDiscard(item))
+            if (this.ShouldDiscard(item, ref now))
             {
                 return ItemDestination.Remove;
             }
@@ -76,9 +78,9 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ItemDestination RouteCold(TimeStampedLruItem<K, V> item)
+        public ItemDestination RouteCold(TimeStampedLruItem<K, V> item, ref DateTime now)
         {
-            if (this.ShouldDiscard(item))
+            if (this.ShouldDiscard(item, ref now))
             {
                 return ItemDestination.Remove;
             }

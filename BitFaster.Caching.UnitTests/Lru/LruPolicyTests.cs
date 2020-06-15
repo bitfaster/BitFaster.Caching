@@ -10,6 +10,7 @@ namespace BitFaster.Caching.UnitTests.Lru
     public class LruPolicyTests
     {
         private readonly LruPolicy<int, int> policy = new LruPolicy<int, int>();
+        private DateTime now = default;
 
         [Fact]
         public void CreateItemInitializesKeyAndValue()
@@ -44,7 +45,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            this.policy.ShouldDiscard(item).Should().BeFalse();
+            this.policy.ShouldDiscard(item, ref now).Should().BeFalse();
         }
 
         [Fact]
@@ -53,7 +54,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             var item = this.policy.CreateItem(1, 2);
             item.WasAccessed = true;
 
-            this.policy.ShouldDiscard(item).Should().BeFalse();
+            this.policy.ShouldDiscard(item, ref now).Should().BeFalse();
         }
 
         [Theory]
@@ -63,7 +64,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = CreateItem(wasAccessed);
 
-            this.policy.RouteHot(item).Should().Be(expectedDestination);
+            this.policy.RouteHot(item, ref now).Should().Be(expectedDestination);
         }
 
         [Theory]
@@ -73,7 +74,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = CreateItem(wasAccessed);
 
-            this.policy.RouteWarm(item).Should().Be(expectedDestination);
+            this.policy.RouteWarm(item, ref now).Should().Be(expectedDestination);
         }
 
         [Theory]
@@ -83,7 +84,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = CreateItem(wasAccessed);
 
-            this.policy.RouteCold(item).Should().Be(expectedDestination);
+            this.policy.RouteCold(item, ref now).Should().Be(expectedDestination);
         }
 
         private LruItem<int, int> CreateItem(bool wasAccessed)

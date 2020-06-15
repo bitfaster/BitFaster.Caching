@@ -87,6 +87,7 @@ Cache contains 6 items which are fetched repeatedly, no items are evicted. Repre
 
 FastConcurrentLru does not allocate and is approximately 10x faster than MemoryCache.
 
+Before
 |               Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
 |--------------------- |----------:|---------:|---------:|------:|-------:|----------:|
 | ConcurrentDictionary |  15.83 ns | 0.242 ns | 0.215 ns |  1.00 |      - |         - |
@@ -97,12 +98,24 @@ FastConcurrentLru does not allocate and is approximately 10x faster than MemoryC
 |           ClassicLru |  69.01 ns | 0.503 ns | 0.446 ns |  4.36 |      - |         - |
 |          MemoryCache | 257.83 ns | 4.786 ns | 4.700 ns | 16.30 | 0.0153 |      32 B |
 
+After
+|               Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
+|--------------------- |----------:|---------:|---------:|------:|-------:|----------:|
+| ConcurrentDictionary |  15.32 ns | 0.275 ns | 0.257 ns |  1.00 |      - |         - |
+|    FastConcurrentLru |  20.14 ns | 0.157 ns | 0.147 ns |  1.32 |      - |         - |
+|        ConcurrentLru |  24.97 ns | 0.473 ns | 0.419 ns |  1.63 |      - |         - |
+|   FastConcurrentTLru | 201.49 ns | 1.107 ns | 0.924 ns | 13.16 |      - |         - |
+|       ConcurrentTLru | 205.35 ns | 2.602 ns | 2.307 ns | 13.42 |      - |         - |
+|           ClassicLru |  70.72 ns | 0.265 ns | 0.207 ns |  4.61 |      - |         - |
+|          MemoryCache | 260.50 ns | 5.188 ns | 5.327 ns | 17.03 | 0.0153 |      32 B |
+
 ### Mixed workload
 
 Tests 4 operations, 1 miss (adding the item), 2 hits then remove.
 
 This test needs to be improved to provoke queue cycling.
 
+Before
 |               Method |       Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
 |--------------------- |-----------:|---------:|---------:|------:|-------:|----------:|
 | ConcurrentDictionary |   151.7 ns |  2.34 ns |  1.96 ns |  1.00 | 0.0381 |      80 B |
@@ -112,6 +125,17 @@ This test needs to be improved to provoke queue cycling.
 |       ConcurrentTlru |   852.7 ns | 16.12 ns | 13.46 ns |  5.62 | 0.0572 |     120 B |
 |           ClassicLru |   347.3 ns |  2.67 ns |  2.08 ns |  2.29 | 0.0763 |     160 B |
 |          MemoryCache | 1,987.5 ns | 38.29 ns | 57.31 ns | 13.15 | 2.3460 |    4912 B |
+
+After
+|               Method |       Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
+|--------------------- |-----------:|---------:|---------:|------:|-------:|----------:|
+| ConcurrentDictionary |   151.0 ns |  2.04 ns |  1.91 ns |  1.00 | 0.0381 |      80 B |
+|    FastConcurrentLru |   375.3 ns |  5.57 ns |  5.21 ns |  2.49 | 0.0534 |     112 B |
+|        ConcurrentLru |   383.5 ns |  3.68 ns |  2.87 ns |  2.54 | 0.0534 |     112 B |
+|   FastConcurrentTlru | 1,106.7 ns | 13.47 ns | 11.25 ns |  7.33 | 0.0572 |     120 B |
+|       ConcurrentTlru | 1,120.3 ns | 11.53 ns | 10.78 ns |  7.42 | 0.0572 |     120 B |
+|           ClassicLru |   347.8 ns |  2.48 ns |  2.07 ns |  2.30 | 0.0763 |     160 B |
+|          MemoryCache | 1,979.0 ns | 13.60 ns | 12.06 ns | 13.11 | 2.3460 |    4912 B |
 
 
 ### LruCycle2

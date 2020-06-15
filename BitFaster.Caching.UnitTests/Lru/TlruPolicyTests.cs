@@ -45,19 +45,21 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemIsExpiredShouldDiscardIsTrue()
         {
+            var now = DateTime.UtcNow;
             var item = this.policy.CreateItem(1, 2);
             item.TimeStamp = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(11));
 
-            this.policy.ShouldDiscard(item).Should().BeTrue();
+            this.policy.ShouldDiscard(item, ref now).Should().BeTrue();
         }
 
         [Fact]
         public void WhenItemIsNotExpiredShouldDiscardIsFalse()
         {
+            var now = DateTime.UtcNow;
             var item = this.policy.CreateItem(1, 2);
             item.TimeStamp = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(9));
 
-            this.policy.ShouldDiscard(item).Should().BeFalse();
+            this.policy.ShouldDiscard(item, ref now).Should().BeFalse();
         }
 
         [Theory]
@@ -67,9 +69,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(false, false, ItemDestination.Cold)]
         public void RouteHot(bool wasAccessed, bool isExpired, ItemDestination expectedDestination)
         {
+            var now = DateTime.UtcNow;
             var item = CreateItem(wasAccessed, isExpired);
 
-            this.policy.RouteHot(item).Should().Be(expectedDestination);
+            this.policy.RouteHot(item, ref now).Should().Be(expectedDestination);
         }
 
         [Theory]
@@ -79,9 +82,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(false, false, ItemDestination.Cold)]
         public void RouteWarm(bool wasAccessed, bool isExpired, ItemDestination expectedDestination)
         {
+            var now = DateTime.UtcNow;
             var item = CreateItem(wasAccessed, isExpired);
 
-            this.policy.RouteWarm(item).Should().Be(expectedDestination);
+            this.policy.RouteWarm(item, ref now).Should().Be(expectedDestination);
         }
 
         [Theory]
@@ -91,9 +95,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(false, false, ItemDestination.Remove)]
         public void RouteCold(bool wasAccessed, bool isExpired, ItemDestination expectedDestination)
         {
+            var now = DateTime.UtcNow;
             var item = CreateItem(wasAccessed, isExpired);
 
-            this.policy.RouteCold(item).Should().Be(expectedDestination);
+            this.policy.RouteCold(item, ref now).Should().Be(expectedDestination);
         }
 
         private TimeStampedLruItem<int, int> CreateItem(bool wasAccessed, bool isExpired)

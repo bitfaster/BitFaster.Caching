@@ -7,12 +7,14 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
-	/// <summary>
-	/// Discards the least recently used items first. 
-	/// </summary>
-	public readonly struct LruPolicy<K, V> : IPolicy<K, V, LruItem<K, V>>
-	{
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <summary>
+    /// Discards the least recently used items first. 
+    /// </summary>
+    public readonly struct LruPolicy<K, V> : IPolicy<K, V, LruItem<K, V>>
+    {
+        public DateTime UtcNow() { return default; }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public LruItem<K, V> CreateItem(K key, V value)
 		{
 			return new LruItem<K, V>(key, value);
@@ -25,13 +27,13 @@ namespace BitFaster.Caching.Lru
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool ShouldDiscard(LruItem<K, V> item)
+		public bool ShouldDiscard(LruItem<K, V> item, ref DateTime now)
 		{
 			return false;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ItemDestination RouteHot(LruItem<K, V> item)
+		public ItemDestination RouteHot(LruItem<K, V> item, ref DateTime now)
 		{
 			if (item.WasAccessed)
 			{
@@ -42,7 +44,7 @@ namespace BitFaster.Caching.Lru
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ItemDestination RouteWarm(LruItem<K, V> item)
+		public ItemDestination RouteWarm(LruItem<K, V> item, ref DateTime now)
 		{
 			if (item.WasAccessed)
 			{
@@ -53,7 +55,7 @@ namespace BitFaster.Caching.Lru
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ItemDestination RouteCold(LruItem<K, V> item)
+		public ItemDestination RouteCold(LruItem<K, V> item, ref DateTime now)
 		{
 			if (item.WasAccessed)
 			{

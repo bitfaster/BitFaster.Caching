@@ -97,7 +97,8 @@ namespace BitFaster.Caching.Lru
             I item;
             if (dictionary.TryGetValue(key, out item))
             {
-                if (this.policy.ShouldDiscard(item))
+                var now = this.policy.UtcNow();
+                if (this.policy.ShouldDiscard(item, ref now))
                 {
                     this.Move(item, ItemDestination.Remove);
                     value = default(V);
@@ -210,22 +211,24 @@ namespace BitFaster.Caching.Lru
 
         private void Cycle()
         {
+            var now = this.policy.UtcNow();
+
             // There will be races when queue count == queue capacity. Two threads may each dequeue items.
             // This will prematurely free slots for the next caller. Each thread will still only cycle at most 5 items.
             // Since TryDequeue is thread safe, only 1 thread can dequeue each item. Thus counts and queue state will always
             // converge on correct over time.
-            CycleHot();
+            CycleHot(ref now);
 
             // Multi-threaded stress tests show that due to races, the warm and cold count can increase beyond capacity when
             // hit rate is very high. Double cycle results in stable count under all conditions. When contention is low, 
             // secondary cycles have no effect.
-            CycleWarm();
-            CycleWarm();
-            CycleCold();
-            CycleCold();
+            CycleWarm(ref now);
+            CycleWarm(ref now);
+            CycleCold(ref now);
+            CycleCold(ref now);
         }
 
-        private void CycleHot()
+        private void CycleHot(ref DateTime now)
         {
             if (this.hotCount > this.hotCapacity)
             {
@@ -233,7 +236,7 @@ namespace BitFaster.Caching.Lru
 
                 if (this.hotQueue.TryDequeue(out var item))
                 {
-                    var where = this.policy.RouteHot(item);
+                    var where = this.policy.RouteHot(item, ref now);
                     this.Move(item, where);
                 }
                 else
@@ -243,7 +246,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
-        private void CycleWarm()
+        private void CycleWarm(ref DateTime now)
         {
             if (this.warmCount > this.warmCapacity)
             {
@@ -251,7 +254,7 @@ namespace BitFaster.Caching.Lru
 
                 if (this.warmQueue.TryDequeue(out var item))
                 {
-                    var where = this.policy.RouteWarm(item);
+                    var where = this.policy.RouteWarm(item, ref now);
 
                     // When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
                     // This only happens when hit rate is high, in which case we can consider all items relatively equal in
@@ -272,7 +275,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
-        private void CycleCold()
+        private void CycleCold(ref DateTime now)
         {
             if (this.coldCount > this.coldCapacity)
             {
@@ -280,7 +283,7 @@ namespace BitFaster.Caching.Lru
 
                 if (this.coldQueue.TryDequeue(out var item))
                 {
-                    var where = this.policy.RouteCold(item);
+                    var where = this.policy.RouteCold(item, ref now);
 
                     if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
                     {
