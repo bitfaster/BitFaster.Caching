@@ -10,6 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ConsoleTables" Version="2.4.1" />
+    <PackageReference Include="CsvHelper" Version="15.0.5" />
     <PackageReference Include="MathNet.Numerics" Version="4.11.0" />
   </ItemGroup>
 
