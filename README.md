@@ -11,16 +11,18 @@ High performance, thread-safe in-memory caching primitives for .NET.
 
 | Class |  Description |
 |:-------|:---------|
-| ConcurrentLru       |  Bounded size pseudo LRU.<br><br>A drop in replacement for ConcurrentDictionary, but with bounded size. Maintains psuedo order, with better hit rate than a pure Lru and not prone to lock contention. |
-| ConcurrentTlru        | Bounded size pseudo LRU, items have TTL.<br><br>Same as ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. If the values generated for each key can change over time, ConcurrentTlru is eventually consistent where the inconsistency window = TTL. |
-| SingletonCache      | Cache singleton objects by key. Discard when no longer in use. Threadsafe guarantee of single instance.  |
-| Scoped<IDisposable>      | A threadsafe wrapper for storing IDisposable objects in a cache that may dispose and invalidate them. The scope keeps the object alive until all callers have finished.   |
+| ConcurrentLru       |  Represents a thread-safe bounded size pseudo LRU.<br><br>A drop in replacement for ConcurrentDictionary, but with bounded size. Maintains psuedo order, with better hit rate than a pure Lru and not prone to lock contention. |
+| ConcurrentTLru        | Represents a thread-safe bounded size pseudo TLRU, items have TTL.<br><br>As ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. If the values generated for each key can change over time, ConcurrentTLru is eventually consistent where the inconsistency window = TTL. |
+| SingletonCache      | Represents a thread-safe cache of key value pairs, which guarantees a single instance of each value. Values are discarded immediately when no longer in use to conserve memory.  |
+| Scoped<IDisposable>      | Represents a thread-safe wrapper for storing IDisposable objects in a cache that may dispose and invalidate them. The scope keeps the object alive until all callers have finished.   |
 
 # Usage
 
 ## ConcurrentLru/ConcurrentTLru
 
 `ConcurrentLru` and `ConcurrentTLru` are intended as a drop in replacement for `ConcurrentDictionary`, and a much faster alternative to the `System.Runtime.Caching.MemoryCache` family of classes (e.g. `HttpRuntime.Cache`, `System.Web.Caching` etc). 
+
+Choose a capacity and use just like ConcurrentDictionary:
 
 ```csharp
 int capacity = 666;
@@ -84,9 +86,10 @@ using (var lifetime = urlLocks.Acquire(url))
 MemoryCache is perfectly servicable. But in some situations, it can be a bottleneck.
 
 - Makes heap allocations when the native object key is not type string.
+- Is not 'scan' resistant, fetching all keys will load everything into memory.
 - Does not scale well with concurrent writes.
 - Executes code for perf counters that can't be disabled
-- Uses an heuristic to estimate memory used, and the 'trim' process may remove useful items. If many items are added quickly, runaway is a problem.
+- Uses an heuristic to estimate memory used, and the 'trim' process may remove useful items.
 
 # Performance
 
@@ -150,7 +153,7 @@ Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has 
 In this test the same items are fetched repeatedly, no items are evicted. Representative of high hit rate scenario, when there are a low number of hot items.
 
 - ConcurrentLru family does not move items in the queues, it is just marking as accessed for pure cache hits.
-- ClassicLru must maintain item order, and is internally splicing the fetched item to the head of the linked list.
+- Classic Lru must maintain item order, and is internally splicing the fetched item to the head of the linked list.
 - MemoryCache and ConcurrentDictionary represent a pure lookup. This is the best case scenario for MemoryCache, since the lookup key is a string (if the key were a Guid, using MemoryCache adds string conversion overhead). 
 
 FastConcurrentLru does not allocate and is approximately 10x faster than MemoryCache.
