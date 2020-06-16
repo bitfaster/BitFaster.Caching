@@ -10,7 +10,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 {
     public class ConcurrentTLruTests
     {
-        private readonly TimeSpan timeToLive = TimeSpan.FromMilliseconds(10);
+        private readonly TimeSpan timeToLive = TimeSpan.FromSeconds(1);
         private const int capacity = 9;
         private ConcurrentTLru<int, string> lru;
 
