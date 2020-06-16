@@ -165,35 +165,6 @@ FastConcurrentLru does not allocate and is approximately 10x faster than MemoryC
 |           ClassicLru |  69.01 ns | 0.503 ns | 0.446 ns |  4.36 |      - |         - |
 |          MemoryCache | 257.83 ns | 4.786 ns | 4.700 ns | 16.30 | 0.0153 |      32 B |
 
-### Mixed workload
-
-Tests 4 operations, 1 miss (adding the item), 2 hits then remove.
-
-This test needs to be improved to provoke queue cycling.
-
-|               Method |       Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
-|--------------------- |-----------:|---------:|---------:|------:|-------:|----------:|
-| ConcurrentDictionary |   151.7 ns |  2.34 ns |  1.96 ns |  1.00 | 0.0381 |      80 B |
-|    FastConcurrentLru |   369.2 ns |  7.29 ns |  7.16 ns |  2.44 | 0.0534 |     112 B |
-|        ConcurrentLru |   373.6 ns |  2.97 ns |  2.64 ns |  2.46 | 0.0534 |     112 B |
-|   FastConcurrentTlru |   838.6 ns | 11.49 ns | 13.68 ns |  5.53 | 0.0572 |     120 B |
-|       ConcurrentTlru |   852.7 ns | 16.12 ns | 13.46 ns |  5.62 | 0.0572 |     120 B |
-|           ClassicLru |   347.3 ns |  2.67 ns |  2.08 ns |  2.29 | 0.0763 |     160 B |
-|          MemoryCache | 1,987.5 ns | 38.29 ns | 57.31 ns | 13.15 | 2.3460 |    4912 B |
-
-
-### LruCycle2
-
-|               Method |       Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
-|--------------------- |-----------:|---------:|---------:|------:|-------:|----------:|
-| ConcurrentDictionary |   111.0 ns |  1.60 ns |  1.33 ns |  1.00 | 0.0079 |      17 B |
-|    FastConcurrentLru | 1,086.2 ns | 21.61 ns | 19.16 ns |  9.77 | 0.1424 |     300 B |
-|        ConcurrentLru | 1,098.2 ns |  8.15 ns |  7.23 ns |  9.89 | 0.1424 |     300 B |
-|   FastConcurrentTLru | 2,370.7 ns | 33.77 ns | 28.20 ns | 21.37 | 0.1577 |     333 B |
-|       ConcurrentTLru | 2,419.7 ns | 46.90 ns | 52.13 ns | 21.82 | 0.1577 |     333 B |
-|           ClassicLru |   834.3 ns | 10.84 ns |  9.61 ns |  7.52 | 0.2225 |     467 B |
-|          MemoryCache | 1,572.9 ns | 30.94 ns | 44.37 ns | 14.14 | 0.1424 |     313 B |
-
 ## Meta-programming using structs for JIT dead code removal and inlining
 
 TemplateConcurrentLru features injectable policies defined as structs. Since structs are subject to special JIT optimizations, the implementation is much faster than if these policies were defined as classes. Using this technique, 'Fast' versions without hit counting are within 30% of the speed of a ConcurrentDictionary.
