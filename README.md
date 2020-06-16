@@ -18,9 +18,9 @@ High performance, thread-safe in-memory caching primitives for .NET.
 
 # Usage
 
-## LRU: ConcurrentLru, ConcurrentTLru
+## ConcurrentLru/ConcurrentTLru
 
-LRU implementations are intended as a drop in replacement for ConcurrentDictionary, and a much faster alternative to the System.Runtime.Caching.MemoryCache family of classes (e.g. HttpRuntime.Cache, System.Web.Caching et. al.). 
+`ConcurrentLru` and `ConcurrentTLru` are intended as a drop in replacement for `ConcurrentDictionary`, and a much faster alternative to the `System.Runtime.Caching.MemoryCache` family of classes (e.g. `HttpRuntime.Cache`, `System.Web.Caching` etc). 
 
 ```csharp
 int concurrency = 4;
@@ -28,6 +28,7 @@ int capacity = 666;
 var lru = new ConcurrentLru<int, SomeItem>(concurrency, capacity, EqualityComparer<int>.Default);
 
 var value = lru.GetOrAdd(1, (k) => new SomeItem(k));
+var value = await lru.GetOrAddAsync(0, (k) => Task.FromResult(new SomeItem(k)));
 ```
 
 
