@@ -14,9 +14,7 @@ namespace BitFaster.Caching.Benchmarks
     {
         static void Main(string[] args)
         {
-            var summary = BenchmarkRunner
-                .Run<TLruTimeBenchmark>(ManualConfig.Create(DefaultConfig.Instance)
-                .AddJob(Job.RyuJitX64));
+            BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
         }
     }
 }

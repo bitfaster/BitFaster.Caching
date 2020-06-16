@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace BitFaster.Caching.Benchmarks
 {
     [MemoryDiagnoser]
-    public class LruGetOrAddTest
+    public class LruJustGet
     {
         private static readonly ConcurrentDictionary<int, int> dictionary = new ConcurrentDictionary<int, int>(8, 9, EqualityComparer<int>.Default);
 

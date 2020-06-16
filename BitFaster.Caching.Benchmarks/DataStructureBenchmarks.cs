@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace BitFaster.Caching.Benchmarks
 {
     [MemoryDiagnoser]
-    public class PrimitiveBenchmarks
+    public class DataStructureBenchmarks
     {
         private static readonly ConcurrentDictionary<int, int> dictionary = new ConcurrentDictionary<int, int>(8, 9, EqualityComparer<int>.Default);
         LinkedList<int> intList = new LinkedList<int>(new int[] { 1, 2, 3 });
@@ -43,12 +43,6 @@ namespace BitFaster.Caching.Benchmarks
                 intList.RemoveFirst();
                 intList.AddLast(first);
             }
-        }
-
-        [Benchmark()]
-        public DateTime DateTimeUtcNow()
-        {
-            return DateTime.UtcNow;
         }
 
         [Benchmark()]
