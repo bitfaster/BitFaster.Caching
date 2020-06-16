@@ -27,13 +27,13 @@ namespace BitFaster.Caching
             this.cache = new ConcurrentDictionary<TKey, ReferenceCount<TValue>>(concurrencyLevel, capacity, comparer);
         }
 
-        public Handle Acquire(TKey key, Func<TKey, TValue> valueFactory)
+        public Lifetime<TValue> Acquire(TKey key, Func<TKey, TValue> valueFactory)
         {
             var refCount = this.cache.AddOrUpdate(key,
                     (_) => new ReferenceCount<TValue>(valueFactory(_)),
                     (_, existingRefCount) => existingRefCount.IncrementCopy());
 
-            return new Handle(key, refCount.Value, this);
+            return new Lifetime<TValue>(refCount.Value, () => this.Release(key));
         }
 
         private void Release(TKey key)
@@ -46,7 +46,6 @@ namespace BitFaster.Caching
                 {
                     if (newRefCount.Count == 0)
                     {
-                        // This will remove from dictionary only if key and the value with ReferenceCount (== 0) matches (under a lock)
                         if (((IDictionary<TKey, ReferenceCount<TValue>>)this.cache).Remove(new KeyValuePair<TKey, ReferenceCount<TValue>>(key, newRefCount)))
                         {
                             if (newRefCount.Value is IDisposable d)
@@ -56,37 +55,6 @@ namespace BitFaster.Caching
                         }
                     }
                     break;
-                }
-            }
-        }
-
-        public sealed class Handle : IDisposable
-        {
-            private TKey key;
-            private TValue value;
-            private SingletonCache<TKey, TValue> cache;
-
-            public Handle(TKey key, TValue value, SingletonCache<TKey, TValue> cache)
-            {
-                this.key = key;
-                this.value = value;
-                this.cache = cache;
-            }
-
-            public TValue Value
-            {
-                get
-                {
-                    return this.value;
-                }
-            }
-
-            public void Dispose()
-            {
-                if (this.cache != null)
-                {
-                    this.cache.Release(this.key);
-                    this.cache = null;
                 }
             }
         }
