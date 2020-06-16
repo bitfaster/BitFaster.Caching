@@ -90,14 +90,14 @@ MemoryCache is perfectly servicable. But in some situations, it can be a bottlen
 
 # Performance
 
-## Lru Hit rate
+## ConcurrentLru Hit rate
 
 The charts below show the relative hit rate of classic LRU vs Concurrent LRU on a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) of input keys, with parameter *s* = 0.5 and *s* = 0.86 respectively. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
 
 Here *N* = 50000, and we take 1 million sample keys. The hit rate is the number of times we get a cache hit divided by 1 million.
 This test was repeated with the cache configured to different sizes expressed as a percentage *N* (e.g. 10% would be a cache with a capacity 5000).
 
-When the cache is small, below 15% of the total key space, ConcurrentLru outperforms ClassicLru.
+When the cache is small, below 15% of the total key space, ConcurrentLru outperforms Lru. In the best case, for *s*=0.5, when the cache is 2.5% of the total key space ConcurrentLru outperforms LRU by more than 50%.
 
 <table>
   <tr>
@@ -110,14 +110,16 @@ When the cache is small, below 15% of the total key space, ConcurrentLru outperf
    </tr> 
 </table>
 
-## Lru Benchmarks
+## ConcurrentLru Benchmarks
 
 In the benchmarks, a cache miss is essentially free. These tests exist purely to compare the raw execution speed of the cache code. In a real setting, where a cache miss is presumably quite expensive, the relative overhead of the cache will be very small.
 
 Benchmarks are based on BenchmarkDotNet, so are single threaded. The ConcurrentLru family of classes can outperform ClassicLru in multithreaded workloads.
 
+All benchmarks below are run on this measly laptop:
+
 ~~~
-BenchmarkDotNet=v0.12.1, OS=Windows 10.0.18363.900 (1909/November2018Update/19H2)
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.264 (2004/?/20H1)
 Intel Core i7-5600U CPU 2.60GHz (Broadwell), 1 CPU, 4 logical and 2 physical cores
 .NET Core SDK=3.1.301
   [Host]    : .NET Core 3.1.5 (CoreCLR 4.700.20.26901, CoreFX 4.700.20.27001), X64 RyuJIT
@@ -134,7 +136,6 @@ Take 1000 samples of a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf
 *N* = 500
 
 Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has approximately the same performance as ClassicLru in this single threaded test.
-
 
 |             Method |     Mean |   Error |  StdDev | Ratio | RatioSD |
 |------------------- |---------:|--------:|--------:|------:|--------:|
@@ -156,13 +157,14 @@ FastConcurrentLru does not allocate and is approximately 10x faster than MemoryC
 
 |               Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
 |--------------------- |----------:|---------:|---------:|------:|-------:|----------:|
-| ConcurrentDictionary |  15.83 ns | 0.242 ns | 0.215 ns |  1.00 |      - |         - |
-|    FastConcurrentLru |  20.42 ns | 0.319 ns | 0.283 ns |  1.29 |      - |         - |
-|        ConcurrentLru |  24.59 ns | 0.484 ns | 0.594 ns |  1.56 |      - |         - |
-|   FastConcurrentTLru | 110.76 ns | 0.664 ns | 0.518 ns |  6.98 |      - |         - |
-|       ConcurrentTLru | 114.99 ns | 1.652 ns | 1.465 ns |  7.27 |      - |         - |
-|           ClassicLru |  69.01 ns | 0.503 ns | 0.446 ns |  4.36 |      - |         - |
-|          MemoryCache | 257.83 ns | 4.786 ns | 4.700 ns | 16.30 | 0.0153 |      32 B |
+| ConcurrentDictionary |  15.06 ns | 0.286 ns | 0.307 ns |  1.00 |      - |         - |
+|    FastConcurrentLru |  20.70 ns | 0.276 ns | 0.258 ns |  1.37 |      - |         - |
+|        ConcurrentLru |  24.09 ns | 0.270 ns | 0.253 ns |  1.60 |      - |         - |
+|   FastConcurrentTLru |  49.57 ns | 0.619 ns | 0.517 ns |  3.30 |      - |         - |
+|       ConcurrentTLru |  64.82 ns | 2.547 ns | 7.391 ns |  4.50 |      - |         - |
+|           ClassicLru |  76.78 ns | 1.412 ns | 3.039 ns |  5.25 |      - |         - |
+|          MemoryCache | 278.37 ns | 3.887 ns | 3.035 ns | 18.50 | 0.0153 |      32 B |
+
 
 ## Meta-programming using structs for JIT dead code removal and inlining
 
