@@ -31,7 +31,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             var item = this.policy.CreateItem(1, 2);
 
             // seconds = ticks / Stopwatch.Frequency
-            ulong epsilon = (ulong)(TimeSpan.FromMilliseconds(10).TotalSeconds * Stopwatch.Frequency);
+            ulong epsilon = (ulong)(TimeSpan.FromMilliseconds(20).TotalSeconds * Stopwatch.Frequency);
             item.TickCount.Should().BeCloseTo(sw.ElapsedTicks, epsilon);
         }
 

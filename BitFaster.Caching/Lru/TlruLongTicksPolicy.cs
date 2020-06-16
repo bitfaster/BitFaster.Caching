@@ -18,18 +18,22 @@ namespace BitFaster.Caching.Lru
     public readonly struct TLruLongTicksPolicy<K, V> : IPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly long timeToLive;
-        private readonly Stopwatch stopwatch;
+        private static Stopwatch stopwatch;
+
+        static TLruLongTicksPolicy()
+        {
+            stopwatch = Stopwatch.StartNew();
+        }
 
         public TLruLongTicksPolicy(TimeSpan timeToLive)
         {
             this.timeToLive = timeToLive.Ticks;
-            this.stopwatch = Stopwatch.StartNew();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LongTickCountLruItem<K, V> CreateItem(K key, V value)
         {
-            return new LongTickCountLruItem<K, V>(key, value, this.stopwatch.ElapsedTicks);
+            return new LongTickCountLruItem<K, V>(key, value, stopwatch.ElapsedTicks);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -41,7 +45,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
-            if (this.stopwatch.ElapsedTicks - item.TickCount > this.timeToLive)
+            if (stopwatch.ElapsedTicks - item.TickCount > this.timeToLive)
             {
                 return true;
             }

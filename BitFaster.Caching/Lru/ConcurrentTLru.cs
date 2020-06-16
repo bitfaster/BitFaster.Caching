@@ -9,7 +9,7 @@ namespace BitFaster.Caching.Lru
     public sealed class ConcurrentTLru<K, V> : TemplateConcurrentLru<K, V, LongTickCountLruItem<K, V>, TLruLongTicksPolicy<K, V>, HitCounter>
     {
         public ConcurrentTLru(int capacity)
-            : base(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default, new TLruDateTimePolicy<K, V>(), new HitCounter())
+            : base(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default, new TLruLongTicksPolicy<K, V>(), new HitCounter())
         { 
         }
 
