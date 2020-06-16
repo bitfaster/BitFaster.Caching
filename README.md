@@ -7,20 +7,22 @@ High performance, thread-safe in-memory caching primitives for .NET.
 # Installing via NuGet
 `Install-Package BitFaster.Caching`
 
-# Caching primitives
+# Overview
 
 | Class |  Description |
 |:-------|:---------|
-| ConcurrentLru       |  Bounded size pseudo LRU.<br><br>A drop in replacement for ConcurrentDictionary, but with bounded size. Maintains psuedo order, with better hit rate than a pure Lru and not prone to lock contention. |
-| ConcurrentTlru        | Bounded size pseudo LRU, items have TTL.<br><br>Same as ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. If the values generated for each key can change over time, ConcurrentTlru is eventually consistent where the inconsistency window is the TTL. |
-| SingletonCache      | Cache singletons by key. Discard when no longer in use. <br><br> For example, cache a SemaphoreSlim per user, where user population is large, but active user count is low.   |
-| Scoped<IDisposable>      | A threadsafe wrapper for storing IDisposable objects in a cache that may dispose and invalidate them. The scope keeps the object alive until all callers have finished.   |
+| ConcurrentLru       |  Represents a thread-safe bounded size pseudo LRU.<br><br>A drop in replacement for ConcurrentDictionary, but with bounded size. Maintains psuedo order, with better hit rate than a pure Lru and not prone to lock contention. |
+| ConcurrentTLru        | Represents a thread-safe bounded size pseudo TLRU, items have TTL.<br><br>As ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. If the values generated for each key can change over time, ConcurrentTLru is eventually consistent where the inconsistency window = TTL. |
+| SingletonCache      | Represents a thread-safe cache of key value pairs, which guarantees a single instance of each value. Values are discarded immediately when no longer in use to conserve memory.  |
+| Scoped<IDisposable>      | Represents a thread-safe wrapper for storing IDisposable objects in a cache that may dispose and invalidate them. The scope keeps the object alive until all callers have finished.   |
 
 # Usage
 
 ## ConcurrentLru/ConcurrentTLru
 
 `ConcurrentLru` and `ConcurrentTLru` are intended as a drop in replacement for `ConcurrentDictionary`, and a much faster alternative to the `System.Runtime.Caching.MemoryCache` family of classes (e.g. `HttpRuntime.Cache`, `System.Web.Caching` etc). 
+
+Choose a capacity and use just like ConcurrentDictionary:
 
 ```csharp
 int capacity = 666;
@@ -81,12 +83,13 @@ using (var lifetime = urlLocks.Acquire(url))
 
 ### Why not use MemoryCache?
 
-MemoryCache is perfectly servicable. But in some situations, it can be a bottleneck.
+MemoryCache is perfectly servicable, but it has some limitations:
 
 - Makes heap allocations when the native object key is not type string.
+- Is not 'scan' resistant, fetching all keys will load everything into memory. This is known as sequential flooding.
 - Does not scale well with concurrent writes.
-- Executes code for perf counters that can't be disabled
-- Uses an heuristic to estimate memory used, and the 'trim' process may remove useful items. If many items are added quickly, runaway is a problem.
+- Contains perf counters that can't be disabled
+- Uses an heuristic to estimate memory used, and evicts items using a timer. The 'trim' process may remove useful items, and if the timer does not fire fast enough the resulting memory pressure can be problematic (e.g. induced GC).
 
 # Performance
 
@@ -135,22 +138,22 @@ Take 1000 samples of a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf
 *s* = 0.86 (yields approx 80/20 distribution)<br>
 *N* = 500
 
-Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has approximately the same performance as ClassicLru in this single threaded test.
+Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has approximately the same performance as a standard Lru in this single threaded test.
 
 |             Method |     Mean |   Error |  StdDev | Ratio | RatioSD |
 |------------------- |---------:|--------:|--------:|------:|--------:|
-|         ClassicLru | 176.1 ns | 2.74 ns | 2.56 ns |  1.00 |    0.00 |
-|  FastConcurrentLru | 178.0 ns | 2.76 ns | 2.45 ns |  1.01 |    0.02 |
-|      ConcurrentLru | 185.2 ns | 1.87 ns | 1.56 ns |  1.06 |    0.01 |
-| FastConcurrentTLru | 435.7 ns | 2.88 ns | 2.41 ns |  2.48 |    0.03 |
-|     ConcurrentTLru | 425.1 ns | 8.46 ns | 7.91 ns |  2.41 |    0.07 |
+|         ClassicLru | 157.3 ns | 1.67 ns | 1.48 ns |  1.00 |    0.00 |
+|  FastConcurrentLru | 165.4 ns | 1.17 ns | 1.04 ns |  1.05 |    0.01 |
+|      ConcurrentLru | 176.1 ns | 1.22 ns | 1.08 ns |  1.12 |    0.01 |
+| FastConcurrentTLru | 247.9 ns | 3.58 ns | 2.80 ns |  1.58 |    0.02 |
+|     ConcurrentTLru | 259.0 ns | 3.61 ns | 3.20 ns |  1.65 |    0.03 |
 
 ### Raw Lookup speed
 
 In this test the same items are fetched repeatedly, no items are evicted. Representative of high hit rate scenario, when there are a low number of hot items.
 
 - ConcurrentLru family does not move items in the queues, it is just marking as accessed for pure cache hits.
-- ClassicLru must maintain item order, and is internally splicing the fetched item to the head of the linked list.
+- Classic Lru must maintain item order, and is internally splicing the fetched item to the head of the linked list.
 - MemoryCache and ConcurrentDictionary represent a pure lookup. This is the best case scenario for MemoryCache, since the lookup key is a string (if the key were a Guid, using MemoryCache adds string conversion overhead). 
 
 FastConcurrentLru does not allocate and is approximately 10x faster than MemoryCache.
