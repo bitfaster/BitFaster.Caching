@@ -8,7 +8,7 @@ using MathNet.Numerics.Random;
 
 namespace BitFaster.Caching.Benchmarks.Lru
 {
-    public class ZipDistribution
+    public class LruZipDistribution
     {
         const double s = 0.86;
         const int n = 500;
