@@ -135,15 +135,15 @@ Take 1000 samples of a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf
 *s* = 0.86 (yields approx 80/20 distribution)<br>
 *N* = 500
 
-Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has approximately the same performance as ClassicLru in this single threaded test.
+Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has approximately the same performance as a standard Lru in this single threaded test.
 
 |             Method |     Mean |   Error |  StdDev | Ratio | RatioSD |
 |------------------- |---------:|--------:|--------:|------:|--------:|
-|         ClassicLru | 176.1 ns | 2.74 ns | 2.56 ns |  1.00 |    0.00 |
-|  FastConcurrentLru | 178.0 ns | 2.76 ns | 2.45 ns |  1.01 |    0.02 |
-|      ConcurrentLru | 185.2 ns | 1.87 ns | 1.56 ns |  1.06 |    0.01 |
-| FastConcurrentTLru | 435.7 ns | 2.88 ns | 2.41 ns |  2.48 |    0.03 |
-|     ConcurrentTLru | 425.1 ns | 8.46 ns | 7.91 ns |  2.41 |    0.07 |
+|         ClassicLru | 157.3 ns | 1.67 ns | 1.48 ns |  1.00 |    0.00 |
+|  FastConcurrentLru | 165.4 ns | 1.17 ns | 1.04 ns |  1.05 |    0.01 |
+|      ConcurrentLru | 176.1 ns | 1.22 ns | 1.08 ns |  1.12 |    0.01 |
+| FastConcurrentTLru | 247.9 ns | 3.58 ns | 2.80 ns |  1.58 |    0.02 |
+|     ConcurrentTLru | 259.0 ns | 3.61 ns | 3.20 ns |  1.65 |    0.03 |
 
 ### Raw Lookup speed
 
