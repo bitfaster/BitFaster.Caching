@@ -23,9 +23,8 @@ High performance, thread-safe in-memory caching primitives for .NET.
 `ConcurrentLru` and `ConcurrentTLru` are intended as a drop in replacement for `ConcurrentDictionary`, and a much faster alternative to the `System.Runtime.Caching.MemoryCache` family of classes (e.g. `HttpRuntime.Cache`, `System.Web.Caching` etc). 
 
 ```csharp
-int concurrency = 4;
 int capacity = 666;
-var lru = new ConcurrentLru<int, SomeItem>(concurrency, capacity, EqualityComparer<int>.Default);
+var lru = new ConcurrentLru<int, SomeItem>(capacity);
 
 var value = lru.GetOrAdd(1, (k) => new SomeItem(k));
 var value = await lru.GetOrAddAsync(0, (k) => Task.FromResult(new SomeItem(k)));
@@ -39,9 +38,8 @@ All cache classes in BitFaster.Caching own the lifetime of cached values, and wi
 To avoid races using objects after they have been disposed by the cache, wrap them with `Scoped`. The call to `CreateLifetime` creates a `Lifetime` that guarantees the scoped object will not be disposed until the lifetime is disposed. `Scoped` is thread safe, and guarantees correct disposal for concurrent lifetimes. 
 
 ```csharp
-int concurrency = 4;
 int capacity = 666;
-var lru = new ConcurrentLru<int, Scoped<SomeDisposable>>(concurrency, capacity, EqualityComparer<int>.Default);
+var lru = new ConcurrentLru<int, Scoped<SomeDisposable>>(capacity);
 var valueFactory = new SomeDisposableValueFactory();
 
 using (var lifetime = lru.GetOrAdd(1, valueFactory.Create).CreateLifetime())

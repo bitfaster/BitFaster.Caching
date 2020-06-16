@@ -19,5 +19,13 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.TryGet("FOO", out var value).Should().BeTrue();
             value.Should().Be(1);
         }
+
+        [Fact]
+        public void ConstructAddAndRetrieveWithDefaultCtorReturnsValue()
+        {
+            var x = new FastConcurrentTLru<int, int>(3);
+
+            x.GetOrAdd(1, k => k).Should().Be(1);
+        }
     }
 }
