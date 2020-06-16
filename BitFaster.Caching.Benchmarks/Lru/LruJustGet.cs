@@ -37,55 +37,55 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark(Baseline = true)]
-        public void ConcurrentDictionaryGetOrAdd()
+        public void ConcurrentDictionary()
         {
             Func<int, int> func = x => x;
             dictionary.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void FastConcurrentLruGetOrAdd()
+        public void FastConcurrentLru()
         {
             Func<int, int> func = x => x;
             fastConcurrentLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentLruGetOrAdd()
+        public void ConcurrentLru()
         {
             Func<int, int> func = x => x;
             concurrentLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void FastConcurrentTLruGetOrAdd()
+        public void FastConcurrentTLru()
         {
             Func<int, int> func = x => x;
             fastConcurrentTLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentTLruGetOrAdd()
+        public void ConcurrentTLru()
         {
             Func<int, int> func = x => x;
             concurrentTlru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ClassicLruGetOrAdd()
+        public void ClassicLru()
         {
             Func<int, int> func = x => x;
             classicLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void MemoryCacheGetStringKey()
+        public void RuntimeMemoryCacheGet()
         {
             memoryCache.Get("1");
         }
 
         [Benchmark()]
-        public void ExMemoryCacheGetStringKey()
+        public void ExtensionsMemoryCacheGet()
         {
             exMemoryCache.Get(1);
         }
