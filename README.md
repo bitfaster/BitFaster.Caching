@@ -156,7 +156,7 @@ In this test the same items are fetched repeatedly, no items are evicted. Repres
 - Classic Lru must maintain item order, and is internally splicing the fetched item to the head of the linked list.
 - MemoryCache and ConcurrentDictionary represent a pure lookup. This is the best case scenario for MemoryCache, since the lookup key is a string (if the key were a Guid, using MemoryCache adds string conversion overhead). 
 
-FastConcurrentLru does not allocate and is approximately 10x faster than MemoryCache.
+FastConcurrentLru does not allocate and is approximately 10x faster than System.Runtime.Caching.MemoryCache or the newer Microsoft.Extensions.Caching.Memory.MemoryCache.
 
 |                Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
 |---------------------- |----------:|---------:|---------:|------:|-------:|----------:|
