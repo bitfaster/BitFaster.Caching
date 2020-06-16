@@ -50,6 +50,14 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void ConstructAddAndRetrieveWithDefaultCtorReturnsValue()
+        {
+            var x = new ConcurrentLru<int, int>(3);
+
+            x.GetOrAdd(1, k => k).Should().Be(1);
+        }
+
+        [Fact]
 		public void WhenItemIsAddedCountIsCorrect()
 		{
 			lru.Count.Should().Be(0);

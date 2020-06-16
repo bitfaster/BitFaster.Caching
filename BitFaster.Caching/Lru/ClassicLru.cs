@@ -26,6 +26,11 @@ namespace BitFaster.Caching.Lru
         private long requestHitCount;
         private long requestTotalCount;
 
+        public ClassicLru(int capacity)
+            : this(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default)
+        { 
+        }
+
         public ClassicLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer)
         {
             if (capacity < 3)

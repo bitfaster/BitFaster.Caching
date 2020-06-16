@@ -11,33 +11,48 @@ High performance, thread-safe in-memory caching primitives for .NET.
 
 | Class |  Description |
 |:-------|:---------|
-| ClassicLru       | Bounded size LRU based with strict ordering.<br><br>Use if ordering is important, but data structures are synchronized with a lock which limits scalability. |
-| ConcurrentLru       |  Bounded size pseudo LRU.<br><br>For when you   want a ConcurrentDictionary, but with bounded size. Maintains psuedo order, but is faster than ClassicLru and not prone to lock contention. |
-| ConcurrentTlru        | Bounded size pseudo LRU, items have TTL.<br><br>Same as ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. |
-| FastConcurrentLru/FastConcurrentTLru      | Same as ConcurrentLru/ConcurrentTLru, but with hit counting logic eliminated making them  10-30% faster.   |
+| ConcurrentLru       |  Bounded size pseudo LRU.<br><br>A drop in replacement for ConcurrentDictionary, but with bounded size. Maintains psuedo order, with better hit rate than a pure Lru and not prone to lock contention. |
+| ConcurrentTlru        | Bounded size pseudo LRU, items have TTL.<br><br>Same as ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. If the values generated for each key can change over time, ConcurrentTlru is eventually consistent where the inconsistency window is the TTL. |
 | SingletonCache      | Cache singletons by key. Discard when no longer in use. <br><br> For example, cache a SemaphoreSlim per user, where user population is large, but active user count is low.   |
 | Scoped<IDisposable>      | A threadsafe wrapper for storing IDisposable objects in a cache that may dispose and invalidate them. The scope keeps the object alive until all callers have finished.   |
 
 # Usage
 
-## LRU: ClassicLru, ConcurrentLru, ConcurrentTLru
+## ConcurrentLru/ConcurrentTLru
 
-LRU implementations are intended as an alternative to the System.Runtime.Caching.MemoryCache family of classes (e.g. HttpRuntime.Cache, System.Web.Caching et. al.). 
+`ConcurrentLru` and `ConcurrentTLru` are intended as a drop in replacement for `ConcurrentDictionary`, and a much faster alternative to the `System.Runtime.Caching.MemoryCache` family of classes (e.g. `HttpRuntime.Cache`, `System.Web.Caching` etc). 
+
+```csharp
+int capacity = 666;
+var lru = new ConcurrentLru<int, SomeItem>(capacity);
+
+var value = lru.GetOrAdd(1, (k) => new SomeItem(k));
+var value = await lru.GetOrAddAsync(0, (k) => Task.FromResult(new SomeItem(k)));
+```
 
 
 ## Caching IDisposable objects
 
 All cache classes in BitFaster.Caching own the lifetime of cached values, and will automatically dispose values when they are evicted. 
 
-To avoid races using objects after they have been disposed by the cache, wrap them with `Scoped`. The call to `CreateLifetime` creates a `Lifetime` that guarantees the scoped object will not be disposed until the lifetime is disposed. `Scoped` is thread safe, and lifetimes are valid for concurrent callers. 
+To avoid races using objects after they have been disposed by the cache, wrap them with `Scoped`. The call to `CreateLifetime` creates a `Lifetime` that guarantees the scoped object will not be disposed until the lifetime is disposed. `Scoped` is thread safe, and guarantees correct disposal for concurrent lifetimes. 
 
 ```csharp
-var lru = new ConcurrentLru<int, Scoped<SomeDisposable>>(2, 9, EqualityComparer<int>.Default);
+int capacity = 666;
+var lru = new ConcurrentLru<int, Scoped<SomeDisposable>>(capacity);
 var valueFactory = new SomeDisposableValueFactory();
 
 using (var lifetime = lru.GetOrAdd(1, valueFactory.Create).CreateLifetime())
 {
     // lifetime.Value is guaranteed to be alive until the lifetime is disposed
+}
+
+class SomeDisposableValueFactory
+{
+   public Scoped<SomeDisposable>> Create(int key)
+   {
+      return new Scoped<SomeDisposable>(new SomeDisposable(key));
+   }
 }
 ```
 
@@ -53,9 +68,9 @@ var urlLocks = new SingletonCache<Url, object>();
 
 Url url = new Url("https://foo.com");
 
-using (var handle = urlLocks.Acquire(url))
+using (var lifetime = urlLocks.Acquire(url))
 {
-   lock (handle.Value)
+   lock (lifetime.Value)
    {
       // exclusive url access
    }
@@ -75,7 +90,29 @@ MemoryCache is perfectly servicable. But in some situations, it can be a bottlen
 
 # Performance
 
+## Lru Hit rate
+
+The charts below show the relative hit rate of classic LRU vs Concurrent LRU on a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) of input keys, with parameter *s* = 0.5 and *s* = 0.86 respectively. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
+
+Here *N* = 50000, and we take 1 million sample keys. The hit rate is the number of times we get a cache hit divided by 1 million.
+This test was repeated with the cache configured to different sizes expressed as a percentage *N* (e.g. 10% would be a cache with a capacity 5000).
+
+When the cache is small, below 15% of the total key space, ConcurrentLru outperforms ClassicLru.
+
+<table>
+  <tr>
+    <td>
+<img src="https://user-images.githubusercontent.com/12851828/84707621-e2a62480-af13-11ea-91e7-726911bce162.png" width="400"/>
+</td>
+    <td>
+<img src="https://user-images.githubusercontent.com/12851828/84707663-f81b4e80-af13-11ea-96d4-1ba71444d333.png" width="400"/>
+</td>
+   </tr> 
+</table>
+
 ## Lru Benchmarks
+
+In the benchmarks, a cache miss is essentially free. These tests exist purely to compare the raw execution speed of the cache code. In a real setting, where a cache miss is presumably quite expensive, the relative overhead of the cache will be very small.
 
 Benchmarks are based on BenchmarkDotNet, so are single threaded. The ConcurrentLru family of classes can outperform ClassicLru in multithreaded workloads.
 
@@ -91,7 +128,7 @@ Job=RyuJitX64  Jit=RyuJit  Platform=X64
 
 ### Lookup keys with a Zipf distribution
 
-Take 1000 samples of a [Zipfan distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) over a set of keys of size *N* and use the keys to lookup values in the cache. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
+Take 1000 samples of a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) over a set of keys of size *N* and use the keys to lookup values in the cache. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
 
 *s* = 0.86 (yields approx 80/20 distribution)<br>
 *N* = 500
@@ -126,35 +163,6 @@ FastConcurrentLru does not allocate and is approximately 10x faster than MemoryC
 |       ConcurrentTLru | 114.99 ns | 1.652 ns | 1.465 ns |  7.27 |      - |         - |
 |           ClassicLru |  69.01 ns | 0.503 ns | 0.446 ns |  4.36 |      - |         - |
 |          MemoryCache | 257.83 ns | 4.786 ns | 4.700 ns | 16.30 | 0.0153 |      32 B |
-
-### Mixed workload
-
-Tests 4 operations, 1 miss (adding the item), 2 hits then remove.
-
-This test needs to be improved to provoke queue cycling.
-
-|               Method |       Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
-|--------------------- |-----------:|---------:|---------:|------:|-------:|----------:|
-| ConcurrentDictionary |   151.7 ns |  2.34 ns |  1.96 ns |  1.00 | 0.0381 |      80 B |
-|    FastConcurrentLru |   369.2 ns |  7.29 ns |  7.16 ns |  2.44 | 0.0534 |     112 B |
-|        ConcurrentLru |   373.6 ns |  2.97 ns |  2.64 ns |  2.46 | 0.0534 |     112 B |
-|   FastConcurrentTlru |   838.6 ns | 11.49 ns | 13.68 ns |  5.53 | 0.0572 |     120 B |
-|       ConcurrentTlru |   852.7 ns | 16.12 ns | 13.46 ns |  5.62 | 0.0572 |     120 B |
-|           ClassicLru |   347.3 ns |  2.67 ns |  2.08 ns |  2.29 | 0.0763 |     160 B |
-|          MemoryCache | 1,987.5 ns | 38.29 ns | 57.31 ns | 13.15 | 2.3460 |    4912 B |
-
-
-### LruCycle2
-
-|               Method |       Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
-|--------------------- |-----------:|---------:|---------:|------:|-------:|----------:|
-| ConcurrentDictionary |   111.0 ns |  1.60 ns |  1.33 ns |  1.00 | 0.0079 |      17 B |
-|    FastConcurrentLru | 1,086.2 ns | 21.61 ns | 19.16 ns |  9.77 | 0.1424 |     300 B |
-|        ConcurrentLru | 1,098.2 ns |  8.15 ns |  7.23 ns |  9.89 | 0.1424 |     300 B |
-|   FastConcurrentTLru | 2,370.7 ns | 33.77 ns | 28.20 ns | 21.37 | 0.1577 |     333 B |
-|       ConcurrentTLru | 2,419.7 ns | 46.90 ns | 52.13 ns | 21.82 | 0.1577 |     333 B |
-|           ClassicLru |   834.3 ns | 10.84 ns |  9.61 ns |  7.52 | 0.2225 |     467 B |
-|          MemoryCache | 1,572.9 ns | 30.94 ns | 44.37 ns | 14.14 | 0.1424 |     313 B |
 
 ## Meta-programming using structs for JIT dead code removal and inlining
 

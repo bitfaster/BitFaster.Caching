@@ -9,27 +9,27 @@ namespace BitFaster.Caching.UnitTests
 	public class SingletonCacheTests
 	{
 		[Fact]
-		public void AcquireWithSameKeyUsingCustomComparerReturnsSameHandle()
+		public void AcquireWithSameKeyUsingCustomComparerReturnsSameLifetime()
 		{
 			var cache = new SingletonCache<string, object>(1, 3, StringComparer.OrdinalIgnoreCase);
 
-			var handle1 = cache.Acquire("foo");
-			var handle2 = cache.Acquire("FOO");
-			handle1.Value.Should().BeSameAs(handle2.Value);
-			handle1.Dispose();
-			handle2.Dispose();
+			var lifetime1 = cache.Acquire("foo");
+			var lifetime2 = cache.Acquire("FOO");
+			lifetime1.Value.Should().BeSameAs(lifetime2.Value);
+			lifetime1.Dispose();
+			lifetime2.Dispose();
 		}
 
 		[Fact]
-		public void AcquireWithSameKeyReturnsSameHandle()
+		public void AcquireWithSameKeyReturnsSameLifetime()
 		{
 			var cache = new SingletonCache<string, object>();
 
-			var handle1 = cache.Acquire("Foo");
-			var handle2 = cache.Acquire("Foo");
-			handle1.Value.Should().BeSameAs(handle2.Value);
-			handle1.Dispose();
-			handle2.Dispose();
+			var lifetime1 = cache.Acquire("Foo");
+			var lifetime2 = cache.Acquire("Foo");
+			lifetime1.Value.Should().BeSameAs(lifetime2.Value);
+			lifetime1.Dispose();
+			lifetime2.Dispose();
 		}
 
 		[Fact]
@@ -37,13 +37,13 @@ namespace BitFaster.Caching.UnitTests
 		{
 			var cache = new SingletonCache<string, object>();
 
-			var handle1 = cache.Acquire("Foo");
-			handle1.Dispose();
+			var lifetime1 = cache.Acquire("Foo");
+			lifetime1.Dispose();
 
-			var handle2 = cache.Acquire("Foo");
-			handle2.Dispose();
+			var lifetime2 = cache.Acquire("Foo");
+			lifetime2.Dispose();
 
-			handle1.Value.Should().NotBeSameAs(handle2.Value);
+			lifetime1.Value.Should().NotBeSameAs(lifetime2.Value);
 		}
 
 		[Fact]
@@ -54,17 +54,17 @@ namespace BitFaster.Caching.UnitTests
 			EventWaitHandle event1 = new EventWaitHandle(false, EventResetMode.AutoReset);
 			EventWaitHandle event2 = new EventWaitHandle(false, EventResetMode.AutoReset);
 
-			SingletonCache<string, object>.Handle handle1 = null;
-			SingletonCache<string, object>.Handle handle2 = null;
+			Lifetime<object> lifetime1 = null;
+            Lifetime<object> lifetime2 = null;
 
 			Task task1 = Task.Run(() =>
 			{
 				event1.WaitOne();
-				handle1 = cache.Acquire("Foo");
+				lifetime1 = cache.Acquire("Foo");
 				event2.Set();
 
 				event1.WaitOne();
-				handle1.Dispose();
+				lifetime1.Dispose();
 				event2.Set();
 			});
 
@@ -72,16 +72,16 @@ namespace BitFaster.Caching.UnitTests
 			{
 				event1.Set();
 				event2.WaitOne();
-				handle2 = cache.Acquire("Foo");
+				lifetime2 = cache.Acquire("Foo");
 
 				event1.Set();
 				event2.WaitOne();
-				handle2.Dispose();
+				lifetime2.Dispose();
 			});
 
 			await Task.WhenAll(task1, task2);
 
-			handle1.Value.Should().BeSameAs(handle2.Value);
+			lifetime1.Value.Should().BeSameAs(lifetime2.Value);
 		}
 
 		[Fact]
@@ -99,9 +99,9 @@ namespace BitFaster.Caching.UnitTests
 				{
 					for (int i = 0; i < 100000; i++)
 					{
-						using (var handle = cache.Acquire("Foo"))
+						using (var lifetime = cache.Acquire("Foo"))
 						{
-							lock (handle.Value)
+							lock (lifetime.Value)
 							{
 								int result = Interlocked.Increment(ref count);
 								result.Should().Be(1);
@@ -120,7 +120,7 @@ namespace BitFaster.Caching.UnitTests
 		{
 			var cache = new SingletonCache<string, DisposeTest>();
 
-			using (var handle = cache.Acquire("Foo"))
+			using (var lifetime = cache.Acquire("Foo"))
 			{
 				DisposeTest.WasDisposed.Should().BeFalse();
 			}
