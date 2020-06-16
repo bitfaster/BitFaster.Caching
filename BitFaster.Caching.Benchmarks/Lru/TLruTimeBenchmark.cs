@@ -35,7 +35,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
         }
 
         [Benchmark()]
-        public void StopWatchGetElapsed()
+        public void StopWatchGetTimestamp()
         {
             Func<int, int> func = x => x;
             stopwatchTLru.GetOrAdd(1, func);
