@@ -158,16 +158,16 @@ In this test the same items are fetched repeatedly, no items are evicted. Repres
 
 FastConcurrentLru does not allocate and is approximately 10x faster than MemoryCache.
 
-|               Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
-|--------------------- |----------:|---------:|---------:|------:|-------:|----------:|
-| ConcurrentDictionary |  15.06 ns | 0.286 ns | 0.307 ns |  1.00 |      - |         - |
-|    FastConcurrentLru |  20.70 ns | 0.276 ns | 0.258 ns |  1.37 |      - |         - |
-|        ConcurrentLru |  24.09 ns | 0.270 ns | 0.253 ns |  1.60 |      - |         - |
-|   FastConcurrentTLru |  49.57 ns | 0.619 ns | 0.517 ns |  3.30 |      - |         - |
-|       ConcurrentTLru |  64.82 ns | 2.547 ns | 7.391 ns |  4.50 |      - |         - |
-|           ClassicLru |  76.78 ns | 1.412 ns | 3.039 ns |  5.25 |      - |         - |
-|          MemoryCache | 278.37 ns | 3.887 ns | 3.035 ns | 18.50 | 0.0153 |      32 B |
-
+|                Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
+|---------------------- |----------:|---------:|---------:|------:|-------:|----------:|
+|  ConcurrentDictionary |  16.88 ns | 0.276 ns | 0.245 ns |  1.00 |      - |         - |
+|     FastConcurrentLru |  23.27 ns | 0.491 ns | 0.565 ns |  1.38 |      - |         - |
+|         ConcurrentLru |  26.77 ns | 0.512 ns | 0.666 ns |  1.60 |      - |         - |
+|    FastConcurrentTLru |  54.35 ns | 0.650 ns | 0.576 ns |  3.22 |      - |         - |
+|        ConcurrentTLru |  60.10 ns | 1.024 ns | 1.501 ns |  3.53 |      - |         - |
+|            ClassicLru |  68.04 ns | 1.400 ns | 2.221 ns |  4.12 |      - |         - |
+|    RuntimeMemoryCache | 280.16 ns | 5.607 ns | 7.486 ns | 16.59 | 0.0153 |      32 B |
+| ExtensionsMemoryCache | 342.72 ns | 3.729 ns | 3.114 ns | 20.29 | 0.0114 |      24 B |
 
 ## Meta-programming using structs for JIT dead code removal and inlining
 
