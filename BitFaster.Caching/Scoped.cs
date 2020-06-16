@@ -21,7 +21,7 @@ namespace BitFaster.Caching
             this.refCount = new ReferenceCount<T>(value);
         }
 
-        public Lifetime CreateLifetime()
+        public Lifetime<T> CreateLifetime()
         {
             if (this.isDisposed)
             {
@@ -38,7 +38,7 @@ namespace BitFaster.Caching
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
                     // When Lease is disposed, it calls DecrementReferenceCount
-                    return new Lifetime(oldRefCount.Value, this.DecrementReferenceCount);
+                    return new Lifetime<T>(oldRefCount.Value, this.DecrementReferenceCount);
                 }
             }
         }
@@ -68,29 +68,6 @@ namespace BitFaster.Caching
             {
                 this.DecrementReferenceCount();
                 this.isDisposed = true;
-            }
-        }
-
-        public class Lifetime : IDisposable
-        {
-            private readonly Action onDisposeAction;
-            private bool isDisposed;
-
-            public Lifetime(T value, Action onDisposeAction)
-            {
-                this.Value = value;
-                this.onDisposeAction = onDisposeAction;
-            }
-
-            public T Value { get; }
-
-            public void Dispose()
-            {
-                if (!this.isDisposed)
-                {
-                    this.onDisposeAction();
-                    this.isDisposed = true;
-                }
             }
         }
     }
