@@ -86,7 +86,7 @@ using (var lifetime = urlLocks.Acquire(url))
 MemoryCache is perfectly servicable, but it has some limitations:
 
 - Makes heap allocations when the native object key is not type string.
-- Is not 'scan' resistant, fetching all keys will load everything into memory. This is known as sequential flooding.
+- Is not 'scan' resistant, fetching all keys will load everything into memory.
 - Does not scale well with concurrent writes.
 - Contains perf counters that can't be disabled
 - Uses an heuristic to estimate memory used, and evicts items using a timer. The 'trim' process may remove useful items, and if the timer does not fire fast enough the resulting memory pressure can be problematic (e.g. induced GC).
