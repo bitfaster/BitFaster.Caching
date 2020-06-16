@@ -7,7 +7,7 @@ High performance, thread-safe in-memory caching primitives for .NET.
 # Installing via NuGet
 `Install-Package BitFaster.Caching`
 
-# API
+# Overview
 
 | Class |  Description |
 |:-------|:---------|
