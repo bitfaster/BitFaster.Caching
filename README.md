@@ -70,9 +70,9 @@ var urlLocks = new SingletonCache<Url, object>();
 
 Url url = new Url("https://foo.com");
 
-using (var handle = urlLocks.Acquire(url))
+using (var lifetime = urlLocks.Acquire(url))
 {
-   lock (handle.Value)
+   lock (lifetime.Value)
    {
       // exclusive url access
    }
