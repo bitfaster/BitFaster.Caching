@@ -141,11 +141,11 @@ These charts summarize the percentage increase in hit rate ConcurrentLru vs LRU.
 
 ## ConcurrentLru Benchmarks
 
-In the benchmarks, a cache miss is essentially free. These tests exist purely to compare the raw execution speed of the cache code. In a real setting, where a cache miss is presumably quite expensive, the relative overhead of the cache will be very small.
+In these benchmarks, a cache miss is essentially free. These tests exist purely to compare the raw execution speed of the cache bookkeeping code. In a real setting, where a cache miss is presumably quite expensive, the relative overhead of the cache will be very small.
 
-Benchmarks are based on BenchmarkDotNet, so are single threaded. The ConcurrentLru family of classes can outperform ClassicLru in multithreaded workloads.
+Benchmarks are based on BenchmarkDotNet, so are single threaded. The ConcurrentLru family of classes are composed internally of ConcurrentDictionary.GetOrAdd and ConcurrentQueue.Enqueue/Dequeue method calls, and scale well to concurrent workloads.
 
-All benchmarks below are run on this measly laptop:
+All benchmarks below are run on the same computer:
 
 ~~~
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.264 (2004/?/20H1)
@@ -164,7 +164,7 @@ Take 1000 samples of a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf
 *s* = 0.86 (yields approx 80/20 distribution)<br>
 *N* = 500
 
-Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has approximately the same performance as a standard Lru in this single threaded test.
+Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has approximately the same computational overhead as a standard LRU in this single threaded test.
 
 |             Method |     Mean |   Error |  StdDev | Ratio | RatioSD |
 |------------------- |---------:|--------:|--------:|------:|--------:|
