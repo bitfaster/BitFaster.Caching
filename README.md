@@ -100,8 +100,6 @@ The charts below show the relative hit rate of classic LRU vs Concurrent LRU on 
 Here *N* = 50000, and we take 1 million sample keys. The hit rate is the number of times we get a cache hit divided by 1 million.
 This test was repeated with the cache configured to different sizes expressed as a percentage *N* (e.g. 10% would be a cache with a capacity 5000).
 
-When the cache is small, below 15% of the total key space, ConcurrentLru outperforms Lru. In the best case, for *s*=0.5, when the cache is 2.5% of the total key space ConcurrentLru outperforms LRU by more than 50%.
-
 <table>
   <tr>
     <td>
@@ -113,7 +111,7 @@ When the cache is small, below 15% of the total key space, ConcurrentLru outperf
    </tr> 
 </table>
 
-This is the same test, but interleaving a sequential scan of every key. In this case, ConcurrentLru performs better across the board.
+As above, but interleaving a sequential scan of every key (aka sequential flooding). In this case, ConcurrentLru performs better across the board, and is more resistant to scanning.
 
 <table>
   <tr>
@@ -126,7 +124,7 @@ This is the same test, but interleaving a sequential scan of every key. In this 
    </tr> 
 </table>
 
-These charts summarize the percentage increase in hit rate ConcurrentLru vs LRU. Increase during sequential scan can be > 90%, depending on cache size relative to data set.
+These charts summarize the percentage increase in hit rate ConcurrentLru vs LRU. Increase is in hit rate is significant at lower cache sizes.
 
 <table>
   <tr>
