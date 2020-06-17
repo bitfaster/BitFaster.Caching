@@ -105,10 +105,36 @@ When the cache is small, below 15% of the total key space, ConcurrentLru outperf
 <table>
   <tr>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84707621-e2a62480-af13-11ea-91e7-726911bce162.png" width="400"/>
+<img src="https://user-images.githubusercontent.com/12851828/84844130-a00d4680-affe-11ea-8f7a-e3c66180d8b9.png" width="250"/>
 </td>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84707663-f81b4e80-af13-11ea-96d4-1ba71444d333.png" width="400"/>
+<img src="https://user-images.githubusercontent.com/12851828/84844172-b6b39d80-affe-11ea-9a29-cbdae6020246.png" width="250"/>
+</td>
+   </tr> 
+</table>
+
+This is the same test, but interleaving a sequential scan of every key. In this case, ConcurrentLru performs better across the board.
+
+<table>
+  <tr>
+    <td>
+<img src="https://user-images.githubusercontent.com/12851828/84841922-a4366580-aff8-11ea-93dd-568d60cd82d9.png" width="250"/>
+</td>
+    <td>
+<img src="https://user-images.githubusercontent.com/12851828/84842237-730a6500-aff9-11ea-9a46-40141adff920.png" width="250"/>
+</td>
+   </tr> 
+</table>
+
+These charts summarize the percentage increase in hit rate ConcurrentLru vs LRU. Increase during sequential scan can be > 90%, depending on cache size relative to data set.
+
+<table>
+  <tr>
+    <td>
+<img src="https://user-images.githubusercontent.com/12851828/84843966-283f1c00-affe-11ea-99c9-20aa01f307f0.png" width="250"/>
+</td>
+    <td>
+<img src="https://user-images.githubusercontent.com/12851828/84844003-3d1baf80-affe-11ea-9266-e83efe2e8c35.png" width="250"/>
 </td>
    </tr> 
 </table>

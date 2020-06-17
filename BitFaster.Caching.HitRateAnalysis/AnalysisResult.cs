@@ -18,9 +18,13 @@ namespace BitFaster.Caching.HitRateAnalysis
 
         public int Samples { get; set; }
 
+        public bool IsScan { get; set; }
+
         public double CacheSizePercent { get; set; }
 
         public double HitRatio { get; set; }
+
+        public TimeSpan Duration { get; set; }
 
         public static void WriteToFile(string path, IEnumerable<AnalysisResult> results)
         {

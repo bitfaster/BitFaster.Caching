@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using BitFaster.Caching.HitRateAnalysis;
 using BitFaster.Caching.Lru;
 using MathNet.Numerics;
@@ -30,7 +31,7 @@ namespace BitFaster.Sampling
             double[] sValues = { 0.5, 0.86 };
 
             // % of total number of items
-            double[] cacheSizes = { 0.025, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4 };
+            double[] cacheSizes = { 0.0125, 0.025, 0.05, 0.075, 0.1, 0.125, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4 };
 
             List<Analysis> analysis = new List<Analysis>();
 
@@ -52,8 +53,10 @@ namespace BitFaster.Sampling
             for (int i = 0; i < sValues.Length; i++)
             {
                 Console.WriteLine($"Generating Zipfan distribution with {sampleCount} samples, s = {sValues[i]}, N = {n}");
+                var sw = Stopwatch.StartNew();
                 zipdfDistribution[i] = new int[sampleCount];
                 Zipf.Samples(zipdfDistribution[i], sValues[i], n);
+                Console.WriteLine($"Took {sw.Elapsed}.");
             }
 
             List<AnalysisResult> results = new List<AnalysisResult>();
@@ -68,13 +71,44 @@ namespace BitFaster.Sampling
                 var concurrentLru = new ConcurrentLru<int, int>(1, cacheSize, EqualityComparer<int>.Default);
                 var classicLru = new ClassicLru<int, int>(1, cacheSize, EqualityComparer<int>.Default);
 
+                var concurrentLruScan = new ConcurrentLru<int, int>(1, cacheSize, EqualityComparer<int>.Default);
+                var classicLruScan = new ClassicLru<int, int>(1, cacheSize, EqualityComparer<int>.Default);
+
                 var d = a.s == 0.5 ? 0 : 1;
 
+                var lruSw = Stopwatch.StartNew();
                 for (int i = 0; i < sampleCount; i++)
                 {
                     concurrentLru.GetOrAdd(zipdfDistribution[d][i], func);
+                }
+                lruSw.Stop();
+                Console.WriteLine($"concurrentLru size={cacheSize} took {lruSw.Elapsed}.");
+
+                var clruSw = Stopwatch.StartNew();
+                for (int i = 0; i < sampleCount; i++)
+                {
                     classicLru.GetOrAdd(zipdfDistribution[d][i], func);
                 }
+                clruSw.Stop();
+                Console.WriteLine($"classic lru size={cacheSize} took {clruSw.Elapsed}.");
+
+                var lruSwScan = Stopwatch.StartNew();
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    concurrentLruScan.GetOrAdd(zipdfDistribution[d][i], func);
+                    concurrentLruScan.GetOrAdd(i % n, func);
+                }
+                lruSwScan.Stop();
+                Console.WriteLine($"concurrentLruScan lru size={cacheSize} took {lruSwScan.Elapsed}.");
+
+                var clruSwScan = Stopwatch.StartNew();
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    classicLruScan.GetOrAdd(zipdfDistribution[d][i], func);
+                    classicLruScan.GetOrAdd(i % n, func);
+                }
+                clruSwScan.Stop();
+                Console.WriteLine($"classicLruScan lru size={cacheSize} took {clruSwScan.Elapsed}.");
 
                 results.Add(new AnalysisResult 
                 {
@@ -83,7 +117,9 @@ namespace BitFaster.Sampling
                     s = a.s,
                     CacheSizePercent = a.CacheSizePercent * 100.0,
                     Samples = a.Samples,
+                    IsScan = false,
                     HitRatio = classicLru.HitRatio * 100.0,
+                    Duration = clruSw.Elapsed,
                 });
 
                 results.Add(new AnalysisResult
@@ -93,7 +129,33 @@ namespace BitFaster.Sampling
                     s = a.s,
                     CacheSizePercent = a.CacheSizePercent * 100.0,
                     Samples = a.Samples,
+                    IsScan = false,
                     HitRatio = concurrentLru.HitRatio * 100.0,
+                    Duration = lruSw.Elapsed,
+                });
+
+                results.Add(new AnalysisResult
+                {
+                    Cache = "ClassicLru",
+                    N = a.N,
+                    s = a.s,
+                    CacheSizePercent = a.CacheSizePercent * 100.0,
+                    Samples = a.Samples,
+                    IsScan = true,
+                    HitRatio = classicLruScan.HitRatio * 100.0,
+                    Duration = clruSwScan.Elapsed,
+                });
+
+                results.Add(new AnalysisResult
+                {
+                    Cache = "ConcurrentLru",
+                    N = a.N,
+                    s = a.s,
+                    CacheSizePercent = a.CacheSizePercent * 100.0,
+                    Samples = a.Samples,
+                    IsScan = true,
+                    HitRatio = concurrentLruScan.HitRatio * 100.0,
+                    Duration = lruSwScan.Elapsed,
                 });
             }
 
