@@ -121,10 +121,15 @@ This is the same test, but interleaving a sequential scan of every key. In this 
 <img src="https://user-images.githubusercontent.com/12851828/84841922-a4366580-aff8-11ea-93dd-568d60cd82d9.png" width="250"/>
 </td>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84841939-b1ebeb00-aff8-11ea-8f2c-0e5c0147d523.png" width="250"/>
+<img src="https://user-images.githubusercontent.com/12851828/84842237-730a6500-aff9-11ea-9a46-40141adff920.png" width="250"/>
 </td>
    </tr> 
 </table>
+
+Increase in hit rate during sequential scan:
+
+<img src="https://user-images.githubusercontent.com/12851828/84843147-f9c04180-affb-11ea-93dd-b413455303ff.png" width="500"/>
+
 
 ## ConcurrentLru Benchmarks
 
