@@ -113,6 +113,19 @@ When the cache is small, below 15% of the total key space, ConcurrentLru outperf
    </tr> 
 </table>
 
+This is the same test, but interleaving a sequential scan of every key. In this case, ConcurrentLru performs better across the board.
+
+<table>
+  <tr>
+    <td>
+<img src="https://user-images.githubusercontent.com/12851828/84841922-a4366580-aff8-11ea-93dd-568d60cd82d9.png" width="250"/>
+</td>
+    <td>
+<img src="https://user-images.githubusercontent.com/12851828/84841939-b1ebeb00-aff8-11ea-8f2c-0e5c0147d523.png" width="250"/>
+</td>
+   </tr> 
+</table>
+
 ## ConcurrentLru Benchmarks
 
 In the benchmarks, a cache miss is essentially free. These tests exist purely to compare the raw execution speed of the cache code. In a real setting, where a cache miss is presumably quite expensive, the relative overhead of the cache will be very small.
