@@ -157,6 +157,10 @@ Intel Core i7-5600U CPU 2.60GHz (Broadwell), 1 CPU, 4 logical and 2 physical cor
 Job=RyuJitX64  Jit=RyuJit  Platform=X64
 ~~~
 
+### What are FastConcurrentLru/FastConcurrentTLru?
+
+These are classes that execute with the hit counting logic eliminated (via JIT). If hit counts are not required, this makes the code around 10% faster.
+
 ### Lookup keys with a Zipf distribution
 
 Take 1000 samples of a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) over a set of keys of size *N* and use the keys to lookup values in the cache. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
