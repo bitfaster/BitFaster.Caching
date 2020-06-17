@@ -93,6 +93,8 @@ MemoryCache is perfectly servicable, but it has some limitations:
 
 # Performance
 
+The cache replacement policy must maximize the cache hit rate, and minimize the computational and space overhead involved in implementing the policy. Below an analysis of both the hit rate vs cache size, and run time overhead is provided.  
+
 ## ConcurrentLru Hit rate
 
 The charts below show the relative hit rate of classic LRU vs Concurrent LRU on a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) of input keys, with parameter *s* = 0.5 and *s* = 0.86 respectively. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
