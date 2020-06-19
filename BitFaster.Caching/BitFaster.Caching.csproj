@@ -12,7 +12,7 @@
     <Copyright>Copyright © Alex Peck 2020</Copyright>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitfaster/BitFaster.Caching</RepositoryUrl>
-    <PackageTags>Cache</PackageTags>
+    <PackageTags>Cache;LRU;Performance;In-Memory;Thread-Safe;Concurrent</PackageTags>
     <PackageId>BitFaster.Caching</PackageId>
     <AssemblyName>BitFaster.Caching</AssemblyName>
     <RootNamespace>BitFaster.Caching</RootNamespace>
