@@ -8,7 +8,7 @@ namespace BitFaster.Caching
     /// A reference counting class suitable for use with compare and swap algorithms.
     /// </summary>
     /// <typeparam name="TValue">The value type.</typeparam>
-    public class ReferenceCount<TValue>
+    public class ReferenceCount<TValue> : IEquatable<ReferenceCount<TValue>>
     {
         private readonly TValue value;
         private readonly int count;
@@ -41,17 +41,6 @@ namespace BitFaster.Caching
             }
         }
 
-        public override int GetHashCode()
-        {
-            return this.value.GetHashCode() ^ this.count;
-        }
-
-        public override bool Equals(object obj)
-        {
-            ReferenceCount<TValue> refCount = obj as ReferenceCount<TValue>;
-            return refCount != null && refCount.Value != null && refCount.Value.Equals(this.value) && refCount.count == this.count;
-        }
-
         public ReferenceCount<TValue> IncrementCopy()
         {
             if (this.count <= 0 && this.value is IDisposable)
@@ -65,6 +54,36 @@ namespace BitFaster.Caching
         public ReferenceCount<TValue> DecrementCopy()
         {
             return new ReferenceCount<TValue>(this.value, this.count - 1);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as ReferenceCount<TValue>);
+        }
+
+        public bool Equals(ReferenceCount<TValue> other)
+        {
+            return other != null &&
+                   EqualityComparer<TValue>.Default.Equals(value, other.value) &&
+                   count == other.count;
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = -1491496004;
+            hashCode = hashCode * -1521134295 + EqualityComparer<TValue>.Default.GetHashCode(value);
+            hashCode = hashCode * -1521134295 + count.GetHashCode();
+            return hashCode;
+        }
+
+        public static bool operator ==(ReferenceCount<TValue> left, ReferenceCount<TValue> right)
+        {
+            return EqualityComparer<ReferenceCount<TValue>>.Default.Equals(left, right);
+        }
+
+        public static bool operator !=(ReferenceCount<TValue> left, ReferenceCount<TValue> right)
+        {
+            return !(left == right);
         }
     }
 }
