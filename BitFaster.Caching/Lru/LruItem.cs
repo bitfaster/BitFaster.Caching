@@ -8,8 +8,8 @@ namespace BitFaster.Caching.Lru
 {
 	public class LruItem<K, V>
 	{
-		private bool wasAccessed;
-        private bool wasRemoved;
+		private volatile bool wasAccessed;
+        private volatile bool wasRemoved;
 
         public LruItem(K k, V v)
 		{
