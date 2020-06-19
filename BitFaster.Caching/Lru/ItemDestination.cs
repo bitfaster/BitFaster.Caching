@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
-	public enum ItemDestination
-	{
-		Warm,
-		Cold,
-		Remove
-	}	
+    public enum ItemDestination
+    {
+        Warm,
+        Cold,
+        Remove
+    }	
 }
