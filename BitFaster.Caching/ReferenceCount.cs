@@ -25,6 +25,9 @@ namespace BitFaster.Caching
             this.count = referenceCount;
         }
 
+        /// <summary>
+        /// Gets the value.
+        /// </summary>
         public TValue Value
         {
             get
@@ -33,6 +36,9 @@ namespace BitFaster.Caching
             }
         }
 
+        /// <summary>
+        /// Gets the count.
+        /// </summary>
         public int Count
         {
             get
@@ -41,6 +47,10 @@ namespace BitFaster.Caching
             }
         }
 
+        /// <summary>
+        /// Create a copy of the ReferenceCount with the count incremented by 1.
+        /// </summary>
+        /// <returns>A copy of the ReferenceCount with the count incremented by 1.</returns>
         public ReferenceCount<TValue> IncrementCopy()
         {
             if (this.count <= 0 && this.value is IDisposable)
@@ -51,16 +61,22 @@ namespace BitFaster.Caching
             return new ReferenceCount<TValue>(this.value, this.count + 1);
         }
 
+        /// <summary>
+        /// Create a copy of the ReferenceCount with the count decremented by 1.
+        /// </summary>
+        /// <returns>A copy of the ReferenceCount with the count decremented by 1.</returns>
         public ReferenceCount<TValue> DecrementCopy()
         {
             return new ReferenceCount<TValue>(this.value, this.count - 1);
         }
 
+        ///<inheritdoc/>
         public override bool Equals(object obj)
         {
             return Equals(obj as ReferenceCount<TValue>);
         }
 
+        ///<inheritdoc/>
         public bool Equals(ReferenceCount<TValue> other)
         {
             return other != null &&
@@ -68,6 +84,7 @@ namespace BitFaster.Caching
                    count == other.count;
         }
 
+        ///<inheritdoc/>
         public override int GetHashCode()
         {
             var hashCode = -1491496004;

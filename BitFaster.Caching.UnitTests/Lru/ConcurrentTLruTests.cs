@@ -24,7 +24,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void ConstructAddAndRetrieveWithDefaultCtorReturnsValue()
         {
-            var x = new ConcurrentTLru<int, int>(3);
+            var x = new ConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
 
             x.GetOrAdd(1, k => k).Should().Be(1);
         }

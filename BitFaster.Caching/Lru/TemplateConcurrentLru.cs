@@ -92,6 +92,7 @@ namespace BitFaster.Caching.Lru
 
         public int ColdCount => this.coldCount;
 
+        ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
             I item;
@@ -115,6 +116,7 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
+        ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
             if (this.TryGet(key, out var value))
@@ -137,6 +139,7 @@ namespace BitFaster.Caching.Lru
             return this.GetOrAdd(key, valueFactory);
         }
 
+        ///<inheritdoc/>
         public async Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
             if (this.TryGet(key, out var value))
@@ -159,6 +162,7 @@ namespace BitFaster.Caching.Lru
             return await this.GetOrAddAsync(key, valueFactory).ConfigureAwait(false);
         }
 
+        ///<inheritdoc/>
         public bool TryRemove(K key)
         {
             // Possible race condition:
