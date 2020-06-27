@@ -51,6 +51,7 @@ namespace BitFaster.Caching.Lru
 
         public double HitRatio => (double)requestHitCount / (double)requestTotalCount;
 
+        ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
             Interlocked.Increment(ref requestTotalCount);
@@ -68,6 +69,7 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
+        ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
             if (this.TryGet(key, out var value))
@@ -114,6 +116,7 @@ namespace BitFaster.Caching.Lru
             return this.GetOrAdd(key, valueFactory);
         }
 
+        ///<inheritdoc/>
         public async Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
             if (this.TryGet(key, out var value))
@@ -160,6 +163,7 @@ namespace BitFaster.Caching.Lru
             return await this.GetOrAddAsync(key, valueFactory);
         }
 
+        ///<inheritdoc/>
         public bool TryRemove(K key)
         {
             if (dictionary.TryRemove(key, out var node))
