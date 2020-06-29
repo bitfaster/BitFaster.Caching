@@ -199,13 +199,11 @@ FastConcurrentLru does not allocate and is approximately 10x faster than System.
 |    RuntimeMemoryCache | 280.16 ns | 5.607 ns | 7.486 ns | 16.59 | 0.0153 |      32 B |
 | ExtensionsMemoryCache | 342.72 ns | 3.729 ns | 3.114 ns | 20.29 | 0.0114 |      24 B |
 
-## Meta-programming using structs for JIT dead code removal and inlining
+## Meta-programming using structs and JIT value type optimization
 
-TemplateConcurrentLru features injectable policies defined as structs. Since structs are subject to special JIT optimizations, the implementation is much faster than if these policies were defined as classes. Using this technique, 'Fast' versions without hit counting are within 30% of the speed of a ConcurrentDictionary.
+TemplateConcurrentLru features injectable behaviors defined as structs. Structs are subject to special JIT optimizations, and the .NET JIT compiler can inline, eliminate dead code and propogate JIT time constants based on structs. Using this technique, the TemplateConcurrentLru can be customized to support LRU and TLRU policies without compromising execution speed.
 
-Since DateTime.UtcNow is around 4x slower than a ConcurrentDictionary lookup, policies that involve time based expiry are significantly slower. Since these are injected as structs and the slow code is optimized away, it is possible maintain the fastest possible speed for the non-TTL policy.
-
-### TemplateConcurrentLru.TryGet
+### Example: TemplateConcurrentLru.TryGet
 
 This is the source code for the TryGet method. It calls into two value type generic type arguments: policy (1) and hitcounter (2). 
 
@@ -236,7 +234,7 @@ public bool TryGet(K key, out V value)
 
 ### FastConcurrentLru (LruPolicy & NullHitCounter)
 
-LruPolicy is hardcoded to never discard items, so the branch and subsequent code for ShouldDiscard are completely eliminated by JIT (1).
+The LruPolicy used by FastConcurrentLru/ConcurrentLru is hardcoded to never discard items.
 
 ```csharp
    public readonly struct LruPolicy<K, V> : IPolicy<K, V, LruItem<K, V>>
@@ -251,26 +249,7 @@ LruPolicy is hardcoded to never discard items, so the branch and subsequent code
    }
 ```
 
-Hit count methods are no-op, so are completely eliminated by the jit (2).
-
-```csharp
-    public struct NullHitCounter : IHitCounter
-    {
-        public double HitRatio => 0.0;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void IncrementMiss()
-        {
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void IncrementHit()
-        {
-        }
-    }
-```
-
-The JITted assembly code for the TryGet method with these value type implementations is 76 bytes:
+The branch and enclosed code for ShouldDiscard are completely eliminated by JIT (1). Since the below code is from FastConcurrentLru, the hit counting calls (2) are also eliminated. The assembly code for the FastConcurrentLru.TryGet method with LruPolicy and NullHitCounter is 76 bytes:
 
 ```assembly
 ; BitFaster.Caching.Lru.TemplateConcurrentLru`5[[System.Int32, System.Private.CoreLib],[System.Int32, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[BitFaster.Caching.Lru.LruPolicy`2[[System.Int32, System.Private.CoreLib],[System.Int32, System.Private.CoreLib]], BitFaster.Caching],[BitFaster.Caching.Lru.NullHitCounter, BitFaster.Caching]].TryGet(Int32, Int32 ByRef)
@@ -305,7 +284,7 @@ M01_L00:
 
 ### FastConcurrentTLru (TLruLongTicksPolicy & NullHitCounter)
 
-The policy for TLru can expire items, so the branch 2 is not eliminated.
+The struct TLruLongTicksPolicy used in FastConcurrentTLru can expire items.
 
 ```csharp
    public readonly struct TLruLongTicksPolicy<K, V> : IPolicy<K, V, LongTickCountLruItem<K, V>>
