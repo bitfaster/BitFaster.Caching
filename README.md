@@ -204,3 +204,222 @@ FastConcurrentLru does not allocate and is approximately 10x faster than System.
 TemplateConcurrentLru features injectable policies defined as structs. Since structs are subject to special JIT optimizations, the implementation is much faster than if these policies were defined as classes. Using this technique, 'Fast' versions without hit counting are within 30% of the speed of a ConcurrentDictionary.
 
 Since DateTime.UtcNow is around 4x slower than a ConcurrentDictionary lookup, policies that involve time based expiry are significantly slower. Since these are injected as structs and the slow code is optimized away, it is possible maintain the fastest possible speed for the non-TTL policy.
+
+### TemplateConcurrentLru.TryGet
+
+This is the source code for the TryGet method. It calls into two value type generic type arguments: policy (1) and hitcounter (2). 
+
+```csharp
+public bool TryGet(K key, out V value)
+{
+    I item;
+    if (dictionary.TryGetValue(key, out item))
+    {
+        if (this.policy.ShouldDiscard(item)) // 1
+        {
+            this.Move(item, ItemDestination.Remove);
+            value = default(V);
+            return false;
+        }
+
+        value = item.Value;
+        this.policy.Touch(item);
+        this.hitCounter.IncrementHit(); // 2
+        return true;
+    }
+
+    value = default(V);
+    this.hitCounter.IncrementMiss(); // 2
+    return false;
+}
+```
+
+### FastConcurrentLru (LruPolicy & NullHitCounter)
+
+LruPolicy is hardcoded to never discard items, so the branch and subsequent code for ShouldDiscard are completely eliminated by JIT (1).
+
+```csharp
+   public readonly struct LruPolicy<K, V> : IPolicy<K, V, LruItem<K, V>>
+   {
+        ...
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool ShouldDiscard(LruItem<K, V> item)
+        {
+            return false;
+        }
+        ...
+   }
+```
+
+Hit count methods are no-op, so are completely eliminated by the jit (2).
+
+```csharp
+    public struct NullHitCounter : IHitCounter
+    {
+        public double HitRatio => 0.0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void IncrementMiss()
+        {
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void IncrementHit()
+        {
+        }
+    }
+```
+
+The JITted assembly code for the TryGet method with these value type implementations is 76 bytes:
+
+```assembly
+; BitFaster.Caching.Lru.TemplateConcurrentLru`5[[System.Int32, System.Private.CoreLib],[System.Int32, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[BitFaster.Caching.Lru.LruPolicy`2[[System.Int32, System.Private.CoreLib],[System.Int32, System.Private.CoreLib]], BitFaster.Caching],[BitFaster.Caching.Lru.NullHitCounter, BitFaster.Caching]].TryGet(Int32, Int32 ByRef)
+       push      rsi
+       sub       rsp,30
+       xor       eax,eax
+       mov       [rsp+28],rax
+       mov       rsi,r8
+       mov       rcx,[rcx+8]
+       lea       r8,[rsp+28]
+       cmp       [rcx],ecx
+       call      qword ptr [7FFED15190A0]
+       test      eax,eax
+       je        short M01_L00
+       mov       rax,[rsp+28]
+       mov       eax,[rax+0C]
+       mov       [rsi],eax
+       mov       rax,[rsp+28]
+       mov       byte ptr [rax+10],1
+       mov       eax,1
+       add       rsp,30
+       pop       rsi
+       ret
+M01_L00:
+       xor       eax,eax
+       mov       [rsi],eax
+       add       rsp,30
+       pop       rsi
+       ret
+; Total bytes of code 76
+```
+
+### FastConcurrentTLru (TLruLongTicksPolicy & NullHitCounter)
+
+The policy for TLru can expire items, so the branch 2 is not eliminated.
+
+```csharp
+   public readonly struct TLruLongTicksPolicy<K, V> : IPolicy<K, V, LongTickCountLruItem<K, V>>
+   {
+        ...
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
+        {
+            if (Stopwatch.GetTimestamp() - item.TickCount > this.timeToLive)
+            {
+                return true;
+            }
+
+            return false;
+        }
+        ...
+   }
+```
+
+As a result, the JITted code now includes branch 2 and the assembly code grows considerably to 312 bytes.
+
+```assembly
+; BitFaster.Caching.Lru.TemplateConcurrentLru`5[[System.Int32, System.Private.CoreLib],[System.Int32, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[BitFaster.Caching.Lru.TLruLongTicksPolicy`2[[System.Int32, System.Private.CoreLib],[System.Int32, System.Private.CoreLib]], BitFaster.Caching],[BitFaster.Caching.Lru.NullHitCounter, BitFaster.Caching]].TryGet(Int32, Int32 ByRef)
+       push      rbp
+       push      r15
+       push      r14
+       push      r13
+       push      r12
+       push      rdi
+       push      rsi
+       push      rbx
+       sub       rsp,88
+       lea       rbp,[rsp+0C0]
+       xor       ebx,ebx
+       mov       [rbp+0FFC0],rbx
+       mov       [rbp+0FFB8],rbx
+       mov       [rbp+20],r8
+       mov       rsi,rcx
+       mov       ebx,edx
+       lea       rcx,[rbp+0FF70]
+       mov       rdx,r10
+       call      CORINFO_HELP_INIT_PINVOKE_FRAME
+       mov       r14,rax
+       mov       rcx,rsp
+       mov       [rbp+0FF90],rcx
+       mov       rcx,rbp
+       mov       [rbp+0FFA0],rcx
+       mov       rcx,[rsi+8]
+       lea       r8,[rbp+0FFC0]
+       mov       edx,ebx
+       cmp       [rcx],ecx
+       call      qword ptr [7FFED15290A0]
+       test      eax,eax
+       je        near ptr M01_L03
+       mov       [rbp+10],rsi
+       mov       rbx,[rsi+40]
+       mov       r15,[rbp+0FFC0]
+       mov       [rbp+0FFB0],r15
+       lea       rcx,[rbp+0FFB8]
+       xor       r11d,r11d
+       mov       rax,offset MD_Interop+Kernel32.QueryPerformanceCounter(Int64*)
+       mov       [rbp+0FF80],rax
+       lea       rax,[M01_L00]
+       mov       [rbp+0FF98],rax
+       lea       rax,[rbp+0FF70]
+       mov       [r14+10],rax
+       mov       byte ptr [r14+0C],0
+       call      qword ptr [7FFED151D7D0]
+M01_L00:
+       mov       byte ptr [r14+0C],1
+       cmp       dword ptr [7FFED1524BD8],0
+       je        short M01_L01
+       call      qword ptr [7FFED1528278]
+M01_L01:
+       mov       rcx,[rbp+0FF78]
+       mov       [r14+10],rcx
+       mov       rcx,[rbp+0FFB8]
+       mov       r15,[rbp+0FFB0]
+       sub       rcx,[r15+18]
+       cmp       rcx,rbx
+       jle       short M01_L02
+       mov       rcx,[rbp+10]
+       mov       rdx,[rbp+0FFC0]
+       mov       r8d,2
+       call      BitFaster.Caching.Lru.TemplateConcurrentLru`5[[System.Int32, System.Private.CoreLib],[System.Int32, System.Private.CoreLib],[System.__Canon, System.Private.CoreLib],[BitFaster.Caching.Lru.TLruLongTicksPolicy`2[[System.Int32, System.Private.CoreLib],[System.Int32, System.Private.CoreLib]], BitFaster.Caching],[BitFaster.Caching.Lru.NullHitCounter, BitFaster.Caching]].Move(System.__Canon, BitFaster.Caching.Lru.ItemDestination)
+       xor       eax,eax
+       mov       rdi,[rbp+20]
+       mov       [rdi],eax
+       jmp       short M01_L04
+M01_L02:
+       mov       rax,[rbp+0FFC0]
+       mov       eax,[rax+0C]
+       mov       rdi,[rbp+20]
+       mov       [rdi],eax
+       mov       rax,[rbp+0FFC0]
+       mov       byte ptr [rax+10],1
+       mov       eax,1
+       jmp       short M01_L04
+M01_L03:
+       xor       eax,eax
+       mov       rdi,[rbp+20]
+       mov       [rdi],eax
+M01_L04:
+       movzx     eax,al
+       mov       byte ptr [r14+0C],1
+       lea       rsp,[rbp+0FFC8]
+       pop       rbx
+       pop       rsi
+       pop       rdi
+       pop       r12
+       pop       r13
+       pop       r14
+       pop       r15
+       pop       rbp
+       ret
+; Total bytes of code 312
+```
