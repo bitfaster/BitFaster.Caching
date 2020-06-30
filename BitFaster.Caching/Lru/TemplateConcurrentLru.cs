@@ -84,7 +84,8 @@ namespace BitFaster.Caching.Lru
             this.hitCounter = hitCounter;
         }
 
-        public int Count => this.dictionary.Count;
+        // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
+        public int Count => this.dictionary.Skip(0).Count();
 
         public int HotCount => this.hotCount;
 
