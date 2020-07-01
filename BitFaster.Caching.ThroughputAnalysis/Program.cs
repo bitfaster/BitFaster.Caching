@@ -15,10 +15,6 @@ using MathNet.Numerics.Distributions;
 
 namespace BitFaster.Caching.ThroughputAnalysis
 {
-    // I’ve adapted a small test program that was used by the authors of an excellent book I’m reading, Java Concurrency 
-    // in Practice, to C#. The tests runs N threads in a tight loop, trying to retrieve a value from the dictionary. If it 
-    // exists, it attempts to remove it with a probability of 0.02; otherwise it attempts to add it with a probability of 0.6.
-
     class Program
     {
         const double s = 0.86;

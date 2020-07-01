@@ -202,7 +202,7 @@ FastConcurrentLru does not allocate and is approximately 10x faster than System.
 
 ## ConcurrentLru Throughput
 
-In this test, we generate 2000 samples of 500 keys with a Zipfian distribution (s = 0.86). Caches have size 50. From N concurrent threads, fetch the sample keys in sequence (so each thread is using the same input keys). The principal scalability limit in concurrent applications is the exclusive resource lock. As the number of threads increases, ConcurrentLru significantly outperforms an LRU implemented with a short lived exclusive lock used to synchronize the linked list data structure.
+In this test, we generate 2000 samples of 500 keys with a Zipfian distribution (s = 0.86). Caches have size 50. From N concurrent threads, fetch the sample keys in sequence (each thread is using the same input keys). The principal scalability limit in concurrent applications is the exclusive resource lock. As the number of threads increases, ConcurrentLru significantly outperforms an LRU implemented with a short lived exclusive lock used to synchronize the linked list data structure.
 
 This test was run on a Standard D16s v3 Azure VM (16 cpus), with .NET Core 3.1.
 
