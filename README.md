@@ -206,7 +206,7 @@ In this test, we generate 2000 samples of 500 keys with a Zipfian distribution (
 
 This test was run on a Standard D16s v3 Azure VM (16 cpus), with .NET Core 3.1.
 
-
+![image](https://user-images.githubusercontent.com/12851828/86203563-2f941880-bb1a-11ea-8d6a-70ece91b4362.png)
 
 ## Meta-programming using structs and JIT value type optimization
 
