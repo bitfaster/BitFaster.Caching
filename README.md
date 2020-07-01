@@ -139,7 +139,7 @@ These charts summarize the percentage increase in hit rate ConcurrentLru vs LRU.
    </tr> 
 </table>
 
-## ConcurrentLru Benchmarks
+## ConcurrentLru Latency
 
 In these benchmarks, a cache miss is essentially free. These tests exist purely to compare the raw execution speed of the cache bookkeeping code. In a real setting, where a cache miss is presumably quite expensive, the relative overhead of the cache will be very small.
 
@@ -198,6 +198,15 @@ FastConcurrentLru does not allocate and is approximately 10x faster than System.
 |            ClassicLru |  68.04 ns | 1.400 ns | 2.221 ns |  4.12 |      - |         - |
 |    RuntimeMemoryCache | 280.16 ns | 5.607 ns | 7.486 ns | 16.59 | 0.0153 |      32 B |
 | ExtensionsMemoryCache | 342.72 ns | 3.729 ns | 3.114 ns | 20.29 | 0.0114 |      24 B |
+
+
+## ConcurrentLru Throughput
+
+In this test, we generate 2000 samples of 500 keys with a Zipfian distribution (s = 0.86). Caches have size 50. From N concurrent threads, fetch the sample keys in sequence (each thread is using the same input keys). The principal scalability limit in concurrent applications is the exclusive resource lock. As the number of threads increases, ConcurrentLru significantly outperforms an LRU implemented with a short lived exclusive lock used to synchronize the linked list data structure.
+
+This test was run on a Standard D16s v3 Azure VM (16 cpus), with .NET Core 3.1.
+
+![image](https://user-images.githubusercontent.com/12851828/86203563-2f941880-bb1a-11ea-8d6a-70ece91b4362.png)
 
 ## Meta-programming using structs and JIT value type optimization
 
