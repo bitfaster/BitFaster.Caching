@@ -8,7 +8,7 @@
     <Description>High performance, thread-safe in-memory caching primitives for .NET.</Description>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.9.4</Version>
+    <Version>1.0.0</Version>
     <Copyright>Copyright © Alex Peck 2020</Copyright>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitfaster/BitFaster.Caching</RepositoryUrl>
