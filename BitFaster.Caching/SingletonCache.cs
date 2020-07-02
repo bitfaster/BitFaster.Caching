@@ -52,7 +52,7 @@ namespace BitFaster.Caching
                     (k) => new ReferenceCount<TValue>(valueFactory(k)),
                     (_, existingRefCount) => existingRefCount.IncrementCopy());
 
-            return new Lifetime<TValue>(refCount.Value, () => this.Release(key));
+            return new Lifetime<TValue>(refCount, () => this.Release(key));
         }
 
         private void Release(TKey key)

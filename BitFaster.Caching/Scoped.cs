@@ -48,7 +48,7 @@ namespace BitFaster.Caching
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
                     // When Lease is disposed, it calls DecrementReferenceCount
-                    return new Lifetime<T>(oldRefCount.Value, this.DecrementReferenceCount);
+                    return new Lifetime<T>(oldRefCount, this.DecrementReferenceCount);
                 }
             }
         }

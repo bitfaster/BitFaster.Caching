@@ -12,6 +12,7 @@ namespace BitFaster.Caching
     public class Lifetime<T> : IDisposable
     {
         private readonly Action onDisposeAction;
+        private readonly ReferenceCount<T> refCount;
         private bool isDisposed;
 
         /// <summary>
@@ -19,16 +20,21 @@ namespace BitFaster.Caching
         /// </summary>
         /// <param name="value">The value to keep alive.</param>
         /// <param name="onDisposeAction">The action to perform when the lifetime is terminated.</param>
-        public Lifetime(T value, Action onDisposeAction)
+        public Lifetime(ReferenceCount<T> value, Action onDisposeAction)
         {
-            this.Value = value;
+            this.refCount = value;
             this.onDisposeAction = onDisposeAction;
         }
 
         /// <summary>
         /// Gets the value.
         /// </summary>
-        public T Value { get; }
+        public T Value => this.refCount.Value;
+
+        /// <summary>
+        /// Gets the count of Lifetime instances referencing the same value.
+        /// </summary>
+        public int ReferenceCount => this.refCount.Count;
 
         /// <summary>
         /// Terminates the lifetime and performs any cleanup required to release the value.
