@@ -33,6 +33,31 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
+        public void AcquireWithSameKeyMaintainsReferenceCount()
+        {
+            var cache = new SingletonCache<string, object>();
+
+            using (var lifetime1 = cache.Acquire("Foo"))
+            {
+                using (var lifetime2 = cache.Acquire("Foo"))
+                {
+                    lifetime1.ReferenceCount.Should().Be(1);
+                    lifetime2.ReferenceCount.Should().Be(2);
+                }
+
+                using (var lifetime3 = cache.Acquire("Foo"))
+                {
+                    lifetime3.ReferenceCount.Should().Be(2);
+                }
+            }
+
+            using (var lifetime4 = cache.Acquire("Foo"))
+            {
+                lifetime4.ReferenceCount.Should().Be(1);
+            }
+        }
+
+        [Fact]
         public void AcquireReleaseAcquireReturnsDifferentValue()
         {
             var cache = new SingletonCache<string, object>();
