@@ -172,11 +172,11 @@ Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has 
 
 |             Method |     Mean |   Error |  StdDev | Ratio | RatioSD |
 |------------------- |---------:|--------:|--------:|------:|--------:|
-|         ClassicLru | 157.3 ns | 1.67 ns | 1.48 ns |  1.00 |    0.00 |
-|  FastConcurrentLru | 165.4 ns | 1.17 ns | 1.04 ns |  1.05 |    0.01 |
-|      ConcurrentLru | 176.1 ns | 1.22 ns | 1.08 ns |  1.12 |    0.01 |
-| FastConcurrentTLru | 247.9 ns | 3.58 ns | 2.80 ns |  1.58 |    0.02 |
-|     ConcurrentTLru | 259.0 ns | 3.61 ns | 3.20 ns |  1.65 |    0.03 |
+|         ClassicLru | 175.7 ns | 2.75 ns | 2.43 ns |  1.00 |    0.00 |
+|  FastConcurrentLru | 180.2 ns | 2.55 ns | 2.26 ns |  1.03 |    0.02 |
+|      ConcurrentLru | 189.1 ns | 3.14 ns | 2.94 ns |  1.08 |    0.03 |
+| FastConcurrentTLru | 261.4 ns | 4.53 ns | 4.01 ns |  1.49 |    0.04 |
+|     ConcurrentTLru | 266.1 ns | 3.96 ns | 3.51 ns |  1.51 |    0.03 |
 
 ### Raw Lookup speed
 
@@ -188,16 +188,16 @@ In this test the same items are fetched repeatedly, no items are evicted. Repres
 
 FastConcurrentLru does not allocate and is approximately 10x faster than System.Runtime.Caching.MemoryCache or the newer Microsoft.Extensions.Caching.Memory.MemoryCache.
 
-|                Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
-|---------------------- |----------:|---------:|---------:|------:|-------:|----------:|
-|  ConcurrentDictionary |  16.88 ns | 0.276 ns | 0.245 ns |  1.00 |      - |         - |
-|     FastConcurrentLru |  23.27 ns | 0.491 ns | 0.565 ns |  1.38 |      - |         - |
-|         ConcurrentLru |  26.77 ns | 0.512 ns | 0.666 ns |  1.60 |      - |         - |
-|    FastConcurrentTLru |  54.35 ns | 0.650 ns | 0.576 ns |  3.22 |      - |         - |
-|        ConcurrentTLru |  60.10 ns | 1.024 ns | 1.501 ns |  3.53 |      - |         - |
-|            ClassicLru |  68.04 ns | 1.400 ns | 2.221 ns |  4.12 |      - |         - |
-|    RuntimeMemoryCache | 280.16 ns | 5.607 ns | 7.486 ns | 16.59 | 0.0153 |      32 B |
-| ExtensionsMemoryCache | 342.72 ns | 3.729 ns | 3.114 ns | 20.29 | 0.0114 |      24 B |
+|                   Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
+|------------------------- |----------:|---------:|---------:|------:|-------:|----------:|
+|     ConcurrentDictionary |  16.76 ns | 0.322 ns | 0.285 ns |  1.00 |      - |         - |
+|        FastConcurrentLru |  18.94 ns | 0.249 ns | 0.220 ns |  1.13 |      - |         - |
+|            ConcurrentLru |  21.46 ns | 0.204 ns | 0.191 ns |  1.28 |      - |         - |
+|       FastConcurrentTLru |  41.57 ns | 0.450 ns | 0.376 ns |  2.48 |      - |         - |
+|           ConcurrentTLru |  43.95 ns | 0.588 ns | 0.521 ns |  2.62 |      - |         - |
+|               ClassicLru |  67.62 ns | 0.901 ns | 0.799 ns |  4.03 |      - |         - |
+|    RuntimeMemoryCacheGet | 279.70 ns | 3.825 ns | 3.578 ns | 16.70 | 0.0153 |      32 B |
+| ExtensionsMemoryCacheGet | 341.67 ns | 6.617 ns | 6.499 ns | 20.35 | 0.0114 |      24 B |
 
 
 ## ConcurrentLru Throughput
