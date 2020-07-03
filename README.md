@@ -222,22 +222,31 @@ public bool TryGet(K key, out V value)
     I item;
     if (dictionary.TryGetValue(key, out item))
     {
-        if (this.policy.ShouldDiscard(item)) // 1
-        {
-            this.Move(item, ItemDestination.Remove);
-            value = default(V);
-            return false;
-        }
-
-        value = item.Value;
-        this.policy.Touch(item);
-        this.hitCounter.IncrementHit(); // 2
-        return true;
+        return GetOrDiscard(item, out value);
     }
 
     value = default(V);
-    this.hitCounter.IncrementMiss(); // 2
+    this.hitCounter.IncrementMiss();
     return false;
+}
+
+// AggressiveInlining forces the JIT to inline policy.ShouldDiscard(). For LRU policy 
+// the first branch is completely eliminated due to JIT time constant propogation.
+[MethodImpl(MethodImplOptions.AggressiveInlining)]
+private bool GetOrDiscard(I item, out V value)
+{
+    if (this.policy.ShouldDiscard(item)) // 1
+    {
+        this.Move(item, ItemDestination.Remove);
+        this.hitCounter.IncrementMiss(); // 2
+        value = default(V);
+        return false;
+    }
+
+    value = item.Value;
+    this.policy.Touch(item); // 1
+    this.hitCounter.IncrementHit(); // 2
+    return true;
 }
 ```
 
