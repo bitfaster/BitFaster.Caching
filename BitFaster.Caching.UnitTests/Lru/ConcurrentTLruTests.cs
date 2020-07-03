@@ -30,6 +30,14 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenItemIsNotExpiredItIsNotRemoved()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryGet(1, out var value).Should().BeTrue();
+        }
+
+        [Fact]
         public async Task WhenItemIsExpiredItIsRemoved()
         {
             lru.GetOrAdd(1, valueFactory.Create);
