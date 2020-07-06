@@ -93,7 +93,7 @@ MemoryCache is perfectly servicable, but it has some limitations:
 
 # Performance
 
-The cache replacement policy must maximize the cache hit rate, and minimize the computational and space overhead involved in implementing the policy. Below an analysis of both the hit rate vs cache size, and run time overhead is provided.  
+The cache replacement policy must maximize the cache hit rate, and minimize the computational and space overhead involved in implementing the policy. Below an analysis of hit rate vs cache size, latency and throughput is provided.  
 
 ## ConcurrentLru Hit rate
 
