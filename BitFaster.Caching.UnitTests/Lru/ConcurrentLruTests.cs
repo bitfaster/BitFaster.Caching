@@ -373,5 +373,24 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lru.TryRemove(1);
             }
         }
+
+        [Fact]
+        public void WhenKeyExistsTryUpdateUpdatesValueAndReturnsTrue()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryUpdate(1, "2").Should().BeTrue();
+
+            lru.TryGet(1, out var value);
+            value.Should().Be("2");
+        }
+
+        [Fact]
+        public void WhenKeyDoesNotExistTryUpdateReturnsFalse()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryUpdate(2, "3").Should().BeFalse();
+        }
     }
 }

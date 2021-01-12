@@ -193,6 +193,19 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
+        ///<inheritdoc/>
+        ///<remarks>Note: Calling this method does not affect LRU order.</remarks>
+        public bool TryUpdate(K key, V value)
+        {
+            if (this.dictionary.TryGetValue(key, out var node))
+            {
+                node.Value.Value = value;
+                return true;
+            }
+
+            return false;
+        }
+
         // Thead A reads x from the dictionary. Thread B adds a new item. Thread A moves x to the end. Thread B now removes the new first Node (removal is atomic on both data structures).
         private void LockAndMoveToEnd(LinkedListNode<LruItem> node)
         {
@@ -226,7 +239,7 @@ namespace BitFaster.Caching.Lru
 
             public K Key { get; }
 
-            public V Value { get; }
+            public V Value { get; set; }
         }
     }
 }
