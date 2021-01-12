@@ -252,8 +252,6 @@ namespace BitFaster.Caching.Lru
                 }
 
                 return;
-
-
             }
 
             // if both update and add failed there was a race, try again
