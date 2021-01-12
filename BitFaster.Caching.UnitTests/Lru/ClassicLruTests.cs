@@ -308,5 +308,24 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Count.Should().Be(3);
             lru.TryGet(1, out var value).Should().BeFalse();
         }
+
+        [Fact]
+        public void WhenAddOrUpdateExpiresItemsTheyAreDisposed()
+        {
+            var lruOfDisposable = new ClassicLru<int, DisposableItem>(1, 3, EqualityComparer<int>.Default);
+
+            var items = Enumerable.Range(1, 4).Select(i => new DisposableItem()).ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                lruOfDisposable.AddOrUpdate(i, items[i]);
+            }
+
+            // first item is evicted and disposed
+            items[0].IsDisposed.Should().BeTrue();
+
+            // all other items are not disposed
+            items.Skip(1).All(i => i.IsDisposed == false).Should().BeTrue();
+        }
     }
 }
