@@ -194,6 +194,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
+        ///<remarks>Note: Calling this method does not affect LRU order.</remarks>
         public bool TryUpdate(K key, V value)
         {
             if (this.dictionary.TryGetValue(key, out var node))

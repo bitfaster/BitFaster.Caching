@@ -392,21 +392,5 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.TryUpdate(2, "3").Should().BeFalse();
         }
-
-        // TODO: what is a good test here?
-        [Fact]
-        public void WhenRepeatedlyAUpdatingSameValueLruRemainsInConsistentState()
-        {
-            lru.GetOrAdd(-1, valueFactory.Create);
-
-            int capacity = hotCap + coldCap + warmCap;
-            for (int i = 0; i <= capacity; i++)
-            {
-                lru.TryUpdate(-1, i.ToString());
-            }
-
-            lru.TryGet(-1, out var value);
-            value.Should().Be(capacity.ToString());
-        }
     }
 }
