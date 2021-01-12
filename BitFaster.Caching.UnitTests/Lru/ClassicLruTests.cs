@@ -296,6 +296,17 @@ namespace BitFaster.Caching.UnitTests.Lru
             value.Should().Be("2");
         }
 
-        // TODO: test update correctly maintains LRU order.
+        [Fact]
+        public void WhenKeyDoesNotExistAddOrUpdateMaintainsLruOrder()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.AddOrUpdate(4, "4");
+
+            // verify first item added is removed
+            lru.Count.Should().Be(3);
+            lru.TryGet(1, out var value).Should().BeFalse();
+        }
     }
 }

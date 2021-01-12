@@ -412,6 +412,16 @@ namespace BitFaster.Caching.UnitTests.Lru
             value.Should().Be("2");
         }
 
-        // TODO: test update correctly maintains LRU order.
+        [Fact]
+        public void WhenKeyDoesNotExistAddOrUpdateMaintainsLruOrder()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.AddOrUpdate(4, "4");
+
+            lru.HotCount.Should().Be(3);
+            lru.ColdCount.Should().Be(1); // items must have been enqueued and cycled for one of them to reach the cold queue
+        }
     }
 }
