@@ -19,7 +19,7 @@ namespace BitFaster.Caching.Lru
 
         public readonly K Key;
 
-        public readonly V Value;
+        public V Value { get; set; }
 
         public bool WasAccessed
         {

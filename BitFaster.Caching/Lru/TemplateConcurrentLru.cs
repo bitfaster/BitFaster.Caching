@@ -223,6 +223,24 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
+        ///<inheritdoc/>
+        public bool TryUpdate(K key, V value)
+        {
+            if (this.dictionary.TryGetValue(key, out var existing))
+            {
+                lock (existing)
+                {
+                    if (!existing.WasRemoved)
+                    {
+                        existing.Value = value;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private void Cycle()
         {
             // There will be races when queue count == queue capacity. Two threads may each dequeue items.

@@ -41,10 +41,18 @@ namespace BitFaster.Caching
         Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory);
 
         /// <summary>
-        /// Attempts to remove and return the value that has the specified key from the cache.
+        /// Attempts to remove the value that has the specified key.
         /// </summary>
         /// <param name="key">The key of the element to remove.</param>
         /// <returns>true if the object was removed successfully; otherwise, false.</returns>
         bool TryRemove(K key);
+
+        /// <summary>
+        /// Attempts to update the value that has the specified key.
+        /// </summary>
+        /// <param name="key">The key of the element to update.</param>
+        /// <param name="value">The new value.</param>
+        /// <returns>true if the object was updated successfully; otherwise, false.</returns>
+        bool TryUpdate(K key, V value);
     }
 }

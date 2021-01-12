@@ -373,5 +373,40 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lru.TryRemove(1);
             }
         }
+
+        [Fact]
+        public void WhenKeyExistsTryUpdateUpdatesValueAndReturnsTrue()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryUpdate(1, "2").Should().BeTrue();
+
+            lru.TryGet(1, out var value);
+            value.Should().Be("2");
+        }
+
+        [Fact]
+        public void WhenKeyDoesNotExistTryUpdateReturnsFalse()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryUpdate(2, "3").Should().BeFalse();
+        }
+
+        // TODO: what is a good test here?
+        [Fact]
+        public void WhenRepeatedlyAUpdatingSameValueLruRemainsInConsistentState()
+        {
+            lru.GetOrAdd(-1, valueFactory.Create);
+
+            int capacity = hotCap + coldCap + warmCap;
+            for (int i = 0; i <= capacity; i++)
+            {
+                lru.TryUpdate(-1, i.ToString());
+            }
+
+            lru.TryGet(-1, out var value);
+            value.Should().Be(capacity.ToString());
+        }
     }
 }
