@@ -276,5 +276,56 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.TryUpdate(2, "3").Should().BeFalse();
         }
+
+        [Fact]
+        public void WhenKeyDoesNotExistAddOrUpdateAddsNewItem()
+        {
+            lru.AddOrUpdate(1, "1");
+
+            lru.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be("1");
+        }
+
+        [Fact]
+        public void WhenKeyExistsAddOrUpdatUpdatesExistingItem()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(1, "2");
+
+            lru.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be("2");
+        }
+
+        [Fact]
+        public void WhenKeyDoesNotExistAddOrUpdateMaintainsLruOrder()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.AddOrUpdate(4, "4");
+
+            // verify first item added is removed
+            lru.Count.Should().Be(3);
+            lru.TryGet(1, out var value).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenAddOrUpdateExpiresItemsTheyAreDisposed()
+        {
+            var lruOfDisposable = new ClassicLru<int, DisposableItem>(1, 3, EqualityComparer<int>.Default);
+
+            var items = Enumerable.Range(1, 4).Select(i => new DisposableItem()).ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                lruOfDisposable.AddOrUpdate(i, items[i]);
+            }
+
+            // first item is evicted and disposed
+            items[0].IsDisposed.Should().BeTrue();
+
+            // all other items are not disposed
+            items.Skip(1).All(i => i.IsDisposed == false).Should().BeTrue();
+        }
     }
 }
