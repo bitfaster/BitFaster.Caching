@@ -243,7 +243,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
-        ///<remarks>Note: Updates to existing items do not affect LRU order. New items are at the top of the LRU.</remarks>
+        ///<remarks>Note: Updates to existing items do not affect LRU order. Added items are at the top of the LRU.</remarks>
         public void AddOrUpdate(K key, V value)
         { 
             // first, try to update
