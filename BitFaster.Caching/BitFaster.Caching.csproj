@@ -1,14 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net472;net48;netstandard2.0;netcoreapp2.0;netcoreapp3.0;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net472;net48;netstandard2.0;netcoreapp2.0;netcoreapp3.0;netcoreapp3.1;net5.0</TargetFrameworks>
     <Authors>Alex Peck</Authors>
     <Company />
     <Product>BitFaster.Caching</Product>
     <Description>High performance, thread-safe in-memory caching primitives for .NET.</Description>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Copyright>Copyright © Alex Peck 2020</Copyright>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitfaster/BitFaster.Caching</RepositoryUrl>
@@ -18,6 +18,8 @@
     <RootNamespace>BitFaster.Caching</RootNamespace>
     <IncludeSource>True</IncludeSource>
     <IncludeSymbols>True</IncludeSymbols>
+    <AssemblyVersion>1.0.2.0</AssemblyVersion>
+    <FileVersion>1.0.2.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
