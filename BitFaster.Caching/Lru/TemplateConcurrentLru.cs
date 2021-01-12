@@ -242,6 +242,38 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
+        ///<inheritdoc/>
+        ///<remarks>Note: Updates to existing items do not affect LRU order. New items are at the top of the LRU.</remarks>
+        public void AddOrUpdate(K key, V value)
+        { 
+            // first, try to update
+            if (this.dictionary.TryGetValue(key, out var existing))
+            {
+                lock (existing)
+                {
+                    if (!existing.WasRemoved)
+                    {
+                        existing.Value = value;
+                        return;
+                    }
+                }
+            }
+
+            // then try add
+            var newItem = this.policy.CreateItem(key, value);
+
+            if (this.dictionary.TryAdd(key, newItem))
+            {
+                this.hotQueue.Enqueue(newItem);
+                Interlocked.Increment(ref hotCount);
+                Cycle();
+                return;
+            }
+
+            // if both update and add failed there was a race, try again
+            AddOrUpdate(key, value);
+        }
+
         private void Cycle()
         {
             // There will be races when queue count == queue capacity. Two threads may each dequeue items.

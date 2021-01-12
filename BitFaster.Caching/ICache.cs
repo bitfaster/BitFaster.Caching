@@ -54,5 +54,13 @@ namespace BitFaster.Caching
         /// <param name="value">The new value.</param>
         /// <returns>true if the object was updated successfully; otherwise, false.</returns>
         bool TryUpdate(K key, V value);
+
+        /// <summary>
+        /// Adds a key/value pair to the cache if the key does not already exist, or updates a key/value pair if the 
+        /// key already exists.
+        /// </summary>
+        /// <param name="key">The key of the element to update.</param>
+        /// <param name="value">The new value.</param>
+        void AddOrUpdate(K key, V value);
     }
 }

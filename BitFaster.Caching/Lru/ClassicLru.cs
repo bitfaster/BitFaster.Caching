@@ -206,6 +206,60 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
+        ///<inheritdoc/>
+        ///<remarks>Note: Updates to existing items do not affect LRU order. New items are at the top of the LRU.</remarks>
+        public void AddOrUpdate(K key, V value)
+        { 
+            // first, try to update
+            if (this.dictionary.TryGetValue(key, out var existingNode))
+            {
+                existingNode.Value.Value = value;
+                return;
+            }
+
+            // then try add
+            var newNode = new LinkedListNode<LruItem>(new LruItem(key, value));
+
+            if (this.dictionary.TryAdd(key, newNode))
+            {
+                LinkedListNode<LruItem> first = null;
+
+                lock (this.linkedList)
+                {
+                    if (linkedList.Count >= capacity)
+                    {
+                        first = linkedList.First;
+                        linkedList.RemoveFirst();
+                    }
+
+                    linkedList.AddLast(newNode);
+                }
+
+                // Remove from the dictionary outside the lock. This means that the dictionary at this moment
+                // contains an item that is not in the linked list. If another thread fetches this item, 
+                // LockAndMoveToEnd will ignore it, since it is detached. This means we potentially 'lose' an 
+                // item just as it was about to move to the back of the LRU list and be preserved. The next request
+                // for the same key will be a miss. Dictionary and list are eventually consistent.
+                // However, all operations inside the lock are extremely fast, so contention is minimized.
+                if (first != null)
+                {
+                    dictionary.TryRemove(first.Value.Key, out var removed);
+
+                    if (removed.Value.Value is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
+                }
+
+                return;
+
+
+            }
+
+            // if both update and add failed there was a race, try again
+            AddOrUpdate(key, value);
+        }
+
         // Thead A reads x from the dictionary. Thread B adds a new item. Thread A moves x to the end. Thread B now removes the new first Node (removal is atomic on both data structures).
         private void LockAndMoveToEnd(LinkedListNode<LruItem> node)
         {
