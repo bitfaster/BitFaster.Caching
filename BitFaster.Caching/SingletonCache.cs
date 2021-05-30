@@ -59,20 +59,32 @@ namespace BitFaster.Caching
         {
             while (true)
             {
-                var oldRefCount = this.cache[key];
-                var newRefCount = oldRefCount.DecrementCopy();
-                if (this.cache.TryUpdate(key, newRefCount, oldRefCount))
+                if (!this.cache.TryGetValue(key, out var oldRefCount))
                 {
-                    if (newRefCount.Count == 0)
+                    // already released, exit
+                    break;
+                }
+
+                // if count is 1, the caller's decrement makes refcount 0: it is unreferenced and eligible to remove
+                if (oldRefCount.Count == 1)
+                {
+                    var kvp = new KeyValuePair<TKey, ReferenceCount<TValue>>(key, oldRefCount);
+
+                    // hidden atomic remove
+                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                    if (((ICollection<KeyValuePair<TKey, ReferenceCount<TValue>>>)this.cache).Remove(kvp))
                     {
-                        if (((IDictionary<TKey, ReferenceCount<TValue>>)this.cache).Remove(new KeyValuePair<TKey, ReferenceCount<TValue>>(key, newRefCount)))
+                        // no longer in cache, safe to dispose and exit
+                        if (oldRefCount.Value is IDisposable d)
                         {
-                            if (newRefCount.Value is IDisposable d)
-                            {
-                                d.Dispose();
-                            }
+                            d.Dispose();
                         }
+                        break;
                     }
+                }
+                else if (this.cache.TryUpdate(key, oldRefCount.DecrementCopy(), oldRefCount))
+                {
+                    // replaced with decremented copy, exit
                     break;
                 }
             }
