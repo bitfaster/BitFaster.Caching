@@ -176,6 +176,47 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public bool TryRemove(K key)
         {
+            // Alternative based on atomic remove
+            // Cases to consider
+            // * TryUpdate
+            // * GetOrAdd
+            // * AddOrUpdate
+            // * TryGet
+            // * Move - Queue cycle out
+
+            if (this.dictionary.TryGetValue(key, out var existing))
+            {
+                var kvp = new KeyValuePair<K, I>(key, existing);
+
+                // hidden atomic remove
+                // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
+                {
+                    // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
+                    // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
+                    // from the queue.
+                    existing.WasAccessed = false;
+
+                    // serialize TryUpdate/Move, which can also dispose
+                    lock (existing)
+                    {
+                        if (existing.Value is IDisposable d)
+                        {
+                            d.Dispose();
+                        }
+                    }
+
+                    return true;
+                }
+
+                // it existed, but we couldn't remove - this means value was replaced during a race, try again
+                return TryRemove(key);
+            }
+
+            return false;
+
+            ///////////////////////////////
+
             // Possible race condition:
             // Thread A TryRemove(1), removes LruItem1, has reference to removed item but not yet marked as removed
             // Thread B GetOrAdd(1) => Adds LruItem1*
@@ -187,40 +228,40 @@ namespace BitFaster.Caching.Lru
             // and it will not be marked as removed. If key 1 is fetched while LruItem1* is still in the queue, there will 
             // be two queue entries for key 1, and neither is marked as removed. Thus when LruItem1 * ages out, it will  
             // incorrectly remove 1 from the dictionary, and this cycle can repeat.
-            if (this.dictionary.TryGetValue(key, out var existing))
-            {
-                if (existing.WasRemoved)
-                {
-                    return false;
-                }
+            //if (this.dictionary.TryGetValue(key, out var existing))
+            //{
+            //    if (existing.WasRemoved)
+            //    {
+            //        return false;
+            //    }
 
-                lock (existing)
-                {
-                    if (existing.WasRemoved)
-                    {
-                        return false;
-                    }
+            //    lock (existing)
+            //    {
+            //        if (existing.WasRemoved)
+            //        {
+            //            return false;
+            //        }
 
-                    existing.WasRemoved = true;
-                }
+            //        existing.WasRemoved = true;
+            //    }
 
-                if (this.dictionary.TryRemove(key, out var removedItem))
-                {
-                    // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
-                    // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
-                    // from the queue.
-                    removedItem.WasAccessed = false;
+            //    if (this.dictionary.TryRemove(key, out var removedItem))
+            //    {
+            //        // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
+            //        // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
+            //        // from the queue.
+            //        removedItem.WasAccessed = false;
 
-                    if (removedItem.Value is IDisposable d)
-                    {
-                        d.Dispose();
-                    }
+            //        if (removedItem.Value is IDisposable d)
+            //        {
+            //            d.Dispose();
+            //        }
 
-                    return true;
-                }
-            }
+            //        return true;
+            //    }
+            //}
 
-            return false;
+            //return false;
         }
 
         ///<inheritdoc/>
@@ -231,11 +272,16 @@ namespace BitFaster.Caching.Lru
             {
                 lock (existing)
                 {
-                    if (!existing.WasRemoved)
-                    {
+                   // if (!existing.WasRemoved)
+                   // {
+                        if (existing.Value is IDisposable d)
+                        {
+                            d.Dispose();
+                        }
+
                         existing.Value = value;
                         return true;
-                    }
+                  //  }
                 }
             }
 
@@ -251,11 +297,17 @@ namespace BitFaster.Caching.Lru
             {
                 lock (existing)
                 {
-                    if (!existing.WasRemoved)
-                    {
+                    // This is perhaps a legit case - if it is removed, then we need to add instead.
+                    //if (!existing.WasRemoved)
+                    //{
+                        if (existing.Value is IDisposable d)
+                        {
+                            d.Dispose();
+                        }
+
                         existing.Value = value;
                         return;
-                    }
+                    //}
                 }
             }
 
@@ -380,26 +432,43 @@ namespace BitFaster.Caching.Lru
                     Interlocked.Increment(ref this.coldCount);
                     break;
                 case ItemDestination.Remove:
-                    if (!item.WasRemoved)
-                    {   
+                    //if (!item.WasRemoved)
+                    //{   
                         // avoid race where 2 threads could remove the same key - see TryRemove for details.
-                        lock (item)
-                        { 
-                            if (item.WasRemoved)
-                            {
-                                break;
-                            }
+                        //lock (item)
+                        //{ 
+                            //if (item.WasRemoved)
+                           // {
+                          //      break;
+                           // }
 
-                            if (this.dictionary.TryRemove(item.Key, out var removedItem))
+                            var kvp = new KeyValuePair<K, I>(item.Key, item);
+
+                            // hidden atomic remove
+                            // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                            if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
                             {
-                                item.WasRemoved = true;
-                                if (removedItem.Value is IDisposable d)
-                                {
-                                    d.Dispose();
+                                //item.WasRemoved = true;
+
+                                lock (item)
+                                { 
+                                    if (item.Value is IDisposable d)
+                                    {
+                                        d.Dispose();
+                                    } 
                                 }
                             }
-                        }
-                    }
+
+                            //if (this.dictionary.TryRemove(item.Key, out var removedItem))
+                            //{
+                            //    item.WasRemoved = true;
+                            //    if (removedItem.Value is IDisposable d)
+                            //    {
+                            //        d.Dispose();
+                            //    }
+                            //}
+                      //  }
+                   // }
                     break;
             }
         }
