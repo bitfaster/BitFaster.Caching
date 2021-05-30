@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -145,21 +146,48 @@ namespace BitFaster.Caching.UnitTests
         {
             var cache = new SingletonCache<string, DisposeTest>();
 
+            DisposeTest value = null;
+
             using (var lifetime = cache.Acquire("Foo"))
             {
-                DisposeTest.WasDisposed.Should().BeFalse();
+                value = lifetime.Value;
+                value.IsDisposed.Should().BeFalse();
             }
 
-            DisposeTest.WasDisposed.Should().BeTrue();
+            value.IsDisposed.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task DisposeOnManyDifferentThreadsAlwaysReturnsActiveValue()
+        {
+            var cache = new SingletonCache<string, DisposeTest>();
+
+            var tasks = Enumerable.Range(0, 64).Select(i => Task.Run(() => 
+            { 
+                using (var handle = cache.Acquire("Foo"))
+                { 
+                    handle.Value.ThrowIfDisposed();    
+                }
+            }));
+
+            await Task.WhenAll(tasks);
         }
 
         public class DisposeTest : IDisposable
         {
-            public static bool WasDisposed { get; set; }
+            public bool IsDisposed { get; private set; }
+
+            public void ThrowIfDisposed()
+            {
+                if (this.IsDisposed)
+                {
+                    throw new ObjectDisposedException("Error");
+                }
+            }
 
             public void Dispose()
             {
-                WasDisposed = true;
+                this.IsDisposed = true;
             }
         }
     }
