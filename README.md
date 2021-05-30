@@ -93,6 +93,8 @@ MemoryCache is perfectly servicable, but it has some limitations:
 
 # Performance
 
+*DISCLAIMER: Always measure performance in the context of your application. The results provided here are intended as a guide.*
+    
 The cache replacement policy must maximize the cache hit rate, and minimize the computational and space overhead involved in implementing the policy. Below an analysis of hit rate vs cache size, latency and throughput is provided.  
 
 ## ConcurrentLru Hit rate
@@ -145,7 +147,7 @@ In these benchmarks, a cache miss is essentially free. These tests exist purely 
 
 Benchmarks are based on BenchmarkDotNet, so are single threaded. The ConcurrentLru family of classes are composed internally of ConcurrentDictionary.GetOrAdd and ConcurrentQueue.Enqueue/Dequeue method calls, and scale well to concurrent workloads.
 
-All benchmarks below are run on the same computer:
+Benchmark results below are from a computer with a mobile class Broadwell CPU with small caches (128kb L1/512kb L2/4mb L3):
 
 ~~~
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.264 (2004/?/20H1)
@@ -156,6 +158,8 @@ Intel Core i7-5600U CPU 2.60GHz (Broadwell), 1 CPU, 4 logical and 2 physical cor
 
 Job=RyuJitX64  Jit=RyuJit  Platform=X64
 ~~~
+    
+Benchmarks have been repeated across supported .NET Frameworks and on the CPU architectures available in Azure (e.g. Intel Skylake, AMD Zen). Results are repeatable within +/-5%.
 
 ### What are FastConcurrentLru/FastConcurrentTLru?
 
