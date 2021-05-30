@@ -386,6 +386,19 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenKeyExistsTryUpdateDisposesOldValue()
+        {
+            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
+            var disposableValueFactory = new DisposableValueFactory();
+            var newValue = new DisposableItem();
+
+            lruOfDisposable.GetOrAdd(1, disposableValueFactory.Create);
+            lruOfDisposable.TryUpdate(1, newValue);
+
+            disposableValueFactory.Items[1].IsDisposed.Should().BeTrue();
+        }
+
+        [Fact]
         public void WhenKeyDoesNotExistTryUpdateReturnsFalse()
         {
             lru.GetOrAdd(1, valueFactory.Create);
@@ -403,13 +416,26 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void WhenKeyExistsAddOrUpdatUpdatesExistingItem()
+        public void WhenKeyExistsAddOrUpdateUpdatesExistingItem()
         {
             lru.AddOrUpdate(1, "1");
             lru.AddOrUpdate(1, "2");
 
             lru.TryGet(1, out var value).Should().BeTrue();
             value.Should().Be("2");
+        }
+
+        [Fact]
+        public void WhenKeyExistsAddOrUpdateDisposesOldValue()
+        {
+            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
+            var disposableValueFactory = new DisposableValueFactory();
+            var newValue = new DisposableItem();
+
+            lruOfDisposable.GetOrAdd(1, disposableValueFactory.Create);
+            lruOfDisposable.AddOrUpdate(1, newValue);
+
+            disposableValueFactory.Items[1].IsDisposed.Should().BeTrue();
         }
 
         [Fact]
