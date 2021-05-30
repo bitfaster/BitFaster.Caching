@@ -176,14 +176,6 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public bool TryRemove(K key)
         {
-            // Alternative based on atomic remove
-            // Cases to consider
-            // * TryUpdate
-            // * GetOrAdd
-            // * AddOrUpdate
-            // * TryGet
-            // * Move - Queue cycle out
-
             if (this.dictionary.TryGetValue(key, out var existing))
             {
                 var kvp = new KeyValuePair<K, I>(key, existing);
@@ -196,8 +188,9 @@ namespace BitFaster.Caching.Lru
                     // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
                     // from the queue.
                     existing.WasAccessed = false;
+                    existing.WasRemoved = true;
 
-                    // serialize TryUpdate/Move, which can also dispose
+                    // serialize dispose (common case dispose not thread safe)
                     lock (existing)
                     {
                         if (existing.Value is IDisposable d)
@@ -209,59 +202,11 @@ namespace BitFaster.Caching.Lru
                     return true;
                 }
 
-                // it existed, but we couldn't remove - this means value was replaced during a race, try again
+                // it existed, but we couldn't remove - this means value was replaced afer the TryGetValue (a race), try again
                 return TryRemove(key);
             }
 
             return false;
-
-            ///////////////////////////////
-
-            // Possible race condition:
-            // Thread A TryRemove(1), removes LruItem1, has reference to removed item but not yet marked as removed
-            // Thread B GetOrAdd(1) => Adds LruItem1*
-            // Thread C GetOrAdd(2), Cycle, Move(LruItem1, Removed)
-            // 
-            // Thread C can run and remove LruItem1* from this.dictionary before Thread A has marked LruItem1 as removed.
-            // 
-            // In this situation, a subsequent attempt to fetch 1 will be a miss. The queues will still contain LruItem1*, 
-            // and it will not be marked as removed. If key 1 is fetched while LruItem1* is still in the queue, there will 
-            // be two queue entries for key 1, and neither is marked as removed. Thus when LruItem1 * ages out, it will  
-            // incorrectly remove 1 from the dictionary, and this cycle can repeat.
-            //if (this.dictionary.TryGetValue(key, out var existing))
-            //{
-            //    if (existing.WasRemoved)
-            //    {
-            //        return false;
-            //    }
-
-            //    lock (existing)
-            //    {
-            //        if (existing.WasRemoved)
-            //        {
-            //            return false;
-            //        }
-
-            //        existing.WasRemoved = true;
-            //    }
-
-            //    if (this.dictionary.TryRemove(key, out var removedItem))
-            //    {
-            //        // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
-            //        // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
-            //        // from the queue.
-            //        removedItem.WasAccessed = false;
-
-            //        if (removedItem.Value is IDisposable d)
-            //        {
-            //            d.Dispose();
-            //        }
-
-            //        return true;
-            //    }
-            //}
-
-            //return false;
         }
 
         ///<inheritdoc/>
@@ -272,16 +217,18 @@ namespace BitFaster.Caching.Lru
             {
                 lock (existing)
                 {
-                   // if (!existing.WasRemoved)
-                   // {
-                        if (existing.Value is IDisposable d)
+                    if (!existing.WasRemoved)
+                    {
+                        V oldValue = existing.Value;
+                        existing.Value = value;
+
+                        if (oldValue is IDisposable d)
                         {
                             d.Dispose();
                         }
 
-                        existing.Value = value;
                         return true;
-                  //  }
+                    }
                 }
             }
 
@@ -293,22 +240,9 @@ namespace BitFaster.Caching.Lru
         public void AddOrUpdate(K key, V value)
         { 
             // first, try to update
-            if (this.dictionary.TryGetValue(key, out var existing))
-            {
-                lock (existing)
-                {
-                    // This is perhaps a legit case - if it is removed, then we need to add instead.
-                    //if (!existing.WasRemoved)
-                    //{
-                        if (existing.Value is IDisposable d)
-                        {
-                            d.Dispose();
-                        }
-
-                        existing.Value = value;
-                        return;
-                    //}
-                }
+            if (this.TryUpdate(key, value))
+            { 
+                return;
             }
 
             // then try add
@@ -432,43 +366,24 @@ namespace BitFaster.Caching.Lru
                     Interlocked.Increment(ref this.coldCount);
                     break;
                 case ItemDestination.Remove:
-                    //if (!item.WasRemoved)
-                    //{   
-                        // avoid race where 2 threads could remove the same key - see TryRemove for details.
-                        //lock (item)
-                        //{ 
-                            //if (item.WasRemoved)
-                           // {
-                          //      break;
-                           // }
 
-                            var kvp = new KeyValuePair<K, I>(item.Key, item);
+                    var kvp = new KeyValuePair<K, I>(item.Key, item);
 
-                            // hidden atomic remove
-                            // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
-                            if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
+                    // hidden atomic remove
+                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                    if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
+                    {
+                        item.WasRemoved = true;
+
+                        lock (item)
+                        { 
+                            if (item.Value is IDisposable d)
                             {
-                                //item.WasRemoved = true;
+                                d.Dispose();
+                            } 
+                        }
+                    }
 
-                                lock (item)
-                                { 
-                                    if (item.Value is IDisposable d)
-                                    {
-                                        d.Dispose();
-                                    } 
-                                }
-                            }
-
-                            //if (this.dictionary.TryRemove(item.Key, out var removedItem))
-                            //{
-                            //    item.WasRemoved = true;
-                            //    if (removedItem.Value is IDisposable d)
-                            //    {
-                            //        d.Dispose();
-                            //    }
-                            //}
-                      //  }
-                   // }
                     break;
             }
         }
