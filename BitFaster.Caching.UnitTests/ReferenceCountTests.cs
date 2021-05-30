@@ -52,21 +52,5 @@ namespace BitFaster.Caching.UnitTests
 
             a.GetHashCode().Should().NotBe(b.GetHashCode());
         }
-
-        [Fact]
-        public void WhenObjectDisposed()
-        {
-            var a = new ReferenceCount<Disposable>(new Disposable());
-            var b = a.DecrementCopy();
-
-            b.Invoking(rc => rc.IncrementCopy()).Should().Throw<ObjectDisposedException>();
-        }
-
-        private class Disposable : IDisposable
-        {
-            public void Dispose()
-            {
-            }
-        }
     }
 }
