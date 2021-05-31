@@ -33,9 +33,26 @@ namespace BitFaster.Caching
         /// <exception cref="ObjectDisposedException">The scope is disposed.</exception>
         public Lifetime<T> CreateLifetime()
         {
-            if (this.isDisposed)
+            if (!TryCreateLifetime(out var lifetime))
             {
                 throw new ObjectDisposedException($"{nameof(T)} is disposed.");
+            }
+
+            return lifetime;
+        }
+
+        /// <summary>
+        /// Attempts to create a lifetime for the scoped value. The lifetime guarantees the value is alive until 
+        /// the lifetime is disposed.
+        /// </summary>
+        /// <param name="lifetime">When this method returns, contains the Lifetime that was created, or the default value of the type if the operation failed.</param>
+        /// <returns>true if the Lifetime was created; otherwise false.</returns>
+        public bool TryCreateLifetime(out Lifetime<T> lifetime)
+        {
+            if (this.isDisposed)
+            {
+                lifetime = default(Lifetime<T>);
+                return false;
             }
 
             while (true)
@@ -47,8 +64,9 @@ namespace BitFaster.Caching
 
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
-                    // When Lease is disposed, it calls DecrementReferenceCount
-                    return new Lifetime<T>(oldRefCount, this.DecrementReferenceCount);
+                    // When Lifetime is disposed, it calls DecrementReferenceCount
+                    lifetime = new Lifetime<T>(oldRefCount, this.DecrementReferenceCount);
+                    return true;
                 }
             }
         }
