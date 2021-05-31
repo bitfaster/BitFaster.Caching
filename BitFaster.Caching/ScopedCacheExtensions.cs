@@ -6,10 +6,19 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
-    public static class CacheLifetimeExtensions
+    public static class ScopedCacheExtensions
     {
-        public static Lifetime<T> ScopedGetOrAdd<K, S, T>(this ICache<K, S> cache, K key, Func<K, S> valueFactory)
-            where S : Scoped<T>
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="K"></typeparam>
+        /// <typeparam name="S"></typeparam>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="cache"></param>
+        /// <param name="key"></param>
+        /// <param name="valueFactory"></param>
+        /// <returns></returns>
+        public static Lifetime<T> ScopedGetOrAdd<K, T>(this ICache<K, Scoped<T>> cache, K key, Func<K, Scoped<T>> valueFactory)
             where T : IDisposable 
         { 
             while (true)
@@ -22,8 +31,8 @@ namespace BitFaster.Caching
                 }
             }
         }
-        public static async Task<Lifetime<T>> ScopedGetOrAdd<K, S, T>(this ICache<K, S> cache, K key, Func<K, Task<S>> valueFactory)
-            where S : Scoped<T>
+
+        public static async Task<Lifetime<T>> ScopedGetOrAdd<K, T>(this ICache<K, Scoped<T>> cache, K key, Func<K, Task<Scoped<T>>> valueFactory)
             where T : IDisposable
         {
             while (true)
