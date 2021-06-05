@@ -8,7 +8,7 @@ namespace BitFaster.Caching
 {
     // what happens if we completely encapsulate scoped?
     // we can't implement ICache, since return types will now be Lifetime, not T
-    public class ScopedCache<K, T> where T : IDisposable
+    public class ScopedCache<K, T> : IScopedCache<K, T> where T : IDisposable
     {
         private readonly ICache<K, Scoped<T>> innerCache;
 
@@ -17,14 +17,27 @@ namespace BitFaster.Caching
             this.innerCache = innerCache;
         }
 
-        public Lifetime<T> GetOrAdd(K key, Func<K, T> valueFactory)
+        public bool TryGet(K key, out Lifetime<T> value)
         {
-            // additional alloc
-            var scopedFactory = new ScopedFactory(valueFactory);
+            if (innerCache.TryGet(key, out var scope))
+            {
+                if (scope.TryCreateLifetime(out var lifetime))
+                {
+                    value = lifetime;
+                    return true;
+                }
+            }
 
+            value = default(Lifetime<T>);
+            return false;
+        }
+
+        // If we completely encapsulate Scoped, then we must allocate a new value factory for every GetOrAdd call
+        public Lifetime<T> GetOrAdd(K key, Func<K, Scoped<T>> valueFactory)
+        {
             while (true)
             {
-                var scope = innerCache.GetOrAdd(key, scopedFactory.Create);
+                var scope = innerCache.GetOrAdd(key, valueFactory);
 
                 if (scope.TryCreateLifetime(out var lifetime))
                 {
@@ -33,25 +46,33 @@ namespace BitFaster.Caching
             }
         }
 
+        public async Task<Lifetime<T>> GetOrAddAsync(K key, Func<K, Task<Scoped<T>>> valueFactory)
+        {
+            while (true)
+            {
+                var scope = await innerCache.GetOrAddAsync(key, valueFactory);
+
+                if (scope.TryCreateLifetime(out var lifetime))
+                {
+                    return lifetime;
+                }
+            }
+        }
+
+        public bool TryRemove(K key)
+        {
+            return this.innerCache.TryRemove(key);
+        }
+
         public bool TryUpdate(K key, T value)
         { 
             // scoped finializer does not call dispose, so if this fails, discarded new Scoped will not dispose value.
             return this.innerCache.TryUpdate(key, new Scoped<T>(value));
         }
 
-        private class ScopedFactory
+        public void AddOrUpdate(K key, T value)
         { 
-            private Func<K, T> valueFactory;
-
-            public ScopedFactory(Func<K, T> valueFactory)
-            { 
-                this.valueFactory = valueFactory;   
-            }
-
-            public Scoped<T> Create(K key)
-            {
-                return new Scoped<T>(valueFactory(key));
-            }
+            this.innerCache.AddOrUpdate(key, new Scoped<T>(value));
         }
     }
 }
