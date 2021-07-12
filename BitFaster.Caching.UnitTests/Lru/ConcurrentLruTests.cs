@@ -50,6 +50,34 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenCapacityIs4HotHasCapacity1AndColdHasCapacity2()
+        {
+            var lru = new ConcurrentLru<int, int>(4);
+
+            for (int i = 0; i < 5; i++)
+            {
+                lru.GetOrAdd(i, x => x);
+            }
+
+            lru.HotCount.Should().Be(1);
+            lru.ColdCount.Should().Be(2);
+        }
+
+        [Fact]
+        public void WhenCapacityIs5HotHasCapacity2AndColdHasCapacity2()
+        {
+            var lru = new ConcurrentLru<int, int>(5);
+
+            for (int i = 0; i < 5; i++)
+            {
+                lru.GetOrAdd(i, x => x);
+            }
+
+            lru.HotCount.Should().Be(2);
+            lru.ColdCount.Should().Be(2);
+        }
+
+        [Fact]
         public void ConstructAddAndRetrieveWithDefaultCtorReturnsValue()
         {
             var x = new ConcurrentLru<int, int>(3);
