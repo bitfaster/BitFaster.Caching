@@ -68,11 +68,12 @@ namespace BitFaster.Caching.Lru
             if (comparer == null)
             {
                 throw new ArgumentNullException(nameof(comparer));
-            }    
+            }
 
-            this.hotCapacity = capacity / 3;
-            this.warmCapacity = capacity / 3;
-            this.coldCapacity = capacity / 3;
+            var queueCapacity = ComputeQueueCapacity(capacity);
+            this.hotCapacity = queueCapacity.hot;
+            this.warmCapacity = queueCapacity.warm;
+            this.coldCapacity = queueCapacity.cold;
 
             this.hotQueue = new ConcurrentQueue<I>();
             this.warmQueue = new ConcurrentQueue<I>();
@@ -386,6 +387,28 @@ namespace BitFaster.Caching.Lru
 
                     break;
             }
+        }
+
+        private static (int hot, int warm, int cold) ComputeQueueCapacity(int capacity)
+        {
+            int hotCapacity = capacity / 3;
+            int warmCapacity = capacity / 3;
+            int coldCapacity = capacity / 3;
+
+            int remainder = capacity % 3;
+
+            switch (remainder)
+            {
+                case 1:
+                    coldCapacity++;
+                    break;
+                case 2:
+                    hotCapacity++;
+                    coldCapacity++;
+                    break;
+            }
+
+            return (hotCapacity, warmCapacity, coldCapacity);
         }
     }
 }
