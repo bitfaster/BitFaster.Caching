@@ -16,8 +16,10 @@ High performance, thread-safe in-memory caching primitives for .NET.
 | SingletonCache      | Represents a thread-safe cache of key value pairs, which guarantees a single instance of each value. Values are discarded immediately when no longer in use to conserve memory.  |
 | Scoped<IDisposable>      | Represents a thread-safe wrapper for storing IDisposable objects in a cache that may dispose and invalidate them. The scope keeps the object alive until all callers have finished.   |
 
-# Usage
+# Quick Start
 
+Please refer to the [wiki](https://github.com/bitfaster/BitFaster.Caching/wiki) for more detailed documentation.
+    
 ## ConcurrentLru/ConcurrentTLru
 
 `ConcurrentLru` and `ConcurrentTLru` are intended as a drop in replacement for `ConcurrentDictionary`, and a much faster alternative to the `System.Runtime.Caching.MemoryCache` family of classes (e.g. `HttpRuntime.Cache`, `System.Web.Caching` etc). 
