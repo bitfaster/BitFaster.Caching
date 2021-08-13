@@ -277,8 +277,6 @@ namespace BitFaster.Caching.Lru
             // Cycle the queues to purge all refs. If any items were added during this process, 
             // it is possible they might be removed as part of CycleCold. However, the dictionary
             // and queues will remain in a consistent state.
-
-            // TODO: this doesn't work, since CycleHot etc. only move items when count is above threshold
             for (int i = 0; i < keys.Count; i++)
             {
                 CycleHotUnchecked();
