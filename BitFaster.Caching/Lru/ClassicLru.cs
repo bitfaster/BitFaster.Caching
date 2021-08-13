@@ -258,6 +258,19 @@ namespace BitFaster.Caching.Lru
             AddOrUpdate(key, value);
         }
 
+        ///<inheritdoc/>
+        public void Clear()
+        { 
+            // take a key snapshot
+            var keys = this.dictionary.Keys.ToList();
+
+            // remove all keys in the snapshot - this correctly handles disposable values
+            foreach (var key in keys)
+            { 
+                TryRemove(key);    
+            }
+        }
+
         // Thead A reads x from the dictionary. Thread B adds a new item. Thread A moves x to the end. Thread B now removes the new first Node (removal is atomic on both data structures).
         private void LockAndMoveToEnd(LinkedListNode<LruItem> node)
         {

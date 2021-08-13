@@ -327,5 +327,38 @@ namespace BitFaster.Caching.UnitTests.Lru
             // all other items are not disposed
             items.Skip(1).All(i => i.IsDisposed == false).Should().BeTrue();
         }
+
+        [Fact]
+        public void WhenCacheIsEmptyClearIsNoOp()
+        {
+            lru.Clear();
+            lru.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenItemsExistClearRemovesAllItems()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.Clear();
+            lru.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenItemsAreDisposableClearDisposesItemsOnRemove()
+        {
+            var lruOfDisposable = new ClassicLru<int, DisposableItem>(1, 3, EqualityComparer<int>.Default);
+
+            var items = Enumerable.Range(1, 4).Select(i => new DisposableItem()).ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                lruOfDisposable.AddOrUpdate(i, items[i]);
+            }
+
+            lruOfDisposable.Clear();
+
+            items.All(i => i.IsDisposed == true).Should().BeTrue();
+        }
     }
 }

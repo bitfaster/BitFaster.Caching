@@ -261,6 +261,32 @@ namespace BitFaster.Caching.Lru
             AddOrUpdate(key, value);
         }
 
+        ///<inheritdoc/>
+        public void Clear()
+        {
+            // take a key snapshot
+            var keys = this.dictionary.Keys.ToList();
+
+            // remove all keys in the snapshot - this correctly handles disposable values
+            foreach (var key in keys)
+            {
+                TryRemove(key);
+            }
+
+            // At this point, dictionary is empty but queues still hold references to all values.
+            // Cycle the queues to purge all refs. If any items were added during this process, 
+            // it is possible they might be removed as part of CycleCold. However, the dictionary
+            // and queues will remain in a consistent state.
+
+            // TODO: this doesn't work, since CycleHot etc. only move items when count is above threshold
+            for (int i = 0; i < keys.Count; i++)
+            {
+                CycleHot();
+                CycleWarm();
+                CycleCold();
+            }
+        }
+
         private void Cycle()
         {
             // There will be races when queue count == queue capacity. Two threads may each dequeue items.
