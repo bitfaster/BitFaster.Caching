@@ -62,5 +62,10 @@ namespace BitFaster.Caching
         /// <param name="key">The key of the element to update.</param>
         /// <param name="value">The new value.</param>
         void AddOrUpdate(K key, V value);
+
+        /// <summary>
+        /// Removes all keys and values from the cache.
+        /// </summary>
+        void Clear();
     }
 }

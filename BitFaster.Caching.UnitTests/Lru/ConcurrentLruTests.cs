@@ -477,5 +477,45 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.HotCount.Should().Be(3);
             lru.ColdCount.Should().Be(1); // items must have been enqueued and cycled for one of them to reach the cold queue
         }
+
+        [Fact]
+        public void WhenCacheIsEmptyClearIsNoOp()
+        {
+            lru.Clear();
+            lru.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenItemsExistClearRemovesAllItems()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            
+            lru.Clear();
+
+            lru.Count.Should().Be(0);
+
+            // verify queues are purged
+            lru.HotCount.Should().Be(0);
+            lru.WarmCount.Should().Be(0);
+            lru.ColdCount.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenItemsAreDisposableClearDisposesItemsOnRemove()
+        {
+            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
+
+            var items = Enumerable.Range(1, 4).Select(i => new DisposableItem()).ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                lruOfDisposable.AddOrUpdate(i, items[i]);
+            }
+
+            lruOfDisposable.Clear();
+
+            items.All(i => i.IsDisposed == true).Should().BeTrue();
+        }
     }
 }
