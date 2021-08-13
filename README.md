@@ -12,7 +12,7 @@ High performance, thread-safe in-memory caching primitives for .NET.
 | Class |  Description |
 |:-------|:---------|
 | [ConcurrentLru](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru)       |  Represents a thread-safe bounded size pseudo LRU.<br><br>A drop in replacement for ConcurrentDictionary, but with bounded size. Maintains psuedo order, with better hit rate than a pure Lru and not prone to lock contention. |
-| ConcurrentTLru        | Represents a thread-safe bounded size pseudo TLRU, items have TTL.<br><br>As ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. If the values generated for each key can change over time, ConcurrentTLru is eventually consistent where the inconsistency window = TTL. |
+| [ConcurrentTLru](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentTLru)        | Represents a thread-safe bounded size pseudo TLRU, items have TTL.<br><br>As ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. If the values generated for each key can change over time, ConcurrentTLru is eventually consistent where the inconsistency window = TTL. |
 | SingletonCache      | Represents a thread-safe cache of key value pairs, which guarantees a single instance of each value. Values are discarded immediately when no longer in use to conserve memory.  |
 | Scoped<IDisposable>      | Represents a thread-safe wrapper for storing IDisposable objects in a cache that may dispose and invalidate them. The scope keeps the object alive until all callers have finished.   |
 
