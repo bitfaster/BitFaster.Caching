@@ -75,4 +75,5 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
-        paths: BitFaster.Caching/BitFaster.Caching/BitFaster.Caching/bin/Release/net5.0/**
+        paths: 
+          - 'BitFaster.Caching/BitFaster.Caching/BitFaster.Caching/bin/Release/net5.0/**'
