@@ -24,6 +24,10 @@
     <FileVersion>1.0.4.0</FileVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="..\LICENSE">
       <Pack>True</Pack>
