@@ -97,6 +97,19 @@ namespace BitFaster.Caching.Benchmarks
             }
         }
 
+        // https://prodotnetmemory.com/slides/PerformancePatternsLong/#207
+        [Benchmark()]
+        public void IdomaticMarker()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                NotDisposable notDisposable = new NotDisposable();
+                Disposable disposable = new Disposable();
+                DisposeMarker<DisposerPolicy<Disposable>, Disposable>(disposable);
+                DisposeMarker<NoDisposerPolicy<NotDisposable>, NotDisposable>(notDisposable);
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Dispose<T>(T value)
         {
@@ -104,6 +117,12 @@ namespace BitFaster.Caching.Benchmarks
             {
                 ((IDisposable)value).Dispose();
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DisposeMarker<P, T>(T value) where P : IDisposePolicy<T>
+        {
+            default(P).Dispose(value);
         }
     }
 
@@ -166,6 +185,28 @@ namespace BitFaster.Caching.Benchmarks
                 default:
                     break;
             }
+        }
+    }
+
+    // idiomatic: marker interface + 2 policies
+
+    public interface IDisposePolicy<T>
+    {
+        void Dispose(T value);
+    }
+
+    public struct DisposerPolicy<T> : IDisposePolicy<T> where T : IDisposable
+    {
+        public void Dispose(T value)
+        {
+            value.Dispose() ;
+        }
+    }
+
+    public struct NoDisposerPolicy<T> : IDisposePolicy<T>
+    {
+        public void Dispose(T value)
+        {
         }
     }
 }
