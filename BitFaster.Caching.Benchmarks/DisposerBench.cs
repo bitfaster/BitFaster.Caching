@@ -15,8 +15,8 @@ namespace BitFaster.Caching.Benchmarks
         private static Disposer<NotDisposable> notDisposableDisposer = new Disposer<NotDisposable>();
         private static Disposer<Disposable> disposableDisposer = new Disposer<Disposable>();
 
-        private static Disposer2<NotDisposable> notDisposableDisposer2 = new Disposer2<NotDisposable>();
-        private static Disposer2<Disposable> disposableDisposer2 = new Disposer2<Disposable>();
+        //private static Disposer2<NotDisposable> notDisposableDisposer2 = new Disposer2<NotDisposable>();
+        //private static Disposer2<Disposable> disposableDisposer2 = new Disposer2<Disposable>();
 
         [Benchmark(Baseline = true)]
         public void HandWritten()
@@ -26,6 +26,26 @@ namespace BitFaster.Caching.Benchmarks
                 NotDisposable notDisposable = new NotDisposable();
                 Disposable disposable = new Disposable();
                 disposable.Dispose();
+            }
+        }
+
+        [Benchmark()]
+        public void NotOptimized()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                NotDisposable notDisposable = new NotDisposable();
+                Disposable disposable = new Disposable();
+
+                if (notDisposable is IDisposable)
+                {
+                    ((IDisposable)notDisposable).Dispose();
+                }
+
+                if (disposable is IDisposable)
+                {
+                    ((IDisposable)disposable).Dispose();
+                }
             }
         }
 
@@ -53,15 +73,27 @@ namespace BitFaster.Caching.Benchmarks
         //    }
         //}
 
+        //[Benchmark()]
+        //public void GenericDisposer2()
+        //{
+        //    for (int i = 0; i < 1000; i++)
+        //    {
+        //        NotDisposable notDisposable = new NotDisposable();
+        //        Disposable disposable = new Disposable();
+        //        Disposer2<Disposable>.Dispose(disposable);
+        //        Disposer2<NotDisposable>.Dispose(notDisposable);
+        //    }
+        //}
+
         [Benchmark()]
-        public void GenericDisposer2()
+        public void GenericDisposer3()
         {
             for (int i = 0; i < 1000; i++)
             {
                 NotDisposable notDisposable = new NotDisposable();
                 Disposable disposable = new Disposable();
-                Disposer2<Disposable>.Dispose(disposable);
-                Disposer2<NotDisposable>.Dispose(notDisposable);
+                Disposer3<Disposable>.Dispose(disposable);
+                Disposer3<NotDisposable>.Dispose(notDisposable);
             }
         }
 
@@ -89,6 +121,13 @@ namespace BitFaster.Caching.Benchmarks
     public class NotDisposable
     { }
 
+    public class Disposable : IDisposable
+    {
+        public void Dispose()
+        {
+        }
+    }
+
     public struct DisposeOracle<T>
     {
         public bool ShouldDispose()
@@ -97,26 +136,36 @@ namespace BitFaster.Caching.Benchmarks
         }
     }
 
-    public struct Disposer2<T>
+    // .net 5 only
+    //public struct Disposer2<T>
+    //{
+    //    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    //    public static void Dispose(T value)
+    //    {
+    //        switch (typeof(T))
+    //        {
+    //            case IDisposable:
+    //                ((IDisposable)value).Dispose(); 
+    //                break;
+    //            default:
+    //                break;
+    //        }
+    //    }
+    //}
+
+    public struct Disposer3<T>
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Dispose(T value)
         {
-            switch (typeof(T))
+            switch (value)
             {
-                case IDisposable:
-                    ((IDisposable)value).Dispose(); 
+                case IDisposable disposable:
+                    disposable.Dispose();
                     break;
                 default:
                     break;
             }
-        }
-    }
-
-    public class Disposable : IDisposable
-    {
-        public void Dispose()
-        {
         }
     }
 }
