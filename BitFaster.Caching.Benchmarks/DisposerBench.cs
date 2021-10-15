@@ -120,7 +120,7 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DisposeMarker<P, T>(T value) where P : IDisposePolicy<T>
+        private void DisposeMarker<P, T>(T value) where P : struct, IDisposePolicy<T>
         {
             default(P).Dispose(value);
         }
