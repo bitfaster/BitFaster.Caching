@@ -110,6 +110,18 @@ namespace BitFaster.Caching.Benchmarks
             }
         }
 
+        [Benchmark()]
+        public void IdomaticMarker2()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                NotDisposable notDisposable = new NotDisposable();
+                Disposable disposable = new Disposable();
+                DisposeMarker2<DisposerPolicy2>(disposable);
+                DisposeMarker2<NoDisposerPolicy2>(notDisposable);
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Dispose<T>(T value)
         {
@@ -123,6 +135,15 @@ namespace BitFaster.Caching.Benchmarks
         private void DisposeMarker<P, T>(T value) where P : struct, IDisposePolicy<T>
         {
             default(P).Dispose(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DisposeMarker2<P>(object value) where P : struct, IDisposePolicy2
+        {
+            if (default(P).ShouldDispose)
+            {
+                ((IDisposable)value).Dispose();
+            }
         }
     }
 
@@ -208,5 +229,20 @@ namespace BitFaster.Caching.Benchmarks
         public void Dispose(T value)
         {
         }
+    }
+
+    public interface IDisposePolicy2
+    {
+        bool ShouldDispose { get; }
+    }
+
+    public struct DisposerPolicy2 : IDisposePolicy2
+    {
+        public bool ShouldDispose => true;
+    }
+
+    public struct NoDisposerPolicy2 : IDisposePolicy2
+    {
+        public bool ShouldDispose => false;
     }
 }
