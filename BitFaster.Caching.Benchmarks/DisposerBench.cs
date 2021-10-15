@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,29 +12,67 @@ namespace BitFaster.Caching.Benchmarks
     // https://github.com/dotnet/runtime/issues/4920
     public class DisposerBench
     {
-        private Disposer<NotDisposable> notDisposableDisposer = new Disposer<NotDisposable>();
-        private Disposer<Disposable> disposableDisposer = new Disposer<Disposable>();
+        private static Disposer<NotDisposable> notDisposableDisposer = new Disposer<NotDisposable>();
+        private static Disposer<Disposable> disposableDisposer = new Disposer<Disposable>();
+
+        private static Disposer2<NotDisposable> notDisposableDisposer2 = new Disposer2<NotDisposable>();
+        private static Disposer2<Disposable> disposableDisposer2 = new Disposer2<Disposable>();
 
         [Benchmark(Baseline = true)]
-        public void NotDisposable()
+        public void HandWritten()
         {
             for (int i = 0; i < 1000; i++)
             {
                 NotDisposable notDisposable = new NotDisposable();
-                notDisposableDisposer.Dispose(notDisposable); 
+                Disposable disposable = new Disposable();
+                disposable.Dispose();
             }
         }
 
+        //[Benchmark()]
+        //public void GenericDisposer()
+        //{
+        //    for(int i = 0; i < 1000; i++)
+        //    {
+        //        NotDisposable notDisposable = new NotDisposable();
+        //        Disposable disposable = new Disposable();
+        //        disposableDisposer.Dispose(disposable);
+        //        notDisposableDisposer.Dispose(notDisposable);
+        //    }
+        //}
+
+        //[Benchmark()]
+        //public void Oracle()
+        //{
+        //    for (int i = 0; i < 1000; i++)
+        //    {
+        //        NotDisposable notDisposable = new NotDisposable();
+        //        Disposable disposable = new Disposable();
+        //        Dispose(disposable);
+        //        Dispose(notDisposable);
+        //    }
+        //}
+
         [Benchmark()]
-        public void Disposable()
+        public void GenericDisposer2()
         {
             for (int i = 0; i < 1000; i++)
             {
+                NotDisposable notDisposable = new NotDisposable();
                 Disposable disposable = new Disposable();
-                disposableDisposer.Dispose(disposable); 
+                Disposer2<Disposable>.Dispose(disposable);
+                Disposer2<NotDisposable>.Dispose(notDisposable);
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Dispose<T>(T value)
+        {
+            if (default(DisposeOracle<T>).ShouldDispose())
+            {
+                ((IDisposable)value).Dispose();
+            }
+        }
     }
 
     public struct Disposer<T>
@@ -49,6 +88,30 @@ namespace BitFaster.Caching.Benchmarks
 
     public class NotDisposable
     { }
+
+    public struct DisposeOracle<T>
+    {
+        public bool ShouldDispose()
+        {
+            return typeof(T) is IDisposable;
+        }
+    }
+
+    public struct Disposer2<T>
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Dispose(T value)
+        {
+            switch (typeof(T))
+            {
+                case IDisposable:
+                    ((IDisposable)value).Dispose(); 
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 
     public class Disposable : IDisposable
     {
