@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.Lru
+namespace BitFaster.Caching
 {
     public class SynchronizedValueFactory<K, V>
     {
@@ -32,7 +32,7 @@ namespace BitFaster.Caching.Lru
         { 
             this.cache = cache;
             this.valueFactory = k => valueFactoryAsync(k).GetAwaiter().GetResult();
-            this.valueFactoryAsync = k => Task.FromResult(valueFactory(k));
+            this.valueFactoryAsync = valueFactoryAsync;
         }
 
         public V Create(K key)
@@ -67,18 +67,6 @@ namespace BitFaster.Caching.Lru
                    sema.Value.Release();
                 }
             }
-        }
-    }
-
-    public class Example
-    { 
-        public void Test()
-        { 
-var lru = new ConcurrentLru<int, string>(9);
-Func<int, string> valueFactory = x => x.ToString();
-var synchronized = new SynchronizedValueFactory<int, string>(lru, valueFactory);
-
-var res = lru.GetOrAdd(1, k => synchronized.Create(k));
         }
     }
 }
