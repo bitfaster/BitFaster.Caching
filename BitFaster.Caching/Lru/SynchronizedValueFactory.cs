@@ -37,7 +37,7 @@ namespace BitFaster.Caching.Lru
 
         public V Create(K key)
         {
-            using (var sema = this.semaphoreCache.Acquire(key, k => new SemaphoreSlim(1)))
+            using (var sema = this.semaphoreCache.Acquire(key, k => new SemaphoreSlim(1, 1)))
             {
                 sema.Value.Wait();
 
@@ -54,7 +54,7 @@ namespace BitFaster.Caching.Lru
 
         public async Task<V> CreateAsync(K key)
         { 
-            using (var sema = this.semaphoreCache.Acquire(key, k => new SemaphoreSlim(1)))
+            using (var sema = this.semaphoreCache.Acquire(key, k => new SemaphoreSlim(1, 1)))
             { 
                 await sema.Value.WaitAsync();
 
@@ -74,11 +74,11 @@ namespace BitFaster.Caching.Lru
     { 
         public void Test()
         { 
-            var lru = new ConcurrentLru<int, string>(9);
-            Func<int, string> valueFactory = x => x.ToString();
-            var synchronized = new SynchronizedValueFactory<int, string>(lru, valueFactory);
+var lru = new ConcurrentLru<int, string>(9);
+Func<int, string> valueFactory = x => x.ToString();
+var synchronized = new SynchronizedValueFactory<int, string>(lru, valueFactory);
 
-            var res = lru.GetOrAdd(1, synchronized.Create);
+var res = lru.GetOrAdd(1, k => synchronized.Create(k));
         }
     }
 }
