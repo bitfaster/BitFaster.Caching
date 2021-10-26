@@ -148,6 +148,11 @@ namespace BitFaster.Caching.Lru
                 return newItem.Value;
             }
 
+            if (newItem.Value is IDisposable d)
+            {
+                d.Dispose();
+            }
+
             return this.GetOrAdd(key, valueFactory);
         }
 
@@ -169,6 +174,11 @@ namespace BitFaster.Caching.Lru
                 Interlocked.Increment(ref hotCount);
                 Cycle();
                 return newItem.Value;
+            }
+
+            if (newItem.Value is IDisposable d)
+            {
+                d.Dispose();
             }
 
             return await this.GetOrAddAsync(key, valueFactory).ConfigureAwait(false);
