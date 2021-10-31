@@ -131,93 +131,99 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
-            if (this.TryGet(key, out var value))
-            {
-                return value;
+            while (true)
+            {        
+                if (this.TryGet(key, out var value))
+                {
+                    return value;
+                }
+
+                // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+                // This is identical logic in ConcurrentDictionary.GetOrAdd method.
+                var newItem = this.policy.CreateItem(key, valueFactory(key));
+
+                if (this.dictionary.TryAdd(key, newItem))
+                {
+                    this.hotQueue.Enqueue(newItem);
+                    Interlocked.Increment(ref hotCount);
+                    Cycle();
+                    return newItem.Value;
+                }
+
+                if (newItem.Value is IDisposable d)
+                {
+                    d.Dispose();
+                }
             }
-
-            // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-            // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-            var newItem = this.policy.CreateItem(key, valueFactory(key));
-
-            if (this.dictionary.TryAdd(key, newItem))
-            {
-                this.hotQueue.Enqueue(newItem);
-                Interlocked.Increment(ref hotCount);
-                Cycle();
-                return newItem.Value;
-            }
-
-            if (newItem.Value is IDisposable d)
-            {
-                d.Dispose();
-            }
-
-            return this.GetOrAdd(key, valueFactory);
         }
 
         ///<inheritdoc/>
         public async Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
-            if (this.TryGet(key, out var value))
+            while (true)
             {
-                return value;
+                if (this.TryGet(key, out var value))
+                {
+                    return value;
+                }
+
+                // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+                // This is identical logic in ConcurrentDictionary.GetOrAdd method.
+                var newItem = this.policy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
+
+                if (this.dictionary.TryAdd(key, newItem))
+                {
+                    this.hotQueue.Enqueue(newItem);
+                    Interlocked.Increment(ref hotCount);
+                    Cycle();
+                    return newItem.Value;
+                }
+
+                if (newItem.Value is IDisposable d)
+                {
+                    d.Dispose();
+                }
             }
-
-            // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-            // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-            var newItem = this.policy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
-
-            if (this.dictionary.TryAdd(key, newItem))
-            {
-                this.hotQueue.Enqueue(newItem);
-                Interlocked.Increment(ref hotCount);
-                Cycle();
-                return newItem.Value;
-            }
-
-            if (newItem.Value is IDisposable d)
-            {
-                d.Dispose();
-            }
-
-            return await this.GetOrAddAsync(key, valueFactory).ConfigureAwait(false);
         }
 
         ///<inheritdoc/>
         public bool TryRemove(K key)
         {
-            if (this.dictionary.TryGetValue(key, out var existing))
-            {
-                var kvp = new KeyValuePair<K, I>(key, existing);
-
-                // hidden atomic remove
-                // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
-                if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
+            while (true)
+            { 
+                if (this.dictionary.TryGetValue(key, out var existing))
                 {
-                    // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
-                    // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
-                    // from the queue.
-                    existing.WasAccessed = false;
-                    existing.WasRemoved = true;
+                    var kvp = new KeyValuePair<K, I>(key, existing);
 
-                    // serialize dispose (common case dispose not thread safe)
-                    lock (existing)
+                    // hidden atomic remove
+                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                    if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
                     {
-                        if (existing.Value is IDisposable d)
+                        // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
+                        // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
+                        // from the queue.
+                        existing.WasAccessed = false;
+                        existing.WasRemoved = true;
+
+                        // serialize dispose (common case dispose not thread safe)
+                        lock (existing)
                         {
-                            d.Dispose();
+                            if (existing.Value is IDisposable d)
+                            {
+                                d.Dispose();
+                            }
                         }
+
+                        return true;
                     }
 
-                    return true;
+                    // it existed, but we couldn't remove - this means value was replaced afer the TryGetValue (a race), try again
                 }
-
-                // it existed, but we couldn't remove - this means value was replaced afer the TryGetValue (a race), try again
-                return TryRemove(key);
+                else
+                { 
+                    return false;
+                }
             }
-
-            return false;
         }
 
         ///<inheritdoc/>
@@ -250,25 +256,27 @@ namespace BitFaster.Caching.Lru
         ///<remarks>Note: Updates to existing items do not affect LRU order. Added items are at the top of the LRU.</remarks>
         public void AddOrUpdate(K key, V value)
         { 
-            // first, try to update
-            if (this.TryUpdate(key, value))
+            while (true)
             { 
-                return;
+                // first, try to update
+                if (this.TryUpdate(key, value))
+                { 
+                    return;
+                }
+
+                // then try add
+                var newItem = this.policy.CreateItem(key, value);
+
+                if (this.dictionary.TryAdd(key, newItem))
+                {
+                    this.hotQueue.Enqueue(newItem);
+                    Interlocked.Increment(ref hotCount);
+                    Cycle();
+                    return;
+                }
+
+                // if both update and add failed there was a race, try again
             }
-
-            // then try add
-            var newItem = this.policy.CreateItem(key, value);
-
-            if (this.dictionary.TryAdd(key, newItem))
-            {
-                this.hotQueue.Enqueue(newItem);
-                Interlocked.Increment(ref hotCount);
-                Cycle();
-                return;
-            }
-
-            // if both update and add failed there was a race, try again
-            AddOrUpdate(key, value);
         }
 
         ///<inheritdoc/>
