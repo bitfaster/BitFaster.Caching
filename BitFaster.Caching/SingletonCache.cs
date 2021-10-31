@@ -7,89 +7,87 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
-	/// <summary>
-	/// Cache a single value for each key, and maintain in memory only the values that have been acquired 
-	/// but not yet released.
-	/// </summary>
-	/// <typeparam name="TKey">The type of the key.</typeparam>
-	/// <typeparam name="TValue">The type of the value.</typeparam>
-	public class SingletonCache<TKey, TValue>
-			where TValue : new()
-	{
-		private readonly ConcurrentDictionary<TKey, ReferenceCount<TValue>> cache;
+    /// <summary>
+    /// Cache a single value for each key, and maintain in memory only the values that have been acquired 
+    /// but not yet released.
+    /// </summary>
+    /// <remarks>Based on LockObjectCache by Mayank Mehta.</remarks>
+    /// <typeparam name="TKey">The type of the key.</typeparam>
+    /// <typeparam name="TValue">The type of the value.</typeparam>
+    public class SingletonCache<TKey, TValue>
+    {
+        private readonly ConcurrentDictionary<TKey, ReferenceCount<TValue>> cache;
 
-		public SingletonCache()
-		{
-			this.cache = new ConcurrentDictionary<TKey, ReferenceCount<TValue>>();
-		}
+        /// <summary>
+        /// Initializes a new instance of the SingletonCache class that is empty, has the default concurrency level, 
+        /// has the default initial capacity, and uses the default comparer for the key type.
+        /// </summary>
+        public SingletonCache()
+        {
+            this.cache = new ConcurrentDictionary<TKey, ReferenceCount<TValue>>();
+        }
 
-		public SingletonCache(int concurrencyLevel, int capacity, IEqualityComparer<TKey> comparer)
-		{
-			this.cache = new ConcurrentDictionary<TKey, ReferenceCount<TValue>>(concurrencyLevel, capacity, comparer);
-		}
+        /// <summary>
+        /// Initializes a new instance of the SingletonCache that has the specified concurrency level, has the 
+        /// specified initial capacity, and uses the specified IEqualityComparer<T>.
+        /// </summary>
+        /// <param name="concurrencyLevel">The estimated number of threads that will update the SingletonCache concurrently.</param>
+        /// <param name="capacity">The initial number of elements that the SingletonCache can contain.</param>
+        /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
+        public SingletonCache(int concurrencyLevel, int capacity, IEqualityComparer<TKey> comparer)
+        {
+            this.cache = new ConcurrentDictionary<TKey, ReferenceCount<TValue>>(concurrencyLevel, capacity, comparer);
+        }
 
-		public Handle Acquire(TKey key)
-		{
-			var refCount = this.cache.AddOrUpdate(key,
-					(_) => new ReferenceCount<TValue>(new TValue()),
-					(_, existingRefCount) => existingRefCount.IncrementCopy());
+        /// <summary>
+        /// Acquire a singleton value for the specified key. The lifetime guarantees the value is alive and is a singleton 
+        /// for the given key until the lifetime is disposed.
+        /// </summary>
+        /// <param name="key">The key of the item</param>
+        /// <param name="valueFactory">The value factory</param>
+        /// <returns>A value lifetime</returns>
+        public Lifetime<TValue> Acquire(TKey key, Func<TKey, TValue> valueFactory)
+        {
+            var refCount = this.cache.AddOrUpdate(key,
+                    (k) => new ReferenceCount<TValue>(valueFactory(k)),
+                    (_, existingRefCount) => existingRefCount.IncrementCopy());
 
-			return new Handle(key, refCount.Value, this);
-		}
+            return new Lifetime<TValue>(refCount, () => this.Release(key));
+        }
 
-		private void Release(TKey key)
-		{
-			while (true)
-			{
-				var oldRefCount = this.cache[key];
-				var newRefCount = oldRefCount.DecrementCopy();
-				if (this.cache.TryUpdate(key, newRefCount, oldRefCount))
-				{
-					if (newRefCount.Count == 0)
-					{
-						// This will remove from dictionary only if key and the value with ReferenceCount (== 0) matches (under a lock)
-						if (((IDictionary<TKey, ReferenceCount<TValue>>)this.cache).Remove(new KeyValuePair<TKey, ReferenceCount<TValue>>(key, newRefCount)))
-						{
-							if (newRefCount.Value is IDisposable d)
-							{
-								d.Dispose();
-							}
-						}
-					}
-					break;
-				}
-			}
-		}
+        private void Release(TKey key)
+        {
+            while (true)
+            {
+                if (!this.cache.TryGetValue(key, out var oldRefCount))
+                {
+                    // already released, exit
+                    break;
+                }
 
-		public sealed class Handle : IDisposable
-		{
-			private TKey key;
-			private TValue value;
-			private SingletonCache<TKey, TValue> cache;
+                // if count is 1, the caller's decrement makes refcount 0: it is unreferenced and eligible to remove
+                if (oldRefCount.Count == 1)
+                {
+                    var kvp = new KeyValuePair<TKey, ReferenceCount<TValue>>(key, oldRefCount);
 
-			public Handle(TKey key, TValue value, SingletonCache<TKey, TValue> cache)
-			{
-				this.key = key;
-				this.value = value;
-				this.cache = cache;
-			}
-
-			public TValue Value
-			{
-				get
-				{
-					return this.value;
-				}
-			}
-
-			public void Dispose()
-			{
-				if (this.cache != null)
-				{
-					this.cache.Release(this.key);
-					this.cache = null;
-				}
-			}
-		}
-	}
+                    // hidden atomic remove
+                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                    if (((ICollection<KeyValuePair<TKey, ReferenceCount<TValue>>>)this.cache).Remove(kvp))
+                    {
+                        // no longer in cache, safe to dispose and exit
+                        if (oldRefCount.Value is IDisposable d)
+                        {
+                            d.Dispose();
+                        }
+                        break;
+                    }
+                }
+                else if (this.cache.TryUpdate(key, oldRefCount.DecrementCopy(), oldRefCount))
+                {
+                    // replaced with decremented copy, exit
+                    break;
+                }
+            }
+        }
+    }
 }

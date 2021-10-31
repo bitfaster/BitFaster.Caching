@@ -7,12 +7,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
+using System.Diagnostics;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class TLruPolicyTests
+    public class TLruLongTicksPolicyTests
     {
-        private readonly TLruPolicy<int, int> policy = new TLruPolicy<int, int>(TimeSpan.FromSeconds(10));
+        private readonly TLruLongTicksPolicy<int, int> policy = new TLruLongTicksPolicy<int, int>(TimeSpan.FromSeconds(10));
 
         [Fact]
         public void CreateItemInitializesKeyAndValue()
@@ -28,7 +29,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            item.TimeStamp.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMilliseconds(100));
+            // seconds = ticks / Stopwatch.Frequency
+            ulong epsilon = (ulong)(TimeSpan.FromMilliseconds(20).TotalSeconds * Stopwatch.Frequency);
+            item.TickCount.Should().BeCloseTo(Stopwatch.GetTimestamp(), epsilon);
         }
 
         [Fact]
@@ -46,7 +49,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsExpiredShouldDiscardIsTrue()
         {
             var item = this.policy.CreateItem(1, 2);
-            item.TimeStamp = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(11));
+            item.TickCount = Stopwatch.GetTimestamp() - TimeSpan.FromSeconds(11).Ticks;
 
             this.policy.ShouldDiscard(item).Should().BeTrue();
         }
@@ -55,7 +58,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsNotExpiredShouldDiscardIsFalse()
         {
             var item = this.policy.CreateItem(1, 2);
-            item.TimeStamp = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(9));
+            item.TickCount = Stopwatch.GetTimestamp() - TimeSpan.FromSeconds(9).Ticks;
 
             this.policy.ShouldDiscard(item).Should().BeFalse();
         }
@@ -96,7 +99,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.policy.RouteCold(item).Should().Be(expectedDestination);
         }
 
-        private TimeStampedLruItem<int, int> CreateItem(bool wasAccessed, bool isExpired)
+        private LongTickCountLruItem<int, int> CreateItem(bool wasAccessed, bool isExpired)
         {
             var item = this.policy.CreateItem(1, 2);
 
@@ -104,7 +107,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             if (isExpired)
             {
-                item.TimeStamp = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(11));
+                item.TickCount = Stopwatch.GetTimestamp() - TimeSpan.FromSeconds(11).Ticks;
             }
 
             return item;

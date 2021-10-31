@@ -10,7 +10,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 {
     public class ConcurrentTLruTests
     {
-        private readonly TimeSpan timeToLive = TimeSpan.FromMilliseconds(10);
+        private readonly TimeSpan timeToLive = TimeSpan.FromSeconds(1);
         private const int capacity = 9;
         private ConcurrentTLru<int, string> lru;
 
@@ -19,6 +19,22 @@ namespace BitFaster.Caching.UnitTests.Lru
         public ConcurrentTLruTests()
         {
             lru = new ConcurrentTLru<int, string>(1, capacity, EqualityComparer<int>.Default, timeToLive);
+        }
+
+        [Fact]
+        public void ConstructAddAndRetrieveWithDefaultCtorReturnsValue()
+        {
+            var x = new ConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
+
+            x.GetOrAdd(1, k => k).Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenItemIsNotExpiredItIsNotRemoved()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryGet(1, out var value).Should().BeTrue();
         }
 
         [Fact]

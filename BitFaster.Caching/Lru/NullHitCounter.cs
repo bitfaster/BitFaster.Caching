@@ -12,12 +12,12 @@ namespace BitFaster.Caching.Lru
         public double HitRatio => 0.0;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void IncrementTotalCount()
+        public void IncrementMiss()
         {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void IncrementHitCount()
+        public void IncrementHit()
         {
         }
     }

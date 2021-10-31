@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -11,31 +12,34 @@ namespace BitFaster.Caching.Lru
     /// Time aware Least Recently Used (TLRU) is a variant of LRU which discards the least 
     /// recently used items first, and any item that has expired.
     /// </summary>
-    public readonly struct TLruPolicy<K, V> : IPolicy<K, V, TimeStampedLruItem<K, V>>
+    /// <remarks>
+    /// This class measures time using stopwatch.
+    /// </remarks>
+    public readonly struct TLruLongTicksPolicy<K, V> : IPolicy<K, V, LongTickCountLruItem<K, V>>
     {
-        private readonly TimeSpan timeToLive;
+        private readonly long timeToLive;
 
-        public TLruPolicy(TimeSpan timeToLive)
+        public TLruLongTicksPolicy(TimeSpan timeToLive)
         {
-            this.timeToLive = timeToLive;
+            this.timeToLive = timeToLive.Ticks;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TimeStampedLruItem<K, V> CreateItem(K key, V value)
+        public LongTickCountLruItem<K, V> CreateItem(K key, V value)
         {
-            return new TimeStampedLruItem<K, V>(key, value);
+            return new LongTickCountLruItem<K, V>(key, value, Stopwatch.GetTimestamp());
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Touch(TimeStampedLruItem<K, V> item)
+        public void Touch(LongTickCountLruItem<K, V> item)
         {
             item.WasAccessed = true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool ShouldDiscard(TimeStampedLruItem<K, V> item)
+        public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
-            if (DateTime.UtcNow - item.TimeStamp > this.timeToLive)
+            if (Stopwatch.GetTimestamp() - item.TickCount > this.timeToLive)
             {
                 return true;
             }
@@ -44,7 +48,7 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ItemDestination RouteHot(TimeStampedLruItem<K, V> item)
+        public ItemDestination RouteHot(LongTickCountLruItem<K, V> item)
         {
             if (this.ShouldDiscard(item))
             {
@@ -60,7 +64,7 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ItemDestination RouteWarm(TimeStampedLruItem<K, V> item)
+        public ItemDestination RouteWarm(LongTickCountLruItem<K, V> item)
         {
             if (this.ShouldDiscard(item))
             {
@@ -76,7 +80,7 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ItemDestination RouteCold(TimeStampedLruItem<K, V> item)
+        public ItemDestination RouteCold(LongTickCountLruItem<K, V> item)
         {
             if (this.ShouldDiscard(item))
             {
