@@ -148,10 +148,7 @@ namespace BitFaster.Caching.Lru
                 return newItem.Value;
             }
 
-            if (newItem.Value is IDisposable d)
-            {
-                d.Dispose();
-            }
+            Disposer<V>.Dispose(newItem.Value);
 
             return this.GetOrAdd(key, valueFactory);
         }
@@ -176,10 +173,7 @@ namespace BitFaster.Caching.Lru
                 return newItem.Value;
             }
 
-            if (newItem.Value is IDisposable d)
-            {
-                d.Dispose();
-            }
+            Disposer<V>.Dispose(newItem.Value);
 
             return await this.GetOrAddAsync(key, valueFactory).ConfigureAwait(false);
         }
@@ -204,10 +198,7 @@ namespace BitFaster.Caching.Lru
                     // serialize dispose (common case dispose not thread safe)
                     lock (existing)
                     {
-                        if (existing.Value is IDisposable d)
-                        {
-                            d.Dispose();
-                        }
+                        Disposer<V>.Dispose(existing.Value);
                     }
 
                     return true;
@@ -233,10 +224,7 @@ namespace BitFaster.Caching.Lru
                         V oldValue = existing.Value;
                         existing.Value = value;
 
-                        if (oldValue is IDisposable d)
-                        {
-                            d.Dispose();
-                        }
+                        Disposer<V>.Dispose(oldValue);
 
                         return true;
                     }
@@ -429,11 +417,8 @@ namespace BitFaster.Caching.Lru
                         item.WasRemoved = true;
 
                         lock (item)
-                        { 
-                            if (item.Value is IDisposable d)
-                            {
-                                d.Dispose();
-                            } 
+                        {
+                            Disposer<V>.Dispose(item.Value);
                         }
                     }
 

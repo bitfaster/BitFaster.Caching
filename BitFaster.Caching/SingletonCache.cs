@@ -75,10 +75,7 @@ namespace BitFaster.Caching
                     if (((ICollection<KeyValuePair<TKey, ReferenceCount<TValue>>>)this.cache).Remove(kvp))
                     {
                         // no longer in cache, safe to dispose and exit
-                        if (oldRefCount.Value is IDisposable d)
-                        {
-                            d.Dispose();
-                        }
+                        Disposer<TValue>.Dispose(oldRefCount.Value);
                         break;
                     }
                 }
