@@ -104,10 +104,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
-                    if (removed.Value.Value is IDisposable d)
-                    {
-                        d.Dispose();
-                    }
+                    Disposer<V>.Dispose(removed.Value.Value);
                 }
 
                 return node.Value.Value;
@@ -151,10 +148,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
-                    if (removed.Value.Value is IDisposable d)
-                    {
-                        d.Dispose();
-                    }
+                    Disposer<V>.Dispose(removed.Value.Value);
                 }
 
                 return node.Value.Value;
@@ -182,10 +176,7 @@ namespace BitFaster.Caching.Lru
                     }
                 }
 
-                if (node.Value.Value is IDisposable d)
-                {
-                    d.Dispose();
-                }
+                Disposer<V>.Dispose(node.Value.Value);
 
                 return true;
             }
@@ -245,10 +236,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
-                    if (removed.Value.Value is IDisposable d)
-                    {
-                        d.Dispose();
-                    }
+                    Disposer<V>.Dispose(removed.Value.Value);
                 }
 
                 return;
