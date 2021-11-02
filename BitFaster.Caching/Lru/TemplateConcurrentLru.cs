@@ -62,7 +62,7 @@ namespace BitFaster.Caching.Lru
         {
             if (capacity < 3)
             {
-                throw new ArgumentOutOfRangeException("Capacity must be greater than or equal to 3.");
+                throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be greater than or equal to 3.");
             }
 
             if (comparer == null)
@@ -70,10 +70,10 @@ namespace BitFaster.Caching.Lru
                 throw new ArgumentNullException(nameof(comparer));
             }
 
-            var queueCapacity = ComputeQueueCapacity(capacity);
-            this.hotCapacity = queueCapacity.hot;
-            this.warmCapacity = queueCapacity.warm;
-            this.coldCapacity = queueCapacity.cold;
+            var (hot, warm, cold) = ComputeQueueCapacity(capacity);
+            this.hotCapacity = hot;
+            this.warmCapacity = warm;
+            this.coldCapacity = cold;
 
             this.hotQueue = new ConcurrentQueue<I>();
             this.warmQueue = new ConcurrentQueue<I>();
@@ -98,13 +98,12 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
-            I item;
-            if (dictionary.TryGetValue(key, out item))
+            if (dictionary.TryGetValue(key, out var item))
             {
                 return GetOrDiscard(item, out value);
             }
 
-            value = default(V);
+            value = default;
             this.hitCounter.IncrementMiss();
             return false;
         }
@@ -118,7 +117,7 @@ namespace BitFaster.Caching.Lru
             {
                 this.Move(item, ItemDestination.Remove);
                 this.hitCounter.IncrementMiss();
-                value = default(V);
+                value = default;
                 return false;
             }
 
