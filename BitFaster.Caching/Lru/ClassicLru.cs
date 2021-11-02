@@ -35,7 +35,7 @@ namespace BitFaster.Caching.Lru
         {
             if (capacity < 3)
             {
-                throw new ArgumentOutOfRangeException("Capacity must be greater than or equal to 3.");
+                throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be greater than or equal to 3.");
             }
 
             if (comparer == null)
@@ -56,8 +56,7 @@ namespace BitFaster.Caching.Lru
         {
             Interlocked.Increment(ref requestTotalCount);
 
-            LinkedListNode<LruItem> node;
-            if (dictionary.TryGetValue(key, out node))
+            if (dictionary.TryGetValue(key, out var node))
             {
                 LockAndMoveToEnd(node);
                 Interlocked.Increment(ref requestHitCount);
@@ -65,7 +64,7 @@ namespace BitFaster.Caching.Lru
                 return true;
             }
 
-            value = default(V);
+            value = default;
             return false;
         }
 
