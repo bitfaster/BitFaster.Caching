@@ -2,7 +2,7 @@
 
 High performance, thread-safe in-memory caching primitives for .NET.
 
-[![NuGet version](https://badge.fury.io/nu/BitFaster.Caching.svg)](https://badge.fury.io/nu/BitFaster.Caching)
+[![NuGet version](https://badge.fury.io/nu/BitFaster.Caching.svg)](https://badge.fury.io/nu/BitFaster.Caching) ![Nuget](https://img.shields.io/nuget/dt/bitfaster.caching) ![.NET Core](https://github.com/bitfaster/BitFaster.Caching/workflows/.NET%20Core/badge.svg)
 
 # Installing via NuGet
 `Install-Package BitFaster.Caching`
@@ -11,13 +11,15 @@ High performance, thread-safe in-memory caching primitives for .NET.
 
 | Class |  Description |
 |:-------|:---------|
-| ConcurrentLru       |  Represents a thread-safe bounded size pseudo LRU.<br><br>A drop in replacement for ConcurrentDictionary, but with bounded size. Maintains psuedo order, with better hit rate than a pure Lru and not prone to lock contention. |
-| ConcurrentTLru        | Represents a thread-safe bounded size pseudo TLRU, items have TTL.<br><br>As ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. If the values generated for each key can change over time, ConcurrentTLru is eventually consistent where the inconsistency window = TTL. |
+| [ConcurrentLru](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru)       |  Represents a thread-safe bounded size pseudo LRU.<br><br>A drop in replacement for ConcurrentDictionary, but with bounded size. Maintains psuedo order, with better hit rate than a pure Lru and not prone to lock contention. |
+| [ConcurrentTLru](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentTLru)        | Represents a thread-safe bounded size pseudo TLRU, items have TTL.<br><br>As ConcurrentLru, but with a [time aware least recently used (TLRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#Time_aware_least_recently_used_(TLRU)) eviction policy. If the values generated for each key can change over time, ConcurrentTLru is eventually consistent where the inconsistency window = TTL. |
 | SingletonCache      | Represents a thread-safe cache of key value pairs, which guarantees a single instance of each value. Values are discarded immediately when no longer in use to conserve memory.  |
 | Scoped<IDisposable>      | Represents a thread-safe wrapper for storing IDisposable objects in a cache that may dispose and invalidate them. The scope keeps the object alive until all callers have finished.   |
 
-# Usage
+# Quick Start
 
+Please refer to the [wiki](https://github.com/bitfaster/BitFaster.Caching/wiki) for more detailed documentation.
+    
 ## ConcurrentLru/ConcurrentTLru
 
 `ConcurrentLru` and `ConcurrentTLru` are intended as a drop in replacement for `ConcurrentDictionary`, and a much faster alternative to the `System.Runtime.Caching.MemoryCache` family of classes (e.g. `HttpRuntime.Cache`, `System.Web.Caching` etc). 
@@ -93,7 +95,9 @@ MemoryCache is perfectly servicable, but it has some limitations:
 
 # Performance
 
-The cache replacement policy must maximize the cache hit rate, and minimize the computational and space overhead involved in implementing the policy. Below an analysis of both the hit rate vs cache size, and run time overhead is provided.  
+*DISCLAIMER: Always measure performance in the context of your application. The results provided here are intended as a guide.*
+    
+The cache replacement policy must maximize the cache hit rate, and minimize the computational and space overhead involved in implementing the policy. Below an analysis of hit rate vs cache size, latency and throughput is provided.  
 
 ## ConcurrentLru Hit rate
 
@@ -139,13 +143,13 @@ These charts summarize the percentage increase in hit rate ConcurrentLru vs LRU.
    </tr> 
 </table>
 
-## ConcurrentLru Benchmarks
+## ConcurrentLru Latency
 
 In these benchmarks, a cache miss is essentially free. These tests exist purely to compare the raw execution speed of the cache bookkeeping code. In a real setting, where a cache miss is presumably quite expensive, the relative overhead of the cache will be very small.
 
 Benchmarks are based on BenchmarkDotNet, so are single threaded. The ConcurrentLru family of classes are composed internally of ConcurrentDictionary.GetOrAdd and ConcurrentQueue.Enqueue/Dequeue method calls, and scale well to concurrent workloads.
 
-All benchmarks below are run on the same computer:
+Benchmark results below are from a computer with a mobile class Broadwell CPU with small caches (128kb L1/512kb L2/4mb L3):
 
 ~~~
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.264 (2004/?/20H1)
@@ -156,6 +160,8 @@ Intel Core i7-5600U CPU 2.60GHz (Broadwell), 1 CPU, 4 logical and 2 physical cor
 
 Job=RyuJitX64  Jit=RyuJit  Platform=X64
 ~~~
+    
+Benchmarks have been repeated across supported .NET Frameworks and on the CPU architectures available in Azure (e.g. Intel Skylake, AMD Zen). Results are repeatable within +/-5%.
 
 ### What are FastConcurrentLru/FastConcurrentTLru?
 
@@ -172,11 +178,11 @@ Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has 
 
 |             Method |     Mean |   Error |  StdDev | Ratio | RatioSD |
 |------------------- |---------:|--------:|--------:|------:|--------:|
-|         ClassicLru | 157.3 ns | 1.67 ns | 1.48 ns |  1.00 |    0.00 |
-|  FastConcurrentLru | 165.4 ns | 1.17 ns | 1.04 ns |  1.05 |    0.01 |
-|      ConcurrentLru | 176.1 ns | 1.22 ns | 1.08 ns |  1.12 |    0.01 |
-| FastConcurrentTLru | 247.9 ns | 3.58 ns | 2.80 ns |  1.58 |    0.02 |
-|     ConcurrentTLru | 259.0 ns | 3.61 ns | 3.20 ns |  1.65 |    0.03 |
+|         ClassicLru | 175.7 ns | 2.75 ns | 2.43 ns |  1.00 |    0.00 |
+|  FastConcurrentLru | 180.2 ns | 2.55 ns | 2.26 ns |  1.03 |    0.02 |
+|      ConcurrentLru | 189.1 ns | 3.14 ns | 2.94 ns |  1.08 |    0.03 |
+| FastConcurrentTLru | 261.4 ns | 4.53 ns | 4.01 ns |  1.49 |    0.04 |
+|     ConcurrentTLru | 266.1 ns | 3.96 ns | 3.51 ns |  1.51 |    0.03 |
 
 ### Raw Lookup speed
 
@@ -188,19 +194,22 @@ In this test the same items are fetched repeatedly, no items are evicted. Repres
 
 FastConcurrentLru does not allocate and is approximately 10x faster than System.Runtime.Caching.MemoryCache or the newer Microsoft.Extensions.Caching.Memory.MemoryCache.
 
-|                Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
-|---------------------- |----------:|---------:|---------:|------:|-------:|----------:|
-|  ConcurrentDictionary |  16.88 ns | 0.276 ns | 0.245 ns |  1.00 |      - |         - |
-|     FastConcurrentLru |  23.27 ns | 0.491 ns | 0.565 ns |  1.38 |      - |         - |
-|         ConcurrentLru |  26.77 ns | 0.512 ns | 0.666 ns |  1.60 |      - |         - |
-|    FastConcurrentTLru |  54.35 ns | 0.650 ns | 0.576 ns |  3.22 |      - |         - |
-|        ConcurrentTLru |  60.10 ns | 1.024 ns | 1.501 ns |  3.53 |      - |         - |
-|            ClassicLru |  68.04 ns | 1.400 ns | 2.221 ns |  4.12 |      - |         - |
-|    RuntimeMemoryCache | 280.16 ns | 5.607 ns | 7.486 ns | 16.59 | 0.0153 |      32 B |
-| ExtensionsMemoryCache | 342.72 ns | 3.729 ns | 3.114 ns | 20.29 | 0.0114 |      24 B |
+|                   Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
+|------------------------- |----------:|---------:|---------:|------:|-------:|----------:|
+|     ConcurrentDictionary |  16.76 ns | 0.322 ns | 0.285 ns |  1.00 |      - |         - |
+|        FastConcurrentLru |  18.94 ns | 0.249 ns | 0.220 ns |  1.13 |      - |         - |
+|            ConcurrentLru |  21.46 ns | 0.204 ns | 0.191 ns |  1.28 |      - |         - |
+|       FastConcurrentTLru |  41.57 ns | 0.450 ns | 0.376 ns |  2.48 |      - |         - |
+|           ConcurrentTLru |  43.95 ns | 0.588 ns | 0.521 ns |  2.62 |      - |         - |
+|               ClassicLru |  67.62 ns | 0.901 ns | 0.799 ns |  4.03 |      - |         - |
+|    RuntimeMemoryCacheGet | 279.70 ns | 3.825 ns | 3.578 ns | 16.70 | 0.0153 |      32 B |
+| ExtensionsMemoryCacheGet | 341.67 ns | 6.617 ns | 6.499 ns | 20.35 | 0.0114 |      24 B |
 
-## Meta-programming using structs for JIT dead code removal and inlining
 
-TemplateConcurrentLru features injectable policies defined as structs. Since structs are subject to special JIT optimizations, the implementation is much faster than if these policies were defined as classes. Using this technique, 'Fast' versions without hit counting are within 30% of the speed of a ConcurrentDictionary.
+## ConcurrentLru Throughput
 
-Since DateTime.UtcNow is around 4x slower than a ConcurrentDictionary lookup, policies that involve time based expiry are significantly slower. Since these are injected as structs and the slow code is optimized away, it is possible maintain the fastest possible speed for the non-TTL policy.
+In this test, we generate 2000 samples of 500 keys with a Zipfian distribution (s = 0.86). Caches have size 50. From N concurrent threads, fetch the sample keys in sequence (each thread is using the same input keys). The principal scalability limit in concurrent applications is the exclusive resource lock. As the number of threads increases, ConcurrentLru significantly outperforms an LRU implemented with a short lived exclusive lock used to synchronize the linked list data structure.
+
+This test was run on a Standard D16s v3 Azure VM (16 cpus), with .NET Core 3.1.
+
+![image](https://user-images.githubusercontent.com/12851828/86203563-2f941880-bb1a-11ea-8d6a-70ece91b4362.png)

@@ -6,9 +6,9 @@ using System.Threading;
 namespace BitFaster.Caching
 {
     /// <summary>
-    /// A wrapper for IDisposable objects stored in a cache. If the object is used in a long
-    /// running operation and disposed by the cache, the scope can create a lifetime that
-    /// prevents the wrapped object from being diposed until the calling code completes.
+    /// A lifetime scope for IDisposable objects stored in a cache. If the object is used in a long
+    /// running operation and disposed by a cache, the scope can create a lifetime that prevents
+    /// the wrapped object from being diposed until the calling code completes.
     /// </summary>
     /// <typeparam name="T">The type of scoped value.</typeparam>
     public class Scoped<T> : IDisposable where T : IDisposable
@@ -16,11 +16,21 @@ namespace BitFaster.Caching
         private ReferenceCount<T> refCount;
         private bool isDisposed;
 
+        /// <summary>
+        /// Initializes a new Scoped value.
+        /// </summary>
+        /// <param name="value">The value to scope.</param>
         public Scoped(T value)
         {
             this.refCount = new ReferenceCount<T>(value);
         }
 
+        /// <summary>
+        /// Creates a lifetime for the scoped value. The lifetime guarantees the value is alive until 
+        /// the lifetime is disposed.
+        /// </summary>
+        /// <returns>A value lifetime.</returns>
+        /// <exception cref="ObjectDisposedException">The scope is disposed.</exception>
         public Lifetime<T> CreateLifetime()
         {
             if (this.isDisposed)
@@ -38,7 +48,7 @@ namespace BitFaster.Caching
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
                     // When Lease is disposed, it calls DecrementReferenceCount
-                    return new Lifetime<T>(oldRefCount.Value, this.DecrementReferenceCount);
+                    return new Lifetime<T>(oldRefCount, this.DecrementReferenceCount);
                 }
             }
         }
@@ -62,6 +72,10 @@ namespace BitFaster.Caching
             }
         }
 
+        /// <summary>
+        /// Terminates the scope and disposes the value. Once the scope is terminated, it is no longer
+        /// possible to create new lifetimes for the value.
+        /// </summary>
         public void Dispose()
         {
             if (!this.isDisposed)

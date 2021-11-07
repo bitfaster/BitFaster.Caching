@@ -4,19 +4,41 @@ using System.Text;
 
 namespace BitFaster.Caching
 {
+    /// <summary>
+    /// Represents the lifetime of a value. The value is alive and valid for use until the 
+    /// lifetime is disposed.
+    /// </summary>
+    /// <typeparam name="T">The type of value</typeparam>
     public class Lifetime<T> : IDisposable
     {
         private readonly Action onDisposeAction;
+        private readonly ReferenceCount<T> refCount;
         private bool isDisposed;
 
-        public Lifetime(T value, Action onDisposeAction)
+        /// <summary>
+        /// Initializes a new instance of the Lifetime class.
+        /// </summary>
+        /// <param name="value">The value to keep alive.</param>
+        /// <param name="onDisposeAction">The action to perform when the lifetime is terminated.</param>
+        public Lifetime(ReferenceCount<T> value, Action onDisposeAction)
         {
-            this.Value = value;
+            this.refCount = value;
             this.onDisposeAction = onDisposeAction;
         }
 
-        public T Value { get; }
+        /// <summary>
+        /// Gets the value.
+        /// </summary>
+        public T Value => this.refCount.Value;
 
+        /// <summary>
+        /// Gets the count of Lifetime instances referencing the same value.
+        /// </summary>
+        public int ReferenceCount => this.refCount.Count;
+
+        /// <summary>
+        /// Terminates the lifetime and performs any cleanup required to release the value.
+        /// </summary>
         public void Dispose()
         {
             if (!this.isDisposed)

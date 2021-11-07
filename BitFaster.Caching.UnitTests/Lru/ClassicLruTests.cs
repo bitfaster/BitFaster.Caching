@@ -9,12 +9,12 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-	public class ClassicLruTests
-	{
-		private const int capacity = 3;
+    public class ClassicLruTests
+    {
+        private const int capacity = 3;
 
-		private ClassicLru<int, string> lru = new ClassicLru<int, string>(1, capacity, EqualityComparer<int>.Default);
-		ValueFactory valueFactory = new ValueFactory();
+        private ClassicLru<int, string> lru = new ClassicLru<int, string>(1, capacity, EqualityComparer<int>.Default);
+        ValueFactory valueFactory = new ValueFactory();
 
         [Fact]
         public void WhenConcurrencyIsLessThan1CtorThrows()
@@ -49,137 +49,137 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-		public void WhenItemIsAddedCountIsCorrect()
-		{
-			lru.Count.Should().Be(0);
-			lru.GetOrAdd(1, valueFactory.Create);
-			lru.Count.Should().Be(1);
-		}
+        public void WhenItemIsAddedCountIsCorrect()
+        {
+            lru.Count.Should().Be(0);
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.Count.Should().Be(1);
+        }
 
-		[Fact]
-		public void WhenItemExistsTryGetReturnsValueAndTrue()
-		{
-			lru.GetOrAdd(1, valueFactory.Create);
-			bool result = lru.TryGet(1, out var value);
+        [Fact]
+        public void WhenItemExistsTryGetReturnsValueAndTrue()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
 
-			result.Should().Be(true);
-			value.Should().Be("1");
-		}
+            result.Should().Be(true);
+            value.Should().Be("1");
+        }
 
-		[Fact]
-		public void WhenItemDoesNotExistTryGetReturnsNullAndFalse()
-		{
-			lru.GetOrAdd(1, valueFactory.Create);
-			bool result = lru.TryGet(2, out var value);
+        [Fact]
+        public void WhenItemDoesNotExistTryGetReturnsNullAndFalse()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(2, out var value);
 
-			result.Should().Be(false);
-			value.Should().BeNull();
-		}
+            result.Should().Be(false);
+            value.Should().BeNull();
+        }
 
-		[Fact]
-		public void WhenItemIsAddedThenRetrievedHitRatioIsHalf()
-		{
-			lru.GetOrAdd(1, valueFactory.Create);
-			bool result = lru.TryGet(1, out var value);
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedHitRatioIsHalf()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
 
-			lru.HitRatio.Should().Be(0.5);
-		}
+            lru.HitRatio.Should().Be(0.5);
+        }
 
-		[Fact]
-		public void WhenKeyIsRequestedItIsCreatedAndCached()
-		{
-			var result1 = lru.GetOrAdd(1, valueFactory.Create);
-			var result2 = lru.GetOrAdd(1, valueFactory.Create);
+        [Fact]
+        public void WhenKeyIsRequestedItIsCreatedAndCached()
+        {
+            var result1 = lru.GetOrAdd(1, valueFactory.Create);
+            var result2 = lru.GetOrAdd(1, valueFactory.Create);
 
-			valueFactory.timesCalled.Should().Be(1);
-			result1.Should().Be(result2);
-		}
+            valueFactory.timesCalled.Should().Be(1);
+            result1.Should().Be(result2);
+        }
 
-		[Fact]
-		public async Task WhenKeyIsRequesteItIsCreatedAndCachedAsync()
-		{
-			var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
-			var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+        [Fact]
+        public async Task WhenKeyIsRequesteItIsCreatedAndCachedAsync()
+        {
+            var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+            var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
 
-			valueFactory.timesCalled.Should().Be(1);
-			result1.Should().Be(result2);
-		}
+            valueFactory.timesCalled.Should().Be(1);
+            result1.Should().Be(result2);
+        }
 
-		[Fact]
-		public void WhenDifferentKeysAreRequestedValueIsCreatedForEach()
-		{
-			var result1 = lru.GetOrAdd(1, valueFactory.Create);
-			var result2 = lru.GetOrAdd(2, valueFactory.Create);
+        [Fact]
+        public void WhenDifferentKeysAreRequestedValueIsCreatedForEach()
+        {
+            var result1 = lru.GetOrAdd(1, valueFactory.Create);
+            var result2 = lru.GetOrAdd(2, valueFactory.Create);
 
-			valueFactory.timesCalled.Should().Be(2);
+            valueFactory.timesCalled.Should().Be(2);
 
-			result1.Should().Be("1");
-			result2.Should().Be("2");
-		}
+            result1.Should().Be("1");
+            result2.Should().Be("2");
+        }
 
-		[Fact]
-		public async Task WhenDifferentKeysAreRequesteValueIsCreatedForEachAsync()
-		{
-			var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
-			var result2 = await lru.GetOrAddAsync(2, valueFactory.CreateAsync).ConfigureAwait(false);
+        [Fact]
+        public async Task WhenDifferentKeysAreRequesteValueIsCreatedForEachAsync()
+        {
+            var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+            var result2 = await lru.GetOrAddAsync(2, valueFactory.CreateAsync).ConfigureAwait(false);
 
-			valueFactory.timesCalled.Should().Be(2);
+            valueFactory.timesCalled.Should().Be(2);
 
-			result1.Should().Be("1");
-			result2.Should().Be("2");
-		}
+            result1.Should().Be("1");
+            result2.Should().Be("2");
+        }
 
-		[Fact]
-		public void WhenMoreKeysRequestedThanCapacityCountDoesNotIncrease()
-		{
-			for (int i = 0; i < capacity + 1; i++)
-			{
-				lru.GetOrAdd(i, valueFactory.Create);
-			}
+        [Fact]
+        public void WhenMoreKeysRequestedThanCapacityCountDoesNotIncrease()
+        {
+            for (int i = 0; i < capacity + 1; i++)
+            {
+                lru.GetOrAdd(i, valueFactory.Create);
+            }
 
-			lru.Count.Should().Be(capacity);
-			valueFactory.timesCalled.Should().Be(capacity + 1);
-		}
+            lru.Count.Should().Be(capacity);
+            valueFactory.timesCalled.Should().Be(capacity + 1);
+        }
 
-		[Fact]
-		public async Task WhenMoreKeysRequestedThanCapacityCountDoesNotIncreaseAsync()
-		{
-			for (int i = 0; i < capacity + 1; i++)
-			{
-				await lru.GetOrAddAsync(i, valueFactory.CreateAsync);
-			}
+        [Fact]
+        public async Task WhenMoreKeysRequestedThanCapacityCountDoesNotIncreaseAsync()
+        {
+            for (int i = 0; i < capacity + 1; i++)
+            {
+                await lru.GetOrAddAsync(i, valueFactory.CreateAsync);
+            }
 
-			lru.Count.Should().Be(capacity);
-			valueFactory.timesCalled.Should().Be(capacity + 1);
-		}
+            lru.Count.Should().Be(capacity);
+            valueFactory.timesCalled.Should().Be(capacity + 1);
+        }
 
-		[Fact]
-		public void WhenMoreKeysRequestedThanCapacityOldestItemIsEvicted()
-		{
-			// request 10 items, LRU is now full
-			for (int i = 0; i < capacity; i++)
-			{
-				lru.GetOrAdd(i, valueFactory.Create);
-			}
+        [Fact]
+        public void WhenMoreKeysRequestedThanCapacityOldestItemIsEvicted()
+        {
+            // request 10 items, LRU is now full
+            for (int i = 0; i < capacity; i++)
+            {
+                lru.GetOrAdd(i, valueFactory.Create);
+            }
 
-			valueFactory.timesCalled.Should().Be(capacity);
+            valueFactory.timesCalled.Should().Be(capacity);
 
-			// request 0, now item 1 is to be evicted
-			lru.GetOrAdd(0, valueFactory.Create);
-			valueFactory.timesCalled.Should().Be(capacity);
+            // request 0, now item 1 is to be evicted
+            lru.GetOrAdd(0, valueFactory.Create);
+            valueFactory.timesCalled.Should().Be(capacity);
 
-			// request next item after last, verify value factory was called
-			lru.GetOrAdd(capacity, valueFactory.Create);
-			valueFactory.timesCalled.Should().Be(capacity + 1);
+            // request next item after last, verify value factory was called
+            lru.GetOrAdd(capacity, valueFactory.Create);
+            valueFactory.timesCalled.Should().Be(capacity + 1);
 
-			// request 0, verify value factory not called
-			lru.GetOrAdd(0, valueFactory.Create);
-			valueFactory.timesCalled.Should().Be(capacity + 1);
+            // request 0, verify value factory not called
+            lru.GetOrAdd(0, valueFactory.Create);
+            valueFactory.timesCalled.Should().Be(capacity + 1);
 
-			// request 1, verify value factory is called (and it was therefore not cached)
-			lru.GetOrAdd(1, valueFactory.Create);
-			valueFactory.timesCalled.Should().Be(capacity + 2);
-		}
+            // request 1, verify value factory is called (and it was therefore not cached)
+            lru.GetOrAdd(1, valueFactory.Create);
+            valueFactory.timesCalled.Should().Be(capacity + 2);
+        }
 
         [Fact]
         public void WhenValueExpiresItIsDisposed()
@@ -212,31 +212,31 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-		public void WhenKeyDoesNotExistTryGetReturnsFalse()
-		{
-			lru.GetOrAdd(1, valueFactory.Create);
-
-			lru.TryGet(2, out var result).Should().Be(false);
-		}
-
-		[Fact]
-		public void WhenKeyExistsTryGetReturnsTrueAndOutValueIsCorrect()
-		{
-			lru.GetOrAdd(1, valueFactory.Create);
-
-			bool result = lru.TryGet(1, out var value);
-			result.Should().Be(true);
-			value.Should().Be("1");
-		}
-
-		[Fact]
-		public void WhenKeyExistsTryRemoveRemovesItemAndReturnsTrue()
+        public void WhenKeyDoesNotExistTryGetReturnsFalse()
         {
-			lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(1, valueFactory.Create);
 
-			lru.TryRemove(1).Should().BeTrue();
-			lru.TryGet(1, out var value).Should().BeFalse();
-		}
+            lru.TryGet(2, out var result).Should().Be(false);
+        }
+
+        [Fact]
+        public void WhenKeyExistsTryGetReturnsTrueAndOutValueIsCorrect()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            bool result = lru.TryGet(1, out var value);
+            result.Should().Be(true);
+            value.Should().Be("1");
+        }
+
+        [Fact]
+        public void WhenKeyExistsTryRemoveRemovesItemAndReturnsTrue()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryRemove(1).Should().BeTrue();
+            lru.TryGet(1, out var value).Should().BeFalse();
+        }
 
         [Fact]
         public void WhenItemIsRemovedItIsDisposed()
@@ -251,11 +251,114 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-		public void WhenKeyDoesNotExistTryRemoveReturnsFalse()
-		{
-			lru.GetOrAdd(1, valueFactory.Create);
+        public void WhenKeyDoesNotExistTryRemoveReturnsFalse()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
 
-			lru.TryRemove(2).Should().BeFalse();
-		}
-	}
+            lru.TryRemove(2).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenKeyExistsTryUpdateUpdatesValueAndReturnsTrue()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryUpdate(1, "2").Should().BeTrue();
+
+            lru.TryGet(1, out var value);
+            value.Should().Be("2");
+        }
+
+        [Fact]
+        public void WhenKeyDoesNotExistTryUpdateReturnsFalse()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryUpdate(2, "3").Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenKeyDoesNotExistAddOrUpdateAddsNewItem()
+        {
+            lru.AddOrUpdate(1, "1");
+
+            lru.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be("1");
+        }
+
+        [Fact]
+        public void WhenKeyExistsAddOrUpdatUpdatesExistingItem()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(1, "2");
+
+            lru.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be("2");
+        }
+
+        [Fact]
+        public void WhenKeyDoesNotExistAddOrUpdateMaintainsLruOrder()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.AddOrUpdate(4, "4");
+
+            // verify first item added is removed
+            lru.Count.Should().Be(3);
+            lru.TryGet(1, out var value).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenAddOrUpdateExpiresItemsTheyAreDisposed()
+        {
+            var lruOfDisposable = new ClassicLru<int, DisposableItem>(1, 3, EqualityComparer<int>.Default);
+
+            var items = Enumerable.Range(1, 4).Select(i => new DisposableItem()).ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                lruOfDisposable.AddOrUpdate(i, items[i]);
+            }
+
+            // first item is evicted and disposed
+            items[0].IsDisposed.Should().BeTrue();
+
+            // all other items are not disposed
+            items.Skip(1).All(i => i.IsDisposed == false).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenCacheIsEmptyClearIsNoOp()
+        {
+            lru.Clear();
+            lru.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenItemsExistClearRemovesAllItems()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.Clear();
+            lru.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenItemsAreDisposableClearDisposesItemsOnRemove()
+        {
+            var lruOfDisposable = new ClassicLru<int, DisposableItem>(1, 3, EqualityComparer<int>.Default);
+
+            var items = Enumerable.Range(1, 4).Select(i => new DisposableItem()).ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                lruOfDisposable.AddOrUpdate(i, items[i]);
+            }
+
+            lruOfDisposable.Clear();
+
+            items.All(i => i.IsDisposed == true).Should().BeTrue();
+        }
+    }
 }

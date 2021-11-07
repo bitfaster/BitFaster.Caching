@@ -51,6 +51,7 @@ namespace BitFaster.Caching.Lru
 
         public double HitRatio => (double)requestHitCount / (double)requestTotalCount;
 
+        ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
             Interlocked.Increment(ref requestTotalCount);
@@ -68,6 +69,7 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
+        ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
             if (this.TryGet(key, out var value))
@@ -102,10 +104,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
-                    if (removed.Value.Value is IDisposable d)
-                    {
-                        d.Dispose();
-                    }
+                    Disposer<V>.Dispose(removed.Value.Value);
                 }
 
                 return node.Value.Value;
@@ -114,6 +113,7 @@ namespace BitFaster.Caching.Lru
             return this.GetOrAdd(key, valueFactory);
         }
 
+        ///<inheritdoc/>
         public async Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
             if (this.TryGet(key, out var value))
@@ -148,10 +148,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
-                    if (removed.Value.Value is IDisposable d)
-                    {
-                        d.Dispose();
-                    }
+                    Disposer<V>.Dispose(removed.Value.Value);
                 }
 
                 return node.Value.Value;
@@ -160,6 +157,7 @@ namespace BitFaster.Caching.Lru
             return await this.GetOrAddAsync(key, valueFactory);
         }
 
+        ///<inheritdoc/>
         public bool TryRemove(K key)
         {
             if (dictionary.TryRemove(key, out var node))
@@ -178,15 +176,87 @@ namespace BitFaster.Caching.Lru
                     }
                 }
 
-                if (node.Value.Value is IDisposable d)
-                {
-                    d.Dispose();
-                }
+                Disposer<V>.Dispose(node.Value.Value);
 
                 return true;
             }
 
             return false;
+        }
+
+        ///<inheritdoc/>
+        ///<remarks>Note: Calling this method does not affect LRU order.</remarks>
+        public bool TryUpdate(K key, V value)
+        {
+            if (this.dictionary.TryGetValue(key, out var node))
+            {
+                node.Value.Value = value;
+                return true;
+            }
+
+            return false;
+        }
+
+        ///<inheritdoc/>
+        ///<remarks>Note: Updates to existing items do not affect LRU order. Added items are at the top of the LRU.</remarks>
+        public void AddOrUpdate(K key, V value)
+        { 
+            // first, try to update
+            if (this.dictionary.TryGetValue(key, out var existingNode))
+            {
+                existingNode.Value.Value = value;
+                return;
+            }
+
+            // then try add
+            var newNode = new LinkedListNode<LruItem>(new LruItem(key, value));
+
+            if (this.dictionary.TryAdd(key, newNode))
+            {
+                LinkedListNode<LruItem> first = null;
+
+                lock (this.linkedList)
+                {
+                    if (linkedList.Count >= capacity)
+                    {
+                        first = linkedList.First;
+                        linkedList.RemoveFirst();
+                    }
+
+                    linkedList.AddLast(newNode);
+                }
+
+                // Remove from the dictionary outside the lock. This means that the dictionary at this moment
+                // contains an item that is not in the linked list. If another thread fetches this item, 
+                // LockAndMoveToEnd will ignore it, since it is detached. This means we potentially 'lose' an 
+                // item just as it was about to move to the back of the LRU list and be preserved. The next request
+                // for the same key will be a miss. Dictionary and list are eventually consistent.
+                // However, all operations inside the lock are extremely fast, so contention is minimized.
+                if (first != null)
+                {
+                    dictionary.TryRemove(first.Value.Key, out var removed);
+
+                    Disposer<V>.Dispose(removed.Value.Value);
+                }
+
+                return;
+            }
+
+            // if both update and add failed there was a race, try again
+            AddOrUpdate(key, value);
+        }
+
+        ///<inheritdoc/>
+        public void Clear()
+        { 
+            // take a key snapshot
+            var keys = this.dictionary.Keys.ToList();
+
+            // remove all keys in the snapshot - this correctly handles disposable values
+            foreach (var key in keys)
+            { 
+                TryRemove(key);    
+            }
         }
 
         // Thead A reads x from the dictionary. Thread B adds a new item. Thread A moves x to the end. Thread B now removes the new first Node (removal is atomic on both data structures).
@@ -222,7 +292,7 @@ namespace BitFaster.Caching.Lru
 
             public K Key { get; }
 
-            public V Value { get; }
+            public V Value { get; set; }
         }
     }
 }
