@@ -28,6 +28,7 @@ namespace BitFaster.Caching.Lazy
         // 2. value is created lazily, guarantee single instance of object, single invocation of lazy
         // 3. lazy value is disposed by scope
         // 4. lifetime keeps scope alive
+#if NETCOREAPP3_1_OR_GREATER
         public static async Task HowToCacheAnAsyncLazy()
         {
             var lru = new ConcurrentLru<int, ScopedAsyncLazy<SomeDisposable>>(4);
@@ -39,6 +40,7 @@ namespace BitFaster.Caching.Lazy
                 SomeDisposable y = await lifetime.Task;
             }
         }
+#endif
     }
 
     public class ScopedLazyFactory
