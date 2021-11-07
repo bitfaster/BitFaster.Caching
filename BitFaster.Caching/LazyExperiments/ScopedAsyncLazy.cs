@@ -10,7 +10,7 @@ namespace BitFaster.Caching.LazyExperiments
     public class ScopedAsyncLazy<TValue> : IDisposable 
         where TValue : IDisposable
     {
-        private ReferenceCount<Lazy<TValue>> refCount;
+        private ReferenceCount<AsyncLazy<TValue>> refCount;
         private bool isDisposed;
 
         private readonly Func<Task<TValue>> valueFactory;
@@ -28,7 +28,7 @@ namespace BitFaster.Caching.LazyExperiments
             this.lazy = new AsyncLazy<TValue>(valueFactory);
         }
 
-        public async Task<Lifetime<TValue>> CreateLifetimeAsync()
+        public async Task<Lifetime<AsyncLazy<TValue>>> CreateLifetimeAsync()
         {
             if (this.isDisposed)
             {
@@ -47,7 +47,7 @@ namespace BitFaster.Caching.LazyExperiments
                 {
                     // When Lease is disposed, it calls DecrementReferenceCount
                     var value = await this.lazy;
-                    return new Lifetime<TValue>(value, this.DecrementReferenceCount);
+                    return new Lifetime<AsyncLazy<TValue>>(newRefCount, this.DecrementReferenceCount);
                 }
             }
         }
@@ -65,7 +65,8 @@ namespace BitFaster.Caching.LazyExperiments
                     {
                         if (newRefCount.Value.IsValueCreated)
                         {
-                            newRefCount.Value.Value.Dispose();
+                            // TODO: badness
+                            newRefCount.Value.Task.GetAwaiter().GetResult().Dispose();
                         }
                     }
 

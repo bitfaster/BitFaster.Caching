@@ -51,5 +51,8 @@ namespace BitFaster.Caching.LazyExperiments
         {
             return Task.GetAwaiter();
         }
+
+        public bool IsValueCreated
+        { get;set;}
     }
 }

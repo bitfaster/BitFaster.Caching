@@ -19,7 +19,7 @@ namespace BitFaster.Caching
             this.refCount = new ReferenceCount<Lazy<T>>(lazy);
         }
 
-        public Lifetime<T> CreateLifetime()
+        public Lifetime<Lazy<T>> CreateLifetime()
         {
             if (this.isDisposed)
             {
@@ -36,7 +36,7 @@ namespace BitFaster.Caching
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
                     // When Lease is disposed, it calls DecrementReferenceCount
-                    return new Lifetime<T>(oldRefCount.Value.Value, this.DecrementReferenceCount);
+                    return new Lifetime<Lazy<T>>(newRefCount, this.DecrementReferenceCount);
                 }
             }
         }
