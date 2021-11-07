@@ -56,6 +56,7 @@ namespace BitFaster.Caching.Lazy
         }
     }
 
+#if NETCOREAPP3_1_OR_GREATER
     public class ScopedAsyncLazyFactory
     {
         public Task<SomeDisposable> CreateAsync(int key)
@@ -68,6 +69,7 @@ namespace BitFaster.Caching.Lazy
             return new ScopedAsyncLazy<SomeDisposable>(() => Task.FromResult(new SomeDisposable()));
         }
     }
+#endif
 
     public class SomeDisposable : IDisposable
     {
