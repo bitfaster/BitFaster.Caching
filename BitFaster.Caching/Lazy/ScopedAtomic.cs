@@ -2,37 +2,29 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lazy
 {
-    // Enable caching an AsyncLazy disposable object - guarantee single instance, safe disposal
-#if NETCOREAPP3_1_OR_GREATER
-    public class ScopedAsyncLazy<TValue> : IAsyncDisposable 
-        where TValue : IDisposable
+    // Enable caching a Lazy disposable object - guarantee single instance, safe disposal
+    public class ScopedAtomic<T> : IDisposable
+        where T : IDisposable
     {
-        private ReferenceCount<AtomicAsyncLazy<TValue>> refCount;
+        private ReferenceCount<Atomic<T>> refCount;
         private bool isDisposed;
 
-        private readonly AtomicAsyncLazy<TValue> lazy;
-
-        // should this even be allowed?
-        public ScopedAsyncLazy(Func<TValue> valueFactory)
+        public ScopedAtomic(Func<T> valueFactory)
         {
-            this.lazy = new AtomicAsyncLazy<TValue>(() => Task.FromResult(valueFactory()));
+            // AtomicLazy will not cache exceptions
+            var lazy = new Atomic<T>(valueFactory);
+            this.refCount = new ReferenceCount<Atomic<T>>(lazy);
         }
 
-        public ScopedAsyncLazy(Func<Task<TValue>> valueFactory)
-        {
-            this.lazy = new AtomicAsyncLazy<TValue>(valueFactory);
-        }
-
-        public async Task<AsyncLazyLifetime<TValue>> CreateLifetimeAsync()
+        public AtomicLifetime<T> CreateLifetime()
         {
             // TODO: inside the loop?
             if (this.isDisposed)
             {
-                throw new ObjectDisposedException($"{nameof(TValue)} is disposed.");
+                throw new ObjectDisposedException($"{nameof(T)} is disposed.");
             }
 
             while (true)
@@ -42,18 +34,15 @@ namespace BitFaster.Caching.Lazy
                 var oldRefCount = this.refCount;
                 var newRefCount = oldRefCount.IncrementCopy();
 
-                // guarantee ref held before lazy evaluated
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
                     // When Lease is disposed, it calls DecrementReferenceCount
-                    var value = await this.lazy;
-                    return new AsyncLazyLifetime<TValue>(newRefCount, this.DecrementReferenceCountAsync);
+                    return new AtomicLifetime<T>(newRefCount, this.DecrementReferenceCount);
                 }
             }
         }
 
-        // TODO: Do we need an async lifetime?
-        private async Task DecrementReferenceCountAsync()
+        private void DecrementReferenceCount()
         {
             while (true)
             {
@@ -63,13 +52,11 @@ namespace BitFaster.Caching.Lazy
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
                     // TODO: how to prevent a race here? Need to use the lock inside the lazy?
-                    // Do we need atomic disposable?
                     if (newRefCount.Count == 0)
                     {
                         if (newRefCount.Value.IsValueCreated)
                         {
-                            var v = await newRefCount.Value;
-                            v.Dispose();
+                            newRefCount.Value.Value.Dispose();
                         }
                     }
 
@@ -78,14 +65,13 @@ namespace BitFaster.Caching.Lazy
             }
         }
 
-        public async ValueTask DisposeAsync()
+        public void Dispose()
         {
             if (!this.isDisposed)
             {
-                await this.DecrementReferenceCountAsync();
+                this.DecrementReferenceCount();
                 this.isDisposed = true;
             }
         }
     }
-#endif
 }

@@ -14,7 +14,7 @@ namespace BitFaster.Caching.Lazy
 
     // https://github.com/dotnet/runtime/issues/27421
     // https://github.com/alastairtree/LazyCache/issues/73
-    public class AtomicLazy<T>
+    public class Atomic<T>
     {
         private readonly Func<T> _factory;
 
@@ -24,7 +24,7 @@ namespace BitFaster.Caching.Lazy
 
         private object _lock;
 
-        public AtomicLazy(Func<T> factory)
+        public Atomic(Func<T> factory)
         {
             _factory = factory;
         }
@@ -34,7 +34,7 @@ namespace BitFaster.Caching.Lazy
         public bool IsValueCreated => Volatile.Read(ref _initialized);
     }
 
-    public class AtomicAsyncLazy<T>
+    public class AtomicAsync<T>
     {
         private readonly Func<Task<T>> _factory;
     
@@ -44,7 +44,7 @@ namespace BitFaster.Caching.Lazy
 
         private object _lock;
 
-        public AtomicAsyncLazy(Func<Task<T>> factory)
+        public AtomicAsync(Func<Task<T>> factory)
         {
             _factory = factory;
         }

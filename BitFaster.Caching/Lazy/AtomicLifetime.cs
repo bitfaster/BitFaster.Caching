@@ -1,25 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lazy
 {
-#if NETCOREAPP3_1_OR_GREATER
-    public class AsyncLazyLifetime<T> : IAsyncDisposable
+    public class AtomicLifetime<T> : IDisposable
     {
-        private readonly Func<Task> onDisposeAction;
-        private readonly ReferenceCount<AtomicAsyncLazy<T>> refCount;
+        private readonly Action onDisposeAction;
+        private readonly ReferenceCount<Atomic<T>> refCount;
         private bool isDisposed;
 
         /// <summary>
-        /// Initializes a new instance of the AsyncLazyLifetime class.
+        /// Initializes a new instance of the Lifetime class.
         /// </summary>
         /// <param name="value">The value to keep alive.</param>
         /// <param name="onDisposeAction">The action to perform when the lifetime is terminated.</param>
-        public AsyncLazyLifetime(ReferenceCount<AtomicAsyncLazy<T>> value, Func<Task> onDisposeAction)
+        public AtomicLifetime(ReferenceCount<Atomic<T>> value, Action onDisposeAction)
         {
             this.refCount = value;
             this.onDisposeAction = onDisposeAction;
@@ -28,15 +26,7 @@ namespace BitFaster.Caching.Lazy
         /// <summary>
         /// Gets the value.
         /// </summary>
-        public Task<T> Task
-        {
-            get { return this.refCount.Value.Value(); } 
-        }
-
-        public TaskAwaiter<T> GetAwaiter()
-        {
-            return Task.GetAwaiter();
-        }
+        public T Value => this.refCount.Value.Value;
 
         /// <summary>
         /// Gets the count of Lifetime instances referencing the same value.
@@ -46,14 +36,13 @@ namespace BitFaster.Caching.Lazy
         /// <summary>
         /// Terminates the lifetime and performs any cleanup required to release the value.
         /// </summary>
-        public async ValueTask DisposeAsync()
+        public void Dispose()
         {
             if (!this.isDisposed)
             {
-                await this.onDisposeAction();
+                this.onDisposeAction();
                 this.isDisposed = true;
             }
         }
     }
-#endif
 }

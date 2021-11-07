@@ -8,10 +8,21 @@ namespace BitFaster.Caching.Lazy
 {
     class DesiredApi
     {
-        public static void HowToCacheALazy()
+        public static void HowToCacheWithAtomicValueFactory()
+        { 
+            var lru = new ConcurrentLru<int, Atomic<int>>(4);
+
+            // raw, this is a bit of a mess
+            Atomic<int> r = lru.GetOrAdd(1, i => new Atomic<int>(() => i));
+
+            // extension cleanup can hide it
+            int rr = lru.GetOrAdd(1, i => i);
+        }
+
+        public static void HowToCacheADisposableAtomicValueFactory()
         {
-            var lru = new ConcurrentLru<int, ScopedLazy<SomeDisposable>>(4);
-            var factory = new ScopedLazyFactory();
+            var lru = new ConcurrentLru<int, ScopedAtomic<SomeDisposable>>(4);
+            var factory = new ScopedAtomicFactory();
 
             using (var lifetime = lru.GetOrAdd(1, factory.Create).CreateLifetime())
             {
@@ -29,10 +40,10 @@ namespace BitFaster.Caching.Lazy
         // 3. lazy value is disposed by scope
         // 4. lifetime keeps scope alive
 #if NETCOREAPP3_1_OR_GREATER
-        public static async Task HowToCacheAnAsyncLazy()
+        public static async Task HowToCacheADisposableAsyncLazy()
         {
-            var lru = new ConcurrentLru<int, ScopedAsyncLazy<SomeDisposable>>(4);
-            var factory = new ScopedAsyncLazyFactory();
+            var lru = new ConcurrentLru<int, ScopedAtomicAsync<SomeDisposable>>(4);
+            var factory = new ScopedAtomicAsyncFactory();
 
             await using (var lifetime = await lru.GetOrAdd(1, factory.Create).CreateLifetimeAsync())
             {
@@ -43,30 +54,30 @@ namespace BitFaster.Caching.Lazy
 #endif
     }
 
-    public class ScopedLazyFactory
+    public class ScopedAtomicFactory
     {
         public Task<SomeDisposable> CreateAsync(int key)
         {
             return Task.FromResult(new SomeDisposable());
         }
 
-        public ScopedLazy<SomeDisposable> Create(int key)
+        public ScopedAtomic<SomeDisposable> Create(int key)
         {
-            return new ScopedLazy<SomeDisposable>(() => new SomeDisposable());
+            return new ScopedAtomic<SomeDisposable>(() => new SomeDisposable());
         }
     }
 
 #if NETCOREAPP3_1_OR_GREATER
-    public class ScopedAsyncLazyFactory
+    public class ScopedAtomicAsyncFactory
     {
         public Task<SomeDisposable> CreateAsync(int key)
         {
             return Task.FromResult(new SomeDisposable());
         }
 
-        public ScopedAsyncLazy<SomeDisposable> Create(int key)
+        public ScopedAtomicAsync<SomeDisposable> Create(int key)
         {
-            return new ScopedAsyncLazy<SomeDisposable>(() => Task.FromResult(new SomeDisposable()));
+            return new ScopedAtomicAsync<SomeDisposable>(() => Task.FromResult(new SomeDisposable()));
         }
     }
 #endif
@@ -76,6 +87,20 @@ namespace BitFaster.Caching.Lazy
         public void Dispose()
         {
 
+        }
+    }
+
+    public static class AtomicCacheExtensions
+    { 
+        public static V GetOrAdd<K, V>(this ICache<K, Atomic<V>> cache, K key, Func<K, V> valueFactory)
+        { 
+            return cache.GetOrAdd(key, k => new Atomic<V>(() => valueFactory(k))).Value;
+        }
+
+        public static async Task<V> GetOrAddAsync<K, V>(this ICache<K, Atomic<V>> cache, K key, Func<K, V> valueFactory)
+        { 
+            var atomic = await cache.GetOrAddAsync(key, k => Task.FromResult(new Atomic<V>(() => valueFactory(k)))).ConfigureAwait(false);
+            return atomic.Value;
         }
     }
 }
