@@ -21,6 +21,7 @@ namespace BitFaster.Caching.Lazy
 
         public LazyLifetime<T> CreateLifetime()
         {
+            // TODO: inside the loop?
             if (this.isDisposed)
             {
                 throw new ObjectDisposedException($"{nameof(T)} is disposed.");
@@ -50,6 +51,7 @@ namespace BitFaster.Caching.Lazy
 
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
+                    // TODO: how to prevent a race here? Need to use the lock inside the lazy?
                     if (newRefCount.Count == 0)
                     {
                         if (newRefCount.Value.IsValueCreated)

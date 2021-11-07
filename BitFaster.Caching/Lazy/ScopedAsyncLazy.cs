@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 namespace BitFaster.Caching.Lazy
 {
     // Enable caching an AsyncLazy disposable object - guarantee single instance, safe disposal
-    public class ScopedAsyncLazy<TValue> : IDisposable 
+#if NETCOREAPP3_1_OR_GREATER
+    public class ScopedAsyncLazy<TValue> : IAsyncDisposable 
         where TValue : IDisposable
     {
         private ReferenceCount<AtomicAsyncLazy<TValue>> refCount;
@@ -26,8 +27,9 @@ namespace BitFaster.Caching.Lazy
             this.lazy = new AtomicAsyncLazy<TValue>(valueFactory);
         }
 
-        public async Task<Lifetime<AtomicAsyncLazy<TValue>>> CreateLifetimeAsync()
+        public async Task<AsyncLazyLifetime<TValue>> CreateLifetimeAsync()
         {
+            // TODO: inside the loop?
             if (this.isDisposed)
             {
                 throw new ObjectDisposedException($"{nameof(TValue)} is disposed.");
@@ -45,13 +47,13 @@ namespace BitFaster.Caching.Lazy
                 {
                     // When Lease is disposed, it calls DecrementReferenceCount
                     var value = await this.lazy;
-                    return new Lifetime<AtomicAsyncLazy<TValue>>(newRefCount, this.DecrementReferenceCount);
+                    return new AsyncLazyLifetime<TValue>(newRefCount, this.DecrementReferenceCountAsync);
                 }
             }
         }
 
         // TODO: Do we need an async lifetime?
-        private void DecrementReferenceCount()
+        private async Task DecrementReferenceCountAsync()
         {
             while (true)
             {
@@ -60,12 +62,13 @@ namespace BitFaster.Caching.Lazy
 
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
+                    // TODO: how to prevent a race here? Need to use the lock inside the lazy?
                     if (newRefCount.Count == 0)
                     {
                         if (newRefCount.Value.IsValueCreated)
                         {
-                            // TODO: badness
-                            newRefCount.Value.GetAwaiter().GetResult().Dispose();
+                            var v = await newRefCount.Value;
+                            v.Dispose();
                         }
                     }
 
@@ -74,13 +77,14 @@ namespace BitFaster.Caching.Lazy
             }
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
             if (!this.isDisposed)
             {
-                this.DecrementReferenceCount();
+                await this.DecrementReferenceCountAsync();
                 this.isDisposed = true;
             }
         }
     }
+#endif
 }

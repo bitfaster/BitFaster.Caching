@@ -8,6 +8,10 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lazy
 {
+    // Should this be called simply Atomic?
+    // Then we have Atomic and Scoped, and ScopedAtomic
+    // Then AtomicAsync, ScopedAsync, and ScopedAtomicAsync would follow, but there is no ScopedAsync equivalent at this point. That should be IAsyncDisposable (.net Core 3.1 onwards). That would imply that GetOrAdd async understands IAsyncDispose
+
     // https://github.com/dotnet/runtime/issues/27421
     // https://github.com/alastairtree/LazyCache/issues/73
     public class AtomicLazy<T>
@@ -27,7 +31,7 @@ namespace BitFaster.Caching.Lazy
 
         public T Value => LazyInitializer.EnsureInitialized(ref _value, ref _initialized, ref _lock, _factory);
 
-        public bool IsValueCreated => _initialized;
+        public bool IsValueCreated => Volatile.Read(ref _initialized);
     }
 
     public class AtomicAsyncLazy<T>
@@ -63,6 +67,6 @@ namespace BitFaster.Caching.Lazy
             return Value().GetAwaiter();
         }
 
-        public bool IsValueCreated => _initialized;
+        public bool IsValueCreated => Volatile.Read(ref _initialized);
     }
 }

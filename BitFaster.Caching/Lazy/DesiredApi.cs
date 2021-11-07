@@ -33,10 +33,10 @@ namespace BitFaster.Caching.Lazy
             var lru = new ConcurrentLru<int, ScopedAsyncLazy<SomeDisposable>>(4);
             var factory = new ScopedAsyncLazyFactory();
 
-            using (var lifetime = await lru.GetOrAdd(1, factory.Create).CreateLifetimeAsync())
+            await using (var lifetime = await lru.GetOrAdd(1, factory.Create).CreateLifetimeAsync())
             {
                 // This is cleaned up by the magic GetAwaiter method
-                SomeDisposable y = await lifetime.Value;
+                SomeDisposable y = await lifetime.Task;
             }
         }
     }
