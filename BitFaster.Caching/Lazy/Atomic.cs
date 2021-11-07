@@ -16,48 +16,48 @@ namespace BitFaster.Caching.Lazy
     // https://github.com/alastairtree/LazyCache/issues/73
     public class Atomic<T>
     {
-        private readonly Func<T> _factory;
+        private readonly Func<T> valueFactory;
 
-        private T _value;
+        private T value;
 
-        private bool _initialized;
+        private bool isInitialized;
 
-        private object _lock;
+        private object @lock;
 
         public Atomic(Func<T> factory)
         {
-            _factory = factory;
+            valueFactory = factory;
         }
 
-        public T Value => LazyInitializer.EnsureInitialized(ref _value, ref _initialized, ref _lock, _factory);
+        public T Value => LazyInitializer.EnsureInitialized(ref value, ref isInitialized, ref @lock, valueFactory);
 
-        public bool IsValueCreated => Volatile.Read(ref _initialized);
+        public bool IsValueCreated => Volatile.Read(ref isInitialized);
     }
 
     public class AtomicAsync<T>
     {
-        private readonly Func<Task<T>> _factory;
+        private readonly Func<Task<T>> valueFactory;
     
-        private Task<T> _task;
+        private Task<T> task;
 
-        private bool _initialized;
+        private bool isInitialized;
 
-        private object _lock;
+        private object @lock;
 
         public AtomicAsync(Func<Task<T>> factory)
         {
-            _factory = factory;
+            valueFactory = factory;
         }
 
         public async Task<T> Value()
         {
             try
             {
-                return await LazyInitializer.EnsureInitialized(ref _task, ref _initialized, ref _lock, _factory).ConfigureAwait(false);
+                return await LazyInitializer.EnsureInitialized(ref task, ref isInitialized, ref @lock, valueFactory).ConfigureAwait(false);
             }
             catch
             {
-                Volatile.Write(ref _initialized, false);
+                Volatile.Write(ref isInitialized, false);
                 throw;
             }
         }
@@ -67,6 +67,6 @@ namespace BitFaster.Caching.Lazy
             return Value().GetAwaiter();
         }
 
-        public bool IsValueCreated => Volatile.Read(ref _initialized);
+        public bool IsValueCreated => Volatile.Read(ref isInitialized);
     }
 }

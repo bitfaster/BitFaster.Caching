@@ -17,6 +17,10 @@ namespace BitFaster.Caching.Lazy
 
             // extension cleanup can hide it
             int rr = lru.GetOrAdd(1, i => i);
+
+            lru.TryUpdate(2, new Atomic<int>(() => 3));
+            lru.TryGet(1, out Atomic<int> v);
+            lru.AddOrUpdate(1, new Atomic<int>(() => 2));
         }
 
         public static void HowToCacheADisposableAtomicValueFactory()
