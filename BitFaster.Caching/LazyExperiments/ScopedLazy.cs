@@ -9,17 +9,17 @@ namespace BitFaster.Caching
     public class ScopedLazy<T> : IDisposable
         where T : IDisposable
     {
-        private ReferenceCount<Lazy<T>> refCount;
+        private ReferenceCount<AtomicLazy<T>> refCount;
         private bool isDisposed;
 
         public ScopedLazy(Func<T> valueFactory)
         {
-            // TODO: this will cache exceptions
-            var lazy = new Lazy<T>(valueFactory, LazyThreadSafetyMode.ExecutionAndPublication);
-            this.refCount = new ReferenceCount<Lazy<T>>(lazy);
+            // AtomicLazy will not cache exceptions
+            var lazy = new AtomicLazy<T>(valueFactory);
+            this.refCount = new ReferenceCount<AtomicLazy<T>>(lazy);
         }
 
-        public Lifetime<Lazy<T>> CreateLifetime()
+        public Lifetime<AtomicLazy<T>> CreateLifetime()
         {
             if (this.isDisposed)
             {
@@ -36,7 +36,7 @@ namespace BitFaster.Caching
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
                     // When Lease is disposed, it calls DecrementReferenceCount
-                    return new Lifetime<Lazy<T>>(newRefCount, this.DecrementReferenceCount);
+                    return new Lifetime<AtomicLazy<T>>(newRefCount, this.DecrementReferenceCount);
                 }
             }
         }
@@ -70,6 +70,14 @@ namespace BitFaster.Caching
                 this.DecrementReferenceCount();
                 this.isDisposed = true;
             }
+        }
+    }
+
+    public static class ScopedLazyExtensions
+    {
+        public static T LazyValue<T>(this Lifetime<AtomicLazy<T>> lifetime) where T : IDisposable
+        { 
+            return lifetime.Value.Value;
         }
     }
 }

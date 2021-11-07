@@ -15,7 +15,9 @@ namespace BitFaster.Caching.LazyExperiments
 
             using (var lifetime = lru.GetOrAdd(1, factory.Create).CreateLifetime())
             {
-                var y = lifetime.Value;
+                // this is a bit ugly - double value or extension method
+                // would it be better to have a dedicated lifetime class that wraps this?
+                SomeDisposable y = lifetime.LazyValue();
             }
         }
 
@@ -31,7 +33,8 @@ namespace BitFaster.Caching.LazyExperiments
 
             using (var lifetime = await lru.GetOrAdd(1, factory.Create).CreateLifetimeAsync())
             {
-                var y = lifetime.Value;
+                // This is cleaned up by the magic GetAwaiter method
+                SomeDisposable y = await lifetime.Value;
             }
         }
     }

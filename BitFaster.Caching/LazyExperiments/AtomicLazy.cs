@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.LazyExperiments
+namespace BitFaster.Caching
 {
     // https://github.com/dotnet/runtime/issues/27421
     // https://github.com/alastairtree/LazyCache/issues/73
@@ -25,6 +26,8 @@ namespace BitFaster.Caching.LazyExperiments
         }
 
         public T Value => LazyInitializer.EnsureInitialized(ref _value, ref _initialized, ref _lock, _factory);
+
+        public bool IsValueCreated => _initialized;
     }
 
     public class AtomicAsyncLazy<T>
@@ -46,7 +49,7 @@ namespace BitFaster.Caching.LazyExperiments
         {
             try
             {
-                return await LazyInitializer.EnsureInitialized(ref _task, ref _initialized, ref _lock, _factory);
+                return await LazyInitializer.EnsureInitialized(ref _task, ref _initialized, ref _lock, _factory).ConfigureAwait(false);
             }
             catch
             {
@@ -54,5 +57,12 @@ namespace BitFaster.Caching.LazyExperiments
                 throw;
             }
         }
+
+        public TaskAwaiter<T> GetAwaiter()
+        {
+            return Value().GetAwaiter();
+        }
+
+        public bool IsValueCreated => _initialized;
     }
 }

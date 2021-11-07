@@ -10,25 +10,25 @@ namespace BitFaster.Caching.LazyExperiments
     public class ScopedAsyncLazy<TValue> : IDisposable 
         where TValue : IDisposable
     {
-        private ReferenceCount<AsyncLazy<TValue>> refCount;
+        private ReferenceCount<AtomicAsyncLazy<TValue>> refCount;
         private bool isDisposed;
 
-        private readonly Func<Task<TValue>> valueFactory;
+        //private readonly Func<Task<TValue>> valueFactory;
 
-        private readonly AsyncLazy<TValue> lazy;
+        private readonly AtomicAsyncLazy<TValue> lazy;
 
         // should this even be allowed?
         public ScopedAsyncLazy(Func<TValue> valueFactory)
         {
-            this.lazy = new AsyncLazy<TValue>(() => Task.FromResult(valueFactory()));
+            this.lazy = new AtomicAsyncLazy<TValue>(() => Task.FromResult(valueFactory()));
         }
 
         public ScopedAsyncLazy(Func<Task<TValue>> valueFactory)
         {
-            this.lazy = new AsyncLazy<TValue>(valueFactory);
+            this.lazy = new AtomicAsyncLazy<TValue>(valueFactory);
         }
 
-        public async Task<Lifetime<AsyncLazy<TValue>>> CreateLifetimeAsync()
+        public async Task<Lifetime<AtomicAsyncLazy<TValue>>> CreateLifetimeAsync()
         {
             if (this.isDisposed)
             {
@@ -47,11 +47,12 @@ namespace BitFaster.Caching.LazyExperiments
                 {
                     // When Lease is disposed, it calls DecrementReferenceCount
                     var value = await this.lazy;
-                    return new Lifetime<AsyncLazy<TValue>>(newRefCount, this.DecrementReferenceCount);
+                    return new Lifetime<AtomicAsyncLazy<TValue>>(newRefCount, this.DecrementReferenceCount);
                 }
             }
         }
 
+        // TODO: Do we need an async lifetime?
         private void DecrementReferenceCount()
         {
             while (true)
@@ -66,7 +67,7 @@ namespace BitFaster.Caching.LazyExperiments
                         if (newRefCount.Value.IsValueCreated)
                         {
                             // TODO: badness
-                            newRefCount.Value.Task.GetAwaiter().GetResult().Dispose();
+                            newRefCount.Value.GetAwaiter().GetResult().Dispose();
                         }
                     }
 
