@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 
-namespace BitFaster.Caching
+namespace BitFaster.Caching.Lazy
 {
     // Enable caching a Lazy disposable object - guarantee single instance, safe disposal
     public class ScopedLazy<T> : IDisposable
@@ -19,7 +19,7 @@ namespace BitFaster.Caching
             this.refCount = new ReferenceCount<AtomicLazy<T>>(lazy);
         }
 
-        public Lifetime<AtomicLazy<T>> CreateLifetime()
+        public LazyLifetime<T> CreateLifetime()
         {
             if (this.isDisposed)
             {
@@ -36,7 +36,7 @@ namespace BitFaster.Caching
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
                     // When Lease is disposed, it calls DecrementReferenceCount
-                    return new Lifetime<AtomicLazy<T>>(newRefCount, this.DecrementReferenceCount);
+                    return new LazyLifetime<T>(newRefCount, this.DecrementReferenceCount);
                 }
             }
         }
@@ -70,14 +70,6 @@ namespace BitFaster.Caching
                 this.DecrementReferenceCount();
                 this.isDisposed = true;
             }
-        }
-    }
-
-    public static class ScopedLazyExtensions
-    {
-        public static T LazyValue<T>(this Lifetime<AtomicLazy<T>> lifetime) where T : IDisposable
-        { 
-            return lifetime.Value.Value;
         }
     }
 }

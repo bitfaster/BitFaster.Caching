@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching
+namespace BitFaster.Caching.Lazy
 {
     // https://github.com/dotnet/runtime/issues/27421
     // https://github.com/alastairtree/LazyCache/issues/73

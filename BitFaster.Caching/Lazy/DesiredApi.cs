@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 
-namespace BitFaster.Caching.LazyExperiments
+namespace BitFaster.Caching.Lazy
 {
     class DesiredApi
     {
@@ -15,9 +15,11 @@ namespace BitFaster.Caching.LazyExperiments
 
             using (var lifetime = lru.GetOrAdd(1, factory.Create).CreateLifetime())
             {
-                // this is a bit ugly - double value or extension method
-                // would it be better to have a dedicated lifetime class that wraps this?
-                SomeDisposable y = lifetime.LazyValue();
+                // options:
+                // lazy lifetime = dupe class, cleaner API
+                // extension method to avoid lifetime.value.value
+                // just call lifetime.value.value (ugly)
+                SomeDisposable y = lifetime.Value;
             }
         }
 

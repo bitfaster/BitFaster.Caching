@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.LazyExperiments
+namespace BitFaster.Caching.Lazy
 {
     // Enable caching an AsyncLazy disposable object - guarantee single instance, safe disposal
     public class ScopedAsyncLazy<TValue> : IDisposable 
@@ -12,8 +12,6 @@ namespace BitFaster.Caching.LazyExperiments
     {
         private ReferenceCount<AtomicAsyncLazy<TValue>> refCount;
         private bool isDisposed;
-
-        //private readonly Func<Task<TValue>> valueFactory;
 
         private readonly AtomicAsyncLazy<TValue> lazy;
 
