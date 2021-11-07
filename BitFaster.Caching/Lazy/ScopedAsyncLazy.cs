@@ -63,6 +63,7 @@ namespace BitFaster.Caching.Lazy
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
                     // TODO: how to prevent a race here? Need to use the lock inside the lazy?
+                    // Do we need atomic disposable?
                     if (newRefCount.Count == 0)
                     {
                         if (newRefCount.Value.IsValueCreated)
