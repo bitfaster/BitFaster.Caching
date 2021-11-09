@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lazy
 {
+    // TODO: is this actually even needed? Or is the approach in ScopedAsyncAtomic sufficient? E.g. rely on IsValueCreated at dispose time, scoped owns tracking dispose and is already thread safe.
     // requirements for IDisposable atomic
     // if value !created, no dispose, cannot create - throws object disposed exception
     // if created, dispose value

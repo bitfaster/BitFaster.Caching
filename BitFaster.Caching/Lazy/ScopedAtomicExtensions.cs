@@ -18,9 +18,6 @@ namespace BitFaster.Caching.Lazy
                 {
                     return lifetime;
                 }
-
-                // How to make atomic lifetime a single alloc?
-                //return scope.CreateLifetime(key, valueFactory);
             }
         }
 

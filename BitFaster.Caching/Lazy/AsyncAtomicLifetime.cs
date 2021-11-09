@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lazy
 {
-#if NETCOREAPP3_1_OR_GREATER
     public class AsyncAtomicLifetime<K, V> : IDisposable
     {
         private readonly Action onDisposeAction;
@@ -30,15 +29,10 @@ namespace BitFaster.Caching.Lazy
             return this.refCount.Value.GetValueAsync(key, valueFactory);
         }
 
-        //public Task<V> Task
-        //{
-        //    get { return this.refCount.Value..Value(); } 
-        //}
-
-        //public TaskAwaiter<V> GetAwaiter()
-        //{
-        //    return Task.GetAwaiter();
-        //}
+        /// <summary>
+        /// Gets the value.
+        /// </summary>
+        public V Value => this.refCount.Value.ValueIfCreated;
 
         /// <summary>
         /// Gets the count of Lifetime instances referencing the same value.
@@ -57,5 +51,4 @@ namespace BitFaster.Caching.Lazy
             }
         }
     }
-#endif
 }
