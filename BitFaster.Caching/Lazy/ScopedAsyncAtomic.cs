@@ -15,7 +15,6 @@ namespace BitFaster.Caching.Lazy
 
         private readonly AsyncAtomic<K, TValue> asyncAtomic;
 
-        // should this even be allowed?
         public ScopedAsyncAtomic()
         {
             this.asyncAtomic = new AsyncAtomic<K, TValue>();

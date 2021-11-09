@@ -17,12 +17,17 @@ namespace BitFaster.Caching.Lazy
             this.refCount = new ReferenceCount<DisposableAtomic<K, V>>(new DisposableAtomic<K, V>());
         }
 
+        public ScopedAtomic(V value)
+        {
+            this.refCount = new ReferenceCount<DisposableAtomic<K, V>>(new DisposableAtomic<K, V>(value));
+        }
+
         public bool TryCreateLifetime(K key, Func<K, V> valueFactory, out AtomicLifetime<K, V> lifetime)
         {
             // TODO: inside the loop?
             if (this.isDisposed)
             {
-                lifetime = default(AtomicLifetime<K, V>);
+                lifetime = default;
                 return false;
             }
 
@@ -31,6 +36,8 @@ namespace BitFaster.Caching.Lazy
 
             while (true)
             {
+                // TODO: this increment copy logic was removed - verify how this is intended to work.
+                // Could we simply check the value of IncrementCopy == 1 (meaning it started at zero and was therefore disposed?)
                 // IncrementCopy will throw ObjectDisposedException if the referenced object has no references.
                 // This mitigates the race where the value is disposed after the above check is run.
                 var oldRefCount = this.refCount;
@@ -78,32 +85,6 @@ namespace BitFaster.Caching.Lazy
             if (!this.isDisposed)
             {
                 this.DecrementReferenceCount();
-                this.isDisposed = true;
-            }
-        }
-    }
-
-    public class AtomicLifetime<K, V> : IDisposable where V : IDisposable
-    {
-        private readonly Action onDisposeAction;
-        private readonly ReferenceCount<DisposableAtomic<K, V>> refCount;
-        private bool isDisposed;
-
-        public AtomicLifetime(ReferenceCount<DisposableAtomic<K, V>> refCount, Action onDisposeAction)
-        {
-            this.refCount = refCount;
-            this.onDisposeAction = onDisposeAction;
-        }
-
-        public V Value => this.refCount.Value.ValueIfCreated;
-
-        public int ReferenceCount => this.refCount.Count;
-
-        public void Dispose()
-        {
-            if (!this.isDisposed)
-            {
-                this.onDisposeAction();
                 this.isDisposed = true;
             }
         }

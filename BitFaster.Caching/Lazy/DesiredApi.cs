@@ -32,6 +32,7 @@ namespace BitFaster.Caching.Lazy
 
         public static void HowToCacheScopedAtomic()
         {
+            // ICache<K, ScopedAtomic<K, V>>
             var scopedAtomicLru = new ConcurrentLru<int, ScopedAtomic<int, SomeDisposable>>(5);
 
             using (var l = scopedAtomicLru.GetOrAdd(1, k => new SomeDisposable()))
@@ -39,9 +40,9 @@ namespace BitFaster.Caching.Lazy
                 SomeDisposable d = l.Value;
             }
 
-            //scopedAtomicLru.TryUpdate(2, 3);
-            //scopedAtomicLru.TryGet(1, out SomeDisposable v);
-            //scopedAtomicLru.AddOrUpdate(1, 2);
+            scopedAtomicLru.TryUpdate(2, new SomeDisposable());
+            scopedAtomicLru.TryGet(1, out AtomicLifetime<int, SomeDisposable> v);
+            scopedAtomicLru.AddOrUpdate(1, new SomeDisposable());
         }
 
         public async static Task HowToCacheAsyncAtomic()

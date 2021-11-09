@@ -8,6 +8,7 @@ namespace BitFaster.Caching.Lazy
 {
     public static class ScopedAtomicExtensions
     {
+        // TODO: GetOrAddLifetime?
         public static AtomicLifetime<K, V> GetOrAdd<K, V>(this ICache<K, ScopedAtomic<K, V>> cache, K key, Func<K, V> valueFactory) where V : IDisposable
         {
             while (true)
@@ -23,34 +24,33 @@ namespace BitFaster.Caching.Lazy
 
         public static void AddOrUpdate<K, V>(this ICache<K, ScopedAtomic<K, V>> cache, K key, V value) where V : IDisposable
         {
-            throw new NotImplementedException();
-            //cache.AddOrUpdate(key, new ScopedAtomic<K, V>(value));
+            cache.AddOrUpdate(key, new ScopedAtomic<K, V>(value));
         }
 
         public static bool TryUpdate<K, V>(this ICache<K, ScopedAtomic<K, V>> cache, K key, V value) where V : IDisposable
         {
-            throw new NotImplementedException();
-            //return cache.TryUpdate(key, new Atomic<K, V>(value));
+            return cache.TryUpdate(key, new ScopedAtomic<K, V>(value));
         }
 
+        // TODO: TryGetLifetime?
         public static bool TryGet<K, V>(this ICache<K, ScopedAtomic<K, V>> cache, K key, out AtomicLifetime<K, V> value) where V : IDisposable
         {
-            throw new NotImplementedException();
-
-            ScopedAtomic<K, V> output;
-            bool ret = cache.TryGet(key, out output);
+            ScopedAtomic<K, V> scoped;
+            bool ret = cache.TryGet(key, out scoped);
 
             if (ret)
             {
-                // TODO: only create a lifetime if the value exists, 
-                //value = output.CreateLifetime(;
+                // TODO: only create a lifetime if the value exists
+                // if (valueExists)
+                //     scoped.TryCreateLifetime(/*no factory, use ValueIfCreated*/)
+                value = default;
             }
             else
             {
                 value = default;
             }
 
-            //return ret;
+            return ret;
         }
     }
 }

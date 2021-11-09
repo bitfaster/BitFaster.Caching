@@ -36,7 +36,7 @@ namespace BitFaster.Caching
             // TODO: inside the loop?
             if (this.isDisposed)
             {
-                lifetime = default(Lifetime<T>);
+                lifetime = default;
                 return false;
             }
 
