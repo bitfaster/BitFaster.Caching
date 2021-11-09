@@ -1,31 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lazy
 {
-    // Enable caching a Lazy disposable object - guarantee single instance, safe disposal
-    public class ScopedAtomic<T> : IDisposable
-        where T : IDisposable
+    public class ScopedAtomic<K, V> : IDisposable where V : IDisposable
     {
-        private ReferenceCount<Atomic<T>> refCount;
+        private ReferenceCount<DisposableAtomic<K, V>> refCount;
         private bool isDisposed;
 
-        public ScopedAtomic(Func<T> valueFactory)
+        public ScopedAtomic()
         {
-            // AtomicLazy will not cache exceptions
-            var lazy = new Atomic<T>(valueFactory);
-            this.refCount = new ReferenceCount<Atomic<T>>(lazy);
+            this.refCount = new ReferenceCount<DisposableAtomic<K, V>>(new DisposableAtomic<K, V>());
         }
 
-        public AtomicLifetime<T> CreateLifetime()
+        public bool TryCreateLifetime(K key, Func<K, V> valueFactory, out AtomicLifetime<K, V> lifetime)
         {
             // TODO: inside the loop?
             if (this.isDisposed)
             {
-                throw new ObjectDisposedException($"{nameof(T)} is disposed.");
+                lifetime = default(AtomicLifetime<K, V>);
+                return false;
             }
+
+            // initialize - factory can throw so do this before we start counting refs
+            this.refCount.Value.GetValue(key, valueFactory);
 
             while (true)
             {
@@ -33,13 +35,23 @@ namespace BitFaster.Caching.Lazy
                 // This mitigates the race where the value is disposed after the above check is run.
                 var oldRefCount = this.refCount;
                 var newRefCount = oldRefCount.IncrementCopy();
-
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
-                    // When Lease is disposed, it calls DecrementReferenceCount
-                    return new AtomicLifetime<T>(newRefCount, this.DecrementReferenceCount);
+                    // When Lifetime is disposed, it calls DecrementReferenceCount
+                    lifetime = new AtomicLifetime<K, V>(oldRefCount, this.DecrementReferenceCount);
+                    return true;
                 }
             }
+        }
+
+        public AtomicLifetime<K, V> CreateLifetime(K key, Func<K, V> valueFactory)
+        {
+            if (!TryCreateLifetime(key, valueFactory, out var lifetime))
+            {
+                throw new ObjectDisposedException($"{nameof(V)} is disposed.");
+            }
+
+            return lifetime;
         }
 
         private void DecrementReferenceCount()
@@ -51,13 +63,9 @@ namespace BitFaster.Caching.Lazy
 
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
-                    // TODO: how to prevent a race here? Need to use the lock inside the lazy?
                     if (newRefCount.Count == 0)
                     {
-                        if (newRefCount.Value.IsValueCreated)
-                        {
-                            newRefCount.Value.Value.Dispose();
-                        }
+                        newRefCount.Value.Dispose();
                     }
 
                     break;
@@ -70,6 +78,32 @@ namespace BitFaster.Caching.Lazy
             if (!this.isDisposed)
             {
                 this.DecrementReferenceCount();
+                this.isDisposed = true;
+            }
+        }
+    }
+
+    public class AtomicLifetime<K, V> : IDisposable where V : IDisposable
+    {
+        private readonly Action onDisposeAction;
+        private readonly ReferenceCount<DisposableAtomic<K, V>> refCount;
+        private bool isDisposed;
+
+        public AtomicLifetime(ReferenceCount<DisposableAtomic<K, V>> refCount, Action onDisposeAction)
+        {
+            this.refCount = refCount;
+            this.onDisposeAction = onDisposeAction;
+        }
+
+        public V Value => this.refCount.Value.ValueIfCreated;
+
+        public int ReferenceCount => this.refCount.Count;
+
+        public void Dispose()
+        {
+            if (!this.isDisposed)
+            {
+                this.onDisposeAction();
                 this.isDisposed = true;
             }
         }

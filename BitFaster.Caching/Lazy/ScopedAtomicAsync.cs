@@ -8,26 +8,26 @@ namespace BitFaster.Caching.Lazy
 {
     // Enable caching an AsyncLazy disposable object - guarantee single instance, safe disposal
 #if NETCOREAPP3_1_OR_GREATER
-    public class ScopedAtomicAsync<TValue> : IAsyncDisposable 
+    public class ScopedAtomicAsync<K, TValue> : IDisposable 
         where TValue : IDisposable
     {
-        private ReferenceCount<AtomicAsync<TValue>> refCount;
+        private ReferenceCount<AsyncAtomic<K, TValue>> refCount;
         private bool isDisposed;
 
-        private readonly AtomicAsync<TValue> lazy;
+        private readonly AsyncAtomic<K, TValue> lazy;
 
         // should this even be allowed?
-        public ScopedAtomicAsync(Func<TValue> valueFactory)
+        public ScopedAtomicAsync()
         {
-            this.lazy = new AtomicAsync<TValue>(() => Task.FromResult(valueFactory()));
+            this.lazy = new AsyncAtomic<K, TValue>();
         }
 
-        public ScopedAtomicAsync(Func<Task<TValue>> valueFactory)
-        {
-            this.lazy = new AtomicAsync<TValue>(valueFactory);
-        }
+        //public ScopedAtomicAsync(Func<Task<TValue>> valueFactory)
+        //{
+        //    this.lazy = new AsyncAtomic<K, TValue>(valueFactory);
+        //}
 
-        public async Task<AtomicAsyncLifetime<TValue>> CreateLifetimeAsync()
+        public async Task<AsyncAtomicLifetime<K, TValue>> CreateLifetimeAsync()
         {
             // TODO: inside the loop?
             if (this.isDisposed)
@@ -46,14 +46,14 @@ namespace BitFaster.Caching.Lazy
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
                     // When Lease is disposed, it calls DecrementReferenceCount
-                    var value = await this.lazy;
-                    return new AtomicAsyncLifetime<TValue>(newRefCount, this.DecrementReferenceCountAsync);
+                    //var value = await this.lazy;
+                    return new AsyncAtomicLifetime<K, TValue>(newRefCount, this.DecrementReferenceCount);
                 }
             }
         }
 
         // TODO: Do we need an async lifetime?
-        private async Task DecrementReferenceCountAsync()
+        private void DecrementReferenceCount()
         {
             while (true)
             {
@@ -68,8 +68,7 @@ namespace BitFaster.Caching.Lazy
                     {
                         if (newRefCount.Value.IsValueCreated)
                         {
-                            var v = await newRefCount.Value;
-                            v.Dispose();
+                            newRefCount.Value.ValueIfCreated?.Dispose();
                         }
                     }
 
@@ -78,11 +77,11 @@ namespace BitFaster.Caching.Lazy
             }
         }
 
-        public async ValueTask DisposeAsync()
+        public void Dispose()
         {
             if (!this.isDisposed)
             {
-                await this.DecrementReferenceCountAsync();
+                this.DecrementReferenceCount();
                 this.isDisposed = true;
             }
         }

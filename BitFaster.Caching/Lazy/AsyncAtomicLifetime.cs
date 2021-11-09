@@ -8,10 +8,10 @@ using System.Threading.Tasks;
 namespace BitFaster.Caching.Lazy
 {
 #if NETCOREAPP3_1_OR_GREATER
-    public class AtomicAsyncLifetime<T> : IAsyncDisposable
+    public class AsyncAtomicLifetime<K, V> : IDisposable
     {
-        private readonly Func<Task> onDisposeAction;
-        private readonly ReferenceCount<AtomicAsync<T>> refCount;
+        private readonly Action onDisposeAction;
+        private readonly ReferenceCount<AsyncAtomic<K, V>> refCount;
         private bool isDisposed;
 
         /// <summary>
@@ -19,24 +19,26 @@ namespace BitFaster.Caching.Lazy
         /// </summary>
         /// <param name="value">The value to keep alive.</param>
         /// <param name="onDisposeAction">The action to perform when the lifetime is terminated.</param>
-        public AtomicAsyncLifetime(ReferenceCount<AtomicAsync<T>> value, Func<Task> onDisposeAction)
+        public AsyncAtomicLifetime(ReferenceCount<AsyncAtomic<K, V>> value, Action onDisposeAction)
         {
             this.refCount = value;
             this.onDisposeAction = onDisposeAction;
         }
 
-        /// <summary>
-        /// Gets the value.
-        /// </summary>
-        public Task<T> Task
-        {
-            get { return this.refCount.Value.Value(); } 
+        public Task<V> GetValueAsync(K key, Func<K, Task<V>> valueFactory)
+        { 
+            return this.refCount.Value.GetValueAsync(key, valueFactory);
         }
 
-        public TaskAwaiter<T> GetAwaiter()
-        {
-            return Task.GetAwaiter();
-        }
+        //public Task<V> Task
+        //{
+        //    get { return this.refCount.Value..Value(); } 
+        //}
+
+        //public TaskAwaiter<V> GetAwaiter()
+        //{
+        //    return Task.GetAwaiter();
+        //}
 
         /// <summary>
         /// Gets the count of Lifetime instances referencing the same value.
@@ -46,11 +48,11 @@ namespace BitFaster.Caching.Lazy
         /// <summary>
         /// Terminates the lifetime and performs any cleanup required to release the value.
         /// </summary>
-        public async ValueTask DisposeAsync()
+        public void Dispose()
         {
             if (!this.isDisposed)
             {
-                await this.onDisposeAction();
+                this.onDisposeAction();
                 this.isDisposed = true;
             }
         }

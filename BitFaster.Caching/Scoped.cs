@@ -26,16 +26,18 @@ namespace BitFaster.Caching
         }
 
         /// <summary>
-        /// Creates a lifetime for the scoped value. The lifetime guarantees the value is alive until 
+        /// Attempts to create a lifetime for the scoped value. The lifetime guarantees the value is alive until 
         /// the lifetime is disposed.
         /// </summary>
-        /// <returns>A value lifetime.</returns>
-        /// <exception cref="ObjectDisposedException">The scope is disposed.</exception>
-        public Lifetime<T> CreateLifetime()
+        /// <param name="lifetime">When this method returns, contains the Lifetime that was created, or the default value of the type if the operation failed.</param>
+        /// <returns>true if the Lifetime was created; otherwise false.</returns>
+        public bool TryCreateLifetime(out Lifetime<T> lifetime)
         {
+            // TODO: inside the loop?
             if (this.isDisposed)
             {
-                throw new ObjectDisposedException($"{nameof(T)} is disposed.");
+                lifetime = default(Lifetime<T>);
+                return false;
             }
 
             while (true)
@@ -44,13 +46,29 @@ namespace BitFaster.Caching
                 // This mitigates the race where the value is disposed after the above check is run.
                 var oldRefCount = this.refCount;
                 var newRefCount = oldRefCount.IncrementCopy();
-
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
-                    // When Lease is disposed, it calls DecrementReferenceCount
-                    return new Lifetime<T>(oldRefCount, this.DecrementReferenceCount);
+                    // When Lifetime is disposed, it calls DecrementReferenceCount
+                    lifetime = new Lifetime<T>(oldRefCount, this.DecrementReferenceCount);
+                    return true;
                 }
             }
+        }
+
+        /// <summary>
+        /// Creates a lifetime for the scoped value. The lifetime guarantees the value is alive until 
+        /// the lifetime is disposed.
+        /// </summary>
+        /// <returns>A value lifetime.</returns>
+        /// <exception cref="ObjectDisposedException">The scope is disposed.</exception>
+        public Lifetime<T> CreateLifetime()
+        {
+            if (!TryCreateLifetime(out var lifetime))
+            {
+                throw new ObjectDisposedException($"{nameof(T)} is disposed.");
+            }
+
+            return lifetime;
         }
 
         private void DecrementReferenceCount()

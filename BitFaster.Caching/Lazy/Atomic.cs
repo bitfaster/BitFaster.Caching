@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -14,59 +15,72 @@ namespace BitFaster.Caching.Lazy
 
     // https://github.com/dotnet/runtime/issues/27421
     // https://github.com/alastairtree/LazyCache/issues/73
-    public class Atomic<T>
+    [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
+    public class Atomic<K, V>
     {
-        private readonly Func<T> valueFactory;
+        private volatile Initializer initializer;
 
-        private T value;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private V value;
 
-        private bool isInitialized;
-
-        private object @lock;
-
-        public Atomic(Func<T> factory)
+        public Atomic()
         {
-            valueFactory = factory;
+            this.initializer = new Initializer();
         }
 
-        public T Value => LazyInitializer.EnsureInitialized(ref value, ref isInitialized, ref @lock, valueFactory);
-
-        public bool IsValueCreated => Volatile.Read(ref isInitialized);
-    }
-
-    public class AtomicAsync<T>
-    {
-        private readonly Func<Task<T>> valueFactory;
-    
-        private Task<T> task;
-
-        private bool isInitialized;
-
-        private object @lock;
-
-        public AtomicAsync(Func<Task<T>> factory)
+        public Atomic(V value)
         {
-            valueFactory = factory;
+            this.value = value;
         }
 
-        public async Task<T> Value()
+        public V GetValue(K key, Func<K, V> valueFactory) 
         {
-            try
+            if (this.initializer == null)
             {
-                return await LazyInitializer.EnsureInitialized(ref task, ref isInitialized, ref @lock, valueFactory).ConfigureAwait(false);
+                return this.value;
             }
-            catch
+
+            return CreateValue(valueFactory, key);
+        }
+
+        public bool IsValueCreated => this.initializer == null;
+
+        public V ValueIfCreated
+        {
+            get
             {
-                Volatile.Write(ref isInitialized, false);
-                throw;
+                if (!this.IsValueCreated)
+                {
+                    return default;
+                }
+
+                return this.value;
             }
         }
 
-        public TaskAwaiter<T> GetAwaiter()
+        private V CreateValue(Func<K, V> valueFactory, K key)
         {
-            return Value().GetAwaiter();
+            Initializer init = this.initializer;
+
+            if (init != null)
+            {
+                this.value = init.CreateValue(valueFactory, key);
+                this.initializer = null;
+            }
+
+            return this.value;
         }
 
-        public bool IsValueCreated => Volatile.Read(ref isInitialized);
+        private class Initializer
+        {
+            private object syncLock = new object();
+            private bool isInitialized;
+            private V value;
+
+            public V CreateValue(Func<K, V> valueFactory, K key)
+            {
+                return Synchronized.Initialize(ref this.value, ref isInitialized, ref syncLock, valueFactory, key);
+            }
+        }
     }
 }
