@@ -69,22 +69,6 @@ namespace BitFaster.Caching
             return lifetime;
         }
 
-        /// <summary>
-        /// Creates a lifetime for the scoped value. The lifetime guarantees the value is alive until 
-        /// the lifetime is disposed.
-        /// </summary>
-        /// <returns>A value lifetime.</returns>
-        /// <exception cref="ObjectDisposedException">The scope is disposed.</exception>
-        public Lifetime<T> CreateLifetime()
-        {
-            if (!TryCreateLifetime(out var lifetime))
-            {
-                throw new ObjectDisposedException($"{nameof(T)} is disposed.");
-            }
-
-            return lifetime;
-        }
-
         private void DecrementReferenceCount()
         {
             while (true)
