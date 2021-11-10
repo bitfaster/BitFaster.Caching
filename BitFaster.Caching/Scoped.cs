@@ -26,6 +26,34 @@ namespace BitFaster.Caching
         }
 
         /// <summary>
+        /// Attempts to create a lifetime for the scoped value. The lifetime guarantees the value is alive until 
+        /// the lifetime is disposed.
+        /// </summary>
+        /// <param name="lifetime">When this method returns, contains the Lifetime that was created, or the default value of the type if the operation failed.</param>
+        /// <returns>true if the Lifetime was created; otherwise false.</returns>
+        public bool TryCreateLifetime(out Lifetime<T> lifetime)
+        {
+            while (true)
+            {
+                var oldRefCount = this.refCount;
+
+                // If old ref count is 0, the scoped object has been disposed and there was a race.
+                if (this.isDisposed || oldRefCount.Count == 0)
+                {
+                    lifetime = default;
+                    return false;
+                }
+
+                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.IncrementCopy(), oldRefCount))
+                {
+                    // When Lifetime is disposed, it calls DecrementReferenceCount
+                    lifetime = new Lifetime<T>(oldRefCount, this.DecrementReferenceCount);
+                    return true;
+                }
+            }
+        }
+
+        /// <summary>
         /// Creates a lifetime for the scoped value. The lifetime guarantees the value is alive until 
         /// the lifetime is disposed.
         /// </summary>
@@ -33,24 +61,12 @@ namespace BitFaster.Caching
         /// <exception cref="ObjectDisposedException">The scope is disposed.</exception>
         public Lifetime<T> CreateLifetime()
         {
-            if (this.isDisposed)
+            if (!TryCreateLifetime(out var lifetime))
             {
                 throw new ObjectDisposedException($"{nameof(T)} is disposed.");
             }
 
-            while (true)
-            {
-                // IncrementCopy will throw ObjectDisposedException if the referenced object has no references.
-                // This mitigates the race where the value is disposed after the above check is run.
-                var oldRefCount = this.refCount;
-                var newRefCount = oldRefCount.IncrementCopy();
-
-                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
-                {
-                    // When Lease is disposed, it calls DecrementReferenceCount
-                    return new Lifetime<T>(oldRefCount, this.DecrementReferenceCount);
-                }
-            }
+            return lifetime;
         }
 
         private void DecrementReferenceCount()
@@ -58,13 +74,12 @@ namespace BitFaster.Caching
             while (true)
             {
                 var oldRefCount = this.refCount;
-                var newRefCount = oldRefCount.DecrementCopy();
 
-                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
+                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.DecrementCopy(), oldRefCount))
                 {
-                    if (newRefCount.Count == 0)
+                    if (this.refCount.Count == 0)
                     {
-                        newRefCount.Value.Dispose();
+                        this.refCount.Value.Dispose();
                     }
 
                     break;
