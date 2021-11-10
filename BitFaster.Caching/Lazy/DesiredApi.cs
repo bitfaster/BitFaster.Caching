@@ -81,9 +81,18 @@ namespace BitFaster.Caching.Lazy
                 SomeDisposable y = lifetime.Value;
             }
 
-            //scopedAsyncAtomicLru.TryUpdate(2, 3);
-            //scopedAsyncAtomicLru.TryGet(1, out int v);
-            //scopedAsyncAtomicLru.AddOrUpdate(1, 2);
+            scopedAsyncAtomicLru.TryUpdate(2, new SomeDisposable());
+            
+            scopedAsyncAtomicLru.AddOrUpdate(1, new SomeDisposable());
+
+            // TODO: how to clean this up to 1 line?
+            if (scopedAsyncAtomicLru.TryGetLifetime(1, out var lifetime2))
+            {
+                using (lifetime2)
+                {
+                    var x = lifetime2.Value;
+                }
+            }
         }
     }
 

@@ -37,6 +37,8 @@ namespace BitFaster.Caching.Lazy
             AsyncAtomic<K, V> output;
             bool ret = cache.TryGet(key, out output);
 
+            // TOOD: should this return false if the value is not created but the key exists?
+            // that would indicate a race between GetOrAdd and TryGet, maybe it should return false?
             if (ret)
             {
                 value = output.ValueIfCreated;

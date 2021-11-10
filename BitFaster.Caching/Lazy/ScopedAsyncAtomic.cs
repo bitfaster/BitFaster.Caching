@@ -20,11 +20,46 @@ namespace BitFaster.Caching.Lazy
             this.asyncAtomic = new AsyncAtomic<K, V>();
         }
 
+        public ScopedAsyncAtomic(V value)
+        {
+            this.asyncAtomic = new AsyncAtomic<K, V>(value);
+        }
+
+        public bool TryCreateLifetime(out AsyncAtomicLifetime<K, V> lifetime)
+        {
+            if (!this.refCount.Value.IsValueCreated)
+            {
+                lifetime = default;
+                return false;
+            }
+
+            // TODO: exact dupe
+            while (true)
+            {
+                var oldRefCount = this.refCount;
+
+                // If old ref count is 0, the scoped object has been disposed and there was a race.
+                if (this.isDisposed || oldRefCount.Count == 0)
+                {
+                    lifetime = default;
+                    return false;
+                }
+
+                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.IncrementCopy(), oldRefCount))
+                {
+                    // When Lifetime is disposed, it calls DecrementReferenceCount
+                    lifetime = new AsyncAtomicLifetime<K, V>(oldRefCount, this.DecrementReferenceCount);
+                    return true;
+                }
+            }
+        }
+
         public async Task<(bool succeeded, AsyncAtomicLifetime<K, V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<V>> valueFactory)
         { 
             // initialize - factory can throw so do this before we start counting refs
             await this.asyncAtomic.GetValueAsync(key, valueFactory).ConfigureAwait(false);
 
+            // TODO: exact dupe
             while (true)
             {
                 var oldRefCount = this.refCount;
@@ -35,9 +70,7 @@ namespace BitFaster.Caching.Lazy
                     return (false, default);
                 }
 
-                var newRefCount = oldRefCount.IncrementCopy();
-
-                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
+                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.IncrementCopy(), oldRefCount))
                 {
                     // When Lifetime is disposed, it calls DecrementReferenceCount
                     return (true,  new AsyncAtomicLifetime<K, V>(oldRefCount, this.DecrementReferenceCount));
@@ -62,16 +95,12 @@ namespace BitFaster.Caching.Lazy
             while (true)
             {
                 var oldRefCount = this.refCount;
-                var newRefCount = oldRefCount.DecrementCopy();
 
-                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
+                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.DecrementCopy(), oldRefCount))
                 {
-                    if (newRefCount.Count == 0)
+                    if (this.refCount.Count == 0 && this.refCount.Value.IsValueCreated)
                     {
-                        if (newRefCount.Value.IsValueCreated)
-                        {
-                            newRefCount.Value.ValueIfCreated?.Dispose();
-                        }
+                        this.refCount.Value.ValueIfCreated?.Dispose();
                     }
 
                     break;

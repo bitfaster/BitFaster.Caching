@@ -20,6 +20,32 @@ namespace BitFaster.Caching.Lazy
                     return result.lifetime;
                 }
             }
-        } 
+        }
+
+        public static void AddOrUpdate<K, V>(this ICache<K, ScopedAsyncAtomic<K, V>> cache, K key, V value) where V : IDisposable
+        {
+            cache.AddOrUpdate(key, new ScopedAsyncAtomic<K, V>(value));
+        }
+
+        public static bool TryUpdate<K, V>(this ICache<K, ScopedAsyncAtomic<K, V>> cache, K key, V value) where V : IDisposable
+        {
+            return cache.TryUpdate(key, new ScopedAsyncAtomic<K, V>(value));
+        }
+
+        // TODO: TryGetLifetime?
+        public static bool TryGetLifetime<K, V>(this ICache<K, ScopedAsyncAtomic<K, V>> cache, K key, out AsyncAtomicLifetime<K, V> value) where V : IDisposable
+        {
+            if (cache.TryGet(key, out var scoped))
+            {
+                if (scoped.TryCreateLifetime(out var lifetime))
+                {
+                    value = lifetime;
+                    return true;
+                }
+            }
+
+            value = default;
+            return false;
+        }
     }
 }
