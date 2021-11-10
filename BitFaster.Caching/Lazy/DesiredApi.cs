@@ -41,8 +41,17 @@ namespace BitFaster.Caching.Lazy
             }
 
             scopedAtomicLru.TryUpdate(2, new SomeDisposable());
-            scopedAtomicLru.TryGet(1, out AtomicLifetime<int, SomeDisposable> v);
+
             scopedAtomicLru.AddOrUpdate(1, new SomeDisposable());
+
+            // TODO: how to clean this up to 1 line?
+            if (scopedAtomicLru.TryGetLifetime(1, out var lifetime))
+            { 
+                using (lifetime)
+                {
+                    var x = lifetime.Value;
+                }
+            }
         }
 
         public async static Task HowToCacheAsyncAtomic()

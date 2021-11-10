@@ -24,24 +24,54 @@ namespace BitFaster.Caching.Lazy
 
         public bool TryCreateLifetime(K key, Func<K, V> valueFactory, out AtomicLifetime<K, V> lifetime)
         {
-            // TODO: inside the loop?
-            if (this.isDisposed)
+            // initialize - factory can throw so do this before we start counting refs
+            this.refCount.Value.GetValue(key, valueFactory);
+
+            // TODO: exact dupe
+            while (true)
+            {
+                var oldRefCount = this.refCount;
+               
+                // If old ref count is 0, the scoped object has been disposed and there was a race.
+                if (this.isDisposed || oldRefCount.Count == 0)
+                { 
+                    lifetime = default;
+                    return false;
+                }
+
+                var newRefCount = oldRefCount.IncrementCopy();
+
+                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
+                {
+                    // When Lifetime is disposed, it calls DecrementReferenceCount
+                    lifetime = new AtomicLifetime<K, V>(oldRefCount, this.DecrementReferenceCount);
+                    return true;
+                }
+            }
+        }
+
+        public bool TryCreateLifetime(out AtomicLifetime<K, V> lifetime)
+        {
+            if (!this.refCount.Value.IsValueCreated)
             {
                 lifetime = default;
                 return false;
             }
 
-            // initialize - factory can throw so do this before we start counting refs
-            this.refCount.Value.GetValue(key, valueFactory);
-
+            // TODO: exact dupe
             while (true)
             {
-                // TODO: this increment copy logic was removed - verify how this is intended to work.
-                // Could we simply check the value of IncrementCopy == 1 (meaning it started at zero and was therefore disposed?)
-                // IncrementCopy will throw ObjectDisposedException if the referenced object has no references.
-                // This mitigates the race where the value is disposed after the above check is run.
                 var oldRefCount = this.refCount;
+
+                // If old ref count is 0, the scoped object has been disposed and there was a race.
+                if (this.isDisposed || oldRefCount.Count == 0)
+                {
+                    lifetime = default;
+                    return false;
+                }
+
                 var newRefCount = oldRefCount.IncrementCopy();
+
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
                 {
                     // When Lifetime is disposed, it calls DecrementReferenceCount

@@ -33,24 +33,19 @@ namespace BitFaster.Caching.Lazy
         }
 
         // TODO: TryGetLifetime?
-        public static bool TryGet<K, V>(this ICache<K, ScopedAtomic<K, V>> cache, K key, out AtomicLifetime<K, V> value) where V : IDisposable
+        public static bool TryGetLifetime<K, V>(this ICache<K, ScopedAtomic<K, V>> cache, K key, out AtomicLifetime<K, V> value) where V : IDisposable
         {
-            ScopedAtomic<K, V> scoped;
-            bool ret = cache.TryGet(key, out scoped);
-
-            if (ret)
+            if (cache.TryGet(key, out var scoped))
             {
-                // TODO: only create a lifetime if the value exists
-                // if (valueExists)
-                //     scoped.TryCreateLifetime(/*no factory, use ValueIfCreated*/)
-                value = default;
-            }
-            else
-            {
-                value = default;
-            }
-
-            return ret;
+                if (scoped.TryCreateLifetime(out var lifetime))
+                {
+                    value = lifetime;
+                    return true;
+                }
+            }   
+            
+            value = default;
+            return false;
         }
     }
 }
