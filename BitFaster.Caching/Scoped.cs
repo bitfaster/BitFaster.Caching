@@ -44,9 +44,7 @@ namespace BitFaster.Caching
                     return false;
                 }
 
-                var newRefCount = oldRefCount.IncrementCopy();
-
-                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
+                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.IncrementCopy(), oldRefCount))
                 {
                     // When Lifetime is disposed, it calls DecrementReferenceCount
                     lifetime = new Lifetime<T>(oldRefCount, this.DecrementReferenceCount);
@@ -76,13 +74,12 @@ namespace BitFaster.Caching
             while (true)
             {
                 var oldRefCount = this.refCount;
-                var newRefCount = oldRefCount.DecrementCopy();
 
-                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
+                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.DecrementCopy(), oldRefCount))
                 {
-                    if (newRefCount.Count == 0)
+                    if (this.refCount.Count == 0)
                     {
-                        newRefCount.Value.Dispose();
+                        this.refCount.Value.Dispose();
                     }
 
                     break;
