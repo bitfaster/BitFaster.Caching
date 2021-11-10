@@ -35,7 +35,7 @@ namespace BitFaster.Caching.UnitTests
             var lru = new ConcurrentLru<int, Scoped<SomeDisposable>>(4);
 
             // this is not so clean, because the lambda has to input the scoped object
-            // if we wrap it, would need a closure inside the extension method
+            // if we wrap it, would need a closure inside the extension method. How bad is that?
             using (var l = lru.ScopedGetOrAdd(1, x => new Scoped<SomeDisposable>(new SomeDisposable())))
             {
                 var d = l.Value;

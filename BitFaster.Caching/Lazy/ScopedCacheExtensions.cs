@@ -22,6 +22,20 @@ namespace BitFaster.Caching
             }
         }
 
+        public static Lifetime<T> ScopedGetOrAdd2<K, T>(this ICache<K, Scoped<T>> cache, K key, Func<K, T> valueFactory)
+            where T : IDisposable
+        {
+            while (true)
+            {
+                var scope = cache.GetOrAdd(key, k => new Scoped<T>(valueFactory(k)));
+
+                if (scope.TryCreateLifetime(out var lifetime))
+                {
+                    return lifetime;
+                }
+            }
+        }
+
         public static async Task<Lifetime<T>> ScopedGetOrAdd<K, T>(this ICache<K, Scoped<T>> cache, K key, Func<K, Task<Scoped<T>>> valueFactory)
             where T : IDisposable
         {
