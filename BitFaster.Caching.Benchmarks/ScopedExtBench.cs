@@ -9,12 +9,13 @@ using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Benchmarks
 {
-    //|               Method |       Mean |     Error |    StdDev | Ratio | RatioSD | Code Size |  Gen 0 | Allocated |
-    //|--------------------- |-----------:|----------:|----------:|------:|--------:|----------:|-------:|----------:|
-    //| ConcurrentDictionary |   8.453 ns | 0.0445 ns | 0.0394 ns |  0.46 |    0.00 |     396 B |      - |         - |
-    //|        ConcurrentLru |  18.405 ns | 0.1529 ns | 0.1277 ns |  1.00 |    0.00 |     701 B |      - |         - |
-    //|  ScopedConcurrentLru | 115.748 ns | 0.5271 ns | 0.4673 ns |  6.29 |    0.04 |     662 B | 0.0389 |     168 B |
-    //| ScopedConcurrentLru2 | 134.296 ns | 0.9543 ns | 0.8927 ns |  7.30 |    0.07 |     565 B | 0.0610 |     264 B |
+    //|                                  Method |       Mean |     Error |    StdDev | Ratio | RatioSD | Code Size |  Gen 0 | Allocated |
+    //|---------------------------------------- |-----------:|----------:|----------:|------:|--------:|----------:|-------:|----------:|
+    //|                    ConcurrentDictionary |   8.791 ns | 0.0537 ns | 0.0476 ns |  0.48 |    0.00 |     396 B |      - |         - |
+    //|                           ConcurrentLru |  18.429 ns | 0.1539 ns | 0.1440 ns |  1.00 |    0.00 |     701 B |      - |         - |
+    //|           ScopedConcurrentLruNativeFunc | 117.665 ns | 1.4390 ns | 1.3461 ns |  6.39 |    0.10 |     662 B | 0.0389 |     168 B |
+    //|          ScopedConcurrentLruWrappedFunc | 132.697 ns | 0.6867 ns | 0.5734 ns |  7.19 |    0.08 |     565 B | 0.0610 |     264 B |
+    //| ScopedConcurrentLruWrappedFuncProtected | 133.997 ns | 0.5089 ns | 0.4249 ns |  7.26 |    0.05 |     621 B | 0.0610 |     264 B |
     [DisassemblyDiagnoser(printSource: true)]
     [MemoryDiagnoser]
     public class ScopedExtBench
@@ -24,8 +25,6 @@ namespace BitFaster.Caching.Benchmarks
         private static readonly ConcurrentLru<int, SomeDisposable> concurrentLru = new ConcurrentLru<int, SomeDisposable>(8, 9, EqualityComparer<int>.Default);
 
         private static readonly ConcurrentLru<int, Scoped<SomeDisposable>> scopedConcurrentLru = new ConcurrentLru<int, Scoped<SomeDisposable>>(8, 9, EqualityComparer<int>.Default);
-
-        private static readonly ConcurrentLru<int, Scoped<SomeDisposable>> scopedConcurrentLru2 = new ConcurrentLru<int, Scoped<SomeDisposable>>(8, 9, EqualityComparer<int>.Default);
 
         [Benchmark()]
         public SomeDisposable ConcurrentDictionary()
@@ -42,8 +41,9 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark()]
-        public SomeDisposable ScopedConcurrentLru()
+        public SomeDisposable ScopedConcurrentLruNativeFunc()
         {
+            // function generates actual cached object (scoped wrapping item)
             Func<int, Scoped<SomeDisposable>> func = x => new Scoped<SomeDisposable>(new SomeDisposable());
             using (var l = scopedConcurrentLru.ScopedGetOrAdd(1, func))
             {
@@ -52,10 +52,22 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark()]
-        public SomeDisposable ScopedConcurrentLru2()
+        public SomeDisposable ScopedConcurrentLruWrappedFunc()
         {
+            // function generates item, extension method allocates a closure to create scoped<item>
             Func<int, SomeDisposable> func = x => new SomeDisposable();
-            using (var l = scopedConcurrentLru.ScopedGetOrAdd2(1, func))
+            using (var l = scopedConcurrentLru.ScopedGetOrAdd(1, func))
+            {
+                return l.Value;
+            }
+        }
+
+        [Benchmark()]
+        public SomeDisposable ScopedConcurrentLruWrappedFuncProtected()
+        {
+            // function generates item, extension method allocates a closure to create scoped<item>
+            Func<int, SomeDisposable> func = x => new SomeDisposable();
+            using (var l = scopedConcurrentLru.ScopedGetOrAddProtected(1, func))
             {
                 return l.Value;
             }

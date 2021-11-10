@@ -22,11 +22,12 @@ namespace BitFaster.Caching
             }
         }
 
-        public static Lifetime<T> ScopedGetOrAdd2<K, T>(this ICache<K, Scoped<T>> cache, K key, Func<K, T> valueFactory)
+        public static Lifetime<T> ScopedGetOrAdd<K, T>(this ICache<K, Scoped<T>> cache, K key, Func<K, T> valueFactory)
             where T : IDisposable
         {
             while (true)
             {
+                // Note: allocates a closure on every call
                 var scope = cache.GetOrAdd(key, k => new Scoped<T>(valueFactory(k)));
 
                 if (scope.TryCreateLifetime(out var lifetime))
@@ -36,7 +37,28 @@ namespace BitFaster.Caching
             }
         }
 
-        public static async Task<Lifetime<T>> ScopedGetOrAdd<K, T>(this ICache<K, Scoped<T>> cache, K key, Func<K, Task<Scoped<T>>> valueFactory)
+        public static Lifetime<T> ScopedGetOrAddProtected<K, T>(this ICache<K, Scoped<T>> cache, K key, Func<K, T> valueFactory)
+            where T : IDisposable
+        {
+            int c = 0;
+            while (true)
+            {
+                // Note: allocates a closure on every call
+                var scope = cache.GetOrAdd(key, k => new Scoped<T>(valueFactory(k)));
+
+                if (scope.TryCreateLifetime(out var lifetime))
+                {
+                    return lifetime;
+                }
+
+                if (c++ > 5)
+                {
+                    throw new InvalidOperationException();
+                }
+            }
+        }
+
+        public static async Task<Lifetime<T>> ScopedGetOrAddAsync<K, T>(this ICache<K, Scoped<T>> cache, K key, Func<K, Task<Scoped<T>>> valueFactory)
             where T : IDisposable
         {
             while (true)
