@@ -11,7 +11,7 @@ namespace BitFaster.Caching
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
     public class AsyncAtomic<K, V>
     {
-        private volatile Initializer initializer;
+        private Initializer initializer;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private V value;

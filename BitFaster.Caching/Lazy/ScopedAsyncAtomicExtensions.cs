@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 namespace BitFaster.Caching
 {
     public static class ScopedAsyncAtomicExtensions
-    { 
+    {
+        // If a disposed ScopedAsyncAtomic is added to the cache, this method will get stuck in an infinite loop
         public static async Task<AsyncAtomicLifetime<K, V>> GetOrAddAsync<K, V>(this ICache<K, ScopedAsyncAtomic<K, V>> cache, K key, Func<K, Task<V>> valueFactory) where V : IDisposable
         {
             while (true)

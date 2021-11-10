@@ -19,6 +19,8 @@ namespace BitFaster.Caching.Benchmarks
 
         private static readonly ConcurrentLru<int, Atomic<int, int>> atomicConcurrentLru = new ConcurrentLru<int, Atomic<int, int>>(8, 9, EqualityComparer<int>.Default);
 
+        private static readonly ConcurrentLru<int, Lazy<int>> lazyConcurrentLru = new ConcurrentLru<int, Lazy<int>>(8, 9, EqualityComparer<int>.Default);
+
         [Benchmark()]
         public void ConcurrentDictionary()
         {
@@ -38,6 +40,13 @@ namespace BitFaster.Caching.Benchmarks
         {
             Func<int, int> func = x => x;
             atomicConcurrentLru.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void LazyConcurrentLru()
+        {
+            Func<int, Lazy<int>> func = x => new Lazy<int>(x);
+            lazyConcurrentLru.GetOrAdd(1, func);
         }
     }
 }

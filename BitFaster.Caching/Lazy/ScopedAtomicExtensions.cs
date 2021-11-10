@@ -9,6 +9,8 @@ namespace BitFaster.Caching
     public static class ScopedAtomicExtensions
     {
         // TODO: GetOrAddLifetime?
+        // If a disposed ScopedAtomic is added to the cache, this method will get stuck in an infinite loop.
+        // Can this be prevented by making the ScopedAtomic ctor internal so that it can only be created via the ext methods?
         public static AtomicLifetime<K, V> GetOrAdd<K, V>(this ICache<K, ScopedAtomic<K, V>> cache, K key, Func<K, V> valueFactory) where V : IDisposable
         {
             while (true)
