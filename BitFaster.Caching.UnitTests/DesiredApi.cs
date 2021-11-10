@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 
-namespace BitFaster.Caching.Lazy
+namespace BitFaster.Caching.UnitTests
 {
     // Wrappers needed:
     // - Atomic
@@ -16,14 +16,14 @@ namespace BitFaster.Caching.Lazy
     public class DesiredApi
     {
         public static void HowToCacheAtomic()
-        { 
+        {
             var lru = new ConcurrentLru<int, Atomic<int, int>>(4);
 
             // raw, this is a bit of a mess
-            int r = lru.GetOrAdd(1, i => new Atomic<int, int>()).GetValue(1, x => x);
+            var r = lru.GetOrAdd(1, i => new Atomic<int, int>()).GetValue(1, x => x);
 
             // extension cleanup can hide it
-            int rr = lru.GetOrAdd(1, i => i);
+            var rr = lru.GetOrAdd(1, i => i);
 
             lru.TryUpdate(2, 3);
             lru.TryGet(1, out int v);
@@ -37,7 +37,7 @@ namespace BitFaster.Caching.Lazy
 
             using (var l = scopedAtomicLru.GetOrAdd(1, k => new SomeDisposable()))
             {
-                SomeDisposable d = l.Value;
+                var d = l.Value;
             }
 
             scopedAtomicLru.TryUpdate(2, new SomeDisposable());
@@ -46,7 +46,7 @@ namespace BitFaster.Caching.Lazy
 
             // TODO: how to clean this up to 1 line?
             if (scopedAtomicLru.TryGetLifetime(1, out var lifetime))
-            { 
+            {
                 using (lifetime)
                 {
                     var x = lifetime.Value;
@@ -55,10 +55,10 @@ namespace BitFaster.Caching.Lazy
         }
 
         public async static Task HowToCacheAsyncAtomic()
-        { 
+        {
             var asyncAtomicLru = new ConcurrentLru<int, AsyncAtomic<int, int>>(5);
 
-            int ar = await asyncAtomicLru.GetOrAddAsync(1, i => Task.FromResult(i));
+            var ar = await asyncAtomicLru.GetOrAddAsync(1, i => Task.FromResult(i));
 
             asyncAtomicLru.TryUpdate(2, 3);
             asyncAtomicLru.TryGet(1, out int v);
@@ -78,11 +78,11 @@ namespace BitFaster.Caching.Lazy
 
             using (var lifetime = await scopedAsyncAtomicLru.GetOrAddAsync(1, valueFactory))
             {
-                SomeDisposable y = lifetime.Value;
+                var y = lifetime.Value;
             }
 
             scopedAsyncAtomicLru.TryUpdate(2, new SomeDisposable());
-            
+
             scopedAsyncAtomicLru.AddOrUpdate(1, new SomeDisposable());
 
             // TODO: how to clean this up to 1 line?

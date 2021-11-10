@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.Lazy
+namespace BitFaster.Caching
 {
     public class AsyncAtomicLifetime<K, V> : IDisposable
     {

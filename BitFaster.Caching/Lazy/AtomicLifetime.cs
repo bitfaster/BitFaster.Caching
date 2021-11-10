@@ -4,15 +4,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.Lazy
+namespace BitFaster.Caching
 {
     public class AtomicLifetime<K, V> : IDisposable where V : IDisposable
     {
         private readonly Action onDisposeAction;
-        private readonly ReferenceCount<DisposableAtomic<K, V>> refCount;
+        private readonly ReferenceCount<Atomic<K, V>> refCount;
         private bool isDisposed;
 
-        public AtomicLifetime(ReferenceCount<DisposableAtomic<K, V>> refCount, Action onDisposeAction)
+        public AtomicLifetime(ReferenceCount<Atomic<K, V>> refCount, Action onDisposeAction)
         {
             this.refCount = refCount;
             this.onDisposeAction = onDisposeAction;

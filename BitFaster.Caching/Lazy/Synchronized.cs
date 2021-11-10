@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.Lazy
+namespace BitFaster.Caching
 {
     internal static class Synchronized
     {

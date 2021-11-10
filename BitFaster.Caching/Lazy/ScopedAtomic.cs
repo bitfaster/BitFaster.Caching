@@ -5,21 +5,21 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.Lazy
+namespace BitFaster.Caching
 {
     public class ScopedAtomic<K, V> : IDisposable where V : IDisposable
     {
-        private ReferenceCount<DisposableAtomic<K, V>> refCount;
+        private ReferenceCount<Atomic<K, V>> refCount;
         private bool isDisposed;
 
         public ScopedAtomic()
         {
-            this.refCount = new ReferenceCount<DisposableAtomic<K, V>>(new DisposableAtomic<K, V>());
+            this.refCount = new ReferenceCount<Atomic<K, V>>(new Atomic<K, V>());
         }
 
         public ScopedAtomic(V value)
         {
-            this.refCount = new ReferenceCount<DisposableAtomic<K, V>>(new DisposableAtomic<K, V>(value));
+            this.refCount = new ReferenceCount<Atomic<K, V>>(new Atomic<K, V>(value));
         }
 
         public bool TryCreateLifetime(K key, Func<K, V> valueFactory, out AtomicLifetime<K, V> lifetime)
@@ -97,7 +97,7 @@ namespace BitFaster.Caching.Lazy
                 {
                     if (this.refCount.Count == 0)
                     {
-                        this.refCount.Value.Dispose();
+                        this.refCount.Value.ValueIfCreated?.Dispose();
                     }
 
                     break;

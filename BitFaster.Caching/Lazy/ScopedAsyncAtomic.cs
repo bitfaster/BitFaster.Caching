@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.Lazy
+namespace BitFaster.Caching
 {
     // Enable caching an AsyncLazy disposable object - guarantee single instance, safe disposal
     public class ScopedAsyncAtomic<K, V> : IDisposable 

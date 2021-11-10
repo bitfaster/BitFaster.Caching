@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-using BitFaster.Caching.Lazy;
 using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Benchmarks
