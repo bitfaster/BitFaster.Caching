@@ -51,6 +51,16 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
+        public void WhenScopeIsDisposedTryCreateScopeReturnsFalse()
+        {
+            var disposable = new Disposable();
+            var scope = new Scoped<Disposable>(disposable);
+            scope.Dispose();
+
+            scope.TryCreateLifetime(out var l).Should().BeFalse();
+        }
+
+        [Fact]
         public void WhenScopedIsCreatedFromCacheItemHasExpectedLifetime()
         {
             var lru = new ConcurrentLru<int, Scoped<Disposable>>(2, 9, EqualityComparer<int>.Default);

@@ -39,14 +39,12 @@ namespace BitFaster.Caching
 
                 // If old ref count is 0, the scoped object has been disposed and there was a race.
                 if (this.isDisposed || oldRefCount.Count == 0)
-                { 
+                {
                     lifetime = default;
                     return false;
                 }
 
-                var newRefCount = oldRefCount.IncrementCopy();
-
-                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
+                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.IncrementCopy(), oldRefCount))
                 {
                     // When Lifetime is disposed, it calls DecrementReferenceCount
                     lifetime = new Lifetime<T>(oldRefCount, this.DecrementReferenceCount);
@@ -71,18 +69,33 @@ namespace BitFaster.Caching
             return lifetime;
         }
 
+        /// <summary>
+        /// Creates a lifetime for the scoped value. The lifetime guarantees the value is alive until 
+        /// the lifetime is disposed.
+        /// </summary>
+        /// <returns>A value lifetime.</returns>
+        /// <exception cref="ObjectDisposedException">The scope is disposed.</exception>
+        public Lifetime<T> CreateLifetime()
+        {
+            if (!TryCreateLifetime(out var lifetime))
+            {
+                throw new ObjectDisposedException($"{nameof(T)} is disposed.");
+            }
+
+            return lifetime;
+        }
+
         private void DecrementReferenceCount()
         {
             while (true)
             {
                 var oldRefCount = this.refCount;
-                var newRefCount = oldRefCount.DecrementCopy();
 
-                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, newRefCount, oldRefCount))
+                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.DecrementCopy(), oldRefCount))
                 {
-                    if (newRefCount.Count == 0)
+                    if (this.refCount.Count == 0)
                     {
-                        newRefCount.Value.Dispose();
+                        this.refCount.Value.Dispose();
                     }
 
                     break;
