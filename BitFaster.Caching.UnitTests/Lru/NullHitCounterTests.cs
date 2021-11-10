@@ -9,7 +9,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 {
     public class NullHitCounterTests
     {
-        private NullHitCounter counter = new NullHitCounter();
+        private NullHitCounter<int, int> counter = new NullHitCounter<int, int>();
 
         [Fact]
         public void HitRatioIsZero()

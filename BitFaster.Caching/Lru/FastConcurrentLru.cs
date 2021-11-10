@@ -5,7 +5,7 @@ using System.Text;
 namespace BitFaster.Caching.Lru
 {
     ///<inheritdoc/>
-    public sealed class FastConcurrentLru<K, V> : TemplateConcurrentLru<K, V, LruItem<K, V>, LruPolicy<K, V>, NullHitCounter>
+    public sealed class FastConcurrentLru<K, V> : TemplateConcurrentLru<K, V, LruItem<K, V>, LruPolicy<K, V>, NullHitCounter<K, V>>
     {
         /// <summary>
         /// Initializes a new instance of the FastConcurrentLru class with the specified capacity that has the default 
@@ -13,7 +13,7 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         /// <param name="capacity">The maximum number of elements that the FastConcurrentLru can contain.</param>
         public FastConcurrentLru(int capacity)
-            : base(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default, new LruPolicy<K, V>(), new NullHitCounter())
+            : base(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default, new LruPolicy<K, V>(), new NullHitCounter<K, V>())
         {
         }
 
@@ -25,7 +25,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="capacity">The maximum number of elements that the FastConcurrentLru can contain.</param>
         /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
         public FastConcurrentLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer)
-            : base(concurrencyLevel, capacity, comparer, new LruPolicy<K, V>(), new NullHitCounter())
+            : base(concurrencyLevel, capacity, comparer, new LruPolicy<K, V>(), new NullHitCounter<K, V>())
         {
         }
     }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
-    public struct NullHitCounter : IHitCounter
+    public struct NullHitCounter<K, V> : IHitCounter<K, V>
     {
         public double HitRatio => 0.0;
 
@@ -18,6 +18,11 @@ namespace BitFaster.Caching.Lru
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncrementHit()
+        {
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void OnItemRemoved(K key, V value)
         {
         }
     }

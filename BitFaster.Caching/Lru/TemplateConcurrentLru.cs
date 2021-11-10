@@ -30,7 +30,7 @@ namespace BitFaster.Caching.Lru
     public class TemplateConcurrentLru<K, V, I, P, H> : ICache<K, V>
         where I : LruItem<K, V>
         where P : struct, IPolicy<K, V, I>
-        where H : struct, IHitCounter
+        where H : struct, IHitCounter<K, V>
     {
         private readonly ConcurrentDictionary<K, I> dictionary;
 
@@ -422,6 +422,8 @@ namespace BitFaster.Caching.Lru
                     if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
                     {
                         item.WasRemoved = true;
+
+                        this.hitCounter.OnItemRemoved(item.Key, item.Value);
 
                         lock (item)
                         {

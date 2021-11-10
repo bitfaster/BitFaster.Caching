@@ -360,6 +360,29 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenValueExpiresItemRemovedEventIsFired()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
+            lruEvents.ItemRemoved += OnLruItemRemoved;
+
+            for (int i = 0; i < 5; i++)
+            {
+                lruEvents.GetOrAdd(i, i => i);
+            }
+
+            removedItems.Count.Should().Be(1);
+            removedItems[0].Key.Should().Be(0);
+            removedItems[0].Value.Should().Be(0);
+        }
+
+        private List<ItemRemovedEventArgs<int, int>> removedItems = new List<ItemRemovedEventArgs<int, int>>();
+
+        private void OnLruItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
+        {
+            removedItems.Add(e);
+        }
+
+        [Fact]
         public void WhenKeyExistsTryRemoveRemovesItemAndReturnsTrue()
         {
             lru.GetOrAdd(1, valueFactory.Create);

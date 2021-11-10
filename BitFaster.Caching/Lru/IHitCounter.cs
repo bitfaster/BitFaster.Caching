@@ -6,11 +6,13 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
-    public interface IHitCounter
+    public interface IHitCounter<K, V>
     {
         void IncrementMiss();
 
         void IncrementHit();
+
+        void OnItemRemoved(K key, V value);
 
         double HitRatio { get; }
     }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace BitFaster.Caching.Lru
 {
     ///<inheritdoc/>
-    public sealed class ConcurrentTLru<K, V> : TemplateConcurrentLru<K, V, LongTickCountLruItem<K, V>, TLruLongTicksPolicy<K, V>, HitCounter>
+    public sealed class ConcurrentTLru<K, V> : TemplateConcurrentLru<K, V, LongTickCountLruItem<K, V>, TLruLongTicksPolicy<K, V>, HitCounter<K, V>>
     {
         /// <summary>
         /// Initializes a new instance of the ConcurrentTLru class with the specified capacity and time to live that has the default 
@@ -16,7 +16,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="capacity">The maximum number of elements that the ConcurrentTLru can contain.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public ConcurrentTLru(int capacity, TimeSpan timeToLive)
-            : base(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default, new TLruLongTicksPolicy<K, V>(timeToLive), new HitCounter())
+            : base(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default, new TLruLongTicksPolicy<K, V>(timeToLive), new HitCounter<K, V>())
         { 
         }
 
@@ -29,7 +29,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public ConcurrentTLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer, TimeSpan timeToLive)
-            : base(concurrencyLevel, capacity, comparer, new TLruLongTicksPolicy<K, V>(timeToLive), new HitCounter())
+            : base(concurrencyLevel, capacity, comparer, new TLruLongTicksPolicy<K, V>(timeToLive), new HitCounter<K, V>())
         {
         }
 
@@ -37,5 +37,11 @@ namespace BitFaster.Caching.Lru
         /// Gets the ratio of hits to misses, where a value of 1 indicates 100% hits.
         /// </summary>
         public double HitRatio => this.hitCounter.HitRatio;
+
+        public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
+        {
+            add { this.hitCounter.ItemRemoved += value; }
+            remove { this.hitCounter.ItemRemoved -= value; }
+        }
     }
 }
