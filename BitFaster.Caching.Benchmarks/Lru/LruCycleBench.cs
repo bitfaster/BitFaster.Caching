@@ -8,6 +8,19 @@ using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Benchmarks.Lru
 {
+    //BenchmarkDotNet=v0.13.1, OS=Windows 10.0.22000
+    //Intel Xeon W-2133 CPU 3.60GHz, 1 CPU, 12 logical and 6 physical cores
+    //.NET SDK= 6.0.100
+    //  [Host]     : .NET 6.0.0 (6.0.21.52210), X64 RyuJIT
+    //  DefaultJob : .NET 6.0.0 (6.0.21.52210), X64 RyuJIT
+
+
+    //|             Method |     Mean |    Error |   StdDev | Code Size |  Gen 0 | Allocated |
+    //|------------------- |---------:|---------:|---------:|----------:|-------:|----------:|
+    //|  FastConcurrentLru | 22.61 us | 0.125 us | 0.110 us |      0 KB | 2.1362 |      9 KB |
+    //|      ConcurrentLru | 24.39 us | 0.389 us | 0.364 us |      0 KB | 2.1362 |      9 KB |
+    //| FastConcurrentTLru | 31.28 us | 0.067 us | 0.062 us |      1 KB | 2.3193 |     10 KB |
+    //|     ConcurrentTLru | 31.75 us | 0.074 us | 0.062 us |      1 KB | 2.3193 |     10 KB |
     [DisassemblyDiagnoser(printSource: true)]
     [MemoryDiagnoser]
     public class LruCycleBench
