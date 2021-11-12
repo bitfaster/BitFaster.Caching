@@ -8,6 +8,22 @@ using MathNet.Numerics.Random;
 
 namespace BitFaster.Caching.Benchmarks.Lru
 {
+    //BenchmarkDotNet=v0.13.1, OS=Windows 10.0.22000
+    //Intel Xeon W-2133 CPU 3.60GHz, 1 CPU, 12 logical and 6 physical cores
+    //.NET SDK= 6.0.100
+    //  [Host]     : .NET 6.0.0 (6.0.21.52210), X64 RyuJIT
+    //  DefaultJob : .NET 6.0.0 (6.0.21.52210), X64 RyuJIT
+
+
+    //|             Method |     Mean |   Error |  StdDev | Ratio | RatioSD |  Gen 0 | Code Size | Allocated |
+    //|------------------- |---------:|--------:|--------:|------:|--------:|-------:|----------:|----------:|
+    //|         ClassicLru | 111.3 ns | 1.33 ns | 1.11 ns |  1.00 |    0.00 | 0.0148 |   4,108 B |      64 B |
+    //|  FastConcurrentLru | 121.6 ns | 1.45 ns | 1.21 ns |  1.09 |    0.01 | 0.0090 |   5,085 B |      39 B |
+    //|      ConcurrentLru | 127.4 ns | 0.51 ns | 0.48 ns |  1.14 |    0.01 | 0.0093 |   5,107 B |      41 B |
+    //| FastConcurrentTLru | 175.6 ns | 1.08 ns | 1.01 ns |  1.58 |    0.02 | 0.0100 |   5,911 B |      44 B |
+    //|     ConcurrentTLru | 169.7 ns | 0.86 ns | 0.80 ns |  1.52 |    0.02 | 0.0098 |   5,982 B |      43 B |
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
+    [MemoryDiagnoser]
     public class LruZipDistribution
     {
         const double s = 0.86;

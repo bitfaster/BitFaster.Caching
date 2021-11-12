@@ -7,7 +7,19 @@ using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Benchmarks.Lru
 {
-    [DisassemblyDiagnoser(printSource: true)]
+    //BenchmarkDotNet=v0.13.1, OS=Windows 10.0.22000
+    //Intel Xeon W-2133 CPU 3.60GHz, 1 CPU, 12 logical and 6 physical cores
+    //.NET SDK= 6.0.100
+    //  [Host]     : .NET 6.0.0 (6.0.21.52210), X64 RyuJIT
+    //  DefaultJob : .NET 6.0.0 (6.0.21.52210), X64 RyuJIT
+
+
+    //|               Method |      Mean |     Error |    StdDev | Ratio | RatioSD | Code Size | Allocated |
+    //|--------------------- |----------:|----------:|----------:|------:|--------:|----------:|----------:|
+    //| ConcurrentDictionary |  4.480 ns | 0.0230 ns | 0.0204 ns |  1.00 |    0.00 |     364 B |         - |
+    //|    FastConcurrentLru |  7.705 ns | 0.0343 ns | 0.0286 ns |  1.72 |    0.01 |     448 B |         - |
+    //|   FastConcurrentTLru | 25.350 ns | 0.3301 ns | 0.3088 ns |  5.66 |    0.08 |     546 B |         - |
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
     public class LruJustTryGet
     {
