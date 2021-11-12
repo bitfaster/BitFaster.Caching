@@ -17,12 +17,12 @@ namespace BitFaster.Caching.Benchmarks.Lru
 
     //|             Method |     Mean |    Error |   StdDev | Ratio | Code Size |  Gen 0 | Allocated |
     //|------------------- |---------:|---------:|---------:|------:|----------:|-------:|----------:|
-    //|  FastConcurrentLru | 22.74 us | 0.083 us | 0.069 us |  1.00 |      0 KB | 2.1362 |      9 KB |
-    //|      ConcurrentLru | 24.02 us | 0.097 us | 0.086 us |  1.06 |      0 KB | 2.1362 |      9 KB |
-    //| ConcurrentLruEvent | 24.82 us | 0.117 us | 0.104 us |  1.09 |      0 KB | 4.2725 |     18 KB |
-    //| FastConcurrentTLru | 31.38 us | 0.066 us | 0.058 us |  1.38 |      1 KB | 2.3193 |     10 KB |
-    //|     ConcurrentTLru | 32.03 us | 0.175 us | 0.147 us |  1.41 |      1 KB | 2.3193 |     10 KB |
-    //|         ClassicLru | 16.26 us | 0.146 us | 0.129 us |  0.72 |      1 KB | 3.2959 |     14 KB |
+    //|  FastConcurrentLru | 22.99 us | 0.048 us | 0.037 us |  1.00 |      0 KB | 2.1362 |      9 KB |
+    //|      ConcurrentLru | 23.48 us | 0.107 us | 0.100 us |  1.02 |      0 KB | 2.1362 |      9 KB |
+    //| ConcurrentLruEvent | 24.54 us | 0.098 us | 0.087 us |  1.07 |      0 KB | 4.2725 |     18 KB |
+    //| FastConcurrentTLru | 30.99 us | 0.068 us | 0.056 us |  1.35 |      1 KB | 2.3193 |     10 KB |
+    //|     ConcurrentTLru | 32.53 us | 0.247 us | 0.219 us |  1.41 |      1 KB | 2.3193 |     10 KB |
+    //|         ClassicLru | 16.15 us | 0.034 us | 0.029 us |  0.70 |      1 KB | 3.2959 |     14 KB |
     [DisassemblyDiagnoser(printSource: true)]
     [MemoryDiagnoser]
     public class LruCycleBench
