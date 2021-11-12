@@ -19,7 +19,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     //| ConcurrentDictionary |  4.421 ns | 0.0295 ns | 0.0276 ns |  1.00 |    0.00 |     364 B |         - |
     //|    FastConcurrentLru |  7.645 ns | 0.0339 ns | 0.0300 ns |  1.73 |    0.02 |     339 B |         - |
     //|   FastConcurrentTLru | 26.139 ns | 0.0741 ns | 0.0619 ns |  5.92 |    0.04 |     437 B |         - |
-    [DisassemblyDiagnoser(printSource: true)]
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
     public class LruJustTryGet
     {

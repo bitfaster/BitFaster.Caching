@@ -22,7 +22,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     //|      ConcurrentLru | 128.7 ns | 2.12 ns | 1.98 ns |  1.19 |    0.02 | 0.0093 |     510 B |      40 B |
     //| FastConcurrentTLru | 166.1 ns | 0.99 ns | 0.83 ns |  1.53 |    0.01 | 0.0100 |     674 B |      43 B |
     //|     ConcurrentTLru | 172.2 ns | 0.52 ns | 0.46 ns |  1.59 |    0.00 | 0.0103 |     745 B |      45 B |
-    [DisassemblyDiagnoser(printSource: true)]
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
     public class LruZipDistribution
     {

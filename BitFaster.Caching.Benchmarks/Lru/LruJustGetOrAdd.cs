@@ -29,7 +29,7 @@ namespace BitFaster.Caching.Benchmarks
     //|               ClassicLru |  48.060 ns | 0.2447 ns | 0.2169 ns |  6.19 |    0.03 |     738 B |      - |         - |
     //|    RuntimeMemoryCacheGet | 106.117 ns | 0.4677 ns | 0.4375 ns | 13.69 |    0.08 |      49 B | 0.0074 |      32 B |
     //| ExtensionsMemoryCacheGet |  92.386 ns | 0.4539 ns | 0.4023 ns | 11.91 |    0.07 |      78 B | 0.0055 |      24 B |
-    [DisassemblyDiagnoser(printSource: true)]
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
     public class LruJustGetOrAdd
     {
