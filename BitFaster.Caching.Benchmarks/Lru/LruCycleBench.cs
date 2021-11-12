@@ -15,13 +15,14 @@ namespace BitFaster.Caching.Benchmarks.Lru
     //  DefaultJob : .NET 6.0.0 (6.0.21.52210), X64 RyuJIT
 
 
-    //|             Method |     Mean |    Error |   StdDev | Code Size |  Gen 0 | Allocated |
-    //|------------------- |---------:|---------:|---------:|----------:|-------:|----------:|
-    //|  FastConcurrentLru | 22.61 us | 0.125 us | 0.110 us |      0 KB | 2.1362 |      9 KB |
-    //|      ConcurrentLru | 24.39 us | 0.389 us | 0.364 us |      0 KB | 2.1362 |      9 KB |
-    //| FastConcurrentTLru | 31.28 us | 0.067 us | 0.062 us |      1 KB | 2.3193 |     10 KB |
-    //|     ConcurrentTLru | 31.75 us | 0.074 us | 0.062 us |      1 KB | 2.3193 |     10 KB |
-    [DisassemblyDiagnoser(printSource: true)]
+    //|             Method |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Code Size | Allocated |
+    //|------------------- |---------:|---------:|---------:|------:|--------:|-------:|----------:|----------:|
+    //|  FastConcurrentLru | 23.25 us | 0.128 us | 0.114 us |  1.00 |    0.00 | 2.1362 |      5 KB |      9 KB |
+    //|      ConcurrentLru | 23.78 us | 0.116 us | 0.097 us |  1.02 |    0.01 | 2.1362 |      5 KB |      9 KB |
+    //| FastConcurrentTLru | 32.17 us | 0.463 us | 0.433 us |  1.38 |    0.02 | 2.3193 |      6 KB |     10 KB |
+    //|     ConcurrentTLru | 32.52 us | 0.386 us | 0.361 us |  1.40 |    0.02 | 2.3193 |      6 KB |     10 KB |
+    //|         ClassicLru | 16.29 us | 0.195 us | 0.163 us |  0.70 |    0.01 | 3.2959 |      5 KB |     14 KB |
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
     public class LruCycleBench
     {
@@ -31,7 +32,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
         private static readonly FastConcurrentLru<int, int> fastConcurrentLru = new(8, 9, EqualityComparer<int>.Default);
         private static readonly FastConcurrentTLru<int, int> fastConcurrentTLru = new(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
 
-        [Benchmark()]
+        [Benchmark(Baseline = true)]
         public void FastConcurrentLru()
         {
             Func<int, int> func = x => x;
@@ -65,6 +66,15 @@ namespace BitFaster.Caching.Benchmarks.Lru
 
             for (int i = 0; i < 128; i++)
                 concurrentTlru.GetOrAdd(i, func);
+        }
+
+        [Benchmark()]
+        public void ClassicLru()
+        {
+            Func<int, int> func = x => x;
+
+            for (int i = 0; i < 128; i++)
+                classicLru.GetOrAdd(i, func);
         }
     }
 }
