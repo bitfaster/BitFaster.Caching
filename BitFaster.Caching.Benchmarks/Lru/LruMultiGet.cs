@@ -12,6 +12,7 @@ using System.Text;
 
 namespace BitFaster.Caching.Benchmarks.Lru
 {
+    [DisassemblyDiagnoser(printSource: true)]
     [MemoryDiagnoser]
     public class LruMultiGet
     {

@@ -12,6 +12,23 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Benchmarks
 {
+    //BenchmarkDotNet=v0.13.1, OS=Windows 10.0.22000
+    //Intel Xeon W-2133 CPU 3.60GHz, 1 CPU, 12 logical and 6 physical cores
+    //.NET SDK= 6.0.100
+    //  [Host]     : .NET 6.0.0 (6.0.21.52210), X64 RyuJIT
+    //  DefaultJob : .NET 6.0.0 (6.0.21.52210), X64 RyuJIT
+
+
+    //|                   Method |       Mean |     Error |    StdDev | Ratio | RatioSD | Code Size |  Gen 0 | Allocated |
+    //|------------------------- |-----------:|----------:|----------:|------:|--------:|----------:|-------:|----------:|
+    //|     ConcurrentDictionary |   7.761 ns | 0.0393 ns | 0.0307 ns |  1.00 |    0.00 |     340 B |      - |         - |
+    //|        FastConcurrentLru |   9.559 ns | 0.0625 ns | 0.0585 ns |  1.23 |    0.01 |     427 B |      - |         - |
+    //|            ConcurrentLru |  13.580 ns | 0.0531 ns | 0.0443 ns |  1.75 |    0.01 |     449 B |      - |         - |
+    //|       FastConcurrentTLru |  27.109 ns | 0.1041 ns | 0.0813 ns |  3.49 |    0.02 |     613 B |      - |         - |
+    //|           ConcurrentTLru |  29.622 ns | 0.2369 ns | 0.2216 ns |  3.81 |    0.03 |     684 B |      - |         - |
+    //|               ClassicLru |  48.060 ns | 0.2447 ns | 0.2169 ns |  6.19 |    0.03 |     738 B |      - |         - |
+    //|    RuntimeMemoryCacheGet | 106.117 ns | 0.4677 ns | 0.4375 ns | 13.69 |    0.08 |      49 B | 0.0074 |      32 B |
+    //| ExtensionsMemoryCacheGet |  92.386 ns | 0.4539 ns | 0.4023 ns | 11.91 |    0.07 |      78 B | 0.0055 |      24 B |
     [DisassemblyDiagnoser(printSource: true)]
     [MemoryDiagnoser]
     public class LruJustGetOrAdd
