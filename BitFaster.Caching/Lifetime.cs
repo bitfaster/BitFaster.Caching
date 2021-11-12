@@ -9,7 +9,7 @@ namespace BitFaster.Caching
     /// lifetime is disposed.
     /// </summary>
     /// <typeparam name="T">The type of value</typeparam>
-    public class Lifetime<T> : IDisposable
+    public sealed class Lifetime<T> : IDisposable
     {
         private readonly Action onDisposeAction;
         private readonly ReferenceCount<T> refCount;
