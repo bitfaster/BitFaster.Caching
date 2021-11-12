@@ -36,6 +36,9 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         public double HitRatio => this.hitCounter.HitRatio;
 
+        /// <summary>
+        /// Occurs when an item is removed from the cache.
+        /// </summary>
         public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
         {
             add { this.hitCounter.ItemRemoved += value; }

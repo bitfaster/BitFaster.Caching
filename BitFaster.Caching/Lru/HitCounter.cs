@@ -29,22 +29,9 @@ namespace BitFaster.Caching.Lru
             Interlocked.Increment(ref this.hitCount);
         }
 
-        public void OnItemRemoved(K key, V value)
+        public void OnItemRemoved(K key, V value, ItemRemovedReason reason)
         {
-            this.ItemRemoved?.Invoke(this, new ItemRemovedEventArgs<K, V>(key, value));
+            this.ItemRemoved?.Invoke(this, new ItemRemovedEventArgs<K, V>(key, value, reason));
         }
-    }
-
-    public class ItemRemovedEventArgs<K, V>
-    {
-        public ItemRemovedEventArgs(K key, V value)
-        {
-            this.Key = key;
-            this.Value = value;
-        }
-
-        public K Key { get; }
-
-        public V Value { get; }
     }
 }

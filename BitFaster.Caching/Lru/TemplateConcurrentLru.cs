@@ -198,6 +198,8 @@ namespace BitFaster.Caching.Lru
                         existing.WasAccessed = false;
                         existing.WasRemoved = true;
 
+                        this.hitCounter.OnItemRemoved(existing.Key, existing.Value, ItemRemovedReason.Removed);
+
                         // serialize dispose (common case dispose not thread safe)
                         lock (existing)
                         {
@@ -423,7 +425,7 @@ namespace BitFaster.Caching.Lru
                     {
                         item.WasRemoved = true;
 
-                        this.hitCounter.OnItemRemoved(item.Key, item.Value);
+                        this.hitCounter.OnItemRemoved(item.Key, item.Value, ItemRemovedReason.Evicted);
 
                         lock (item)
                         {

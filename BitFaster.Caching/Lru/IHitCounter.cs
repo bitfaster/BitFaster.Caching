@@ -12,7 +12,7 @@ namespace BitFaster.Caching.Lru
 
         void IncrementHit();
 
-        void OnItemRemoved(K key, V value);
+        void OnItemRemoved(K key, V value, ItemRemovedReason reason);
 
         double HitRatio { get; }
     }

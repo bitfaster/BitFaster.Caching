@@ -22,7 +22,7 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void OnItemRemoved(K key, V value)
+        public void OnItemRemoved(K key, V value, ItemRemovedReason reason)
         {
         }
     }
