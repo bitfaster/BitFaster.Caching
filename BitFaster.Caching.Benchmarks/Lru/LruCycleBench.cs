@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
@@ -17,13 +18,13 @@ namespace BitFaster.Caching.Benchmarks.Lru
 
     //|             Method |     Mean |    Error |   StdDev | Ratio | Code Size |  Gen 0 | Allocated |
     //|------------------- |---------:|---------:|---------:|------:|----------:|-------:|----------:|
-    //|  FastConcurrentLru | 22.99 us | 0.048 us | 0.037 us |  1.00 |      0 KB | 2.1362 |      9 KB |
-    //|      ConcurrentLru | 23.48 us | 0.107 us | 0.100 us |  1.02 |      0 KB | 2.1362 |      9 KB |
-    //| ConcurrentLruEvent | 24.54 us | 0.098 us | 0.087 us |  1.07 |      0 KB | 4.2725 |     18 KB |
-    //| FastConcurrentTLru | 30.99 us | 0.068 us | 0.056 us |  1.35 |      1 KB | 2.3193 |     10 KB |
-    //|     ConcurrentTLru | 32.53 us | 0.247 us | 0.219 us |  1.41 |      1 KB | 2.3193 |     10 KB |
-    //|         ClassicLru | 16.15 us | 0.034 us | 0.029 us |  0.70 |      1 KB | 3.2959 |     14 KB |
-    [DisassemblyDiagnoser(printSource: true)]
+    //|  FastConcurrentLru | 22.86 us | 0.183 us | 0.162 us |  1.00 |      5 KB | 2.1362 |      9 KB |
+    //|      ConcurrentLru | 23.40 us | 0.092 us | 0.077 us |  1.02 |      5 KB | 2.1362 |      9 KB |
+    //| ConcurrentLruEvent | 24.23 us | 0.097 us | 0.086 us |  1.06 |      5 KB | 3.0823 |     13 KB |
+    //| FastConcurrentTLru | 31.70 us | 0.087 us | 0.077 us |  1.39 |      6 KB | 2.3193 |     10 KB |
+    //|     ConcurrentTLru | 31.85 us | 0.080 us | 0.071 us |  1.39 |      6 KB | 2.3193 |     10 KB |
+    //|         ClassicLru | 16.35 us | 0.091 us | 0.076 us |  0.72 |      4 KB | 3.2959 |     14 KB |
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
     public class LruCycleBench
     {
@@ -40,8 +41,9 @@ namespace BitFaster.Caching.Benchmarks.Lru
             concurrentLruEvent.ItemRemoved += OnItemRemoved;
         }
 
-        private int field;
+        public static int field;
 
+        [MethodImpl(MethodImplOptions.NoOptimization)]
         private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
         {
             field = e.Key;

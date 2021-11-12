@@ -19,6 +19,8 @@ namespace BitFaster.Caching.Lru
 
         public EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
 
+        private object eventSource;
+
         public void IncrementMiss()
         {
             Interlocked.Increment(ref this.missCount);
@@ -31,7 +33,13 @@ namespace BitFaster.Caching.Lru
 
         public void OnItemRemoved(K key, V value, ItemRemovedReason reason)
         {
-            this.ItemRemoved?.Invoke(this, new ItemRemovedEventArgs<K, V>(key, value, reason));
+            // passing 'this' as source boxes the struct, and is anyway the wrong object
+            this.ItemRemoved?.Invoke(this.eventSource, new ItemRemovedEventArgs<K, V>(key, value, reason));
+        }
+
+        public void SetEventSource(object source)
+        {
+            this.eventSource = source;
         }
     }
 }

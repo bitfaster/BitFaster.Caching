@@ -25,5 +25,10 @@ namespace BitFaster.Caching.Lru
         public void OnItemRemoved(K key, V value, ItemRemovedReason reason)
         {
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetEventSource(object source)
+        {
+        }
     }
 }

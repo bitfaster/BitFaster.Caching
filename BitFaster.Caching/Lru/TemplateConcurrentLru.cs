@@ -84,6 +84,7 @@ namespace BitFaster.Caching.Lru
             this.dictionary = new ConcurrentDictionary<K, I>(concurrencyLevel, dictionaryCapacity, comparer);
             this.policy = itemPolicy;
             this.hitCounter = hitCounter;
+            this.hitCounter.SetEventSource(this);
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
