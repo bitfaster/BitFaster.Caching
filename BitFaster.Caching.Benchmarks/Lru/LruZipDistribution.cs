@@ -17,11 +17,11 @@ namespace BitFaster.Caching.Benchmarks.Lru
 
     //|             Method |     Mean |   Error |  StdDev | Ratio | RatioSD |  Gen 0 | Code Size | Allocated |
     //|------------------- |---------:|--------:|--------:|------:|--------:|-------:|----------:|----------:|
-    //|         ClassicLru | 108.4 ns | 0.26 ns | 0.20 ns |  1.00 |    0.00 | 0.0154 |     799 B |      67 B |
-    //|  FastConcurrentLru | 123.1 ns | 0.97 ns | 0.86 ns |  1.14 |    0.01 | 0.0093 |     488 B |      41 B |
-    //|      ConcurrentLru | 128.7 ns | 2.12 ns | 1.98 ns |  1.19 |    0.02 | 0.0093 |     510 B |      40 B |
-    //| FastConcurrentTLru | 166.1 ns | 0.99 ns | 0.83 ns |  1.53 |    0.01 | 0.0100 |     674 B |      43 B |
-    //|     ConcurrentTLru | 172.2 ns | 0.52 ns | 0.46 ns |  1.59 |    0.00 | 0.0103 |     745 B |      45 B |
+    //|         ClassicLru | 111.3 ns | 1.33 ns | 1.11 ns |  1.00 |    0.00 | 0.0148 |   4,108 B |      64 B |
+    //|  FastConcurrentLru | 121.6 ns | 1.45 ns | 1.21 ns |  1.09 |    0.01 | 0.0090 |   5,085 B |      39 B |
+    //|      ConcurrentLru | 127.4 ns | 0.51 ns | 0.48 ns |  1.14 |    0.01 | 0.0093 |   5,107 B |      41 B |
+    //| FastConcurrentTLru | 175.6 ns | 1.08 ns | 1.01 ns |  1.58 |    0.02 | 0.0100 |   5,911 B |      44 B |
+    //|     ConcurrentTLru | 169.7 ns | 0.86 ns | 0.80 ns |  1.52 |    0.02 | 0.0098 |   5,982 B |      43 B |
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
     public class LruZipDistribution

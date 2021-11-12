@@ -16,9 +16,9 @@ namespace BitFaster.Caching.Benchmarks.Lru
 
     //|               Method |      Mean |     Error |    StdDev | Ratio | RatioSD | Code Size | Allocated |
     //|--------------------- |----------:|----------:|----------:|------:|--------:|----------:|----------:|
-    //| ConcurrentDictionary |  4.421 ns | 0.0295 ns | 0.0276 ns |  1.00 |    0.00 |     364 B |         - |
-    //|    FastConcurrentLru |  7.645 ns | 0.0339 ns | 0.0300 ns |  1.73 |    0.02 |     339 B |         - |
-    //|   FastConcurrentTLru | 26.139 ns | 0.0741 ns | 0.0619 ns |  5.92 |    0.04 |     437 B |         - |
+    //| ConcurrentDictionary |  4.480 ns | 0.0230 ns | 0.0204 ns |  1.00 |    0.00 |     364 B |         - |
+    //|    FastConcurrentLru |  7.705 ns | 0.0343 ns | 0.0286 ns |  1.72 |    0.01 |     448 B |         - |
+    //|   FastConcurrentTLru | 25.350 ns | 0.3301 ns | 0.3088 ns |  5.66 |    0.08 |     546 B |         - |
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
     public class LruJustTryGet
