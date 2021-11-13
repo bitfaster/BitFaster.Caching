@@ -20,4 +20,20 @@ namespace BitFaster.Caching.Lru
 
         ItemDestination RouteCold(I item);
     }
+
+    // now item is wrapped in W via policy
+    public interface IItemPolicy<in K, in V, in W, I> where I : LruItem<K, W>
+    {
+        I CreateItem(K key, V value);
+
+        void Touch(I item);
+
+        bool ShouldDiscard(I item);
+
+        ItemDestination RouteHot(I item);
+
+        ItemDestination RouteWarm(I item);
+
+        ItemDestination RouteCold(I item);
+    }
 }

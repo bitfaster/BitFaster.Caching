@@ -27,9 +27,9 @@ namespace BitFaster.Caching.Lru
     /// 5. When warm is full, warm tail is moved to warm head or cold depending on WasAccessed.
     /// 6. When cold is full, cold tail is moved to warm head or removed from dictionary on depending on WasAccessed.
     /// </remarks>
-    public class TemplateConcurrentLru<K, V, I, P, H> : ICache<K, V>
-        where I : LruItem<K, V>
-        where P : struct, IPolicy<K, V, I>
+    public class TemplateConcurrentLru<K, V, W, I, P, H> : ICache<K, V, W>
+        where I : LruItem<K, W>
+        where P : struct, IItemPolicy<K, V, W, I>
         where H : struct, IHitCounter
     {
         private readonly ConcurrentDictionary<K, I> dictionary;
@@ -96,7 +96,7 @@ namespace BitFaster.Caching.Lru
         public int ColdCount => this.coldCount;
 
         ///<inheritdoc/>
-        public bool TryGet(K key, out V value)
+        public bool TryGet(K key, out W value)
         {
             if (dictionary.TryGetValue(key, out var item))
             {
@@ -111,7 +111,7 @@ namespace BitFaster.Caching.Lru
         // AggressiveInlining forces the JIT to inline policy.ShouldDiscard(). For LRU policy 
         // the first branch is completely eliminated due to JIT time constant propogation.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool GetOrDiscard(I item, out V value)
+        private bool GetOrDiscard(I item, out W value)
         {
             if (this.policy.ShouldDiscard(item))
             {
@@ -128,7 +128,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
-        public V GetOrAdd(K key, Func<K, V> valueFactory)
+        public W GetOrAdd(K key, Func<K, V> valueFactory)
         {
             while (true)
             {        
@@ -149,12 +149,12 @@ namespace BitFaster.Caching.Lru
                     return newItem.Value;
                 }
 
-                Disposer<V>.Dispose(newItem.Value);
+                Disposer<W>.Dispose(newItem.Value);
             }
         }
 
         ///<inheritdoc/>
-        public async Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
+        public async Task<W> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
             while (true)
             {
@@ -175,7 +175,7 @@ namespace BitFaster.Caching.Lru
                     return newItem.Value;
                 }
 
-                Disposer<V>.Dispose(newItem.Value);
+                Disposer<W>.Dispose(newItem.Value);
             }
         }
 
@@ -201,7 +201,7 @@ namespace BitFaster.Caching.Lru
                         // serialize dispose (common case dispose not thread safe)
                         lock (existing)
                         {
-                            Disposer<V>.Dispose(existing.Value);
+                            Disposer<W>.Dispose(existing.Value);
                         }
 
                         return true;
@@ -226,10 +226,12 @@ namespace BitFaster.Caching.Lru
                 {
                     if (!existing.WasRemoved)
                     {
-                        V oldValue = existing.Value;
-                        existing.Value = value;
+                        W oldValue = existing.Value;
+                        
+                        // TODO: this doesn't work!
+//                        existing.Value = value;
 
-                        Disposer<V>.Dispose(oldValue);
+                        Disposer<W>.Dispose(oldValue);
 
                         return true;
                     }
@@ -425,7 +427,7 @@ namespace BitFaster.Caching.Lru
 
                         lock (item)
                         {
-                            Disposer<V>.Dispose(item.Value);
+                            Disposer<W>.Dispose(item.Value);
                         }
                     }
 
