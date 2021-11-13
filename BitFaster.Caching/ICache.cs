@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
-    // can have this as internal, and inherit ICache<K, V> from ICacheBase<K, V, V> and IScopedCache : ICacheBase<K, V, Scoped<V>>
+    // can have this as internal, and inherit ICache<K, V> from ICacheBase<K, V, V> and IScopedCache : ICacheBase<K, V, Lifetime<V>>
 
     /// <summary>
     /// Represents a generic cache of key/value pairs.
