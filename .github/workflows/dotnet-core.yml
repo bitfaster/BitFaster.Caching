@@ -27,5 +27,4 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: NuGet package
-        path: BitFaster.Caching/bin/Release/*.nupkg
-        if-no-files-found: warn
+        path: BitFaster.Caching/bin/Release/
