@@ -18,7 +18,7 @@ public class BenchMethodAsmWriter : IDisposable
         this.writer.WriteLine($"; {methodName}()"); // reconstruct
     }
 
-    public string? DeNamespace(string? methodName)
+    private static string? DeNamespace(string? methodName)
     {
         int s = methodName?.LastIndexOf(".") ?? 0;
         return methodName?.Substring(s + 1);
