@@ -17,10 +17,14 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 6.0.x
-        include-prerelease: true
     - name: Install dependencies
       run: dotnet restore
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal
+    - name: Publish NuGet package
+      uses: actions/upload-artifact@v1
+      with:
+        name: NuGet package
+        path: BitFaster.Caching/bin/Release/
