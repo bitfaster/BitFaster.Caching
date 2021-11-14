@@ -24,3 +24,8 @@ jobs:
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal
+
+    - uses: actions/upload-artifact@v1
+      with:
+        name: Publish artifacts
+        path: BitFaster.Caching/bin/Release/
