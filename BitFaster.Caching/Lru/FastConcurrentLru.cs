@@ -13,7 +13,7 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         /// <param name="capacity">The maximum number of elements that the FastConcurrentLru can contain.</param>
         public FastConcurrentLru(int capacity)
-            : base(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default, new LruPolicy<K, V>(), new NoTelemetryPolicy<K, V>())
+            : base(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default, default, default)
         {
         }
 
@@ -25,7 +25,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="capacity">The maximum number of elements that the FastConcurrentLru can contain.</param>
         /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
         public FastConcurrentLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer)
-            : base(concurrencyLevel, capacity, comparer, new LruPolicy<K, V>(), new NoTelemetryPolicy<K, V>())
+            : base(concurrencyLevel, capacity, comparer, default, default)
         {
         }
     }

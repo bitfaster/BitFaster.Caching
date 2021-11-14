@@ -16,7 +16,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="capacity">The maximum number of elements that the ConcurrentTLru can contain.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public ConcurrentTLru(int capacity, TimeSpan timeToLive)
-            : base(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default, new TLruLongTicksPolicy<K, V>(timeToLive), new TelemetryPolicy<K, V>())
+            : base(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default, new TLruLongTicksPolicy<K, V>(timeToLive), default)
         { 
         }
 
@@ -29,7 +29,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public ConcurrentTLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer, TimeSpan timeToLive)
-            : base(concurrencyLevel, capacity, comparer, new TLruLongTicksPolicy<K, V>(timeToLive), new TelemetryPolicy<K, V>())
+            : base(concurrencyLevel, capacity, comparer, new TLruLongTicksPolicy<K, V>(timeToLive), default)
         {
         }
 
