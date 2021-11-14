@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AsmSlicer": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\repo\\BitFaster.Caching\\BenchmarkDotNet.Artifacts\\results"
+    }
+  }
+}

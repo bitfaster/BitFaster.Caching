@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Benchmarks.Lru
@@ -9,6 +10,8 @@ namespace BitFaster.Caching.Benchmarks.Lru
     /// <summary>
     /// Compare different implementations of the TLRU policy. In particular, which clock impl is fastest?
     /// </summary>
+    [SimpleJob(RuntimeMoniker.Net48)]
+    [SimpleJob(RuntimeMoniker.Net60)]
     public class TLruTimeBenchmark
     {
         private static readonly TemplateConcurrentLru<int, int, TimeStampedLruItem<int, int>, TLruDateTimePolicy<int, int>, NullHitCounter> dateTimeTLru

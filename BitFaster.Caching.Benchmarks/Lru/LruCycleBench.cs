@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Benchmarks.Lru
@@ -22,15 +23,17 @@ namespace BitFaster.Caching.Benchmarks.Lru
     //| FastConcurrentTLru | 32.17 us | 0.463 us | 0.433 us |  1.38 |    0.02 | 2.3193 |      6 KB |     10 KB |
     //|     ConcurrentTLru | 32.52 us | 0.386 us | 0.361 us |  1.40 |    0.02 | 2.3193 |      6 KB |     10 KB |
     //|         ClassicLru | 16.29 us | 0.195 us | 0.163 us |  0.70 |    0.01 | 3.2959 |      5 KB |     14 KB |
+    [SimpleJob(RuntimeMoniker.Net48)]
+    [SimpleJob(RuntimeMoniker.Net60)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
     public class LruCycleBench
     {
-        private static readonly ClassicLru<int, int> classicLru = new(8, 9, EqualityComparer<int>.Default);
-        private static readonly ConcurrentLru<int, int> concurrentLru = new(8, 9, EqualityComparer<int>.Default);
-        private static readonly ConcurrentTLru<int, int> concurrentTlru = new(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(10));
-        private static readonly FastConcurrentLru<int, int> fastConcurrentLru = new(8, 9, EqualityComparer<int>.Default);
-        private static readonly FastConcurrentTLru<int, int> fastConcurrentTLru = new(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
+        private static readonly ClassicLru<int, int> classicLru = new ClassicLru<int, int>(8, 9, EqualityComparer<int>.Default);
+        private static readonly ConcurrentLru<int, int> concurrentLru = new ConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
+        private static readonly ConcurrentTLru<int, int> concurrentTlru = new ConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(10));
+        private static readonly FastConcurrentLru<int, int> fastConcurrentLru = new FastConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
+        private static readonly FastConcurrentTLru<int, int> fastConcurrentTLru = new FastConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
 
         [Benchmark(Baseline = true)]
         public void FastConcurrentLru()
