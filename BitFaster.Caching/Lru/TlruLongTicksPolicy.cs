@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Lru
     /// <remarks>
     /// This class measures time using stopwatch.
     /// </remarks>
-    public readonly struct TLruLongTicksPolicy<K, V> : IPolicy<K, V, LongTickCountLruItem<K, V>>
+    public readonly struct TLruLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly long timeToLive;
 

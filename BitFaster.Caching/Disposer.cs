@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace BitFaster.Caching
 {
     /// <summary>
-    /// A generic wrapper for object disposal. Enables JIT to inline/remove object disposal if statement reducing code size.
+    /// A generic wrapper for object disposal.
     /// </summary>
     /// <typeparam name="T">The type of object to dispose</typeparam>
     public static class Disposer<T>

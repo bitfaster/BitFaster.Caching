@@ -10,7 +10,7 @@ namespace BitFaster.Caching.Lru
     /// <summary>
     /// Discards the least recently used items first. 
     /// </summary>
-    public readonly struct LruPolicy<K, V> : IPolicy<K, V, LruItem<K, V>>
+    public readonly struct LruPolicy<K, V> : IItemPolicy<K, V, LruItem<K, V>>
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LruItem<K, V> CreateItem(K key, V value)

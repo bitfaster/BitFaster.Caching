@@ -34,15 +34,15 @@ namespace BitFaster.Caching.Lru
         /// <summary>
         /// Gets the ratio of hits to misses, where a value of 1 indicates 100% hits.
         /// </summary>
-        public double HitRatio => this.hitCounter.HitRatio;
+        public double HitRatio => this.telemetryPolicy.HitRatio;
 
         /// <summary>
         /// Occurs when an item is removed from the cache.
         /// </summary>
         public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
         {
-            add { this.hitCounter.ItemRemoved += value; }
-            remove { this.hitCounter.ItemRemoved -= value; }
+            add { this.telemetryPolicy.ItemRemoved += value; }
+            remove { this.telemetryPolicy.ItemRemoved -= value; }
         }
     }
 }

@@ -27,10 +27,10 @@ namespace BitFaster.Caching.Lru
     /// 5. When warm is full, warm tail is moved to warm head or cold depending on WasAccessed.
     /// 6. When cold is full, cold tail is moved to warm head or removed from dictionary on depending on WasAccessed.
     /// </remarks>
-    public class TemplateConcurrentLru<K, V, I, P, H> : ICache<K, V>
+    public class TemplateConcurrentLru<K, V, I, P, T> : ICache<K, V>
         where I : LruItem<K, V>
-        where P : struct, IPolicy<K, V, I>
-        where H : struct, ITelemetryPolicy<K, V>
+        where P : struct, IItemPolicy<K, V, I>
+        where T : struct, ITelemetryPolicy<K, V>
     {
         private readonly ConcurrentDictionary<K, I> dictionary;
 
@@ -47,18 +47,18 @@ namespace BitFaster.Caching.Lru
         private readonly int warmCapacity;
         private readonly int coldCapacity;
 
-        private readonly P policy;
+        private readonly P itemPolicy;
 
         // Since H is a struct, making it readonly will force the runtime to make defensive copies
         // if mutate methods are called. Therefore, field must be mutable to maintain count.
-        protected H hitCounter;
+        protected T telemetryPolicy;
 
         public TemplateConcurrentLru(
             int concurrencyLevel,
             int capacity,
             IEqualityComparer<K> comparer,
             P itemPolicy,
-            H hitCounter)
+            T telemetryPolicy)
         {
             if (capacity < 3)
             {
@@ -82,9 +82,9 @@ namespace BitFaster.Caching.Lru
             int dictionaryCapacity = this.hotCapacity + this.warmCapacity + this.coldCapacity + 1;
 
             this.dictionary = new ConcurrentDictionary<K, I>(concurrencyLevel, dictionaryCapacity, comparer);
-            this.policy = itemPolicy;
-            this.hitCounter = hitCounter;
-            this.hitCounter.SetEventSource(this);
+            this.itemPolicy = itemPolicy;
+            this.telemetryPolicy = telemetryPolicy;
+            this.telemetryPolicy.SetEventSource(this);
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -105,7 +105,7 @@ namespace BitFaster.Caching.Lru
             }
 
             value = default;
-            this.hitCounter.IncrementMiss();
+            this.telemetryPolicy.IncrementMiss();
             return false;
         }
 
@@ -114,17 +114,17 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool GetOrDiscard(I item, out V value)
         {
-            if (this.policy.ShouldDiscard(item))
+            if (this.itemPolicy.ShouldDiscard(item))
             {
                 this.Move(item, ItemDestination.Remove);
-                this.hitCounter.IncrementMiss();
+                this.telemetryPolicy.IncrementMiss();
                 value = default;
                 return false;
             }
 
             value = item.Value;
-            this.policy.Touch(item);
-            this.hitCounter.IncrementHit();
+            this.itemPolicy.Touch(item);
+            this.telemetryPolicy.IncrementHit();
             return true;
         }
 
@@ -140,7 +140,7 @@ namespace BitFaster.Caching.Lru
 
                 // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
                 // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-                var newItem = this.policy.CreateItem(key, valueFactory(key));
+                var newItem = this.itemPolicy.CreateItem(key, valueFactory(key));
 
                 if (this.dictionary.TryAdd(key, newItem))
                 {
@@ -166,7 +166,7 @@ namespace BitFaster.Caching.Lru
 
                 // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
                 // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-                var newItem = this.policy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
+                var newItem = this.itemPolicy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
 
                 if (this.dictionary.TryAdd(key, newItem))
                 {
@@ -199,7 +199,7 @@ namespace BitFaster.Caching.Lru
                         existing.WasAccessed = false;
                         existing.WasRemoved = true;
 
-                        this.hitCounter.OnItemRemoved(existing.Key, existing.Value, ItemRemovedReason.Removed);
+                        this.telemetryPolicy.OnItemRemoved(existing.Key, existing.Value, ItemRemovedReason.Removed);
 
                         // serialize dispose (common case dispose not thread safe)
                         lock (existing)
@@ -255,7 +255,7 @@ namespace BitFaster.Caching.Lru
                 }
 
                 // then try add
-                var newItem = this.policy.CreateItem(key, value);
+                var newItem = this.itemPolicy.CreateItem(key, value);
 
                 if (this.dictionary.TryAdd(key, newItem))
                 {
@@ -325,7 +325,7 @@ namespace BitFaster.Caching.Lru
 
             if (this.hotQueue.TryDequeue(out var item))
             {
-                var where = this.policy.RouteHot(item);
+                var where = this.itemPolicy.RouteHot(item);
                 this.Move(item, where);
             }
             else
@@ -349,7 +349,7 @@ namespace BitFaster.Caching.Lru
 
             if (this.warmQueue.TryDequeue(out var item))
             {
-                var where = this.policy.RouteWarm(item);
+                var where = this.itemPolicy.RouteWarm(item);
 
                 // When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
                 // This only happens when hit rate is high, in which case we can consider all items relatively equal in
@@ -384,7 +384,7 @@ namespace BitFaster.Caching.Lru
 
             if (this.coldQueue.TryDequeue(out var item))
             {
-                var where = this.policy.RouteCold(item);
+                var where = this.itemPolicy.RouteCold(item);
 
                 if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
                 {
@@ -426,7 +426,7 @@ namespace BitFaster.Caching.Lru
                     {
                         item.WasRemoved = true;
 
-                        this.hitCounter.OnItemRemoved(item.Key, item.Value, ItemRemovedReason.Evicted);
+                        this.telemetryPolicy.OnItemRemoved(item.Key, item.Value, ItemRemovedReason.Evicted);
 
                         lock (item)
                         {

@@ -16,7 +16,7 @@ namespace BitFaster.Caching.Lru
     /// than DateTime.Now. However, if the process runs for longer than 24.8 days, the integer
     /// value will wrap and time measurement will become invalid.
     /// </remarks>
-    public readonly struct TLruTicksPolicy<K, V> : IPolicy<K, V, TickCountLruItem<K, V>>
+    public readonly struct TLruTicksPolicy<K, V> : IItemPolicy<K, V, TickCountLruItem<K, V>>
     {
         private readonly int timeToLive;
 
