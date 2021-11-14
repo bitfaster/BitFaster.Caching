@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace BitFaster.Caching.Lru
 {
     ///<inheritdoc/>
-    public sealed class ConcurrentLru<K, V> : TemplateConcurrentLru<K, V, LruItem<K, V>, LruPolicy<K, V>, HitCounter<K, V>>
+    public sealed class ConcurrentLru<K, V> : TemplateConcurrentLru<K, V, LruItem<K, V>, LruPolicy<K, V>, TelemetryPolicy<K, V>>
     {
         /// <summary>
         /// Initializes a new instance of the ConcurrentLru class with the specified capacity that has the default 
@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         /// <param name="capacity">The maximum number of elements that the ConcurrentLru can contain.</param>
         public ConcurrentLru(int capacity)
-            : base(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default, new LruPolicy<K, V>(), new HitCounter<K, V>())
+            : base(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default, new LruPolicy<K, V>(), new TelemetryPolicy<K, V>())
         {
         }
 
@@ -27,7 +27,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="capacity">The maximum number of elements that the ConcurrentLru can contain.</param>
         /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
         public ConcurrentLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer)
-            : base(concurrencyLevel, capacity, comparer, new LruPolicy<K, V>(), new HitCounter<K, V>())
+            : base(concurrencyLevel, capacity, comparer, new LruPolicy<K, V>(), new TelemetryPolicy<K, V>())
         {
         }
 

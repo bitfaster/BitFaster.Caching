@@ -12,7 +12,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenHitCountAndTotalCountAreEqualRatioIs1()
         {
-            HitCounter<int, int> counter = new HitCounter<int, int>();
+            TelemetryPolicy<int, int> counter = new TelemetryPolicy<int, int>();
 
             counter.IncrementHit();
 
@@ -22,7 +22,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenHitCountIsEqualToMissCountRatioIsHalf()
         {
-            HitCounter<int, int> counter = new HitCounter<int, int>();
+            TelemetryPolicy<int, int> counter = new TelemetryPolicy<int, int>();
 
             counter.IncrementMiss();
             counter.IncrementHit();
@@ -33,7 +33,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenTotalCountIsZeroRatioReturnsZero()
         {
-            HitCounter<int, int> counter = new HitCounter<int, int>();
+            TelemetryPolicy<int, int> counter = new TelemetryPolicy<int, int>();
 
             counter.HitRatio.Should().Be(0.0);
         }

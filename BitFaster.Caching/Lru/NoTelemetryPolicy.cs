@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
-    public struct NullHitCounter<K, V> : IHitCounter<K, V>
+    public struct NoTelemetryPolicy<K, V> : ITelemetryPolicy<K, V>
     {
         public double HitRatio => 0.0;
 

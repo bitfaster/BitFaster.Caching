@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
-    public interface IHitCounter<K, V>
+    public interface ITelemetryPolicy<K, V>
     {
         void IncrementMiss();
 

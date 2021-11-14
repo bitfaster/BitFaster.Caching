@@ -14,17 +14,17 @@ namespace BitFaster.Caching.Benchmarks.Lru
     [SimpleJob(RuntimeMoniker.Net60)]
     public class TLruTimeBenchmark
     {
-        private static readonly TemplateConcurrentLru<int, int, TimeStampedLruItem<int, int>, TLruDateTimePolicy<int, int>, NullHitCounter<int, int>> dateTimeTLru
-            = new TemplateConcurrentLru<int, int, TimeStampedLruItem<int, int>, TLruDateTimePolicy<int, int>, NullHitCounter<int, int>>
-                (1, 3, EqualityComparer<int>.Default, new TLruDateTimePolicy<int, int>(TimeSpan.FromSeconds(1)), new NullHitCounter<int, int>());
+        private static readonly TemplateConcurrentLru<int, int, TimeStampedLruItem<int, int>, TLruDateTimePolicy<int, int>, NoTelemetryPolicy<int, int>> dateTimeTLru
+            = new TemplateConcurrentLru<int, int, TimeStampedLruItem<int, int>, TLruDateTimePolicy<int, int>, NoTelemetryPolicy<int, int>>
+                (1, 3, EqualityComparer<int>.Default, new TLruDateTimePolicy<int, int>(TimeSpan.FromSeconds(1)), new NoTelemetryPolicy<int, int>());
 
-        private static readonly TemplateConcurrentLru<int, int, TickCountLruItem<int, int>, TLruTicksPolicy<int, int>, NullHitCounter<int, int>> tickCountTLru
-            = new TemplateConcurrentLru<int, int, TickCountLruItem<int, int>, TLruTicksPolicy<int, int>, NullHitCounter<int, int>>
-                (1, 3, EqualityComparer<int>.Default, new TLruTicksPolicy<int, int>(TimeSpan.FromSeconds(1)), new NullHitCounter<int, int>());
+        private static readonly TemplateConcurrentLru<int, int, TickCountLruItem<int, int>, TLruTicksPolicy<int, int>, NoTelemetryPolicy<int, int>> tickCountTLru
+            = new TemplateConcurrentLru<int, int, TickCountLruItem<int, int>, TLruTicksPolicy<int, int>, NoTelemetryPolicy<int, int>>
+                (1, 3, EqualityComparer<int>.Default, new TLruTicksPolicy<int, int>(TimeSpan.FromSeconds(1)), new NoTelemetryPolicy<int, int>());
 
-        private static readonly TemplateConcurrentLru<int, int, LongTickCountLruItem<int, int>, TLruLongTicksPolicy<int, int>, NullHitCounter<int, int>> stopwatchTLru
-            = new TemplateConcurrentLru<int, int, LongTickCountLruItem<int, int>, TLruLongTicksPolicy<int, int>, NullHitCounter<int, int>>
-                (1, 3, EqualityComparer<int>.Default, new TLruLongTicksPolicy<int, int>(TimeSpan.FromSeconds(1)), new NullHitCounter<int, int>());
+        private static readonly TemplateConcurrentLru<int, int, LongTickCountLruItem<int, int>, TLruLongTicksPolicy<int, int>, NoTelemetryPolicy<int, int>> stopwatchTLru
+            = new TemplateConcurrentLru<int, int, LongTickCountLruItem<int, int>, TLruLongTicksPolicy<int, int>, NoTelemetryPolicy<int, int>>
+                (1, 3, EqualityComparer<int>.Default, new TLruLongTicksPolicy<int, int>(TimeSpan.FromSeconds(1)), new NoTelemetryPolicy<int, int>());
 
         [Benchmark(Baseline = true)]
         public void DateTimeUtcNow()

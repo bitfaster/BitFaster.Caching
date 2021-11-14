@@ -30,7 +30,7 @@ namespace BitFaster.Caching.Lru
     public class TemplateConcurrentLru<K, V, I, P, H> : ICache<K, V>
         where I : LruItem<K, V>
         where P : struct, IPolicy<K, V, I>
-        where H : struct, IHitCounter<K, V>
+        where H : struct, ITelemetryPolicy<K, V>
     {
         private readonly ConcurrentDictionary<K, I> dictionary;
 

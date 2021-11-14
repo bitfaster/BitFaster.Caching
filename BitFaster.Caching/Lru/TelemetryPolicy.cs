@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
-    public struct HitCounter<K, V> : IHitCounter<K, V>
+    public struct TelemetryPolicy<K, V> : ITelemetryPolicy<K, V>
     {
         private long hitCount;
         private long missCount;
