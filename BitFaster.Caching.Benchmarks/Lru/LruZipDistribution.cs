@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Lru;
 using MathNet.Numerics.Distributions;
 using MathNet.Numerics.Random;
@@ -22,6 +23,8 @@ namespace BitFaster.Caching.Benchmarks.Lru
     //|      ConcurrentLru | 127.4 ns | 0.51 ns | 0.48 ns |  1.14 |    0.01 | 0.0093 |   5,107 B |      41 B |
     //| FastConcurrentTLru | 175.6 ns | 1.08 ns | 1.01 ns |  1.58 |    0.02 | 0.0100 |   5,911 B |      44 B |
     //|     ConcurrentTLru | 169.7 ns | 0.86 ns | 0.80 ns |  1.52 |    0.02 | 0.0098 |   5,982 B |      43 B |
+    [SimpleJob(RuntimeMoniker.Net48)]
+    [SimpleJob(RuntimeMoniker.Net60)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
     public class LruZipDistribution

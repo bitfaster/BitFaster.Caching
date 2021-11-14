@@ -28,6 +28,8 @@ namespace BitFaster.Caching.Benchmarks.Lru
     //|       ConcurrentTLru |  33.733 ns | 0.6613 ns | 0.6791 ns |  4.02 |    0.09 |   3,539 B |      - |         - |
     //|           ClassicLru |  52.898 ns | 0.3079 ns | 0.2404 ns |  6.30 |    0.03 |   3,021 B |      - |         - |
     //|          MemoryCache | 117.075 ns | 1.7664 ns | 1.5658 ns | 13.96 |    0.18 |      94 B | 0.0073 |      32 B |
+    [SimpleJob(RuntimeMoniker.Net48)]
+    [SimpleJob(RuntimeMoniker.Net60)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
     public class LruMultiGet

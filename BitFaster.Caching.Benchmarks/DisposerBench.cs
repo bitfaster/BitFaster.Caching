@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Diagnostics.Runtime.Interop;
 
@@ -10,7 +11,9 @@ namespace BitFaster.Caching.Benchmarks
 {
     // Is it possible to write a class to eliminate the dispose code for types that are not IDisposable?
     // https://github.com/dotnet/runtime/issues/4920
-    [DisassemblyDiagnoser(printSource: true)]
+    [SimpleJob(RuntimeMoniker.Net48)]
+    [SimpleJob(RuntimeMoniker.Net60)]
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 3)]
     [MemoryDiagnoser]
     public class DisposerBench
     {
