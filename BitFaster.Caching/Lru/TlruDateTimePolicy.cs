@@ -11,7 +11,7 @@ namespace BitFaster.Caching.Lru
     /// Time aware Least Recently Used (TLRU) is a variant of LRU which discards the least 
     /// recently used items first, and any item that has expired.
     /// </summary>
-    public readonly struct TLruDateTimePolicy<K, V> : IPolicy<K, V, TimeStampedLruItem<K, V>>
+    public readonly struct TLruDateTimePolicy<K, V> : IItemPolicy<K, V, TimeStampedLruItem<K, V>>
     {
         private readonly TimeSpan timeToLive;
 

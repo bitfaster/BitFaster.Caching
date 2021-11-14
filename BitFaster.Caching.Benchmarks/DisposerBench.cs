@@ -13,7 +13,7 @@ namespace BitFaster.Caching.Benchmarks
     // https://github.com/dotnet/runtime/issues/4920
     [SimpleJob(RuntimeMoniker.Net48)]
     [SimpleJob(RuntimeMoniker.Net60)]
-    [DisassemblyDiagnoser(printSource: true, maxDepth:3)]
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 3)]
     [MemoryDiagnoser]
     public class DisposerBench
     {

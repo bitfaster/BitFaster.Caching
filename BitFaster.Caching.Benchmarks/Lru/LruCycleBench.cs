@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
@@ -16,13 +17,14 @@ namespace BitFaster.Caching.Benchmarks.Lru
     //  DefaultJob : .NET 6.0.0 (6.0.21.52210), X64 RyuJIT
 
 
-    //|             Method |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Code Size | Allocated |
-    //|------------------- |---------:|---------:|---------:|------:|--------:|-------:|----------:|----------:|
-    //|  FastConcurrentLru | 23.25 us | 0.128 us | 0.114 us |  1.00 |    0.00 | 2.1362 |      5 KB |      9 KB |
-    //|      ConcurrentLru | 23.78 us | 0.116 us | 0.097 us |  1.02 |    0.01 | 2.1362 |      5 KB |      9 KB |
-    //| FastConcurrentTLru | 32.17 us | 0.463 us | 0.433 us |  1.38 |    0.02 | 2.3193 |      6 KB |     10 KB |
-    //|     ConcurrentTLru | 32.52 us | 0.386 us | 0.361 us |  1.40 |    0.02 | 2.3193 |      6 KB |     10 KB |
-    //|         ClassicLru | 16.29 us | 0.195 us | 0.163 us |  0.70 |    0.01 | 3.2959 |      5 KB |     14 KB |
+    //|             Method |     Mean |    Error |   StdDev | Ratio | Code Size |  Gen 0 | Allocated |
+    //|------------------- |---------:|---------:|---------:|------:|----------:|-------:|----------:|
+    //|  FastConcurrentLru | 22.86 us | 0.183 us | 0.162 us |  1.00 |      5 KB | 2.1362 |      9 KB |
+    //|      ConcurrentLru | 23.40 us | 0.092 us | 0.077 us |  1.02 |      5 KB | 2.1362 |      9 KB |
+    //| ConcurrentLruEvent | 24.23 us | 0.097 us | 0.086 us |  1.06 |      5 KB | 3.0823 |     13 KB |
+    //| FastConcurrentTLru | 31.70 us | 0.087 us | 0.077 us |  1.39 |      6 KB | 2.3193 |     10 KB |
+    //|     ConcurrentTLru | 31.85 us | 0.080 us | 0.071 us |  1.39 |      6 KB | 2.3193 |     10 KB |
+    //|         ClassicLru | 16.35 us | 0.091 us | 0.076 us |  0.72 |      4 KB | 3.2959 |     14 KB |
     [SimpleJob(RuntimeMoniker.Net48)]
     [SimpleJob(RuntimeMoniker.Net60)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
@@ -31,11 +33,26 @@ namespace BitFaster.Caching.Benchmarks.Lru
     {
         private static readonly ClassicLru<int, int> classicLru = new ClassicLru<int, int>(8, 9, EqualityComparer<int>.Default);
         private static readonly ConcurrentLru<int, int> concurrentLru = new ConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
+        private static readonly ConcurrentLru<int, int> concurrentLruEvent = new ConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
         private static readonly ConcurrentTLru<int, int> concurrentTlru = new ConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(10));
         private static readonly FastConcurrentLru<int, int> fastConcurrentLru = new FastConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
         private static readonly FastConcurrentTLru<int, int> fastConcurrentTLru = new FastConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
 
-        [Benchmark(Baseline = true)]
+        [GlobalSetup]
+        public void GlobalSetup()
+        {
+            concurrentLruEvent.ItemRemoved += OnItemRemoved;
+        }
+
+        public static int field;
+
+        [MethodImpl(MethodImplOptions.NoOptimization)]
+        private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
+        {
+            field = e.Key;
+        }
+
+        [Benchmark(Baseline =true)]
         public void FastConcurrentLru()
         {
             Func<int, int> func = x => x;
@@ -51,6 +68,15 @@ namespace BitFaster.Caching.Benchmarks.Lru
 
             for (int i = 0; i < 128; i++)
                 concurrentLru.GetOrAdd(i, func);
+        }
+
+        [Benchmark()]
+        public void ConcurrentLruEvent()
+        {
+            Func<int, int> func = x => x;
+
+            for (int i = 0; i < 128; i++)
+                concurrentLruEvent.GetOrAdd(i, func);
         }
 
         [Benchmark()]
