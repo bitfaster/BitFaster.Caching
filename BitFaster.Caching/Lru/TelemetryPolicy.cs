@@ -12,14 +12,13 @@ namespace BitFaster.Caching.Lru
     {
         private long hitCount;
         private long missCount;
+        private object eventSource;
 
         public double HitRatio => Total == 0 ? 0 : (double)hitCount / (double)Total;
 
         public long Total => this.hitCount + this.missCount;
 
         public EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
-
-        private object eventSource;
 
         public void IncrementMiss()
         {
