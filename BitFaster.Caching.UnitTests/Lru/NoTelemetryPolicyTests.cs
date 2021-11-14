@@ -7,7 +7,7 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class NullHitCounterTests
+    public class NoTelemetryPolicyTests
     {
         private NoTelemetryPolicy<int, int> counter = new NoTelemetryPolicy<int, int>();
 
