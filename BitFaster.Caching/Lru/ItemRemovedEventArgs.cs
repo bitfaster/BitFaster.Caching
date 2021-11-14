@@ -9,8 +9,8 @@ namespace BitFaster.Caching.Lru
     /// <summary>
     /// Provides data for the ItemRemoved event.
     /// </summary>
-    /// <typeparam name="K"></typeparam>
-    /// <typeparam name="V"></typeparam>
+    /// <typeparam name="K">The type of the removed item key.</typeparam>
+    /// <typeparam name="V">The type of the removed item value.</typeparam>
     public class ItemRemovedEventArgs<K, V> : EventArgs
     {
         /// <summary>
