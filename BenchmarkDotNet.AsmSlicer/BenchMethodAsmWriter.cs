@@ -2,20 +2,36 @@
 
 public class BenchMethodAsmWriter : IDisposable
 {
-    private readonly StreamWriter writer;
+    private readonly StreamWriter asmWriter;
+    private readonly StreamWriter summaryWriter;
+
+    private string? currentMethod;
+
+    private List<MethodSummary> methodSummaries;
 
     // 1 .asm file per method name
     public BenchMethodAsmWriter(string path, string? methodName)
     {
-        string filePath = Path.Combine(path, $"{DeNamespace(methodName)}-asm.md");
+        this.currentMethod = methodName;
+
+        string asmFilePath = Path.Combine(path, $"{DeNamespace(methodName)}-asm.md");
+        string summaryPath = Path.Combine(path, $"{DeNamespace(methodName)}-summary.md");
 
         FileStreamOptions fileStreamOptions = new FileStreamOptions();
         fileStreamOptions.Access = FileAccess.Write;
         fileStreamOptions.Mode = FileMode.Create;
 
-        this.writer = new StreamWriter(filePath, fileStreamOptions);
-        this.writer.WriteLine("```assembly");
-        this.writer.WriteLine($"; {methodName}()"); // reconstruct
+        this.asmWriter = new StreamWriter(asmFilePath, fileStreamOptions);
+        this.summaryWriter = new StreamWriter(summaryPath, fileStreamOptions);
+
+
+        this.asmWriter.WriteLine("```assembly");
+        this.asmWriter.WriteLine($"; {methodName}()"); // reconstruct
+
+        this.summaryWriter.WriteLine("| #  | Method      | Size (bytes) |");
+        this.summaryWriter.WriteLine("| -- | ----------- | ------------ |");
+
+        this.methodSummaries = new List<MethodSummary>();
     }
 
     private static string? DeNamespace(string? methodName)
@@ -26,12 +42,39 @@ public class BenchMethodAsmWriter : IDisposable
 
     public void WriteLine(string line)
     {
-        this.writer.WriteLine(line);
+        if (line.StartsWith("; Total bytes of code"))
+        {
+            string size = line.Replace("; Total bytes of code ", string.Empty);
+            this.methodSummaries.Add(new MethodSummary { Name = this.currentMethod, Size = size });
+        }
+        else if (line.StartsWith(";"))
+        {
+            this.currentMethod = line?.TrimStart(';', ' ').TrimEnd('(', ')');
+        }
+
+        this.asmWriter.WriteLine(line);
     }
 
     public void Dispose()
     {
-        this.writer.Dispose();
+        this.asmWriter.Dispose();
+        WriteSummary();
+        this.summaryWriter.Dispose();
+    }
+
+    private void WriteSummary()
+    {
+        int count = 0;
+        foreach (var m in this.methodSummaries.OrderBy(ms => ms.Name))
+        {
+            this.summaryWriter.WriteLine($"| {count++} | {m.Name} | {m.Size} |");
+        }
+    }
+
+    private record MethodSummary
+    {
+        public string? Name { get; init; }
+        public string? Size { get; init; }
     }
 }
 
