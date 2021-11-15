@@ -2,7 +2,7 @@
 
 High performance, thread-safe in-memory caching primitives for .NET.
 
-[![NuGet version](https://badge.fury.io/nu/BitFaster.Caching.svg)](https://badge.fury.io/nu/BitFaster.Caching) ![Nuget](https://img.shields.io/nuget/dt/bitfaster.caching) ![.NET Core](https://github.com/bitfaster/BitFaster.Caching/workflows/.NET%20Core/badge.svg)
+[![NuGet version](https://badge.fury.io/nu/BitFaster.Caching.svg)](https://badge.fury.io/nu/BitFaster.Caching) ![Nuget](https://img.shields.io/nuget/dt/bitfaster.caching) ![.NET Core](https://github.com/bitfaster/BitFaster.Caching/workflows/.NET%20Core/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/bitfaster/BitFaster.Caching/badge.svg?branch=main)](https://coveralls.io/github/bitfaster/BitFaster.Caching?branch=main)
 
 # Installing via NuGet
 `Install-Package BitFaster.Caching`
