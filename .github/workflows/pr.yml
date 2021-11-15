@@ -1,8 +1,6 @@
 name: Build and Test
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -23,7 +21,7 @@ jobs:
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal
-    - name: Publish NuGet package
+    - name: Publish NuGet artifacts
       uses: actions/upload-artifact@v1
       with:
         name: NuGet package
