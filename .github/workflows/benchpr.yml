@@ -4,6 +4,8 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency: benchmark_pr
+
 jobs:
   build:
 
@@ -24,5 +26,5 @@ jobs:
     - name: Publish Results
       uses: actions/upload-artifact@v1
       with:
-        name: Benchmark Artifactsgiot
+        name: Benchmark Artifacts
         path: BenchmarkDotNet.Artifacts
