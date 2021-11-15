@@ -1,10 +1,10 @@
-name: Build and Test
+name: Benchmark
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
+
+concurrency: benchmark_pr
 
 jobs:
   build:
@@ -21,10 +21,10 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build --configuration Release --no-restore
-    - name: Test
-      run: dotnet test --no-restore --verbosity normal
-    - name: Publish NuGet package
+    - name: Benchmark
+      run: dotnet run --project "BitFaster.Caching.Benchmarks" -f net6.0 -c Release --filter *Lru*
+    - name: Publish Results
       uses: actions/upload-artifact@v1
       with:
-        name: NuGet package
-        path: BitFaster.Caching/bin/Release/
+        name: Benchmark Artifacts
+        path: BenchmarkDotNet.Artifacts
