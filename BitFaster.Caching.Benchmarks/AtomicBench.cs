@@ -45,7 +45,7 @@ namespace BitFaster.Caching.Benchmarks
         [Benchmark()]
         public void LazyConcurrentLru()
         {
-            Func<int, Lazy<int>> func = x => new Lazy<int>(x);
+            Func<int, Lazy<int>> func = x => new Lazy<int>(() => x);
             lazyConcurrentLru.GetOrAdd(1, func);
         }
     }
