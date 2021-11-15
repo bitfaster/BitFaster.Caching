@@ -23,7 +23,7 @@ jobs:
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov
-    - name: Publish NuGet package
+    - name: Publish NuGet artifacts
       uses: actions/upload-artifact@v1
       with:
         name: NuGet package
@@ -32,4 +32,4 @@ jobs:
       uses: coverallsapp/github-action@master   
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }} 
-        path-to-lcov: TestResults/coverage.info 
+        path-to-lcov: BitFaster.Caching/BitFaster.Caching.UnitTests/TestResults/coverage.info 
