@@ -18,8 +18,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitFaster.Caching.HitRateAn
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitFaster.Caching.ThroughputAnalysis", "BitFaster.Caching.ThroughputAnalysis\BitFaster.Caching.ThroughputAnalysis.csproj", "{EF9968AF-10B2-4205-9C42-19A594BC98C1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BenchmarkDotNet.AsmSlicer", "BenchmarkDotNet.AsmSlicer\BenchmarkDotNet.AsmSlicer.csproj", "{8463D0AD-7215-477A-9FD2-446C85E048AE}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,10 +44,6 @@ Global
 		{EF9968AF-10B2-4205-9C42-19A594BC98C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF9968AF-10B2-4205-9C42-19A594BC98C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EF9968AF-10B2-4205-9C42-19A594BC98C1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8463D0AD-7215-477A-9FD2-446C85E048AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8463D0AD-7215-477A-9FD2-446C85E048AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8463D0AD-7215-477A-9FD2-446C85E048AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8463D0AD-7215-477A-9FD2-446C85E048AE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
