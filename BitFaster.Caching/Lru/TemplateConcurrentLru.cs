@@ -27,10 +27,10 @@ namespace BitFaster.Caching.Lru
     /// 5. When warm is full, warm tail is moved to warm head or cold depending on WasAccessed.
     /// 6. When cold is full, cold tail is moved to warm head or removed from dictionary on depending on WasAccessed.
     /// </remarks>
-    public class TemplateConcurrentLru<K, V, I, P, H> : ICache<K, V>
+    public class TemplateConcurrentLru<K, V, I, P, T> : ICache<K, V>
         where I : LruItem<K, V>
-        where P : struct, IPolicy<K, V, I>
-        where H : struct, IHitCounter
+        where P : struct, IItemPolicy<K, V, I>
+        where T : struct, ITelemetryPolicy<K, V>
     {
         private readonly ConcurrentDictionary<K, I> dictionary;
 
@@ -47,22 +47,22 @@ namespace BitFaster.Caching.Lru
         private readonly int warmCapacity;
         private readonly int coldCapacity;
 
-        private readonly P policy;
+        private readonly P itemPolicy;
 
         // Since H is a struct, making it readonly will force the runtime to make defensive copies
         // if mutate methods are called. Therefore, field must be mutable to maintain count.
-        protected H hitCounter;
+        protected T telemetryPolicy;
 
         public TemplateConcurrentLru(
             int concurrencyLevel,
             int capacity,
             IEqualityComparer<K> comparer,
             P itemPolicy,
-            H hitCounter)
+            T telemetryPolicy)
         {
             if (capacity < 3)
             {
-                throw new ArgumentOutOfRangeException("Capacity must be greater than or equal to 3.");
+                throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be greater than or equal to 3.");
             }
 
             if (comparer == null)
@@ -70,10 +70,10 @@ namespace BitFaster.Caching.Lru
                 throw new ArgumentNullException(nameof(comparer));
             }
 
-            var queueCapacity = ComputeQueueCapacity(capacity);
-            this.hotCapacity = queueCapacity.hot;
-            this.warmCapacity = queueCapacity.warm;
-            this.coldCapacity = queueCapacity.cold;
+            var (hot, warm, cold) = ComputeQueueCapacity(capacity);
+            this.hotCapacity = hot;
+            this.warmCapacity = warm;
+            this.coldCapacity = cold;
 
             this.hotQueue = new ConcurrentQueue<I>();
             this.warmQueue = new ConcurrentQueue<I>();
@@ -82,8 +82,9 @@ namespace BitFaster.Caching.Lru
             int dictionaryCapacity = this.hotCapacity + this.warmCapacity + this.coldCapacity + 1;
 
             this.dictionary = new ConcurrentDictionary<K, I>(concurrencyLevel, dictionaryCapacity, comparer);
-            this.policy = itemPolicy;
-            this.hitCounter = hitCounter;
+            this.itemPolicy = itemPolicy;
+            this.telemetryPolicy = telemetryPolicy;
+            this.telemetryPolicy.SetEventSource(this);
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -98,14 +99,13 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
-            I item;
-            if (dictionary.TryGetValue(key, out item))
+            if (dictionary.TryGetValue(key, out var item))
             {
                 return GetOrDiscard(item, out value);
             }
 
-            value = default(V);
-            this.hitCounter.IncrementMiss();
+            value = default;
+            this.telemetryPolicy.IncrementMiss();
             return false;
         }
 
@@ -114,100 +114,109 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool GetOrDiscard(I item, out V value)
         {
-            if (this.policy.ShouldDiscard(item))
+            if (this.itemPolicy.ShouldDiscard(item))
             {
                 this.Move(item, ItemDestination.Remove);
-                this.hitCounter.IncrementMiss();
-                value = default(V);
+                this.telemetryPolicy.IncrementMiss();
+                value = default;
                 return false;
             }
 
             value = item.Value;
-            this.policy.Touch(item);
-            this.hitCounter.IncrementHit();
+            this.itemPolicy.Touch(item);
+            this.telemetryPolicy.IncrementHit();
             return true;
         }
 
         ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
-            if (this.TryGet(key, out var value))
-            {
-                return value;
+            while (true)
+            {        
+                if (this.TryGet(key, out var value))
+                {
+                    return value;
+                }
+
+                // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+                // This is identical logic in ConcurrentDictionary.GetOrAdd method.
+                var newItem = this.itemPolicy.CreateItem(key, valueFactory(key));
+
+                if (this.dictionary.TryAdd(key, newItem))
+                {
+                    this.hotQueue.Enqueue(newItem);
+                    Interlocked.Increment(ref hotCount);
+                    Cycle();
+                    return newItem.Value;
+                }
+
+                Disposer<V>.Dispose(newItem.Value);
             }
-
-            // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-            // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-            var newItem = this.policy.CreateItem(key, valueFactory(key));
-
-            if (this.dictionary.TryAdd(key, newItem))
-            {
-                this.hotQueue.Enqueue(newItem);
-                Interlocked.Increment(ref hotCount);
-                Cycle();
-                return newItem.Value;
-            }
-
-            return this.GetOrAdd(key, valueFactory);
         }
 
         ///<inheritdoc/>
         public async Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
-            if (this.TryGet(key, out var value))
+            while (true)
             {
-                return value;
+                if (this.TryGet(key, out var value))
+                {
+                    return value;
+                }
+
+                // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+                // This is identical logic in ConcurrentDictionary.GetOrAdd method.
+                var newItem = this.itemPolicy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
+
+                if (this.dictionary.TryAdd(key, newItem))
+                {
+                    this.hotQueue.Enqueue(newItem);
+                    Interlocked.Increment(ref hotCount);
+                    Cycle();
+                    return newItem.Value;
+                }
+
+                Disposer<V>.Dispose(newItem.Value);
             }
-
-            // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-            // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-            var newItem = this.policy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
-
-            if (this.dictionary.TryAdd(key, newItem))
-            {
-                this.hotQueue.Enqueue(newItem);
-                Interlocked.Increment(ref hotCount);
-                Cycle();
-                return newItem.Value;
-            }
-
-            return await this.GetOrAddAsync(key, valueFactory).ConfigureAwait(false);
         }
 
         ///<inheritdoc/>
         public bool TryRemove(K key)
         {
-            if (this.dictionary.TryGetValue(key, out var existing))
-            {
-                var kvp = new KeyValuePair<K, I>(key, existing);
-
-                // hidden atomic remove
-                // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
-                if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
+            while (true)
+            { 
+                if (this.dictionary.TryGetValue(key, out var existing))
                 {
-                    // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
-                    // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
-                    // from the queue.
-                    existing.WasAccessed = false;
-                    existing.WasRemoved = true;
+                    var kvp = new KeyValuePair<K, I>(key, existing);
 
-                    // serialize dispose (common case dispose not thread safe)
-                    lock (existing)
+                    // hidden atomic remove
+                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                    if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
                     {
-                        if (existing.Value is IDisposable d)
+                        // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
+                        // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
+                        // from the queue.
+                        existing.WasAccessed = false;
+                        existing.WasRemoved = true;
+
+                        this.telemetryPolicy.OnItemRemoved(existing.Key, existing.Value, ItemRemovedReason.Removed);
+
+                        // serialize dispose (common case dispose not thread safe)
+                        lock (existing)
                         {
-                            d.Dispose();
+                            Disposer<V>.Dispose(existing.Value);
                         }
+
+                        return true;
                     }
 
-                    return true;
+                    // it existed, but we couldn't remove - this means value was replaced afer the TryGetValue (a race), try again
                 }
-
-                // it existed, but we couldn't remove - this means value was replaced afer the TryGetValue (a race), try again
-                return TryRemove(key);
+                else
+                { 
+                    return false;
+                }
             }
-
-            return false;
         }
 
         ///<inheritdoc/>
@@ -223,10 +232,7 @@ namespace BitFaster.Caching.Lru
                         V oldValue = existing.Value;
                         existing.Value = value;
 
-                        if (oldValue is IDisposable d)
-                        {
-                            d.Dispose();
-                        }
+                        Disposer<V>.Dispose(oldValue);
 
                         return true;
                     }
@@ -240,25 +246,27 @@ namespace BitFaster.Caching.Lru
         ///<remarks>Note: Updates to existing items do not affect LRU order. Added items are at the top of the LRU.</remarks>
         public void AddOrUpdate(K key, V value)
         { 
-            // first, try to update
-            if (this.TryUpdate(key, value))
+            while (true)
             { 
-                return;
+                // first, try to update
+                if (this.TryUpdate(key, value))
+                { 
+                    return;
+                }
+
+                // then try add
+                var newItem = this.itemPolicy.CreateItem(key, value);
+
+                if (this.dictionary.TryAdd(key, newItem))
+                {
+                    this.hotQueue.Enqueue(newItem);
+                    Interlocked.Increment(ref hotCount);
+                    Cycle();
+                    return;
+                }
+
+                // if both update and add failed there was a race, try again
             }
-
-            // then try add
-            var newItem = this.policy.CreateItem(key, value);
-
-            if (this.dictionary.TryAdd(key, newItem))
-            {
-                this.hotQueue.Enqueue(newItem);
-                Interlocked.Increment(ref hotCount);
-                Cycle();
-                return;
-            }
-
-            // if both update and add failed there was a race, try again
-            AddOrUpdate(key, value);
         }
 
         ///<inheritdoc/>
@@ -317,7 +325,7 @@ namespace BitFaster.Caching.Lru
 
             if (this.hotQueue.TryDequeue(out var item))
             {
-                var where = this.policy.RouteHot(item);
+                var where = this.itemPolicy.RouteHot(item);
                 this.Move(item, where);
             }
             else
@@ -341,7 +349,7 @@ namespace BitFaster.Caching.Lru
 
             if (this.warmQueue.TryDequeue(out var item))
             {
-                var where = this.policy.RouteWarm(item);
+                var where = this.itemPolicy.RouteWarm(item);
 
                 // When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
                 // This only happens when hit rate is high, in which case we can consider all items relatively equal in
@@ -376,7 +384,7 @@ namespace BitFaster.Caching.Lru
 
             if (this.coldQueue.TryDequeue(out var item))
             {
-                var where = this.policy.RouteCold(item);
+                var where = this.itemPolicy.RouteCold(item);
 
                 if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
                 {
@@ -418,12 +426,11 @@ namespace BitFaster.Caching.Lru
                     {
                         item.WasRemoved = true;
 
+                        this.telemetryPolicy.OnItemRemoved(item.Key, item.Value, ItemRemovedReason.Evicted);
+
                         lock (item)
-                        { 
-                            if (item.Value is IDisposable d)
-                            {
-                                d.Dispose();
-                            } 
+                        {
+                            Disposer<V>.Dispose(item.Value);
                         }
                     }
 

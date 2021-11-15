@@ -16,6 +16,13 @@ namespace BitFaster.Caching.UnitTests.Lru
 
         private ValueFactory valueFactory = new ValueFactory();
 
+        private List<ItemRemovedEventArgs<int, int>> removedItems = new List<ItemRemovedEventArgs<int, int>>();
+
+        private void OnLruItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
+        {
+            removedItems.Add(e);
+        }
+
         public ConcurrentTLruTests()
         {
             lru = new ConcurrentTLru<int, string>(1, capacity, EqualityComparer<int>.Default, timeToLive);
@@ -45,6 +52,44 @@ namespace BitFaster.Caching.UnitTests.Lru
             await Task.Delay(timeToLive * 2);
 
             lru.TryGet(1, out var value).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenValueEvictedItemRemovedEventIsFired()
+        {
+            var lruEvents = new ConcurrentTLru<int, int>(1, 6, EqualityComparer<int>.Default, timeToLive);
+            lruEvents.ItemRemoved += OnLruItemRemoved;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lruEvents.GetOrAdd(i + 1, i => i + 1);
+            }
+
+            removedItems.Count.Should().Be(2);
+
+            removedItems[0].Key.Should().Be(1);
+            removedItems[0].Value.Should().Be(2);
+            removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
+
+            removedItems[1].Key.Should().Be(2);
+            removedItems[1].Value.Should().Be(3);
+            removedItems[1].Reason.Should().Be(ItemRemovedReason.Evicted);
+        }
+
+        [Fact]
+        public void WhenItemRemovedEventIsUnregisteredEventIsNotFired()
+        {
+            var lruEvents = new ConcurrentTLru<int, int>(1, 6, EqualityComparer<int>.Default, timeToLive);
+
+            lruEvents.ItemRemoved += OnLruItemRemoved;
+            lruEvents.ItemRemoved -= OnLruItemRemoved;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lruEvents.GetOrAdd(i + 1, i => i + 1);
+            }
+
+            removedItems.Count.Should().Be(0);
         }
 
         [Fact]

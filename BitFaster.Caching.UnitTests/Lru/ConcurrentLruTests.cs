@@ -20,6 +20,13 @@ namespace BitFaster.Caching.UnitTests.Lru
         private ConcurrentLru<int, string> lru = new ConcurrentLru<int, string>(1, hotCap + warmCap + coldCap, EqualityComparer<int>.Default);
         private ValueFactory valueFactory = new ValueFactory();
 
+        private List<ItemRemovedEventArgs<int, int>> removedItems = new List<ItemRemovedEventArgs<int, int>>();
+
+        private void OnLruItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
+        {
+            removedItems.Add(e);
+        }
+
         public ConcurrentLruTests(ITestOutputHelper testOutputHelper)
         {
             this.testOutputHelper = testOutputHelper;
@@ -360,6 +367,44 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenValueEvictedItemRemovedEventIsFired()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
+            lruEvents.ItemRemoved += OnLruItemRemoved;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lruEvents.GetOrAdd(i+1, i => i + 1);
+            }
+
+            removedItems.Count.Should().Be(2);
+
+            removedItems[0].Key.Should().Be(1);
+            removedItems[0].Value.Should().Be(2);
+            removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
+
+            removedItems[1].Key.Should().Be(2);
+            removedItems[1].Value.Should().Be(3);
+            removedItems[1].Reason.Should().Be(ItemRemovedReason.Evicted);
+        }
+
+        [Fact]
+        public void WhenItemRemovedEventIsUnregisteredEventIsNotFired()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
+
+            lruEvents.ItemRemoved += OnLruItemRemoved;
+            lruEvents.ItemRemoved -= OnLruItemRemoved;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lruEvents.GetOrAdd(i + 1, i => i + 1);
+            }
+
+            removedItems.Count.Should().Be(0);
+        }
+
+        [Fact]
         public void WhenKeyExistsTryRemoveRemovesItemAndReturnsTrue()
         {
             lru.GetOrAdd(1, valueFactory.Create);
@@ -378,6 +423,22 @@ namespace BitFaster.Caching.UnitTests.Lru
             lruOfDisposable.TryRemove(1);
 
             disposableValueFactory.Items[1].IsDisposed.Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenItemIsRemovedRemovedEventIsFired()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
+            lruEvents.ItemRemoved += OnLruItemRemoved;
+
+            lruEvents.GetOrAdd(1, i => i+2);
+
+            lruEvents.TryRemove(1).Should().BeTrue();
+
+            removedItems.Count().Should().Be(1);
+            removedItems[0].Key.Should().Be(1);
+            removedItems[0].Value.Should().Be(3);
+            removedItems[0].Reason.Should().Be(ItemRemovedReason.Removed);
         }
 
         [Fact]
