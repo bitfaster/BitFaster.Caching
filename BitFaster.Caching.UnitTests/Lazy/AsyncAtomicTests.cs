@@ -92,8 +92,14 @@ namespace BitFaster.Caching.UnitTests.Lazy
             var t1 = Task.Run(async () => await a.GetValueAsync(1, async k => { enterFactory.SetResult(); await exitFactory.Task; return 42; }));
 
             await enterFactory.Task;
+            TaskCompletionSource enter2nd = new TaskCompletionSource();
 
-            var t2 = Task.Run(async () => await a.GetValueAsync(1, k => Task.FromResult(k + 2)));
+            var t2 = Task.Run(async () => { enter2nd.SetResult(); return await a.GetValueAsync(1, k => Task.FromResult(k + 2)); });
+
+            // there is no good way to synchronize here such that GetValueAsync has definately started running.
+            // Best we can do is wait for the task to run, then wait 10ms
+            await enter2nd.Task;
+            await Task.Delay(TimeSpan.FromMilliseconds(10));
 
             exitFactory.SetResult();
 
@@ -101,7 +107,6 @@ namespace BitFaster.Caching.UnitTests.Lazy
             r2.Should().Be(42);
         }
 
-        // TODO: this is flaky, why?
         [Fact]
         public async Task WhenTaskIsCachedAndThrowsAllWaitersRecieveException()
         {
@@ -115,7 +120,14 @@ namespace BitFaster.Caching.UnitTests.Lazy
 
             await enterFactory.Task;
 
-            var t2 = Task.Run(async () => await a.GetValueAsync(1, k => Task.FromResult(k + 2)));
+            TaskCompletionSource enter2nd = new TaskCompletionSource();
+
+            var t2 = Task.Run(async () => { enter2nd.SetResult(); return await a.GetValueAsync(1, k => Task.FromResult(k + 2)); });
+
+            // there is no good way to synchronize here such that GetValueAsync has definately started running.
+            // Best we can do is wait for the task to run, then wait 10ms
+            await enter2nd.Task;
+            await Task.Delay(TimeSpan.FromMilliseconds(10));
 
             exitFactory.SetResult();
 
