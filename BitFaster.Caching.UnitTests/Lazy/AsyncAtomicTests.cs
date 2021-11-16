@@ -101,6 +101,7 @@ namespace BitFaster.Caching.UnitTests.Lazy
             r2.Should().Be(42);
         }
 
+        // TODO: this is flaky, why?
         [Fact]
         public async Task WhenTaskIsCachedAndThrowsAllWaitersRecieveException()
         {
