@@ -60,5 +60,70 @@ namespace BitFaster.Caching.UnitTests.Lazy
             int r2 = await a.GetValueAsync(1, k => Task.FromResult(k + 12));
             r2.Should().Be(2);
         }
+
+        [Fact]
+        public async Task WhenGetValueThrowsExceptionIsNotCached()
+        {
+            AsyncAtomic<int, int> a = new();
+
+            try
+            {
+                int r1 = await a.GetValueAsync(1, k => throw new Exception());
+
+                throw new Exception("Expected GetValueAsync to throw");
+            }
+            catch
+            {
+            }
+            
+            int r2 = await a.GetValueAsync(1, k => Task.FromResult(k + 2));
+            r2.Should().Be(3);
+        }
+
+        // TODO: this signal method is not reliable
+        [Fact]
+        public async Task WhenTaskIsCachedAllWaitersRecieveResult()
+        {
+            AsyncAtomic<int, int> a = new();
+
+            TaskCompletionSource<int> valueFactory = new TaskCompletionSource<int>();
+            TaskCompletionSource signal = new TaskCompletionSource();
+
+            // Cache the task, don't wait
+            var t1 = Task.Run(async () => await a.GetValueAsync(1, k => { signal.SetResult(); return valueFactory.Task; }));
+
+            await signal.Task;
+
+            var t2 = Task.Run(async () => await a.GetValueAsync(1, k => Task.FromResult(k + 2)));
+
+            valueFactory.TrySetResult(666);
+
+            int r2 = await t2;
+            r2.Should().Be(666);
+        }
+
+        [Fact]
+        public async Task WhenTaskIsCachedAndThrowsAllWaitersRecieveException()
+        {
+            AsyncAtomic<int, int> a = new();
+
+            TaskCompletionSource<int> valueFactory = new TaskCompletionSource<int>();
+            TaskCompletionSource signal = new TaskCompletionSource();
+
+            // Cache the task, don't wait
+            var t1 = Task.Run(async () => await a.GetValueAsync(1, k => { signal.SetResult(); return valueFactory.Task; }));
+
+            await signal.Task;
+
+            var t2 = Task.Run(async () => await a.GetValueAsync(1, k => Task.FromResult(k + 2)));
+
+            valueFactory.SetException(new InvalidOperationException());
+
+            Func<Task> r1 = async () => { await t1; };
+            Func<Task> r2 = async () => { await t2; };
+
+            r1.Should().Throw<InvalidOperationException>();
+            r2.Should().Throw<InvalidOperationException>();
+        }
     }
 }
