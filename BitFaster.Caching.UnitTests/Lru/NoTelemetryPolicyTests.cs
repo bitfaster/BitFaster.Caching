@@ -28,5 +28,11 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             counter.Invoking(c => c.IncrementMiss()).Should().NotThrow();
         }
+
+        [Fact]
+        public void OnItemRemovedIsNoOp()
+        {
+            counter.Invoking(c => c.OnItemRemoved(1, 2, ItemRemovedReason.Evicted)).Should().NotThrow();
+        }
     }
 }
