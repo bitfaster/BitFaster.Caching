@@ -80,26 +80,25 @@ namespace BitFaster.Caching.UnitTests.Lazy
             r2.Should().Be(3);
         }
 
-        // TODO: this signal method is not reliable
         [Fact]
         public async Task WhenTaskIsCachedAllWaitersRecieveResult()
         {
             AsyncAtomic<int, int> a = new();
 
-            TaskCompletionSource<int> valueFactory = new TaskCompletionSource<int>();
-            TaskCompletionSource signal = new TaskCompletionSource();
+            TaskCompletionSource enterFactory = new TaskCompletionSource();
+            TaskCompletionSource exitFactory = new TaskCompletionSource();
 
             // Cache the task, don't wait
-            var t1 = Task.Run(async () => await a.GetValueAsync(1, k => { signal.SetResult(); return valueFactory.Task; }));
+            var t1 = Task.Run(async () => await a.GetValueAsync(1, async k => { enterFactory.SetResult(); await exitFactory.Task; return 42; }));
 
-            await signal.Task;
+            await enterFactory.Task;
 
             var t2 = Task.Run(async () => await a.GetValueAsync(1, k => Task.FromResult(k + 2)));
 
-            valueFactory.TrySetResult(666);
+            exitFactory.SetResult();
 
             int r2 = await t2;
-            r2.Should().Be(666);
+            r2.Should().Be(42);
         }
 
         [Fact]
@@ -107,17 +106,17 @@ namespace BitFaster.Caching.UnitTests.Lazy
         {
             AsyncAtomic<int, int> a = new();
 
-            TaskCompletionSource<int> valueFactory = new TaskCompletionSource<int>();
-            TaskCompletionSource signal = new TaskCompletionSource();
+            TaskCompletionSource enterFactory = new TaskCompletionSource();
+            TaskCompletionSource exitFactory = new TaskCompletionSource();
 
             // Cache the task, don't wait
-            var t1 = Task.Run(async () => await a.GetValueAsync(1, k => { signal.SetResult(); return valueFactory.Task; }));
+            var t1 = Task.Run(async () => await a.GetValueAsync(1, async k => { enterFactory.SetResult(); await exitFactory.Task; throw new InvalidOperationException(); }));
 
-            await signal.Task;
+            await enterFactory.Task;
 
             var t2 = Task.Run(async () => await a.GetValueAsync(1, k => Task.FromResult(k + 2)));
 
-            valueFactory.SetException(new InvalidOperationException());
+            exitFactory.SetResult();
 
             Func<Task> r1 = async () => { await t1; };
             Func<Task> r2 = async () => { await t2; };
