@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Benchmarks
@@ -16,9 +17,11 @@ namespace BitFaster.Caching.Benchmarks
     //|           ScopedConcurrentLruNativeFunc | 117.665 ns | 1.4390 ns | 1.3461 ns |  6.39 |    0.10 |     662 B | 0.0389 |     168 B |
     //|          ScopedConcurrentLruWrappedFunc | 132.697 ns | 0.6867 ns | 0.5734 ns |  7.19 |    0.08 |     565 B | 0.0610 |     264 B |
     //| ScopedConcurrentLruWrappedFuncProtected | 133.997 ns | 0.5089 ns | 0.4249 ns |  7.26 |    0.05 |     621 B | 0.0610 |     264 B |
-    [DisassemblyDiagnoser(printSource: true)]
+    [SimpleJob(RuntimeMoniker.Net48)]
+    [SimpleJob(RuntimeMoniker.Net60)]
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
-    public class ScopedExtBench
+    public class ScopedLruExtBench
     {
         private static readonly ConcurrentDictionary<int, SomeDisposable> dictionary = new ConcurrentDictionary<int, SomeDisposable>(8, 9, EqualityComparer<int>.Default);
 
