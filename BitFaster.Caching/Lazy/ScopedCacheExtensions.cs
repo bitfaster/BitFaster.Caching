@@ -37,14 +37,13 @@ namespace BitFaster.Caching
             }
         }
 
-        public static Lifetime<T> ScopedGetOrAddProtected<K, T>(this ICache<K, Scoped<T>> cache, K key, Func<K, T> valueFactory)
+        public static Lifetime<T> ScopedGetOrAddProtected<K, T>(this ICache<K, Scoped<T>> cache, K key, Func<K, Scoped<T>> valueFactory)
             where T : IDisposable
         {
             int c = 0;
             while (true)
             {
-                // Note: allocates a closure on every call
-                var scope = cache.GetOrAdd(key, k => new Scoped<T>(valueFactory(k)));
+                var scope = cache.GetOrAdd(key, k => valueFactory(k));
 
                 if (scope.TryCreateLifetime(out var lifetime))
                 {

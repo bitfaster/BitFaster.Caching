@@ -68,8 +68,8 @@ namespace BitFaster.Caching.Benchmarks
         [Benchmark()]
         public SomeDisposable ScopedConcurrentLruWrappedFuncProtected()
         {
-            // function generates item, extension method allocates a closure to create scoped<item>
-            Func<int, SomeDisposable> func = x => new SomeDisposable();
+            // function generates actual cached object (scoped wrapping item)
+            Func<int, Scoped<SomeDisposable>> func = x => new Scoped<SomeDisposable>(new SomeDisposable());
             using (var l = scopedConcurrentLru.ScopedGetOrAddProtected(1, func))
             {
                 return l.Value;
