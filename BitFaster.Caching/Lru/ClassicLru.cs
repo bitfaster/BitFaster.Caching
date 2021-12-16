@@ -49,7 +49,15 @@ namespace BitFaster.Caching.Lru
 
         public int Count => this.linkedList.Count;
 
+        /// <summary>
+        /// Gets the ratio of hits to misses, where a value of 1 indicates 100% hits.
+        /// </summary>
         public double HitRatio => (double)requestHitCount / (double)requestTotalCount;
+
+        /// <summary>
+        /// Gets a collection containing the keys in the cache.
+        /// </summary>
+        public ICollection<K> Keys => this.dictionary.Keys;
 
         ///<inheritdoc/>
         public bool TryGet(K key, out V value)
