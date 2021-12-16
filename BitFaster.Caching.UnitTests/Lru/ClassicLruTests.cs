@@ -57,6 +57,15 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenItemsAddedKeysContainsTheKeys()
+        {
+            lru.Count.Should().Be(0);
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+            lru.Keys.Should().BeEquivalentTo(new[] { 1, 2 });
+        }
+
+        [Fact]
         public void WhenItemExistsTryGetReturnsValueAndTrue()
         {
             lru.GetOrAdd(1, valueFactory.Create);
