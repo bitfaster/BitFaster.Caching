@@ -96,6 +96,11 @@ namespace BitFaster.Caching.Lru
 
         public int ColdCount => this.coldCount;
 
+        /// <summary>
+        /// Gets a collection containing the keys in the cache.
+        /// </summary>
+        public ICollection<K> Keys => this.dictionary.Keys;
+
         ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
