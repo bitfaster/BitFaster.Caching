@@ -9,6 +9,12 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
+    // SyncedAsync
+    // SyncedScoped
+    // SyncedAsyncScoped
+    //public class Synced<K,V>
+    //{ }
+
     // https://github.com/dotnet/runtime/issues/27421
     // https://github.com/alastairtree/LazyCache/issues/73
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]

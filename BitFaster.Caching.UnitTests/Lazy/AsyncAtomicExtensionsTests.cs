@@ -9,14 +9,19 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lazy
 {
-    public class AtomicExtensionsTests
+    public class AsyncAtomicExtensionsTests
     {
-        private ConcurrentLru<int, Atomic<int, int>> lru = new(2, 9, EqualityComparer<int>.Default);
+        private ConcurrentLru<int, AsyncAtomic<int, int>> lru = new(2, 9, EqualityComparer<int>.Default);
 
         [Fact]
-        public void GetOrAdd()
+        public async Task GetOrAddAsync()
         {
-            var rr = lru.GetOrAdd(1, i => i).Should().Be(1);
+            var ar = await lru.GetOrAddAsync(1, i => Task.FromResult(i));
+            
+            ar.Should().Be(1);
+
+            lru.TryGet(1, out int v);
+            lru.AddOrUpdate(1, 2);
         }
 
         [Fact]

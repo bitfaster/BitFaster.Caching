@@ -29,6 +29,8 @@ namespace BitFaster.Caching
             return this.refCount.Value.GetValueAsync(key, valueFactory);
         }
 
+        public bool IsValueCreated => this.refCount.Value.IsValueCreated;
+
         /// <summary>
         /// Gets the value.
         /// </summary>

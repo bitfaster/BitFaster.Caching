@@ -13,25 +13,23 @@ namespace BitFaster.Caching
         private ReferenceCount<AsyncAtomic<K, V>> refCount;
         private bool isDisposed;
 
-        private readonly AsyncAtomic<K, V> asyncAtomic;
-
         public ScopedAsyncAtomic()
         {
-            this.asyncAtomic = new AsyncAtomic<K, V>();
+            this.refCount = new ReferenceCount<AsyncAtomic<K, V>>(new AsyncAtomic<K, V>());
         }
 
         public ScopedAsyncAtomic(V value)
         {
-            this.asyncAtomic = new AsyncAtomic<K, V>(value);
+            this.refCount = new ReferenceCount<AsyncAtomic<K, V>>(new AsyncAtomic<K, V>(value));
         }
 
         public bool TryCreateLifetime(out AsyncAtomicLifetime<K, V> lifetime)
         {
-            if (!this.refCount.Value.IsValueCreated)
-            {
-                lifetime = default;
-                return false;
-            }
+            //if (!this.refCount.Value.IsValueCreated)
+            //{
+            //    lifetime = default;
+            //    return false;
+            //}
 
             // TODO: exact dupe
             while (true)
@@ -55,11 +53,12 @@ namespace BitFaster.Caching
         }
 
         public async Task<(bool succeeded, AsyncAtomicLifetime<K, V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<V>> valueFactory)
-        { 
-            // initialize - factory can throw so do this before we start counting refs
-            await this.asyncAtomic.GetValueAsync(key, valueFactory).ConfigureAwait(false);
+        {
+            if (!this.refCount.Value.IsValueCreated)
+            {
+                return (false, default);
+            }
 
-            // TODO: exact dupe
             while (true)
             {
                 var oldRefCount = this.refCount;
@@ -72,6 +71,10 @@ namespace BitFaster.Caching
 
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.IncrementCopy(), oldRefCount))
                 {
+                    // initialize -
+                    // TOOD: factory can throw so do this before we start counting refs
+                    await oldRefCount.Value.GetValueAsync(key, valueFactory).ConfigureAwait(false);
+
                     // When Lifetime is disposed, it calls DecrementReferenceCount
                     return (true,  new AsyncAtomicLifetime<K, V>(oldRefCount, this.DecrementReferenceCount));
                 }

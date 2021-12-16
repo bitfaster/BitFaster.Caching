@@ -9,16 +9,46 @@ namespace BitFaster.Caching
     public static class ScopedAsyncAtomicExtensions
     {
         // If a disposed ScopedAsyncAtomic is added to the cache, this method will get stuck in an infinite loop
+        //public static async Task<AsyncAtomicLifetime<K, V>> GetOrAddAsync<K, V>(this ICache<K, ScopedAsyncAtomic<K, V>> cache, K key, Func<K, Task<V>> valueFactory) where V : IDisposable
+        //{
+        //    while (true)
+        //    {
+        //        var scope = cache.GetOrAdd(key, _ => new ScopedAsyncAtomic<K, V>());
+        //        var result = await scope.TryCreateLifetimeAsync(key, valueFactory).ConfigureAwait(false);
+
+        //        if (result.succeeded)
+        //        {
+        //            return result.lifetime;
+        //        }
+        //    }
+        //}
+
         public static async Task<AsyncAtomicLifetime<K, V>> GetOrAddAsync<K, V>(this ICache<K, ScopedAsyncAtomic<K, V>> cache, K key, Func<K, Task<V>> valueFactory) where V : IDisposable
         {
             while (true)
             {
                 var scope = cache.GetOrAdd(key, _ => new ScopedAsyncAtomic<K, V>());
-                var result = await scope.TryCreateLifetimeAsync(key, valueFactory).ConfigureAwait(false);
 
-                if (result.succeeded)
+                if (scope.TryCreateLifetime(out var lifetime))
                 {
-                    return result.lifetime;
+                    // fast path
+                    if (lifetime.IsValueCreated)
+                    { 
+                        return lifetime;
+                    }
+
+                    // create value, must handle factory method throwing
+                    // TODO: should lifetime have an initilize method? return value never used
+                    try
+                    {
+                        await lifetime.GetValueAsync(key, valueFactory).ConfigureAwait(false);
+                        return lifetime;
+                    }
+                    catch
+                    {
+                        lifetime.Dispose();
+                        throw;
+                    }
                 }
             }
         }
