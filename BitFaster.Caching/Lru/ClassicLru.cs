@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace BitFaster.Caching.Lru
     /// </remarks>
     /// <typeparam name="K">The type of the key</typeparam>
     /// <typeparam name="V">The type of the value</typeparam>
-    public sealed class ClassicLru<K, V> : ICache<K, V>
+    public sealed class ClassicLru<K, V> : ICache<K, V>, IEnumerable<KeyValuePair<K, V>>
     {
         private readonly int capacity;
         private readonly ConcurrentDictionary<K, LinkedListNode<LruItem>> dictionary;
@@ -58,6 +59,22 @@ namespace BitFaster.Caching.Lru
         /// Gets a collection containing the keys in the cache.
         /// </summary>
         public ICollection<K> Keys => this.dictionary.Keys;
+
+        /// <summary>Returns an enumerator that iterates through the cache.</summary>
+        /// <returns>An enumerator for the cache.</returns>
+        /// <remarks>
+        /// The enumerator returned from the cache is safe to use concurrently with
+        /// reads and writes, however it does not represent a moment-in-time snapshot.  
+        /// The contents exposed through the enumerator may contain modifications
+        /// made after <see cref="GetEnumerator"/> was called.
+        /// </remarks>
+        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
+        {
+            foreach (var kvp in this.dictionary)
+            {
+                yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.Value.Value);
+            }
+        }
 
         ///<inheritdoc/>
         public bool TryGet(K key, out V value)
@@ -287,6 +304,19 @@ namespace BitFaster.Caching.Lru
                 linkedList.Remove(node);
                 linkedList.AddLast(node);
             }
+        }
+
+        /// <summary>Returns an enumerator that iterates through the cache.</summary>
+        /// <returns>An enumerator for the cache.</returns>
+        /// <remarks>
+        /// The enumerator returned from the cache is safe to use concurrently with
+        /// reads and writes, however it does not represent a moment-in-time snapshot.  
+        /// The contents exposed through the enumerator may contain modifications
+        /// made after <see cref="GetEnumerator"/> was called.
+        /// </remarks>
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((ClassicLru<K, V>)this).GetEnumerator();
         }
 
         private class LruItem
