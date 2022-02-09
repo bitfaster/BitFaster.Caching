@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using System.Collections;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -115,6 +116,26 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
             lru.Keys.Should().BeEquivalentTo(new[] { 1, 2 });
+        }
+
+        [Fact]
+        public void WhenItemsAddedGenericEnumerateContainsKvps()
+        {
+            lru.Count.Should().Be(0);
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+            lru.Should().BeEquivalentTo(new[] { new KeyValuePair<int, string>(1, "1"), new KeyValuePair<int, string>(2, "2") });
+        }
+
+        [Fact]
+        public void WhenItemsAddedEnumerateContainsKvps()
+        {
+            lru.Count.Should().Be(0);
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+
+            var enumerable = (IEnumerable)lru;
+            enumerable.Should().BeEquivalentTo(new[] { new KeyValuePair<int, string>(1, "1"), new KeyValuePair<int, string>(2, "2") });
         }
 
         [Fact]
