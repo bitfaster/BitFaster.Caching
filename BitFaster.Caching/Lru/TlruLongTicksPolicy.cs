@@ -18,12 +18,12 @@ namespace BitFaster.Caching.Lru
     public readonly struct TLruLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         // On some platforms (e.g. MacOS), stopwatch and timespan have different resolution
-        private static readonly long stopwatchAdjustmentFactor = Stopwatch.Frequency / TimeSpan.TicksPerSecond;
+        private static readonly double stopwatchAdjustmentFactor = Stopwatch.Frequency / (double)TimeSpan.TicksPerSecond;
         private readonly long timeToLive;
 
         public TLruLongTicksPolicy(TimeSpan timeToLive)
         {
-            this.timeToLive = timeToLive.Ticks * stopwatchAdjustmentFactor;
+            this.timeToLive = (long)(timeToLive.Ticks * stopwatchAdjustmentFactor);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
