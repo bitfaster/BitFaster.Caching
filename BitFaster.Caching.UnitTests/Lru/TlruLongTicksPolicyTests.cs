@@ -49,7 +49,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsExpiredShouldDiscardIsTrue()
         {
             var item = this.policy.CreateItem(1, 2);
-            item.TickCount = Stopwatch.GetTimestamp() - TimeSpan.FromSeconds(11).Ticks;
+            item.TickCount = Stopwatch.GetTimestamp() - TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.FromSeconds(11));
 
             this.policy.ShouldDiscard(item).Should().BeTrue();
         }
@@ -58,7 +58,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsNotExpiredShouldDiscardIsFalse()
         {
             var item = this.policy.CreateItem(1, 2);
-            item.TickCount = Stopwatch.GetTimestamp() - TimeSpan.FromSeconds(9).Ticks;
+            item.TickCount = Stopwatch.GetTimestamp() - TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.FromSeconds(9));
 
             this.policy.ShouldDiscard(item).Should().BeFalse();
         }
@@ -107,7 +107,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             if (isExpired)
             {
-                item.TickCount = Stopwatch.GetTimestamp() - TimeSpan.FromSeconds(11).Ticks;
+                item.TickCount = Stopwatch.GetTimestamp() - TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.FromSeconds(11));
             }
 
             return item;

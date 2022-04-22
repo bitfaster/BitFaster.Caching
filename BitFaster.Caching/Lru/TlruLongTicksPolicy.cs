@@ -23,7 +23,7 @@ namespace BitFaster.Caching.Lru
 
         public TLruLongTicksPolicy(TimeSpan timeToLive)
         {
-            this.timeToLive = (long)(timeToLive.Ticks * stopwatchAdjustmentFactor);
+            this.timeToLive = ToTicks(timeToLive);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -95,6 +95,11 @@ namespace BitFaster.Caching.Lru
             }
 
             return ItemDestination.Remove;
+        }
+
+        public static long ToTicks(TimeSpan timespan)
+        {
+            return (long)(timespan.Ticks * stopwatchAdjustmentFactor);
         }
     }
 }
