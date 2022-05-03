@@ -29,7 +29,7 @@ namespace BitFaster.Caching.Lru
 
         public ClassicLru(int capacity)
             : this(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default)
-        { 
+        {
         }
 
         public ClassicLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer)
@@ -224,7 +224,7 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         ///<remarks>Note: Updates to existing items do not affect LRU order. Added items are at the top of the LRU.</remarks>
         public void AddOrUpdate(K key, V value)
-        { 
+        {
             // first, try to update
             if (this.dictionary.TryGetValue(key, out var existingNode))
             {
@@ -272,15 +272,41 @@ namespace BitFaster.Caching.Lru
 
         ///<inheritdoc/>
         public void Clear()
-        { 
+        {
             // take a key snapshot
             var keys = this.dictionary.Keys.ToList();
 
             // remove all keys in the snapshot - this correctly handles disposable values
             foreach (var key in keys)
-            { 
-                TryRemove(key);    
+            {
+                TryRemove(key);
             }
+        }
+
+        ///<inheritdoc/>
+        public int Trim(int itemCount)
+        {
+            int itemsRemoved = 0;
+
+            for (int i = 0; i < itemCount; i++)
+            {
+                LinkedListNode<LruItem> first = null;
+
+                lock (this.linkedList)
+                {
+                    first = linkedList.First;
+                    linkedList.RemoveFirst();
+                }
+
+                if (first != null)
+                {
+                    dictionary.TryRemove(first.Value.Key, out var removed);
+                    Disposer<V>.Dispose(removed.Value.Value);
+                    itemsRemoved++;
+                }
+            }
+
+            return itemsRemoved;
         }
 
         // Thead A reads x from the dictionary. Thread B adds a new item. Thread A moves x to the end. Thread B now removes the new first Node (removal is atomic on both data structures).

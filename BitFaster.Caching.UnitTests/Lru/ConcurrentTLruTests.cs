@@ -100,5 +100,28 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.HitRatio.Should().Be(0.5);
         }
+
+        [Fact]
+        public async Task WhenItemsAreExpiredTrim0RemovesExpiredItems()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+            lru.GetOrAdd(3, valueFactory.Create);
+
+            lru.AddOrUpdate(4, "4");
+            lru.AddOrUpdate(5, "5");
+            lru.AddOrUpdate(6, "6");
+
+            lru.AddOrUpdate(7, "7");
+            lru.AddOrUpdate(8, "8");
+            lru.AddOrUpdate(9, "9");
+
+            await Task.Delay(timeToLive * 2);
+
+            lru.Trim(0).Should().Be(9);
+        }
     }
 }

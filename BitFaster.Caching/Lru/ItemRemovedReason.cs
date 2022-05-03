@@ -20,5 +20,15 @@ namespace BitFaster.Caching.Lru
         /// The item is removed from the cache by the cache eviction policy.
         /// </summary>
         Evicted,
+
+        /// <summary>
+        /// The item is removed from the cache by a clear method call.
+        /// </summary>
+        Clear,
+
+        /// <summary>
+        /// The item is removed from the cache by a trim method call.
+        /// </summary>
+        Trim,
     }
 }

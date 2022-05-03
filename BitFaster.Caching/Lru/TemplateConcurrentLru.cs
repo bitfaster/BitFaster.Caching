@@ -139,7 +139,7 @@ namespace BitFaster.Caching.Lru
         {
             if (this.itemPolicy.ShouldDiscard(item))
             {
-                this.Move(item, ItemDestination.Remove);
+                this.Move(item, ItemDestination.Remove, ItemRemovedReason.Evicted);
                 this.telemetryPolicy.IncrementMiss();
                 value = default;
                 return false;
@@ -310,9 +310,9 @@ namespace BitFaster.Caching.Lru
             // and queues will remain in a consistent state.
             for (int i = 0; i < keys.Count; i++)
             {
-                CycleHotUnchecked();
-                CycleWarmUnchecked();
-                CycleColdUnchecked();
+                CycleHotUnchecked(ItemRemovedReason.Clear);
+                CycleWarmUnchecked(ItemRemovedReason.Clear);
+                CycleColdUnchecked(ItemRemovedReason.Clear);
             }
         }
 
@@ -320,7 +320,7 @@ namespace BitFaster.Caching.Lru
         // E.g. capacity = 10, cacheCount = 6. itemCount = 3
         // should the result be 3 items in the cache remain (removed 3), or a no op (since free slots is 4, which is greater than 3)?
         // in other words, should the integer be maxCount, and above max count LRU items are discarded?
-        public void Trim(int itemCount)
+        public int Trim(int itemCount)
         {
             int capacity = this.coldCapacity + this.warmCapacity + this.hotCapacity;
 
@@ -329,31 +329,39 @@ namespace BitFaster.Caching.Lru
                 throw new ArgumentOutOfRangeException(nameof(itemCount), "itemCount must be greater than or equal to zero, and less than the capacity of the cache.");
             }
 
-            // TODO: clamp itemCount to number of items actually in the cache - it shouldn't be larger
+            // clamp itemCount to number of items actually in the cache - it shouldn't be larger
+            itemCount = Math.Min(itemCount, this.HotCount + this.WarmCount + this.ColdCount);
 
             int attempts = 0;
             int itemsRemoved = 0;
 
             // first scan each queue for discardable items and remove them. This can remove > itemCount items.
-            // TODO: does the JIT eliminate this code for pure LRU where ShouldDiscard is a no-op?
-            void RemoveDiscardableItems(ConcurrentQueue<I> q)
+            void RemoveDiscardableItems(ConcurrentQueue<I> q, ref int queueCounter)
             {
-                foreach (var i in q)
+                int localCount = queueCounter;
+
+                for (int i = 0; i < localCount; i++)
                 {
-                    if (this.itemPolicy.ShouldDiscard(i))
+                    if (q.TryDequeue(out var item))
                     {
-                        if (this.TryRemove(i.Key))
+                        if (this.itemPolicy.ShouldDiscard(item))
                         {
+                            Interlocked.Decrement(ref queueCounter);
+                            this.Move(item, ItemDestination.Remove, ItemRemovedReason.Trim);
                             itemsRemoved++;
+                        }
+                        else
+                        {
+                            q.Enqueue(item);
                         }
                     }
                 }
             }
 
-            RemoveDiscardableItems(hotQueue);
-            RemoveDiscardableItems(warmQueue);
-            RemoveDiscardableItems(coldQueue);
-
+            RemoveDiscardableItems(coldQueue, ref this.coldCount);
+            RemoveDiscardableItems(warmQueue, ref this.warmCount);
+            RemoveDiscardableItems(hotQueue, ref this.hotCount);
+            
             // If there is no activity while this loop is running, it will simply remove itemCount items.
             // If items are constantly added while running, size will be approx. same and eventually
             // attempts will be >= capacity terminating the loop.
@@ -363,28 +371,30 @@ namespace BitFaster.Caching.Lru
 
                 if (this.coldCount > 0)
                 {
-                    CycleColdUnchecked();
+                    CycleColdUnchecked(ItemRemovedReason.Trim);
                 }
                 else if (this.warmCount > 0)
                 {
-                    CycleWarmUnchecked();
+                    CycleWarmUnchecked(ItemRemovedReason.Trim);
                 }
                 else
                 {
-                    CycleHotUnchecked();
+                    CycleHotUnchecked(ItemRemovedReason.Trim);
                 }
 
-                // All discardable items were removed when scanning queues above. Therefore another thread adding an item that triggers a full cycle cannot remove
-                // more than one item, since discardable items are already trimmed.
+                // Since all discardable items were removed above another thread adding an item that
+                // triggers Cycle cannot remove more than one item.
                 int endCount = this.coldCount + this.warmCount + this.HotCount;
 
                 if (initialCount - endCount > 0)
                 {
-                    itemsRemoved ++;
+                    itemsRemoved++;
                 }
 
                 attempts++;
             }
+
+            return itemsRemoved;
         }
 
         private void Cycle()
@@ -408,19 +418,19 @@ namespace BitFaster.Caching.Lru
         {
             if (this.hotCount > this.hotCapacity)
             {
-                CycleHotUnchecked();
+                CycleHotUnchecked(ItemRemovedReason.Evicted);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CycleHotUnchecked()
+        private void CycleHotUnchecked(ItemRemovedReason removedReason)
         {
             Interlocked.Decrement(ref this.hotCount);
 
             if (this.hotQueue.TryDequeue(out var item))
             {
                 var where = this.itemPolicy.RouteHot(item);
-                this.Move(item, where);
+                this.Move(item, where, removedReason);
             }
             else
             {
@@ -432,12 +442,12 @@ namespace BitFaster.Caching.Lru
         {
             if (this.warmCount > this.warmCapacity)
             {
-                CycleWarmUnchecked();
+                CycleWarmUnchecked(ItemRemovedReason.Evicted);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CycleWarmUnchecked()
+        private void CycleWarmUnchecked(ItemRemovedReason removedReason)
         {
             Interlocked.Decrement(ref this.warmCount);
 
@@ -450,11 +460,11 @@ namespace BitFaster.Caching.Lru
                 // terms of which was least recently used.
                 if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
                 {
-                    this.Move(item, where);
+                    this.Move(item, where, removedReason);
                 }
                 else
                 {
-                    this.Move(item, ItemDestination.Cold);
+                    this.Move(item, ItemDestination.Cold, removedReason);
                 }
             }
             else
@@ -467,12 +477,12 @@ namespace BitFaster.Caching.Lru
         {
             if (this.coldCount > this.coldCapacity)
             {
-                CycleColdUnchecked();
+                CycleColdUnchecked(ItemRemovedReason.Evicted);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CycleColdUnchecked()
+        private void CycleColdUnchecked(ItemRemovedReason removedReason)
         {
             Interlocked.Decrement(ref this.coldCount);
 
@@ -482,11 +492,11 @@ namespace BitFaster.Caching.Lru
 
                 if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
                 {
-                    this.Move(item, where);
+                    this.Move(item, where, removedReason);
                 }
                 else
                 {
-                    this.Move(item, ItemDestination.Remove);
+                    this.Move(item, ItemDestination.Remove, removedReason);
                 }
             }
             else
@@ -496,7 +506,7 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Move(I item, ItemDestination where)
+        private void Move(I item, ItemDestination where, ItemRemovedReason removedReason)
         {
             item.WasAccessed = false;
 
@@ -520,7 +530,7 @@ namespace BitFaster.Caching.Lru
                     {
                         item.WasRemoved = true;
 
-                        this.telemetryPolicy.OnItemRemoved(item.Key, item.Value, ItemRemovedReason.Evicted);
+                        this.telemetryPolicy.OnItemRemoved(item.Key, item.Value, removedReason);
 
                         lock (item)
                         {

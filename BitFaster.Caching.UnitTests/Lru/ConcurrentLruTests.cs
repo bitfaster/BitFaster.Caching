@@ -609,6 +609,8 @@ namespace BitFaster.Caching.UnitTests.Lru
             items.All(i => i.IsDisposed == true).Should().BeTrue();
         }
 
+        // TODO: clear event
+
         [Fact]
         public void Trim()
         {
@@ -631,14 +633,15 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(8, "8");
             lru.AddOrUpdate(9, "9");
 
-            lru.Trim(4);
+            lru.Trim(4).Should().Be(4);
 
             // remove all of cold, then last element of warm:
             lru.Keys.Should().BeEquivalentTo(new[] { 9, 8, 7, 3, 2 });
         }
 
         // TODO: arg validation
+        // TODO: trim empty
         // TODO: trim + dispose
-        // TODO: TLRU + multi expired items.
+        // TODO: trim event
     }
 }
