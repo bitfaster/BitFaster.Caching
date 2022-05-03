@@ -634,7 +634,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(7, new[] { 9, 8 })]
         [InlineData(8, new[] { 9 })]
         [InlineData(9, new int[] { })]
-        public void WhenItemsExistTrimRemovesSpecifiedItemCount(int trimCount, int[] expected)
+        public void WhenColdItemsExistTrimRemovesExpectedItemCount(int trimCount, int[] expected)
         {
             // initial state:
             // Hot = 9, 8, 7
@@ -657,7 +657,65 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.Trim(trimCount).Should().Be(trimCount);
 
-            // remove all of cold, then last element of warm:
+            lru.Keys.Should().BeEquivalentTo(expected);
+        }
+
+        [Theory]
+        [InlineData(0, 0, new[] { 6, 5, 4, 3, 2, 1 })]
+        [InlineData(1, 1, new[] { 6, 5, 4, 3, 2 })]
+        [InlineData(2, 2, new[] { 6, 5, 4, 3 })]
+        [InlineData(3, 3, new[] { 6, 5, 4 })]
+        [InlineData(4, 4, new[] { 6, 5 })]
+        [InlineData(5, 5, new[] { 6 })]
+        [InlineData(6, 6, new int[] { })]
+        [InlineData(7, 6, new int[] { })]
+        [InlineData(8, 6, new int[] { })]
+        [InlineData(9, 6, new int[] { })]
+        public void WhenHotAndWarmItemsExistTrimRemovesExpectedItemCount(int itemCount, int expectedTrimCount, int[] expected)
+        {
+            // initial state:
+            // Hot = 6, 5, 4
+            // Warm = 3, 2, 1
+            // Cold = -
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.GetOrAdd(1, i => i.ToString());
+            lru.GetOrAdd(2, i => i.ToString());
+            lru.GetOrAdd(3, i => i.ToString());
+
+            lru.AddOrUpdate(4, "4");
+            lru.AddOrUpdate(5, "5");
+            lru.AddOrUpdate(6, "6");
+
+            lru.Trim(itemCount).Should().Be(expectedTrimCount);
+
+            lru.Keys.Should().BeEquivalentTo(expected);
+        }
+
+        [Theory]
+        [InlineData(0, 0, new[] { 3, 2, 1 })]
+        [InlineData(1, 1, new[] { 3, 2 })]
+        [InlineData(2, 2, new[] { 3 })]
+        [InlineData(3, 3, new int[] { })]
+        [InlineData(4, 3, new int[] { })]
+        [InlineData(5, 3, new int[] { })]
+        [InlineData(6, 3, new int[] { })]
+        [InlineData(7, 3, new int[] { })]
+        [InlineData(8, 3, new int[] { })]
+        [InlineData(9, 3, new int[] { })]
+        public void WhenHotItemsExistTrimRemovesExpectedItemCount(int itemCount, int expectedTrimCount, int[] expected)
+        {
+            // initial state:
+            // Hot = 3, 2, 1
+            // Warm = -
+            // Cold = -
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+
+            lru.Trim(itemCount).Should().Be(expectedTrimCount);
+
             lru.Keys.Should().BeEquivalentTo(expected);
         }
 

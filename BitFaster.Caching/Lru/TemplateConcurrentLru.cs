@@ -317,6 +317,7 @@ namespace BitFaster.Caching.Lru
         }
 
         // Removes d discardable items per IItemPolicy.ShouldDiscard(), then itemCount-d items in LRU order, if any.
+        // Note: this resets accessed status of items.
         public int Trim(int itemCount)
         {
             int capacity = this.coldCapacity + this.warmCapacity + this.hotCapacity;
@@ -370,7 +371,7 @@ namespace BitFaster.Caching.Lru
                 {
                     CycleColdUnchecked(ItemRemovedReason.Trim);
 
-                    // try to move either a warm or hot item into the slot
+                    // try to move either a warm or hot item into the freed slot
                     if (this.warmCount > 0)
                     {
                         CycleWarmUnchecked(ItemRemovedReason.Trim);
