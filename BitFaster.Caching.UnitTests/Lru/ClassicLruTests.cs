@@ -408,7 +408,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(1, new[] { 1, 3 })]
         [InlineData(2, new[] { 1 })]
         [InlineData(3, new int[] { })]
-        public void WhenItemsExistTrimRemovesSpecifiedItemCount(int trimCount, int[] expected)
+        public void WhenItemsExistTrimRemovesExpectedItemCount(int trimCount, int[] expected)
         {
             // initial state:
             // 1, 3, 2

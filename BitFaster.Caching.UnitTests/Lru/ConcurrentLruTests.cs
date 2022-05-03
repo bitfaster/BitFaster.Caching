@@ -756,11 +756,11 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             removedItems[0].Key.Should().Be(1);
             removedItems[0].Value.Should().Be(2);
-            removedItems[0].Reason.Should().Be(ItemRemovedReason.Trim);
+            removedItems[0].Reason.Should().Be(ItemRemovedReason.Trimmed);
 
             removedItems[1].Key.Should().Be(2);
             removedItems[1].Value.Should().Be(3);
-            removedItems[1].Reason.Should().Be(ItemRemovedReason.Trim);
+            removedItems[1].Reason.Should().Be(ItemRemovedReason.Trimmed);
         }
     }
 }

@@ -310,14 +310,23 @@ namespace BitFaster.Caching.Lru
             // and queues will remain in a consistent state.
             for (int i = 0; i < keys.Count; i++)
             {
-                CycleHotUnchecked(ItemRemovedReason.Clear);
-                CycleWarmUnchecked(ItemRemovedReason.Clear);
-                CycleColdUnchecked(ItemRemovedReason.Clear);
+                CycleHotUnchecked(ItemRemovedReason.Cleared);
+                CycleWarmUnchecked(ItemRemovedReason.Cleared);
+                CycleColdUnchecked(ItemRemovedReason.Cleared);
             }
         }
 
-        // Removes d discardable items per IItemPolicy.ShouldDiscard(), then itemCount-d items in LRU order, if any.
-        // Note: this resets accessed status of items.
+        /// <summary>
+        /// Trim the specified number of items from the cache. Removes d discardable items per IItemPolicy.ShouldDiscard(), then 
+        /// itemCount-d items in LRU order, if any.
+        /// </summary>
+        /// <param name="itemCount">The number of items to remove.</param>
+        /// <returns>The number of items removed from the cache.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="itemCount"/> is less than 0./</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="itemCount"/> is greater than capacity./</exception>
+        /// <remarks>
+        /// Note: Trim affects LRU order. Calling Trim resets the internal accessed status of items.
+        /// </remarks>
         public int Trim(int itemCount)
         {
             int capacity = this.coldCapacity + this.warmCapacity + this.hotCapacity;
@@ -327,7 +336,7 @@ namespace BitFaster.Caching.Lru
                 throw new ArgumentOutOfRangeException(nameof(itemCount), "itemCount must be greater than or equal to zero, and less than the capacity of the cache.");
             }
 
-            // clamp itemCount to number of items actually in the cache - it shouldn't be larger
+            // clamp itemCount to number of items actually in the cache
             itemCount = Math.Min(itemCount, this.HotCount + this.WarmCount + this.ColdCount);
 
             int attempts = 0;
@@ -345,7 +354,7 @@ namespace BitFaster.Caching.Lru
                         if (this.itemPolicy.ShouldDiscard(item))
                         {
                             Interlocked.Decrement(ref queueCounter);
-                            this.Move(item, ItemDestination.Remove, ItemRemovedReason.Trim);
+                            this.Move(item, ItemDestination.Remove, ItemRemovedReason.Trimmed);
                             itemsRemoved++;
                         }
                         else
@@ -365,38 +374,27 @@ namespace BitFaster.Caching.Lru
             // attempts will be >= capacity terminating the loop.
             while (itemsRemoved < itemCount && attempts < capacity)
             {
-                int initialCount = this.coldCount + this.warmCount + this.HotCount;
-
                 if (this.coldCount > 0)
                 {
-                    CycleColdUnchecked(ItemRemovedReason.Trim);
+                    if (CycleColdUnchecked(ItemRemovedReason.Trimmed)) itemsRemoved++;
 
                     // try to move either a warm or hot item into the freed slot
                     if (this.warmCount > 0)
                     {
-                        CycleWarmUnchecked(ItemRemovedReason.Trim);
+                        if (CycleWarmUnchecked(ItemRemovedReason.Trimmed)) itemsRemoved++;
                     }
                     else if (this.hotCount > 0)
                     {
-                        CycleHotUnchecked(ItemRemovedReason.Trim);
+                        if (CycleHotUnchecked(ItemRemovedReason.Trimmed)) itemsRemoved++;
                     }
                 }
                 else if (this.warmCount > 0)
                 {
-                    CycleWarmUnchecked(ItemRemovedReason.Trim);
+                    if (CycleWarmUnchecked(ItemRemovedReason.Trimmed)) itemsRemoved++;
                 }
                 else
                 {
-                    CycleHotUnchecked(ItemRemovedReason.Trim);
-                }
-
-                // Since all discardable items were removed above another thread adding an item that
-                // triggers Cycle cannot remove more than one item.
-                int endCount = this.coldCount + this.warmCount + this.HotCount;
-
-                if (initialCount - endCount > 0)
-                {
-                    itemsRemoved++;
+                    if (CycleHotUnchecked(ItemRemovedReason.Trimmed)) itemsRemoved++;
                 }
 
                 attempts++;
@@ -431,18 +429,19 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CycleHotUnchecked(ItemRemovedReason removedReason)
+        private bool CycleHotUnchecked(ItemRemovedReason removedReason)
         {
             Interlocked.Decrement(ref this.hotCount);
 
             if (this.hotQueue.TryDequeue(out var item))
             {
                 var where = this.itemPolicy.RouteHot(item);
-                this.Move(item, where, removedReason);
+                return this.Move(item, where, removedReason);
             }
             else
             {
                 Interlocked.Increment(ref this.hotCount);
+                return false;
             }
         }
 
@@ -455,7 +454,7 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CycleWarmUnchecked(ItemRemovedReason removedReason)
+        private bool CycleWarmUnchecked(ItemRemovedReason removedReason)
         {
             Interlocked.Decrement(ref this.warmCount);
 
@@ -468,16 +467,17 @@ namespace BitFaster.Caching.Lru
                 // terms of which was least recently used.
                 if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
                 {
-                    this.Move(item, where, removedReason);
+                    return this.Move(item, where, removedReason);
                 }
                 else
                 {
-                    this.Move(item, ItemDestination.Cold, removedReason);
+                    return this.Move(item, ItemDestination.Cold, removedReason);
                 }
             }
             else
             {
                 Interlocked.Increment(ref this.warmCount);
+                return false;
             }
         }
 
@@ -490,7 +490,7 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CycleColdUnchecked(ItemRemovedReason removedReason)
+        private bool CycleColdUnchecked(ItemRemovedReason removedReason)
         {
             Interlocked.Decrement(ref this.coldCount);
 
@@ -500,21 +500,22 @@ namespace BitFaster.Caching.Lru
 
                 if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
                 {
-                    this.Move(item, where, removedReason);
+                    return this.Move(item, where, removedReason);
                 }
                 else
                 {
-                    this.Move(item, ItemDestination.Remove, removedReason);
+                    return this.Move(item, ItemDestination.Remove, removedReason);
                 }
             }
             else
             {
                 Interlocked.Increment(ref this.coldCount);
-            }
+                return false;
+            }            
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Move(I item, ItemDestination where, ItemRemovedReason removedReason)
+        private bool Move(I item, ItemDestination where, ItemRemovedReason removedReason)
         {
             item.WasAccessed = false;
 
@@ -546,8 +547,10 @@ namespace BitFaster.Caching.Lru
                         }
                     }
 
-                    break;
+                    return true;
             }
+
+            return false;
         }
 
         private static (int hot, int warm, int cold) ComputeQueueCapacity(int capacity)

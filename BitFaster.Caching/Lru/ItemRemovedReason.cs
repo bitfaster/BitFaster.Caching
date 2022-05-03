@@ -12,23 +12,23 @@ namespace BitFaster.Caching.Lru
     public enum ItemRemovedReason
     {
         /// <summary>
-        /// The item is removed from the cache by a remove method call.
+        /// The item was removed from the cache by a remove method call.
         /// </summary>
         Removed,
 
         /// <summary>
-        /// The item is removed from the cache by the cache eviction policy.
+        /// The item was removed from the cache by the cache eviction policy.
         /// </summary>
         Evicted,
 
         /// <summary>
-        /// The item is removed from the cache by a clear method call.
+        /// The item was removed from the cache by a clear method call.
         /// </summary>
-        Clear,
+        Cleared,
 
         /// <summary>
-        /// The item is removed from the cache by a trim method call.
+        /// The item was removed from the cache by a trim method call.
         /// </summary>
-        Trim,
+        Trimmed,
     }
 }
