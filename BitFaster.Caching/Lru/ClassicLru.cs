@@ -286,6 +286,11 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public int Trim(int itemCount)
         {
+            if (itemCount < 0 || itemCount > this.capacity)
+            {
+                throw new ArgumentOutOfRangeException(nameof(itemCount), "itemCount must be greater than or equal to zero, and less than the capacity of the cache.");
+            }
+
             int itemsRemoved = 0;
 
             for (int i = 0; i < itemCount; i++)
@@ -294,8 +299,11 @@ namespace BitFaster.Caching.Lru
 
                 lock (this.linkedList)
                 {
-                    first = linkedList.First;
-                    linkedList.RemoveFirst();
+                    if (linkedList.Count > 0)
+                    {
+                        first = linkedList.First;
+                        linkedList.RemoveFirst();
+                    }
                 }
 
                 if (first != null)

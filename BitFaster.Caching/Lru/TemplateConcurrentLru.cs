@@ -316,10 +316,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
-        // How should this be defined? Removes d items the policy flags as discardable, then n-d items in LRU order?
-        // E.g. capacity = 10, cacheCount = 6. itemCount = 3
-        // should the result be 3 items in the cache remain (removed 3), or a no op (since free slots is 4, which is greater than 3)?
-        // in other words, should the integer be maxCount, and above max count LRU items are discarded?
+        // Removes d discardable items per IItemPolicy.ShouldDiscard(), then itemCount-d items in LRU order, if any.
         public int Trim(int itemCount)
         {
             int capacity = this.coldCapacity + this.warmCapacity + this.hotCapacity;
@@ -335,7 +332,7 @@ namespace BitFaster.Caching.Lru
             int attempts = 0;
             int itemsRemoved = 0;
 
-            // first scan each queue for discardable items and remove them. This can remove > itemCount items.
+            // first scan each queue for discardable items and remove them immediately. Note this can remove > itemCount items.
             void RemoveDiscardableItems(ConcurrentQueue<I> q, ref int queueCounter)
             {
                 int localCount = queueCounter;
@@ -372,6 +369,16 @@ namespace BitFaster.Caching.Lru
                 if (this.coldCount > 0)
                 {
                     CycleColdUnchecked(ItemRemovedReason.Trim);
+
+                    // try to move either a warm or hot item into the slot
+                    if (this.warmCount > 0)
+                    {
+                        CycleWarmUnchecked(ItemRemovedReason.Trim);
+                    }
+                    else if (this.hotCount > 0)
+                    {
+                        CycleHotUnchecked(ItemRemovedReason.Trim);
+                    }
                 }
                 else if (this.warmCount > 0)
                 {

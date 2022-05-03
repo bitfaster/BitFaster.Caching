@@ -390,5 +390,63 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             items.All(i => i.IsDisposed == true).Should().BeTrue();
         }
+
+        [Fact]
+        public void WhenTrimCountIsNegativeThrows()
+        { 
+            lru.Invoking(l => lru.Trim(-1)).Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenTrimCountIsMoreThanCapacityThrows()
+        {
+            lru.Invoking(l => lru.Trim(capacity + 1)).Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Theory]
+        [InlineData(0, new[] { 1, 3, 2 })]
+        [InlineData(1, new[] { 1, 3 })]
+        [InlineData(2, new[] { 1 })]
+        [InlineData(3, new int[] { })]
+        public void WhenItemsExistTrimRemovesSpecifiedItemCount(int trimCount, int[] expected)
+        {
+            // initial state:
+            // 1, 3, 2
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+
+            lru.GetOrAdd(1, i => i.ToString());
+
+            lru.Trim(trimCount).Should().Be(trimCount);
+
+            lru.Keys.Should().BeEquivalentTo(expected);
+        }
+
+        [Fact]
+        public void WhenCacheIsEmptyTrimReturns0()
+        {
+            lru.Trim(2).Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenItemsAreDisposableTrimDisposesItems()
+        {
+            var lruOfDisposable = new ClassicLru<int, DisposableItem>(1, 4, EqualityComparer<int>.Default);
+
+            var items = Enumerable.Range(1, 4).Select(i => new DisposableItem()).ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                lruOfDisposable.AddOrUpdate(i, items[i]);
+            }
+
+            lruOfDisposable.Trim(2).Should().Be(2);
+
+            items[0].IsDisposed.Should().BeTrue();
+            items[1].IsDisposed.Should().BeTrue();
+            items[2].IsDisposed.Should().BeFalse();
+            items[3].IsDisposed.Should().BeFalse();
+        }
     }
 }

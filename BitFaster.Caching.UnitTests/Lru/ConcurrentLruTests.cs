@@ -612,7 +612,29 @@ namespace BitFaster.Caching.UnitTests.Lru
         // TODO: clear event
 
         [Fact]
-        public void Trim()
+        public void WhenTrimCountIsNegativeThrows()
+        {
+            lru.Invoking(l => lru.Trim(-1)).Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenTrimCountIsMoreThanCapacityThrows()
+        {
+            lru.Invoking(l => lru.Trim(hotCap + warmCap + coldCap + 1)).Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Theory]
+        [InlineData(0, new[] { 9, 8, 7, 3, 2, 1, 6, 5, 4 })]
+        [InlineData(1, new[] { 9, 8, 7, 3, 2, 1, 6, 5 })]
+        [InlineData(2, new[] { 9, 8, 7, 3, 2, 1, 6 })]
+        [InlineData(3, new[] { 9, 8, 7, 3, 2, 1 })]
+        [InlineData(4, new[] { 9, 8, 7, 3, 2 })]
+        [InlineData(5, new[] { 9, 8, 7, 3 })]
+        [InlineData(6, new[] { 9, 8, 7 })]
+        [InlineData(7, new[] { 9, 8 })]
+        [InlineData(8, new[] { 9 })]
+        [InlineData(9, new int[] { })]
+        public void WhenItemsExistTrimRemovesSpecifiedItemCount(int trimCount, int[] expected)
         {
             // initial state:
             // Hot = 9, 8, 7
@@ -633,15 +655,54 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(8, "8");
             lru.AddOrUpdate(9, "9");
 
-            lru.Trim(4).Should().Be(4);
+            lru.Trim(trimCount).Should().Be(trimCount);
 
             // remove all of cold, then last element of warm:
-            lru.Keys.Should().BeEquivalentTo(new[] { 9, 8, 7, 3, 2 });
+            lru.Keys.Should().BeEquivalentTo(expected);
         }
 
-        // TODO: arg validation
-        // TODO: trim empty
-        // TODO: trim + dispose
-        // TODO: trim event
+        [Fact]
+        public void WhenItemsAreDisposableTrimDisposesItems()
+        {
+            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
+
+            var items = Enumerable.Range(1, 4).Select(i => new DisposableItem()).ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                lruOfDisposable.AddOrUpdate(i, items[i]);
+            }
+
+            lruOfDisposable.Trim(2).Should().Be(2);
+
+            items[0].IsDisposed.Should().BeTrue();
+            items[1].IsDisposed.Should().BeTrue();
+            items[2].IsDisposed.Should().BeFalse();
+            items[3].IsDisposed.Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenItemsAreTrimmedAnEventIsFired()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, 9, EqualityComparer<int>.Default);
+            lruEvents.ItemRemoved += OnLruItemRemoved;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lruEvents.GetOrAdd(i + 1, i => i + 1);
+            }
+
+            lruEvents.Trim(2);
+
+            removedItems.Count.Should().Be(2);
+
+            removedItems[0].Key.Should().Be(1);
+            removedItems[0].Value.Should().Be(2);
+            removedItems[0].Reason.Should().Be(ItemRemovedReason.Trim);
+
+            removedItems[1].Key.Should().Be(2);
+            removedItems[1].Value.Should().Be(3);
+            removedItems[1].Reason.Should().Be(ItemRemovedReason.Trim);
+        }
     }
 }
