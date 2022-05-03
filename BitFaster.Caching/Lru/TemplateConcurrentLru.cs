@@ -316,6 +316,77 @@ namespace BitFaster.Caching.Lru
             }
         }
 
+        // How should this be defined? Removes d items the policy flags as discardable, then n-d items in LRU order?
+        // E.g. capacity = 10, cacheCount = 6. itemCount = 3
+        // should the result be 3 items in the cache remain (removed 3), or a no op (since free slots is 4, which is greater than 3)?
+        // in other words, should the integer be maxCount, and above max count LRU items are discarded?
+        public void Trim(int itemCount)
+        {
+            int capacity = this.coldCapacity + this.warmCapacity + this.hotCapacity;
+
+            if (itemCount < 0 || itemCount > capacity)
+            { 
+                throw new ArgumentOutOfRangeException(nameof(itemCount), "itemCount must be greater than or equal to zero, and less than the capacity of the cache.");
+            }
+
+            // TODO: clamp itemCount to number of items actually in the cache - it shouldn't be larger
+
+            int attempts = 0;
+            int itemsRemoved = 0;
+
+            // first scan each queue for discardable items and remove them. This can remove > itemCount items.
+            // TODO: does the JIT eliminate this code for pure LRU where ShouldDiscard is a no-op?
+            void RemoveDiscardableItems(ConcurrentQueue<I> q)
+            {
+                foreach (var i in q)
+                {
+                    if (this.itemPolicy.ShouldDiscard(i))
+                    {
+                        if (this.TryRemove(i.Key))
+                        {
+                            itemsRemoved++;
+                        }
+                    }
+                }
+            }
+
+            RemoveDiscardableItems(hotQueue);
+            RemoveDiscardableItems(warmQueue);
+            RemoveDiscardableItems(coldQueue);
+
+            // If there is no activity while this loop is running, it will simply remove itemCount items.
+            // If items are constantly added while running, size will be approx. same and eventually
+            // attempts will be >= capacity terminating the loop.
+            while (itemsRemoved < itemCount && attempts < capacity)
+            {
+                int initialCount = this.coldCount + this.warmCount + this.HotCount;
+
+                if (this.coldCount > 0)
+                {
+                    CycleColdUnchecked();
+                }
+                else if (this.warmCount > 0)
+                {
+                    CycleWarmUnchecked();
+                }
+                else
+                {
+                    CycleHotUnchecked();
+                }
+
+                // All discardable items were removed when scanning queues above. Therefore another thread adding an item that triggers a full cycle cannot remove
+                // more than one item, since discardable items are already trimmed.
+                int endCount = this.coldCount + this.warmCount + this.HotCount;
+
+                if (initialCount - endCount > 0)
+                {
+                    itemsRemoved ++;
+                }
+
+                attempts++;
+            }
+        }
+
         private void Cycle()
         {
             // There will be races when queue count == queue capacity. Two threads may each dequeue items.

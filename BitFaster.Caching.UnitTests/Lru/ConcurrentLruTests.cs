@@ -404,7 +404,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             for (int i = 0; i < 6; i++)
             {
-                lruEvents.GetOrAdd(i+1, i => i + 1);
+                lruEvents.GetOrAdd(i + 1, i => i + 1);
             }
 
             removedItems.Count.Should().Be(2);
@@ -461,7 +461,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
             lruEvents.ItemRemoved += OnLruItemRemoved;
 
-            lruEvents.GetOrAdd(1, i => i+2);
+            lruEvents.GetOrAdd(1, i => i + 2);
 
             lruEvents.TryRemove(1).Should().BeTrue();
 
@@ -581,7 +581,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.AddOrUpdate(1, "1");
             lru.AddOrUpdate(2, "2");
-            
+
             lru.Clear();
 
             lru.Count.Should().Be(0);
@@ -608,5 +608,37 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             items.All(i => i.IsDisposed == true).Should().BeTrue();
         }
+
+        [Fact]
+        public void Trim()
+        {
+            // initial state:
+            // Hot = 9, 8, 7
+            // Warm = 3, 2, 1
+            // Cold = 6, 5, 4
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.GetOrAdd(1, i => i.ToString());
+            lru.GetOrAdd(2, i => i.ToString());
+            lru.GetOrAdd(3, i => i.ToString());
+
+            lru.AddOrUpdate(4, "4");
+            lru.AddOrUpdate(5, "5");
+            lru.AddOrUpdate(6, "6");
+
+            lru.AddOrUpdate(7, "7");
+            lru.AddOrUpdate(8, "8");
+            lru.AddOrUpdate(9, "9");
+
+            lru.Trim(4);
+
+            // remove all of cold, then last element of warm:
+            lru.Keys.Should().BeEquivalentTo(new[] { 9, 8, 7, 3, 2 });
+        }
+
+        // TODO: arg validation
+        // TODO: trim + dispose
+        // TODO: TLRU + multi expired items.
     }
 }
