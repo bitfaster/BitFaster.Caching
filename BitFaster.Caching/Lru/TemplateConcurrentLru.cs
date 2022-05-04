@@ -369,8 +369,6 @@ namespace BitFaster.Caching.Lru
 
         private void TrimLiveItems(int itemsRemoved, int itemCount)
         {
-            // Blocks runaway execution under heavy load by counting attempts. When items are constantly added to a full cache,
-            // LRU may evict items instead of trimming, so it is possible to cycle and not remove an item.
             while (itemsRemoved < itemCount)
             {
                 if (this.coldCount > 0)
