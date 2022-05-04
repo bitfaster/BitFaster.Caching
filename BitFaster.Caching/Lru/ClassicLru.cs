@@ -284,6 +284,8 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="itemCount"/> is less than 0./</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="itemCount"/> is greater than capacity./</exception>
         public int Trim(int itemCount)
         {
             if (itemCount < 0 || itemCount > this.capacity)

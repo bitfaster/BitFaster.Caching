@@ -317,8 +317,8 @@ namespace BitFaster.Caching.Lru
         }
 
         /// <summary>
-        /// Trim the specified number of items from the cache. Removes d discardable items per IItemPolicy.ShouldDiscard(), then 
-        /// itemCount-d items in LRU order, if any.
+        /// Trim the specified number of items from the cache. Removes all discardable items per IItemPolicy.ShouldDiscard(), then 
+        /// itemCount-discarded items in LRU order, if any.
         /// </summary>
         /// <param name="itemCount">The number of items to remove.</param>
         /// <returns>The number of items removed from the cache.</returns>
@@ -339,10 +339,16 @@ namespace BitFaster.Caching.Lru
             // clamp itemCount to number of items actually in the cache
             itemCount = Math.Min(itemCount, this.HotCount + this.WarmCount + this.ColdCount);
 
-            int attempts = 0;
+            // first scan each queue for discardable items and remove them immediately. Note this can remove > itemCount items.
+            int itemsRemoved = TrimAllDiscardedItems();
+
+            return TrimLiveItems(itemsRemoved, itemCount, capacity);
+        }
+
+        private int TrimAllDiscardedItems()
+        {
             int itemsRemoved = 0;
 
-            // first scan each queue for discardable items and remove them immediately. Note this can remove > itemCount items.
             void RemoveDiscardableItems(ConcurrentQueue<I> q, ref int queueCounter)
             {
                 int localCount = queueCounter;
@@ -368,39 +374,57 @@ namespace BitFaster.Caching.Lru
             RemoveDiscardableItems(coldQueue, ref this.coldCount);
             RemoveDiscardableItems(warmQueue, ref this.warmCount);
             RemoveDiscardableItems(hotQueue, ref this.hotCount);
-            
-            // If there is no activity while this loop is running, it will simply remove itemCount items.
-            // If items are constantly added while running, size will be approx. same and eventually
-            // attempts will be >= capacity terminating the loop.
+
+            return itemsRemoved;
+        }
+
+        private int TrimLiveItems(int itemsRemoved, int itemCount, int capacity)
+        {
+            int attempts = 0;
+
+            // Blocks runaway execution under heavy load by counting attempts. When items are constantly added to a full cache,
+            // LRU may evict items instead of trimming, so it is possible to cycle and not remove an item.
             while (itemsRemoved < itemCount && attempts < capacity)
             {
                 if (this.coldCount > 0)
                 {
-                    if (CycleColdUnchecked(ItemRemovedReason.Trimmed)) itemsRemoved++;
+                    if (CycleColdUnchecked(ItemRemovedReason.Trimmed))
+                    {
+                        itemsRemoved++;
 
-                    // try to move either a warm or hot item into the freed slot
-                    if (this.warmCount > 0)
-                    {
-                        if (CycleWarmUnchecked(ItemRemovedReason.Trimmed)) itemsRemoved++;
+                        // try to move either a warm or hot item into the freed slot
+                        if (TrimWarmOrHot())
+                        {
+                            itemsRemoved++;
+                        }
                     }
-                    else if (this.hotCount > 0)
-                    {
-                        if (CycleHotUnchecked(ItemRemovedReason.Trimmed)) itemsRemoved++;
-                    }
-                }
-                else if (this.warmCount > 0)
-                {
-                    if (CycleWarmUnchecked(ItemRemovedReason.Trimmed)) itemsRemoved++;
                 }
                 else
                 {
-                    if (CycleHotUnchecked(ItemRemovedReason.Trimmed)) itemsRemoved++;
+                    if (TrimWarmOrHot())
+                    {
+                        itemsRemoved++;
+                    }
                 }
 
                 attempts++;
             }
 
             return itemsRemoved;
+        }
+
+        private bool TrimWarmOrHot()
+        {
+            if (this.warmCount > 0)
+            {
+                return CycleWarmUnchecked(ItemRemovedReason.Trimmed);
+            }
+            else if (this.hotCount > 0)
+            {
+                return CycleHotUnchecked(ItemRemovedReason.Trimmed);
+            }
+
+            return false;
         }
 
         private void Cycle()
