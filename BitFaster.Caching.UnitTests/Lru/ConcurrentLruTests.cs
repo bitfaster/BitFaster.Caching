@@ -609,7 +609,26 @@ namespace BitFaster.Caching.UnitTests.Lru
             items.All(i => i.IsDisposed == true).Should().BeTrue();
         }
 
-        // TODO: clear event
+        [Fact]
+        public void WhenItemsArClearedAnEventIsFired()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, 9, EqualityComparer<int>.Default);
+            lruEvents.ItemRemoved += OnLruItemRemoved;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lruEvents.GetOrAdd(i + 1, i => i + 1);
+            }
+
+            lruEvents.Clear();
+
+            removedItems.Count.Should().Be(6);
+
+            for (int i = 0; i < 6; i++)
+            {
+                removedItems[i].Reason.Should().Be(ItemRemovedReason.Cleared);
+            }
+        }
 
         [Fact]
         public void WhenTrimCountIsNegativeThrows()
@@ -661,17 +680,17 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Theory]
-        [InlineData(0, 0, new[] { 6, 5, 4, 3, 2, 1 })]
-        [InlineData(1, 1, new[] { 6, 5, 4, 3, 2 })]
-        [InlineData(2, 2, new[] { 6, 5, 4, 3 })]
-        [InlineData(3, 3, new[] { 6, 5, 4 })]
-        [InlineData(4, 4, new[] { 6, 5 })]
-        [InlineData(5, 5, new[] { 6 })]
-        [InlineData(6, 6, new int[] { })]
-        [InlineData(7, 6, new int[] { })]
-        [InlineData(8, 6, new int[] { })]
-        [InlineData(9, 6, new int[] { })]
-        public void WhenHotAndWarmItemsExistTrimRemovesExpectedItemCount(int itemCount, int expectedTrimCount, int[] expected)
+        [InlineData(0, new[] { 6, 5, 4, 3, 2, 1 })]
+        [InlineData(1, new[] { 6, 5, 4, 3, 2 })]
+        [InlineData(2, new[] { 6, 5, 4, 3 })]
+        [InlineData(3, new[] { 6, 5, 4 })]
+        [InlineData(4, new[] { 6, 5 })]
+        [InlineData(5, new[] { 6 })]
+        [InlineData(6, new int[] { })]
+        [InlineData(7, new int[] { })]
+        [InlineData(8, new int[] { })]
+        [InlineData(9, new int[] { })]
+        public void WhenHotAndWarmItemsExistTrimRemovesExpectedItemCount(int itemCount, int[] expected)
         {
             // initial state:
             // Hot = 6, 5, 4
@@ -694,17 +713,17 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Theory]
-        [InlineData(0, 0, new[] { 3, 2, 1 })]
-        [InlineData(1, 1, new[] { 3, 2 })]
-        [InlineData(2, 2, new[] { 3 })]
-        [InlineData(3, 3, new int[] { })]
-        [InlineData(4, 3, new int[] { })]
-        [InlineData(5, 3, new int[] { })]
-        [InlineData(6, 3, new int[] { })]
-        [InlineData(7, 3, new int[] { })]
-        [InlineData(8, 3, new int[] { })]
-        [InlineData(9, 3, new int[] { })]
-        public void WhenHotItemsExistTrimRemovesExpectedItemCount(int itemCount, int expectedTrimCount, int[] expected)
+        [InlineData(0, new[] { 3, 2, 1 })]
+        [InlineData(1, new[] { 3, 2 })]
+        [InlineData(2, new[] { 3 })]
+        [InlineData(3, new int[] { })]
+        [InlineData(4, new int[] { })]
+        [InlineData(5, new int[] { })]
+        [InlineData(6, new int[] { })]
+        [InlineData(7, new int[] { })]
+        [InlineData(8, new int[] { })]
+        [InlineData(9, new int[] { })]
+        public void WhenHotItemsExistTrimRemovesExpectedItemCount(int itemCount, int[] expected)
         {
             // initial state:
             // Hot = 3, 2, 1
