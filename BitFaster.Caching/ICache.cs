@@ -72,7 +72,6 @@ namespace BitFaster.Caching
         /// Trim the specified number of items from the cache.
         /// </summary>
         /// <param name="itemCount">The number of items to remove.</param>
-        /// <returns>The number of items removed from the cache.</returns>
-        int Trim(int itemCount);
+        void Trim(int itemCount);
     }
 }

@@ -121,7 +121,9 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             await Task.Delay(timeToLive * 2);
 
-            lru.Trim(0).Should().Be(9);
+            lru.Trim(0);
+
+            lru.Count.Should().Be(0);
         }
     }
 }

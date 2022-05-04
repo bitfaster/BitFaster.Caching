@@ -286,14 +286,12 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="itemCount"/> is less than 0./</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="itemCount"/> is greater than capacity./</exception>
-        public int Trim(int itemCount)
+        public void Trim(int itemCount)
         {
             if (itemCount < 0 || itemCount > this.capacity)
             {
                 throw new ArgumentOutOfRangeException(nameof(itemCount), "itemCount must be greater than or equal to zero, and less than the capacity of the cache.");
             }
-
-            int itemsRemoved = 0;
 
             for (int i = 0; i < itemCount; i++)
             {
@@ -312,11 +310,8 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
                     Disposer<V>.Dispose(removed.Value.Value);
-                    itemsRemoved++;
                 }
             }
-
-            return itemsRemoved;
         }
 
         // Thead A reads x from the dictionary. Thread B adds a new item. Thread A moves x to the end. Thread B now removes the new first Node (removal is atomic on both data structures).

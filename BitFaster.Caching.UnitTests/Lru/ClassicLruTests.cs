@@ -418,15 +418,15 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.GetOrAdd(1, i => i.ToString());
 
-            lru.Trim(trimCount).Should().Be(trimCount);
+            lru.Trim(trimCount);
 
             lru.Keys.Should().BeEquivalentTo(expected);
         }
 
         [Fact]
-        public void WhenCacheIsEmptyTrimReturns0()
+        public void WhenCacheIsEmptyTrimIsNoOp()
         {
-            lru.Trim(2).Should().Be(0);
+            lru.Trim(2);
         }
 
         [Fact]
@@ -441,7 +441,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lruOfDisposable.AddOrUpdate(i, items[i]);
             }
 
-            lruOfDisposable.Trim(2).Should().Be(2);
+            lruOfDisposable.Trim(2);
 
             items[0].IsDisposed.Should().BeTrue();
             items[1].IsDisposed.Should().BeTrue();
