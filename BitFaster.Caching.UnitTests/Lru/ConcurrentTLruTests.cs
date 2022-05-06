@@ -5,12 +5,13 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
+using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
     public class ConcurrentTLruTests
     {
-        private readonly TimeSpan timeToLive = TimeSpan.FromSeconds(1);
+        private readonly TimeSpan timeToLive = TimeSpan.FromMilliseconds(10);
         private const int capacity = 9;
         private ConcurrentTLru<int, string> lru;
 
@@ -102,7 +103,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenItemsAreExpiredExpire0RemovesExpiredItems()
+        public async Task WhenItemsAreExpiredExpireRemovesExpiredItems()
         {
             lru.AddOrUpdate(1, "1");
             lru.AddOrUpdate(2, "2");
@@ -126,6 +127,18 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Count.Should().Be(0);
         }
 
-        // TODO: Trim
+        [Fact]
+        public async Task WhenItemsAreExpiredTrimRemovesExpiredItems()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+
+            await Task.Delay(timeToLive * 2);
+
+            lru.Trim(1);
+
+            lru.Count.Should().Be(0);
+        }
     }
 }

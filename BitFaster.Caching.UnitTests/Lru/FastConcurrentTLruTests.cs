@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Xunit;
+using System.Threading.Tasks;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -27,7 +28,22 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             x.GetOrAdd(1, k => k).Should().Be(1);
         }
-        
-        // TODO: Expire
+
+        [Fact]
+        public async Task WhenItemsAreExpiredExpireRemovesExpiredItems()
+        {
+            var ttl = TimeSpan.FromMilliseconds(10);
+            var lru = new FastConcurrentTLru<int, string>(9, 9, EqualityComparer<int>.Default, ttl);
+
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+
+            await Task.Delay(ttl * 2);
+
+            lru.Expire();
+
+            lru.Count.Should().Be(0);
+        }
     }
 }
