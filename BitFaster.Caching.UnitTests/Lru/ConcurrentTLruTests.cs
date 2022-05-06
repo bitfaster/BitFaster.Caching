@@ -128,6 +128,28 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public async Task WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+
+            lru.AddOrUpdate(4, "4");
+            lru.AddOrUpdate(5, "5");
+            lru.AddOrUpdate(6, "6");
+
+            await Task.Delay(timeToLive * 2);
+
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+            lru.GetOrAdd(3, valueFactory.Create);
+
+            lru.Expire();
+
+            lru.Count.Should().Be(3);
+        }
+
+        [Fact]
         public async Task WhenItemsAreExpiredTrimRemovesExpiredItems()
         {
             lru.AddOrUpdate(1, "1");
