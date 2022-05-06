@@ -288,9 +288,9 @@ namespace BitFaster.Caching.Lru
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="itemCount"/> is greater than capacity./</exception>
         public void Trim(int itemCount)
         {
-            if (itemCount < 0 || itemCount > this.capacity)
+            if (itemCount < 1 || itemCount > this.capacity)
             {
-                throw new ArgumentOutOfRangeException(nameof(itemCount), "itemCount must be greater than or equal to zero, and less than the capacity of the cache.");
+                throw new ArgumentOutOfRangeException(nameof(itemCount), "itemCount must be greater than or equal to one, and less than the capacity of the cache.");
             }
 
             for (int i = 0; i < itemCount; i++)

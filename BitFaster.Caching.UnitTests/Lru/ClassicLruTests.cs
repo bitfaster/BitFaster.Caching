@@ -392,9 +392,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void WhenTrimCountIsNegativeThrows()
+        public void WhenTrimCountIsZeroThrows()
         { 
-            lru.Invoking(l => lru.Trim(-1)).Should().Throw<ArgumentOutOfRangeException>();
+            lru.Invoking(l => lru.Trim(0)).Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [Fact]
@@ -404,7 +404,6 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Theory]
-        [InlineData(0, new[] { 1, 3, 2 })]
         [InlineData(1, new[] { 1, 3 })]
         [InlineData(2, new[] { 1 })]
         [InlineData(3, new int[] { })]
