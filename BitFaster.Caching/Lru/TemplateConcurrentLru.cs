@@ -320,21 +320,21 @@ namespace BitFaster.Caching.Lru
         {
             int capacity = this.coldCapacity + this.warmCapacity + this.hotCapacity;
 
-            if (itemCount < 0 || itemCount > capacity)
+            if (itemCount < 1 || itemCount > capacity)
             { 
-                throw new ArgumentOutOfRangeException(nameof(itemCount), "itemCount must be greater than or equal to zero, and less than the capacity of the cache.");
+                throw new ArgumentOutOfRangeException(nameof(itemCount), "itemCount must be greater than or equal to one, and less than the capacity of the cache.");
             }
 
             // clamp itemCount to number of items actually in the cache
             itemCount = Math.Min(itemCount, this.HotCount + this.WarmCount + this.ColdCount);
 
             // first scan each queue for discardable items and remove them immediately. Note this can remove > itemCount items.
-            int itemsRemoved = TrimAllDiscardedItems();
+            int itemsRemoved = this.itemPolicy.CanDiscard() ? TrimAllDiscardedItems() : 0;
 
             TrimLiveItems(itemsRemoved, itemCount, capacity);
         }
 
-        private int TrimAllDiscardedItems()
+        protected int TrimAllDiscardedItems()
         {
             int itemsRemoved = 0;
 
@@ -370,10 +370,10 @@ namespace BitFaster.Caching.Lru
         private void TrimLiveItems(int itemsRemoved, int itemCount, int capacity)
         {
             // If clear is called during trimming, it would be possible to get stuck in an infinite
-            // loop here. So bail after capacity attempts.
-            int attempts = 0;
+            // loop here. Instead quit after 3 consecutive failed attempts to move warm/hot to cold.
+            int trimWarmAttempts = 0;
 
-            while (itemsRemoved < itemCount && attempts++ < capacity)
+            while (itemsRemoved < itemCount && trimWarmAttempts < 3)
             {
                 if (this.coldCount > 0)
                 {
@@ -382,10 +382,12 @@ namespace BitFaster.Caching.Lru
                     // try to move either a warm or hot item into the freed slot
                     TrimWarmOrHot();
                     itemsRemoved++;
+                    trimWarmAttempts = 0;
                 }
                 else
                 {
                     TrimWarmOrHot();
+                    trimWarmAttempts++;
                 }
             }
         }

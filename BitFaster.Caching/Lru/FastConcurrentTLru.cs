@@ -30,5 +30,14 @@ namespace BitFaster.Caching.Lru
             : base(concurrencyLevel, capacity, comparer, new TLruLongTicksPolicy<K, V>(timeToLive), default)
         {
         }
+
+        /// <summary>
+        /// Evict all expired items.
+        /// </summary>
+        /// <remarks>This is an O(n) operation.</remarks>
+        public void Expire()
+        {
+            this.TrimAllDiscardedItems();
+        }
     }
 }

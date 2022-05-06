@@ -27,5 +27,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             x.GetOrAdd(1, k => k).Should().Be(1);
         }
+        
+        // TODO: Expire
     }
 }

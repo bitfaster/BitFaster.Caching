@@ -102,7 +102,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenItemsAreExpiredTrim0RemovesExpiredItems()
+        public async Task WhenItemsAreExpiredExpire0RemovesExpiredItems()
         {
             lru.AddOrUpdate(1, "1");
             lru.AddOrUpdate(2, "2");
@@ -121,9 +121,11 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             await Task.Delay(timeToLive * 2);
 
-            lru.Trim(0);
+            lru.Expire();
 
             lru.Count.Should().Be(0);
         }
+
+        // TODO: Trim
     }
 }

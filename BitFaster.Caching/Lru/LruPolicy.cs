@@ -31,6 +31,12 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool CanDiscard()
+        {
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteHot(LruItem<K, V> item)
         {
             if (item.WasAccessed)
