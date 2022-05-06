@@ -331,7 +331,7 @@ namespace BitFaster.Caching.Lru
             // first scan each queue for discardable items and remove them immediately. Note this can remove > itemCount items.
             int itemsRemoved = TrimAllDiscardedItems();
 
-            TrimLiveItems(itemsRemoved, itemCount);
+            TrimLiveItems(itemsRemoved, itemCount, capacity);
         }
 
         private int TrimAllDiscardedItems()
@@ -367,9 +367,13 @@ namespace BitFaster.Caching.Lru
             return itemsRemoved;
         }
 
-        private void TrimLiveItems(int itemsRemoved, int itemCount)
+        private void TrimLiveItems(int itemsRemoved, int itemCount, int capacity)
         {
-            while (itemsRemoved < itemCount)
+            // If clear is called during trimming, it would be possible to get stuck in an infinite
+            // loop here. So bail after capacity attempts.
+            int attempts = 0;
+
+            while (itemsRemoved < itemCount && attempts++ < capacity)
             {
                 if (this.coldCount > 0)
                 {
