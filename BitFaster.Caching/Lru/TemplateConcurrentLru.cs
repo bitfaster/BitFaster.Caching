@@ -301,7 +301,7 @@ namespace BitFaster.Caching.Lru
             {
                 CycleHotUnchecked(ItemRemovedReason.Cleared);
                 CycleWarmUnchecked(ItemRemovedReason.Cleared);
-                CycleColdUnchecked(ItemRemovedReason.Cleared);
+                TryRemoveCold(ItemRemovedReason.Cleared);
             }
         }
 
@@ -370,19 +370,21 @@ namespace BitFaster.Caching.Lru
         private void TrimLiveItems(int itemsRemoved, int itemCount, int capacity)
         {
             // If clear is called during trimming, it would be possible to get stuck in an infinite
-            // loop here. Instead quit after 3 consecutive failed attempts to move warm/hot to cold.
+            // loop here. Instead quit after n consecutive failed attempts to move warm/hot to cold.
             int trimWarmAttempts = 0;
+            int maxAttempts = this.coldCapacity + 1;
 
-            while (itemsRemoved < itemCount && trimWarmAttempts < 3)
+            while (itemsRemoved < itemCount && trimWarmAttempts < maxAttempts)
             {
                 if (this.coldCount > 0)
                 {
-                    CycleColdUnchecked(ItemRemovedReason.Trimmed);
+                    if (TryRemoveCold(ItemRemovedReason.Trimmed))
+                    {
+                        itemsRemoved++;
+                        trimWarmAttempts = 0;
+                    }
 
-                    // try to move either a warm or hot item into the freed slot
                     TrimWarmOrHot();
-                    itemsRemoved++;
-                    trimWarmAttempts = 0;
                 }
                 else
                 {
@@ -484,12 +486,12 @@ namespace BitFaster.Caching.Lru
         {
             if (this.coldCount > this.coldCapacity)
             {
-                CycleColdUnchecked(ItemRemovedReason.Evicted);
+                TryRemoveCold(ItemRemovedReason.Evicted);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CycleColdUnchecked(ItemRemovedReason removedReason)
+        private bool TryRemoveCold(ItemRemovedReason removedReason)
         {
             Interlocked.Decrement(ref this.coldCount);
 
@@ -500,15 +502,18 @@ namespace BitFaster.Caching.Lru
                 if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
                 {
                     this.Move(item, where, removedReason);
+                    return false;
                 }
                 else
                 {
                     this.Move(item, ItemDestination.Remove, removedReason);
+                    return true;
                 }
             }
             else
             {
                 Interlocked.Increment(ref this.coldCount);
+                return false;
             }            
         }
 

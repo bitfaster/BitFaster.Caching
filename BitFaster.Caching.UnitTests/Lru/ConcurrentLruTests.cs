@@ -735,6 +735,50 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Keys.Should().BeEquivalentTo(expected);
         }
 
+        [Theory]
+        [InlineData(1, new[] { 9, 8, 7, 6, 5, 4, 3, 2 })]
+        [InlineData(2, new[] { 9, 8, 7, 6, 5, 4, 3 })]
+        [InlineData(3, new[] { 9, 8, 7, 6, 5, 4 })]
+        [InlineData(4, new[] { 9, 8, 7, 6, 5 })]
+        [InlineData(5, new[] { 9, 8, 7, 6 })]
+        [InlineData(6, new[] { 9, 8, 7 })]
+        [InlineData(7, new[] { 9, 8 })]
+        [InlineData(8, new[] { 9 })]
+        [InlineData(9, new int[] { })]
+        public void WhenColdItemsAreTouchedTrimRemovesExpectedItemCount(int trimCount, int[] expected)
+        {
+            // initial state:
+            // Hot = 9, 8, 7
+            // Warm = 3, 2, 1
+            // Cold = 6*, 5*, 4*
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.GetOrAdd(1, i => i.ToString());
+            lru.GetOrAdd(2, i => i.ToString());
+            lru.GetOrAdd(3, i => i.ToString());
+
+            lru.AddOrUpdate(4, "4");
+            lru.AddOrUpdate(5, "5");
+            lru.AddOrUpdate(6, "6");
+
+            lru.AddOrUpdate(7, "7");
+            lru.AddOrUpdate(8, "8");
+            lru.AddOrUpdate(9, "9");
+
+            // touch all items in the cold queue
+            lru.GetOrAdd(4, i => i.ToString());
+            lru.GetOrAdd(5, i => i.ToString());
+            lru.GetOrAdd(6, i => i.ToString());
+
+            lru.Trim(trimCount);
+
+            this.testOutputHelper.WriteLine("LRU " + string.Join(" ", lru.Keys));
+            this.testOutputHelper.WriteLine("exp " + string.Join(" ", expected));
+
+            lru.Keys.Should().BeEquivalentTo(expected);
+        }
+
         [Fact]
         public void WhenItemsAreDisposableTrimDisposesItems()
         {

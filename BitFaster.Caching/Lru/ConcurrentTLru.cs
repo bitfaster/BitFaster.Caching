@@ -51,7 +51,7 @@ namespace BitFaster.Caching.Lru
         /// Remove all expired items from the cache.
         /// </summary>
         /// <remarks>O(n) where n is the number of items in the cache.</remarks>
-        public void Expire()
+        public void TrimExpired()
         {
             this.TrimAllDiscardedItems();
         }

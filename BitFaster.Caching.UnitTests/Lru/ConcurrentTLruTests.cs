@@ -121,7 +121,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             await Task.Delay(timeToLive * 2);
 
-            lru.Expire();
+            lru.TrimExpired();
 
             lru.Count.Should().Be(0);
         }
@@ -143,7 +143,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(2, valueFactory.Create);
             lru.GetOrAdd(3, valueFactory.Create);
 
-            lru.Expire();
+            lru.TrimExpired();
 
             lru.Count.Should().Be(3);
         }

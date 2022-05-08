@@ -41,7 +41,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             await Task.Delay(ttl * 2);
 
-            lru.Expire();
+            lru.TrimExpired();
 
             lru.Count.Should().Be(0);
         }
