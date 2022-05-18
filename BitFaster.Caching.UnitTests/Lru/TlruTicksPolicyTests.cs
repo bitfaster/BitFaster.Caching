@@ -60,6 +60,12 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.policy.ShouldDiscard(item).Should().BeFalse();
         }
 
+        [Fact]
+        public void CanDiscardIsTrue()
+        {
+            this.policy.CanDiscard().Should().BeTrue();
+        }
+
         [Theory]
         [InlineData(false, true, ItemDestination.Remove)]
         [InlineData(true, true, ItemDestination.Remove)]

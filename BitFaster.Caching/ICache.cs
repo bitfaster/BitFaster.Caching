@@ -67,5 +67,11 @@ namespace BitFaster.Caching
         /// Removes all keys and values from the cache.
         /// </summary>
         void Clear();
+
+        /// <summary>
+        /// Trim the specified number of items from the cache.
+        /// </summary>
+        /// <param name="itemCount">The number of items to remove.</param>
+        void Trim(int itemCount);
     }
 }

@@ -14,6 +14,8 @@ namespace BitFaster.Caching.Lru
 
         bool ShouldDiscard(I item);
 
+        bool CanDiscard();
+
         ItemDestination RouteHot(I item);
 
         ItemDestination RouteWarm(I item);

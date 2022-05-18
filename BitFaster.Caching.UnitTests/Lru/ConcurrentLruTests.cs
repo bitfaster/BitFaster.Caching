@@ -404,7 +404,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             for (int i = 0; i < 6; i++)
             {
-                lruEvents.GetOrAdd(i+1, i => i + 1);
+                lruEvents.GetOrAdd(i + 1, i => i + 1);
             }
 
             removedItems.Count.Should().Be(2);
@@ -461,7 +461,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
             lruEvents.ItemRemoved += OnLruItemRemoved;
 
-            lruEvents.GetOrAdd(1, i => i+2);
+            lruEvents.GetOrAdd(1, i => i + 2);
 
             lruEvents.TryRemove(1).Should().BeTrue();
 
@@ -581,7 +581,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.AddOrUpdate(1, "1");
             lru.AddOrUpdate(2, "2");
-            
+
             lru.Clear();
 
             lru.Count.Should().Be(0);
@@ -607,6 +607,220 @@ namespace BitFaster.Caching.UnitTests.Lru
             lruOfDisposable.Clear();
 
             items.All(i => i.IsDisposed == true).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenItemsArClearedAnEventIsFired()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, 9, EqualityComparer<int>.Default);
+            lruEvents.ItemRemoved += OnLruItemRemoved;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lruEvents.GetOrAdd(i + 1, i => i + 1);
+            }
+
+            lruEvents.Clear();
+
+            removedItems.Count.Should().Be(6);
+
+            for (int i = 0; i < 6; i++)
+            {
+                removedItems[i].Reason.Should().Be(ItemRemovedReason.Cleared);
+            }
+        }
+
+        [Fact]
+        public void WhenTrimCountIsZeroThrows()
+        {
+            lru.Invoking(l => lru.Trim(0)).Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenTrimCountIsMoreThanCapacityThrows()
+        {
+            lru.Invoking(l => lru.Trim(hotCap + warmCap + coldCap + 1)).Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Theory]
+        [InlineData(1, new[] { 9, 8, 7, 3, 2, 1, 6, 5 })]
+        [InlineData(2, new[] { 9, 8, 7, 3, 2, 1, 6 })]
+        [InlineData(3, new[] { 9, 8, 7, 3, 2, 1 })]
+        [InlineData(4, new[] { 9, 8, 7, 3, 2 })]
+        [InlineData(5, new[] { 9, 8, 7, 3 })]
+        [InlineData(6, new[] { 9, 8, 7 })]
+        [InlineData(7, new[] { 9, 8 })]
+        [InlineData(8, new[] { 9 })]
+        [InlineData(9, new int[] { })]
+        public void WhenColdItemsExistTrimRemovesExpectedItemCount(int trimCount, int[] expected)
+        {
+            // initial state:
+            // Hot = 9, 8, 7
+            // Warm = 3, 2, 1
+            // Cold = 6, 5, 4
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.GetOrAdd(1, i => i.ToString());
+            lru.GetOrAdd(2, i => i.ToString());
+            lru.GetOrAdd(3, i => i.ToString());
+
+            lru.AddOrUpdate(4, "4");
+            lru.AddOrUpdate(5, "5");
+            lru.AddOrUpdate(6, "6");
+
+            lru.AddOrUpdate(7, "7");
+            lru.AddOrUpdate(8, "8");
+            lru.AddOrUpdate(9, "9");
+
+            lru.Trim(trimCount);
+
+            lru.Keys.Should().BeEquivalentTo(expected);
+        }
+
+        [Theory]
+        [InlineData(1, new[] { 6, 5, 4, 3, 2 })]
+        [InlineData(2, new[] { 6, 5, 4, 3 })]
+        [InlineData(3, new[] { 6, 5, 4 })]
+        [InlineData(4, new[] { 6, 5 })]
+        [InlineData(5, new[] { 6 })]
+        [InlineData(6, new int[] { })]
+        [InlineData(7, new int[] { })]
+        [InlineData(8, new int[] { })]
+        [InlineData(9, new int[] { })]
+        public void WhenHotAndWarmItemsExistTrimRemovesExpectedItemCount(int itemCount, int[] expected)
+        {
+            // initial state:
+            // Hot = 6, 5, 4
+            // Warm = 3, 2, 1
+            // Cold = -
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.GetOrAdd(1, i => i.ToString());
+            lru.GetOrAdd(2, i => i.ToString());
+            lru.GetOrAdd(3, i => i.ToString());
+
+            lru.AddOrUpdate(4, "4");
+            lru.AddOrUpdate(5, "5");
+            lru.AddOrUpdate(6, "6");
+
+            lru.Trim(itemCount);
+
+            lru.Keys.Should().BeEquivalentTo(expected);
+        }
+
+        [Theory]
+        [InlineData(1, new[] { 3, 2 })]
+        [InlineData(2, new[] { 3 })]
+        [InlineData(3, new int[] { })]
+        [InlineData(4, new int[] { })]
+        [InlineData(5, new int[] { })]
+        [InlineData(6, new int[] { })]
+        [InlineData(7, new int[] { })]
+        [InlineData(8, new int[] { })]
+        [InlineData(9, new int[] { })]
+        public void WhenHotItemsExistTrimRemovesExpectedItemCount(int itemCount, int[] expected)
+        {
+            // initial state:
+            // Hot = 3, 2, 1
+            // Warm = -
+            // Cold = -
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+
+            lru.Trim(itemCount);
+
+            lru.Keys.Should().BeEquivalentTo(expected);
+        }
+
+        [Theory]
+        [InlineData(1, new[] { 9, 8, 7, 6, 5, 4, 3, 2 })]
+        [InlineData(2, new[] { 9, 8, 7, 6, 5, 4, 3 })]
+        [InlineData(3, new[] { 9, 8, 7, 6, 5, 4 })]
+        [InlineData(4, new[] { 9, 8, 7, 6, 5 })]
+        [InlineData(5, new[] { 9, 8, 7, 6 })]
+        [InlineData(6, new[] { 9, 8, 7 })]
+        [InlineData(7, new[] { 9, 8 })]
+        [InlineData(8, new[] { 9 })]
+        [InlineData(9, new int[] { })]
+        public void WhenColdItemsAreTouchedTrimRemovesExpectedItemCount(int trimCount, int[] expected)
+        {
+            // initial state:
+            // Hot = 9, 8, 7
+            // Warm = 3, 2, 1
+            // Cold = 6*, 5*, 4*
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.GetOrAdd(1, i => i.ToString());
+            lru.GetOrAdd(2, i => i.ToString());
+            lru.GetOrAdd(3, i => i.ToString());
+
+            lru.AddOrUpdate(4, "4");
+            lru.AddOrUpdate(5, "5");
+            lru.AddOrUpdate(6, "6");
+
+            lru.AddOrUpdate(7, "7");
+            lru.AddOrUpdate(8, "8");
+            lru.AddOrUpdate(9, "9");
+
+            // touch all items in the cold queue
+            lru.GetOrAdd(4, i => i.ToString());
+            lru.GetOrAdd(5, i => i.ToString());
+            lru.GetOrAdd(6, i => i.ToString());
+
+            lru.Trim(trimCount);
+
+            this.testOutputHelper.WriteLine("LRU " + string.Join(" ", lru.Keys));
+            this.testOutputHelper.WriteLine("exp " + string.Join(" ", expected));
+
+            lru.Keys.Should().BeEquivalentTo(expected);
+        }
+
+        [Fact]
+        public void WhenItemsAreDisposableTrimDisposesItems()
+        {
+            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
+
+            var items = Enumerable.Range(1, 4).Select(i => new DisposableItem()).ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                lruOfDisposable.AddOrUpdate(i, items[i]);
+            }
+
+            lruOfDisposable.Trim(2);
+
+            items[0].IsDisposed.Should().BeTrue();
+            items[1].IsDisposed.Should().BeTrue();
+            items[2].IsDisposed.Should().BeFalse();
+            items[3].IsDisposed.Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenItemsAreTrimmedAnEventIsFired()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, 9, EqualityComparer<int>.Default);
+            lruEvents.ItemRemoved += OnLruItemRemoved;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lruEvents.GetOrAdd(i + 1, i => i + 1);
+            }
+
+            lruEvents.Trim(2);
+
+            removedItems.Count.Should().Be(2);
+
+            removedItems[0].Key.Should().Be(1);
+            removedItems[0].Value.Should().Be(2);
+            removedItems[0].Reason.Should().Be(ItemRemovedReason.Trimmed);
+
+            removedItems[1].Key.Should().Be(2);
+            removedItems[1].Value.Should().Be(3);
+            removedItems[1].Reason.Should().Be(ItemRemovedReason.Trimmed);
         }
     }
 }

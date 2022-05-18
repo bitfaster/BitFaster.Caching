@@ -10,7 +10,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 {
     public class ConcurrentTLruTests
     {
-        private readonly TimeSpan timeToLive = TimeSpan.FromSeconds(1);
+        private readonly TimeSpan timeToLive = TimeSpan.FromMilliseconds(10);
         private const int capacity = 9;
         private ConcurrentTLru<int, string> lru;
 
@@ -99,6 +99,67 @@ namespace BitFaster.Caching.UnitTests.Lru
             bool result = lru.TryGet(1, out var value);
 
             lru.HitRatio.Should().Be(0.5);
+        }
+
+        [Fact]
+        public async Task WhenItemsAreExpiredExpireRemovesExpiredItems()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+            lru.GetOrAdd(3, valueFactory.Create);
+
+            lru.AddOrUpdate(4, "4");
+            lru.AddOrUpdate(5, "5");
+            lru.AddOrUpdate(6, "6");
+
+            lru.AddOrUpdate(7, "7");
+            lru.AddOrUpdate(8, "8");
+            lru.AddOrUpdate(9, "9");
+
+            await Task.Delay(timeToLive * 2);
+
+            lru.TrimExpired();
+
+            lru.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+
+            lru.AddOrUpdate(4, "4");
+            lru.AddOrUpdate(5, "5");
+            lru.AddOrUpdate(6, "6");
+
+            await Task.Delay(timeToLive * 2);
+
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+            lru.GetOrAdd(3, valueFactory.Create);
+
+            lru.TrimExpired();
+
+            lru.Count.Should().Be(3);
+        }
+
+        [Fact]
+        public async Task WhenItemsAreExpiredTrimRemovesExpiredItems()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+
+            await Task.Delay(timeToLive * 2);
+
+            lru.Trim(1);
+
+            lru.Count.Should().Be(0);
         }
     }
 }

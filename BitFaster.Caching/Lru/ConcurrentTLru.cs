@@ -46,5 +46,14 @@ namespace BitFaster.Caching.Lru
             add { this.telemetryPolicy.ItemRemoved += value; }
             remove { this.telemetryPolicy.ItemRemoved -= value; }
         }
+
+        /// <summary>
+        /// Remove all expired items from the cache.
+        /// </summary>
+        /// <remarks>O(n) where n is the number of items in the cache.</remarks>
+        public void TrimExpired()
+        {
+            this.TrimAllDiscardedItems();
+        }
     }
 }
