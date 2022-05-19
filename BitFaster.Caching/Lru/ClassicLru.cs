@@ -48,7 +48,11 @@ namespace BitFaster.Caching.Lru
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, this.capacity + 1, comparer);
         }
 
+        ///<inheritdoc/>
         public int Count => this.linkedList.Count;
+
+        ///<inheritdoc/>
+        public int Capacity => this.capacity;
 
         /// <summary>
         /// Gets the ratio of hits to misses, where a value of 1 indicates 100% hits.

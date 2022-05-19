@@ -69,6 +69,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.HotCount.Should().Be(1);
             lru.ColdCount.Should().Be(2);
+            lru.Capacity.Should().Be(4);
         }
 
         [Fact]
@@ -83,6 +84,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.HotCount.Should().Be(2);
             lru.ColdCount.Should().Be(2);
+            lru.Capacity.Should().Be(5);
         }
 
         [Fact]

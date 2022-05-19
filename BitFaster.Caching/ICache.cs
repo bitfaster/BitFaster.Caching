@@ -14,6 +14,16 @@ namespace BitFaster.Caching
     public interface ICache<K, V>
     {
         /// <summary>
+        /// Gets the total number of items that can be stored in the cache.
+        /// </summary>
+        int Capacity { get; }
+
+        /// <summary>
+        /// Gets the number of items currently held in the cache.
+        /// </summary>
+        int Count { get; }
+
+        /// <summary>
         /// Attempts to get the value associated with the specified key from the cache.
         /// </summary>
         /// <param name="key">The key of the value to get.</param>

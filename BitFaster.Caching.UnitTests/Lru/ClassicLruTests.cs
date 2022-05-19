@@ -50,6 +50,12 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenCtorCapacityArgIs3CapacityIs3()
+        {
+            new ClassicLru<int, int>(3).Capacity.Should().Be(3);
+        }
+
+        [Fact]
         public void WhenItemIsAddedCountIsCorrect()
         {
             lru.Count.Should().Be(0);
