@@ -85,7 +85,7 @@ using (var lifetime = urlLocks.Acquire(url))
 
 ### Why not use MemoryCache?
 
-MemoryCache is perfectly servicable, but it has some limitations:
+MemoryCache is perfectly serviceable, but it has some limitations:
 
 - Makes heap allocations when the native object key is not type string.
 - Is not 'scan' resistant, fetching all keys will load everything into memory.
