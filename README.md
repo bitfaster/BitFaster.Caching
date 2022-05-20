@@ -149,19 +149,17 @@ In these benchmarks, a cache miss is essentially free. These tests exist purely 
 
 Benchmarks are based on BenchmarkDotNet, so are single threaded. The ConcurrentLru family of classes are composed internally of ConcurrentDictionary.GetOrAdd and ConcurrentQueue.Enqueue/Dequeue method calls, and scale well to concurrent workloads.
 
-Benchmark results below are from a computer with a mobile class Broadwell CPU with small caches (128kb L1/512kb L2/4mb L3):
+Benchmark results below are from a workstation with the following config:
 
 ~~~
-BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.264 (2004/?/20H1)
-Intel Core i7-5600U CPU 2.60GHz (Broadwell), 1 CPU, 4 logical and 2 physical cores
-.NET Core SDK=3.1.301
-  [Host]    : .NET Core 3.1.5 (CoreCLR 4.700.20.26901, CoreFX 4.700.20.27001), X64 RyuJIT
-  RyuJitX64 : .NET Core 3.1.5 (CoreCLR 4.700.20.26901, CoreFX 4.700.20.27001), X64 RyuJIT
-
-Job=RyuJitX64  Jit=RyuJit  Platform=X64
+BenchmarkDotNet=v0.13.1, OS=Windows 10.0.22000
+Intel Xeon W-2133 CPU 3.60GHz, 1 CPU, 12 logical and 6 physical cores
+  [Host]             : .NET Framework 4.8 (4.8.4510.0), X64 RyuJIT
+  .NET 6.0           : .NET 6.0.5 (6.0.522.21309), X64 RyuJIT
+  .NET Framework 4.8 : .NET Framework 4.8 (4.8.4510.0), X64 RyuJIT
 ~~~
-    
-Benchmarks have been repeated across supported .NET Frameworks and on the CPU architectures available in Azure (e.g. Intel Skylake, AMD Zen). Results are repeatable within +/-5%.
+
+The relative ranking of each cache implementation is stable across .NET Framework/Core/5/6 and on the CPU architectures available in Azure (e.g. Intel Skylake, AMD Zen). Absolute performance can vary.
 
 ### What are FastConcurrentLru/FastConcurrentTLru?
 
@@ -192,19 +190,27 @@ In this test the same items are fetched repeatedly, no items are evicted. Repres
 - Classic Lru must maintain item order, and is internally splicing the fetched item to the head of the linked list.
 - MemoryCache and ConcurrentDictionary represent a pure lookup. This is the best case scenario for MemoryCache, since the lookup key is a string (if the key were a Guid, using MemoryCache adds string conversion overhead). 
 
-FastConcurrentLru does not allocate and is approximately 10x faster than System.Runtime.Caching.MemoryCache or the newer Microsoft.Extensions.Caching.Memory.MemoryCache.
+FastConcurrentLru does not allocate and is approximately 5-10x faster than System.Runtime.Caching.MemoryCache or the newer Microsoft.Extensions.Caching.Memory.MemoryCache.
 
-|                   Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
-|------------------------- |----------:|---------:|---------:|------:|-------:|----------:|
-|     ConcurrentDictionary |  16.76 ns | 0.322 ns | 0.285 ns |  1.00 |      - |         - |
-|        FastConcurrentLru |  18.94 ns | 0.249 ns | 0.220 ns |  1.13 |      - |         - |
-|            ConcurrentLru |  21.46 ns | 0.204 ns | 0.191 ns |  1.28 |      - |         - |
-|       FastConcurrentTLru |  41.57 ns | 0.450 ns | 0.376 ns |  2.48 |      - |         - |
-|           ConcurrentTLru |  43.95 ns | 0.588 ns | 0.521 ns |  2.62 |      - |         - |
-|               ClassicLru |  67.62 ns | 0.901 ns | 0.799 ns |  4.03 |      - |         - |
-|    RuntimeMemoryCacheGet | 279.70 ns | 3.825 ns | 3.578 ns | 16.70 | 0.0153 |      32 B |
-| ExtensionsMemoryCacheGet | 341.67 ns | 6.617 ns | 6.499 ns | 20.35 | 0.0114 |      24 B |
-
+|                   Method |           Runtime |       Mean |    StdDev | Ratio |Allocated |
+|------------------------- |------------------ |-----------:|----------:|------:|---------:|
+|     ConcurrentDictionary |          .NET 6.0 |   7.783 ns | 0.0720 ns |  1.00 |        - |
+|        FastConcurrentLru |          .NET 6.0 |   9.773 ns | 0.0361 ns |  1.26 |        - |
+|            ConcurrentLru |          .NET 6.0 |  13.615 ns | 0.0606 ns |  1.75 |        - |
+|       FastConcurrentTLru |          .NET 6.0 |  25.480 ns | 0.0935 ns |  3.28 |        - |
+|           ConcurrentTLru |          .NET 6.0 |  29.890 ns | 0.2107 ns |  3.84 |        - |
+|               ClassicLru |          .NET 6.0 |  54.422 ns | 0.2935 ns |  7.00 |        - |
+|    RuntimeMemoryCacheGet |          .NET 6.0 | 115.016 ns | 0.6619 ns | 14.79 |     32 B |
+| ExtensionsMemoryCacheGet |          .NET 6.0 |  53.328 ns | 0.2130 ns |  6.85 |     24 B |
+|                          |                   |            |           |       |          |
+|     ConcurrentDictionary |.NET Framework 4.8 |  13.644 ns | 0.0601 ns |  1.00 |        - |
+|        FastConcurrentLru |.NET Framework 4.8 |  14.639 ns | 0.0892 ns |  1.07 |        - |
+|            ConcurrentLru |.NET Framework 4.8 |  17.008 ns | 0.2538 ns |  1.25 |        - |
+|       FastConcurrentTLru |.NET Framework 4.8 |  43.854 ns | 0.0827 ns |  3.22 |        - |
+|           ConcurrentTLru |.NET Framework 4.8 |  47.954 ns | 1.2772 ns |  3.52 |        - |
+|               ClassicLru |.NET Framework 4.8 |  62.683 ns | 0.8105 ns |  4.60 |        - |
+|    RuntimeMemoryCacheGet |.NET Framework 4.8 | 287.627 ns | 1.3691 ns | 21.08 |     32 B |
+| ExtensionsMemoryCacheGet |.NET Framework 4.8 | 114.511 ns | 0.5902 ns |  8.39 |     24 B |
 
 ## ConcurrentLru Throughput
 
