@@ -55,6 +55,18 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public async Task WhenItemIsUpdatedTtlIsExtended()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            await Task.Delay(timeToLive * 2);
+
+            lru.TryUpdate(1, "3");
+
+            lru.TryGet(1, out var value).Should().BeTrue();
+        }
+
+        [Fact]
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
             var lruEvents = new ConcurrentTLru<int, int>(1, 6, EqualityComparer<int>.Default, timeToLive);

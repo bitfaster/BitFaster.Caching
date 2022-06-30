@@ -39,6 +39,12 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Update(LongTickCountLruItem<K, V> item)
+        {
+            item.TickCount = Stopwatch.GetTimestamp();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
             if (Stopwatch.GetTimestamp() - item.TickCount > this.timeToLive)
