@@ -258,7 +258,7 @@ namespace BitFaster.Caching.Lru
                     {
                         V oldValue = existing.Value;
                         existing.Value = value;
-
+                        this.itemPolicy.Update(existing);
                         Disposer<V>.Dispose(oldValue);
 
                         return true;
