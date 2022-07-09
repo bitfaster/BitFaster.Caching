@@ -6,6 +6,13 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
+    public interface ICacheTtl<K, V> : ICache<K, V>
+    {
+        void TrimExpired();
+
+        TimeSpan Ttl { get; }
+    }
+
     /// <summary>
     /// Represents a generic cache of key/value pairs.
     /// </summary>
