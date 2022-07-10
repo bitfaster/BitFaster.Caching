@@ -115,6 +115,8 @@ namespace BitFaster.Caching
 
         public void ScopedPOC()
         {
+            // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
+
             // layer 1: can choose ConcurrentLru/TLru, fast etc.
             var c = new ConcurrentLru<int, AsyncAtomic<int, Scoped<Disposable>>>(3);
 

@@ -115,9 +115,9 @@ namespace BitFaster.Caching
                     }
                 }
 
-                // TODO: how dangerous is this?
-                // it can block forever if value factory blocks
-                return synchronizedTask.GetAwaiter().GetResult();
+                // this isn't needed for .NET Core
+                // https://stackoverflow.com/questions/53265020/c-sharp-async-await-deadlock-problem-gone-in-netcore
+                return TaskSynchronization<V>.GetResult(synchronizedTask);
             }
 
             public async Task<V> CreateValueAsync(K key, Func<K, Task<V>> valueFactory)
@@ -168,6 +168,64 @@ namespace BitFaster.Caching
             }
 
             return target;
+        }
+    }
+
+    public static class TaskSynchronization<T>
+    {
+        private static ISynchronizationPolicy SynchronizationPolicy = new GetAwaiterPolicy();
+
+        public static T GetResult(Task<T> task)
+        {
+            return SynchronizationPolicy.GetResult(task);
+        }
+
+        public static void GetResult(Task task)
+        {
+            SynchronizationPolicy.GetResult(task);
+        }
+
+        public static void UseTaskRun()
+        {
+            SynchronizationPolicy = new TaskRunPolicy();
+        }
+
+        public static void UseAwaiter()
+        {
+            SynchronizationPolicy = new GetAwaiterPolicy();
+        }
+    }
+
+    internal interface ISynchronizationPolicy
+    {
+        T GetResult<T>(Task<T> task);
+
+        void GetResult(Task task);
+    }
+
+    internal class GetAwaiterPolicy : ISynchronizationPolicy
+    {
+        public T GetResult<T>(Task<T> task)
+        {
+            return task.GetAwaiter().GetResult();
+        }
+
+        public void GetResult(Task task)
+        {
+            task.GetAwaiter().GetResult();
+        }
+    }
+
+    internal class TaskRunPolicy : ISynchronizationPolicy
+    {
+        public T GetResult<T>(Task<T> task)
+        {
+            return Task.Run(async () => await task).Result;
+        }
+
+        public void GetResult(Task task)
+        {
+            Task.Run(async () => await task).Wait();
         }
     }
 }
