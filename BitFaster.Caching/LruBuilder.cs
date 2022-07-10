@@ -50,6 +50,7 @@ namespace BitFaster.Caching
             return new AtomicLruBuilder<K, V>(this.spec);
         }
 
+        // pretty crappy implementation...
         public virtual ICache<K, V> Build()
         {
             if (this.spec.expiration.HasValue)
@@ -110,7 +111,31 @@ namespace BitFaster.Caching
                 .WithAtomicCreate()
                 .WithInstrumentation()
                 .Build();
-        
+        }
+
+        public void ScopedPOC()
+        {
+            // layer 1: can choose ConcurrentLru/TLru, fast etc.
+            var c = new ConcurrentLru<int, AsyncAtomic<int, Scoped<Disposable>>>(3);
+
+            // layer 2: optional atomic creation
+            var atomic = new AtomicCacheDecorator<int, Scoped<Disposable>>(c);
+
+            // layer 3: optional scoping
+            IScopedCache<int, Disposable> scoped = new ScopedCacheDecorator<int, Disposable>(atomic);
+
+            using (var lifetime = scoped.GetOrAdd(1, k => new Disposable()))
+            {
+                var d = lifetime.Value;
+            }
+        }
+
+        public class Disposable : IDisposable
+        {
+            public void Dispose()
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }
