@@ -11,7 +11,7 @@ namespace BitFaster.Caching.UnitTests.Lru
     public class ConcurrentTLruTests
     {
         private readonly TimeSpan timeToLive = TimeSpan.FromMilliseconds(10);
-        private const int capacity = 9;
+        private readonly ICapacityPartition capacity = new EqualPartitioning(9);
         private ConcurrentTLru<int, string> lru;
 
         private ValueFactory valueFactory = new ValueFactory();
@@ -69,7 +69,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
-            var lruEvents = new ConcurrentTLru<int, int>(1, 6, EqualityComparer<int>.Default, timeToLive);
+            var lruEvents = new ConcurrentTLru<int, int>(1, new EqualPartitioning(6), EqualityComparer<int>.Default, timeToLive);
             lruEvents.ItemRemoved += OnLruItemRemoved;
 
             for (int i = 0; i < 6; i++)
@@ -91,7 +91,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemRemovedEventIsUnregisteredEventIsNotFired()
         {
-            var lruEvents = new ConcurrentTLru<int, int>(1, 6, EqualityComparer<int>.Default, timeToLive);
+            var lruEvents = new ConcurrentTLru<int, int>(1, new EqualPartitioning(6), EqualityComparer<int>.Default, timeToLive);
 
             lruEvents.ItemRemoved += OnLruItemRemoved;
             lruEvents.ItemRemoved -= OnLruItemRemoved;
