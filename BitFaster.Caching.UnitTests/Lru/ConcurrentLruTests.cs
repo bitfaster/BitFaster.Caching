@@ -33,6 +33,22 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.testOutputHelper = testOutputHelper;
         }
 
+        //[Fact]
+        //public void Size()
+        //{ 
+        //    var lru = new ConcurrentLru<int, string>(1, 3, EqualityComparer<int>.Default);
+        //    lru = new ConcurrentLru<int, string>(1, 4, EqualityComparer<int>.Default);
+        //    lru = new ConcurrentLru<int, string>(1, 5, EqualityComparer<int>.Default);
+        //    lru = new ConcurrentLru<int, string>(1, 6, EqualityComparer<int>.Default);
+        //    lru = new ConcurrentLru<int, string>(1, 7, EqualityComparer<int>.Default);
+        //    lru = new ConcurrentLru<int, string>(1, 8, EqualityComparer<int>.Default);
+        //    lru = new ConcurrentLru<int, string>(1, 9, EqualityComparer<int>.Default);
+        //    lru = new ConcurrentLru<int, string>(1, 10, EqualityComparer<int>.Default);
+
+        //    lru = new ConcurrentLru<int, string>(1, 100, EqualityComparer<int>.Default);
+
+        //}
+
         [Fact]
         public void WhenConcurrencyIsLessThan1CtorThrows()
         {

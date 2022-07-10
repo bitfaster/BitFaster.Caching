@@ -559,24 +559,41 @@ namespace BitFaster.Caching.Lru
 
         private static (int hot, int warm, int cold) ComputeQueueCapacity(int capacity)
         {
-            int hotCapacity = capacity / 3;
-            int warmCapacity = capacity / 3;
-            int coldCapacity = capacity / 3;
+            // put 80% into warm capacity by default
+            int warm2 = (int)(capacity / 1.25);
 
-            int remainder = capacity % 3;
+            int hot2 = (capacity - warm2) / 2;
 
-            switch (remainder)
-            {
-                case 1:
-                    coldCapacity++;
-                    break;
-                case 2:
-                    hotCapacity++;
-                    coldCapacity++;
-                    break;
+            if (hot2 < 1)
+            { 
+                hot2 = 1;
             }
 
-            return (hotCapacity, warmCapacity, coldCapacity);
+            int cold2 = hot2;
+
+            int overflow = warm2 + hot2 + cold2 - capacity;
+            warm2 -= overflow;
+
+            return (hot2, warm2, cold2);
+
+            //int hotCapacity = capacity / 3;
+            //int warmCapacity = capacity / 3;
+            //int coldCapacity = capacity / 3;
+
+            //int remainder = capacity % 3;
+
+            //switch (remainder)
+            //{
+            //    case 1:
+            //        coldCapacity++;
+            //        break;
+            //    case 2:
+            //        hotCapacity++;
+            //        coldCapacity++;
+            //        break;
+            //}
+
+            //return (hotCapacity, warmCapacity, coldCapacity);
         }
 
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
