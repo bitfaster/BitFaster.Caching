@@ -9,6 +9,10 @@ namespace BitFaster.Caching.Lru
     /// <summary>
     /// Represents a partitioning scheme for the internal queues within concurrent LRU.
     /// </summary>
+    /// <remarks>
+    /// In general, increasing the size of the hot queue favors recent items and increasing
+    /// the size of the warm queue favors frequent items.
+    /// </remarks>
     public interface ICapacityPartition
     {
         /// <summary>

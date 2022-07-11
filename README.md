@@ -104,7 +104,7 @@ The cache replacement policy must maximize the cache hit rate, and minimize the 
 The charts below show the relative hit rate of classic LRU vs Concurrent LRU on a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) of input keys, with parameter *s* = 0.5 and *s* = 0.86 respectively. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
 
 Here *N* = 50000, and we take 1 million sample keys. The hit rate is the number of times we get a cache hit divided by 1 million.
-This test was repeated with the cache configured to different sizes expressed as a percentage *N* (e.g. 10% would be a cache with a capacity 5000). ConcurrentLru is configured with the default internal queue capacity allocation, with 80% capacity mapped to the warm queue (favoring items with higher frequency).
+This test was repeated with the cache configured to different sizes expressed as a percentage *N* (e.g. 10% would be a cache with a capacity 5000). ConcurrentLru is configured with the default `FavorFrequencyPartition` to allocate internal queue capacity (see [here](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru#how-it-works) for details).
 
 <table>
   <tr>
