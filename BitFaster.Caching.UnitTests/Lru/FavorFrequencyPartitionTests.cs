@@ -22,7 +22,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenRatioBelow0Throws()
         {
-            Action constructor = () => { var x = new FavorFrequencyPartition(2, 0.0); };
+            Action constructor = () => { var x = new FavorFrequencyPartition(5, 0.0); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
@@ -30,7 +30,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenRatioAbove1Throws()
         {
-            Action constructor = () => { var x = new FavorFrequencyPartition(2, 1.0); };
+            Action constructor = () => { var x = new FavorFrequencyPartition(5, 1.0); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
