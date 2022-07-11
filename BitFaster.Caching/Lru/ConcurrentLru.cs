@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         /// <param name="capacity">The maximum number of elements that the ConcurrentLru can contain.</param>
         public ConcurrentLru(int capacity)
-            : base(Defaults.ConcurrencyLevel, new FavorWarmPartition(capacity), EqualityComparer<K>.Default, default, default)
+            : base(Defaults.ConcurrencyLevel, new FavorWarmPartitioning(capacity), EqualityComparer<K>.Default, default, default)
         {
         }
 
@@ -27,7 +27,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="capacity">The maximum number of elements that the ConcurrentLru can contain.</param>
         /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
         public ConcurrentLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer)
-            : base(concurrencyLevel, new FavorWarmPartition(capacity), comparer, default, default)
+            : base(concurrencyLevel, new FavorWarmPartitioning(capacity), comparer, default, default)
         {
         }
 

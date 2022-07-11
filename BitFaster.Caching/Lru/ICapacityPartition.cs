@@ -67,18 +67,18 @@ namespace BitFaster.Caching.Lru
         }
     }
 
-    public class FavorWarmPartition : ICapacityPartition
+    public class FavorWarmPartitioning : ICapacityPartition
     {
         private readonly int hotCapacity;
         private readonly int warmCapacity;
         private readonly int coldCapacity;
 
         // Default to 80% capacity allocated to warm queue, 20% split equally for hot and cold
-        public FavorWarmPartition(int totalCapacity)
+        public FavorWarmPartitioning(int totalCapacity)
             : this(totalCapacity, 0.8)
         {
         }
-        public FavorWarmPartition(int totalCapacity, double warmFactor)
+        public FavorWarmPartitioning(int totalCapacity, double warmFactor)
         {
             var (hot, warm, cold) = ComputeQueueCapacity(totalCapacity, warmFactor);
             this.hotCapacity = hot;

@@ -14,7 +14,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="capacity">The maximum number of elements that the FastConcurrentTLru can contain.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public FastConcurrentTLru(int capacity, TimeSpan timeToLive)
-            : base(Defaults.ConcurrencyLevel, new FavorWarmPartition(capacity), EqualityComparer<K>.Default, new TLruLongTicksPolicy<K, V>(timeToLive), default)
+            : base(Defaults.ConcurrencyLevel, new FavorWarmPartitioning(capacity), EqualityComparer<K>.Default, new TLruLongTicksPolicy<K, V>(timeToLive), default)
         {
         }
 
@@ -27,7 +27,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public FastConcurrentTLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer, TimeSpan timeToLive)
-            : base(concurrencyLevel, new FavorWarmPartition(capacity), comparer, new TLruLongTicksPolicy<K, V>(timeToLive), default)
+            : base(concurrencyLevel, new FavorWarmPartitioning(capacity), comparer, new TLruLongTicksPolicy<K, V>(timeToLive), default)
         {
         }
 
@@ -38,8 +38,8 @@ namespace BitFaster.Caching.Lru
         /// <param name="concurrencyLevel">The estimated number of threads that will update the FastConcurrentLru concurrently.</param>
         /// <param name="capacity">The maximum number of elements that the FastConcurrentLru can contain.</param>
         /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
-        public FastConcurrentTLru(int concurrencyLevel, ICapacityPartition capacity, IEqualityComparer<K> comparer)
-            : base(concurrencyLevel, capacity, comparer, default, default)
+        public FastConcurrentTLru(int concurrencyLevel, ICapacityPartition capacity, IEqualityComparer<K> comparer, TimeSpan timeToLive)
+            : base(concurrencyLevel, capacity, comparer, new TLruLongTicksPolicy<K, V>(timeToLive), default)
         {
         }
 

@@ -29,11 +29,19 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void ConstructAddAndRetrieveWithDefaultCtorReturnsValue()
+        public void ConstructWithDefaultCtorReturnsCapacity()
         {
             var x = new ConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
 
-            x.GetOrAdd(1, k => k).Should().Be(1);
+            x.Capacity.Should().Be(3);
+        }
+
+        [Fact]
+        public void ConstructPartitionCtorReturnsCapacity()
+        {
+            var x = new ConcurrentTLru<int, int>(1, new EqualPartitioning(3), EqualityComparer<int>.Default, TimeSpan.FromSeconds(1));
+
+            x.Capacity.Should().Be(3);
         }
 
         [Fact]

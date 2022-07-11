@@ -61,15 +61,6 @@ namespace BitFaster.Sampling
                 Console.WriteLine($"Took {sw.Elapsed} for s = {sValues[index]}.");
             });
 
-            //for (int i = 0; i < sValues.Length; i++)
-            //{
-            //    Console.WriteLine($"Generating Zipfan distribution with {sampleCount} samples, s = {sValues[i]}, N = {n}");
-            //    var sw = Stopwatch.StartNew();
-            //    zipdfDistribution[i] = new int[sampleCount];
-            //    Zipf.Samples(zipdfDistribution[i], sValues[i], n);
-            //    Console.WriteLine($"Took {sw.Elapsed}.");
-            //}
-
             List<AnalysisResult> results = new List<AnalysisResult>();
             Func<int, int> func = x => x;
 
