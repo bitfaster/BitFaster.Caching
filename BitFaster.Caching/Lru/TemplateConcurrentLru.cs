@@ -44,9 +44,7 @@ namespace BitFaster.Caching.Lru
         private int warmCount;
         private int coldCount;
 
-        private readonly int hotCapacity;
-        private readonly int warmCapacity;
-        private readonly int coldCapacity;
+        private readonly ICapacityPartition capacity;
 
         private readonly P itemPolicy;
 
@@ -56,14 +54,14 @@ namespace BitFaster.Caching.Lru
 
         public TemplateConcurrentLru(
             int concurrencyLevel,
-            int capacity,
+            ICapacityPartition capacity,
             IEqualityComparer<K> comparer,
             P itemPolicy,
             T telemetryPolicy)
         {
-            if (capacity < 3)
+            if (capacity == null)
             {
-                throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be greater than or equal to 3.");
+                throw new ArgumentNullException(nameof(capacity));
             }
 
             if (comparer == null)
@@ -71,16 +69,13 @@ namespace BitFaster.Caching.Lru
                 throw new ArgumentNullException(nameof(comparer));
             }
 
-            var (hot, warm, cold) = ComputeQueueCapacity(capacity);
-            this.hotCapacity = hot;
-            this.warmCapacity = warm;
-            this.coldCapacity = cold;
+            this.capacity = capacity;
 
             this.hotQueue = new ConcurrentQueue<I>();
             this.warmQueue = new ConcurrentQueue<I>();
             this.coldQueue = new ConcurrentQueue<I>();
 
-            int dictionaryCapacity = this.hotCapacity + this.warmCapacity + this.coldCapacity + 1;
+            int dictionaryCapacity = this.Capacity + 1;
 
             this.dictionary = new ConcurrentDictionary<K, I>(concurrencyLevel, dictionaryCapacity, comparer);
             this.itemPolicy = itemPolicy;
@@ -93,7 +88,7 @@ namespace BitFaster.Caching.Lru
         public int Count => this.dictionary.Skip(0).Count();
 
         ///<inheritdoc/>
-        public int Capacity => this.coldCapacity + this.warmCapacity + this.hotCapacity;
+        public int Capacity => this.capacity.Hot + this.capacity.Warm + this.capacity.Cold;
 
         public int HotCount => this.hotCount;
 
@@ -105,7 +100,6 @@ namespace BitFaster.Caching.Lru
         /// Gets a collection containing the keys in the cache.
         /// </summary>
         public ICollection<K> Keys => this.dictionary.Keys;
-
 
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
         /// <returns>An enumerator for the cache.</returns>
@@ -299,7 +293,7 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public void Clear()
         {
-            int count= this.Count();
+            int count = this.Count();
 
             for (int i = 0; i < count; i++)
             {
@@ -322,7 +316,7 @@ namespace BitFaster.Caching.Lru
         /// </remarks>
         public void Trim(int itemCount)
         {
-            int capacity = this.coldCapacity + this.warmCapacity + this.hotCapacity;
+            int capacity = this.Capacity;
 
             if (itemCount < 1 || itemCount > capacity)
             { 
@@ -376,7 +370,7 @@ namespace BitFaster.Caching.Lru
             // If clear is called during trimming, it would be possible to get stuck in an infinite
             // loop here. Instead quit after n consecutive failed attempts to move warm/hot to cold.
             int trimWarmAttempts = 0;
-            int maxAttempts = this.coldCapacity + 1;
+            int maxAttempts = this.capacity.Cold + 1;
 
             while (itemsRemoved < itemCount && trimWarmAttempts < maxAttempts)
             {
@@ -429,7 +423,7 @@ namespace BitFaster.Caching.Lru
 
         private void CycleHot()
         {
-            if (this.hotCount > this.hotCapacity)
+            if (this.hotCount > this.capacity.Hot)
             {
                 CycleHotUnchecked(ItemRemovedReason.Evicted);
             }
@@ -453,7 +447,7 @@ namespace BitFaster.Caching.Lru
 
         private void CycleWarm()
         {
-            if (this.warmCount > this.warmCapacity)
+            if (this.warmCount > this.capacity.Warm)
             {
                 CycleWarmUnchecked(ItemRemovedReason.Evicted);
             }
@@ -471,7 +465,7 @@ namespace BitFaster.Caching.Lru
                 // When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
                 // This only happens when hit rate is high, in which case we can consider all items relatively equal in
                 // terms of which was least recently used.
-                if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
+                if (where == ItemDestination.Warm && this.warmCount <= this.capacity.Warm)
                 {
                     this.Move(item, where, removedReason);
                 }
@@ -488,7 +482,7 @@ namespace BitFaster.Caching.Lru
 
         private void CycleCold()
         {
-            if (this.coldCount > this.coldCapacity)
+            if (this.coldCount > this.capacity.Cold)
             {
                 TryRemoveCold(ItemRemovedReason.Evicted);
             }
@@ -503,7 +497,7 @@ namespace BitFaster.Caching.Lru
             {
                 var where = this.itemPolicy.RouteCold(item);
 
-                if (where == ItemDestination.Warm && this.warmCount <= this.warmCapacity)
+                if (where == ItemDestination.Warm && this.warmCount <= this.capacity.Warm)
                 {
                     this.Move(item, where, removedReason);
                     return false;
@@ -555,28 +549,6 @@ namespace BitFaster.Caching.Lru
                     }
                     break;
             }
-        }
-
-        private static (int hot, int warm, int cold) ComputeQueueCapacity(int capacity)
-        {
-            int hotCapacity = capacity / 3;
-            int warmCapacity = capacity / 3;
-            int coldCapacity = capacity / 3;
-
-            int remainder = capacity % 3;
-
-            switch (remainder)
-            {
-                case 1:
-                    coldCapacity++;
-                    break;
-                case 2:
-                    hotCapacity++;
-                    coldCapacity++;
-                    break;
-            }
-
-            return (hotCapacity, warmCapacity, coldCapacity);
         }
 
         /// <summary>Returns an enumerator that iterates through the cache.</summary>

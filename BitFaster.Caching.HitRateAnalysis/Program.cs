@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using BitFaster.Caching.HitRateAnalysis;
 using BitFaster.Caching.Lru;
 using MathNet.Numerics;
@@ -28,6 +29,7 @@ namespace BitFaster.Sampling
 
         static void Main(string[] args)
         {
+            int[] sValuesIndex = { 0, 1 };
             double[] sValues = { 0.5, 0.86 };
 
             // % of total number of items
@@ -50,14 +52,14 @@ namespace BitFaster.Sampling
 
             int[][] zipdfDistribution = new int[sValues.Length][];
 
-            for (int i = 0; i < sValues.Length; i++)
+            Parallel.ForEach(sValuesIndex, index => 
             {
-                Console.WriteLine($"Generating Zipfan distribution with {sampleCount} samples, s = {sValues[i]}, N = {n}");
+                Console.WriteLine($"Generating Zipfian distribution with {sampleCount} samples, s = {sValues[index]}, N = {n}");
                 var sw = Stopwatch.StartNew();
-                zipdfDistribution[i] = new int[sampleCount];
-                Zipf.Samples(zipdfDistribution[i], sValues[i], n);
-                Console.WriteLine($"Took {sw.Elapsed}.");
-            }
+                zipdfDistribution[index] = new int[sampleCount];
+                Zipf.Samples(zipdfDistribution[index], sValues[index], n);
+                Console.WriteLine($"Took {sw.Elapsed} for s = {sValues[index]}.");
+            });
 
             List<AnalysisResult> results = new List<AnalysisResult>();
             Func<int, int> func = x => x;

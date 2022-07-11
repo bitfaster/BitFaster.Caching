@@ -11,7 +11,7 @@ namespace BitFaster.Caching.UnitTests.Lru
     public class ConcurrentTLruTests
     {
         private readonly TimeSpan timeToLive = TimeSpan.FromMilliseconds(10);
-        private const int capacity = 9;
+        private readonly ICapacityPartition capacity = new EqualCapacityPartition(9);
         private ConcurrentTLru<int, string> lru;
 
         private ValueFactory valueFactory = new ValueFactory();
@@ -29,11 +29,27 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void ConstructAddAndRetrieveWithDefaultCtorReturnsValue()
+        public void ConstructWithDefaultCtorReturnsCapacity()
         {
             var x = new ConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
 
-            x.GetOrAdd(1, k => k).Should().Be(1);
+            x.Capacity.Should().Be(3);
+        }
+
+        [Fact]
+        public void ConstructCapacityCtorReturnsCapacity()
+        {
+            var x = new ConcurrentTLru<int, int>(1, 3, EqualityComparer<int>.Default, TimeSpan.FromSeconds(1));
+
+            x.Capacity.Should().Be(3);
+        }
+
+        [Fact]
+        public void ConstructPartitionCtorReturnsCapacity()
+        {
+            var x = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(3), EqualityComparer<int>.Default, TimeSpan.FromSeconds(1));
+
+            x.Capacity.Should().Be(3);
         }
 
         [Fact]
@@ -69,7 +85,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
-            var lruEvents = new ConcurrentTLru<int, int>(1, 6, EqualityComparer<int>.Default, timeToLive);
+            var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
             lruEvents.ItemRemoved += OnLruItemRemoved;
 
             for (int i = 0; i < 6; i++)
@@ -91,7 +107,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemRemovedEventIsUnregisteredEventIsNotFired()
         {
-            var lruEvents = new ConcurrentTLru<int, int>(1, 6, EqualityComparer<int>.Default, timeToLive);
+            var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
 
             lruEvents.ItemRemoved += OnLruItemRemoved;
             lruEvents.ItemRemoved -= OnLruItemRemoved;
