@@ -5,28 +5,22 @@
 using System.Diagnostics;
 using BitFaster.Caching.HitRateAnalysis.Wikibench;
 
-string[] wikiUris = 
-    { 
+int[] cacheSizes = { 25, 50, 75, 100, 125, 150, 175, 200 };
+var analysis = cacheSizes.Select(s => new Analysis(s)).ToList();
+
+string[] wikiUris =
+    {
         "http://www.wikibench.eu/wiki/2007-09/wiki.1190153705.gz",
         "http://www.wikibench.eu/wiki/2007-09/wiki.1190157306.gz",
         "http://www.wikibench.eu/wiki/2007-09/wiki.1190160907.gz",
         "http://www.wikibench.eu/wiki/2007-09/wiki.1190164508.gz",
         "http://www.wikibench.eu/wiki/2007-09/wiki.1190168109.gz",
     };
-
-//var wikiFile = new WikiBenchFile(1, new Uri("http://www.wikibench.eu/wiki/2007-09/wiki.1190153705.gz"));
-
-int[] cacheSizes = { 25, 50, 75, 100, 125, 150, 175, 200 };
-var analysis = cacheSizes.Select(s => new Analysis(s)).ToList();
-
 var dataSet = new WikiDataSet(wikiUris);
-
-await dataSet.Download();
+await dataSet.DownloadIfNotExistsAsync();
 
 Console.WriteLine("Running...");
-
 int count = 0;
-
 var sw = Stopwatch.StartNew();
 
 foreach (var url in dataSet.EnumerateUris())
@@ -35,8 +29,8 @@ foreach (var url in dataSet.EnumerateUris())
     { 
         a.TestUri(url);
     }
-    count++;
-    if (count % 100000 == 0)
+    
+    if (count++ % 100000 == 0)
     {
         Console.WriteLine($"Processed {count} URIs...");
     }

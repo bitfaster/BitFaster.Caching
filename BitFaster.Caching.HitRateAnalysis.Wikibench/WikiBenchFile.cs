@@ -23,7 +23,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
 
         public string FilePath { get; }
 
-        public async Task DownloadIfNotExists()
+        public async Task DownloadIfNotExistsAsync()
         {
             var zipped = this.FilePath + ".gz";
 
@@ -32,9 +32,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
                 Console.WriteLine($"Downloading {Uri}...");
                 HttpClient client = new HttpClient();
                 var response = await client.GetAsync(Uri);
-                using (var fs = new FileStream(
-                    zipped,
-                    FileMode.CreateNew))
+                using (var fs = new FileStream(zipped, FileMode.CreateNew))
                 {
                     await response.Content.CopyToAsync(fs);
                 }
@@ -43,38 +41,32 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
             if (!File.Exists(this.FilePath))
             {
                 Console.WriteLine($"Decompressing {Uri}...");
-                
-                using (FileStream originalFileStream = new FileInfo(zipped).OpenRead())
-                {
-                    using (var decompressedFileStream = File.Create(this.FilePath))
-                    {
-                        using (var decompressionStream = new GZipStream(originalFileStream, CompressionMode.Decompress))
-                        {
-                            decompressionStream.CopyTo(decompressedFileStream);
-                        }
-                    }
-                }
+
+                using FileStream originalFileStream = new FileInfo(zipped).OpenRead();
+                using var decompressedFileStream = File.Create(this.FilePath);
+                using var decompressionStream = new GZipStream(originalFileStream, CompressionMode.Decompress);
+
+                decompressionStream.CopyTo(decompressedFileStream);
             }
         }
 
         public IEnumerable<Uri> EnumerateUris()
         {
-            using (StreamReader sr = new StreamReader(this.FilePath))
-            {
-                while (sr.Peek() >= 0)
-                {
-                    var line = sr.ReadLine();
+            using StreamReader sr = new StreamReader(this.FilePath);
 
-                    // reads end with -
-                    if (line?.EndsWith('-') ?? false)
+            while (sr.Peek() >= 0)
+            {
+                var line = sr.ReadLine();
+
+                // reads end with -
+                if (line?.EndsWith('-') ?? false)
+                {
+                    var parsed = ParseLine(line);
+                    if (parsed != null)
                     {
-                        var parsed = ParseLine(line);
-                        if (parsed != null)
-                        {
-                            if (Uri.TryCreate(parsed, UriKind.Relative, out var result))
-                            { 
-                                yield return result; 
-                            }
+                        if (Uri.TryCreate(parsed, UriKind.Relative, out var result))
+                        { 
+                            yield return result; 
                         }
                     }
                 }

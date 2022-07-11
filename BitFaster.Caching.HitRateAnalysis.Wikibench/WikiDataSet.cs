@@ -19,13 +19,13 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
             }
         }
 
-        public async Task Download()
+        public async Task DownloadIfNotExistsAsync()
         {
             var tasks = new List<Task>();
 
             foreach (var f in files)
             {
-                tasks.Add(Task.Run(async () => await f.DownloadIfNotExists()));
+                tasks.Add(Task.Run(async () => await f.DownloadIfNotExistsAsync()));
             }
 
             await Task.WhenAll(tasks);
