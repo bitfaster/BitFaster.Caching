@@ -9,29 +9,28 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class EqualPartitioningTests
+    public class EqualCapacityPartitionTests
     {
         [Fact]
         public void WhenCapacityBelow3Throws()
         {
-            Action constructor = () => { var x = new EqualPartitioning(2); };
+            Action constructor = () => { var x = new EqualCapacityPartition(2); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [Theory]
         [InlineData(3, 1, 1, 1)]
-        [InlineData(4, 1, 1, 2)]
-        [InlineData(5, 2, 1, 2)]
+        [InlineData(4, 1, 2, 1)]
+        [InlineData(5, 1, 2, 2)]
         [InlineData(6, 2, 2, 2)]
         public void EqualPartitioningCreatesEqualQueues(int totalCapacity, int expectedHot, int expectedWarm, int expectedCold)
         {
-            var p = new EqualPartitioning(totalCapacity);
+            var p = new EqualCapacityPartition(totalCapacity);
 
             p.Hot.Should().Be(expectedHot);
             p.Warm.Should().Be(expectedWarm);
             p.Cold.Should().Be(expectedCold);
-            p.Total.Should().Be(totalCapacity);
         }
     }
 }

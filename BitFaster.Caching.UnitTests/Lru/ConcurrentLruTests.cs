@@ -17,7 +17,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         private const int hotCap = 3;
         private const int warmCap = 3;
         private const int coldCap = 3;
-        private static readonly ICapacityPartition capacity = new EqualPartitioning(hotCap + warmCap + coldCap);
+        private static readonly ICapacityPartition capacity = new EqualCapacityPartition(hotCap + warmCap + coldCap);
 
         private ConcurrentLru<int, string> lru = new ConcurrentLru<int, string>(1, capacity, EqualityComparer<int>.Default);
         private ValueFactory valueFactory = new ValueFactory();
@@ -68,9 +68,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void WhenCapacityIs4HotHasCapacity1AndColdHasCapacity2()
+        public void WhenCapacityIs4HotHasCapacity1AndColdHasCapacity1()
         {
-            var lru = new ConcurrentLru<int, int>(1, new EqualPartitioning(4), EqualityComparer<int>.Default);
+            var lru = new ConcurrentLru<int, int>(1, new EqualCapacityPartition(4), EqualityComparer<int>.Default);
 
             for (int i = 0; i < 5; i++)
             {
@@ -78,21 +78,21 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
 
             lru.HotCount.Should().Be(1);
-            lru.ColdCount.Should().Be(2);
+            lru.ColdCount.Should().Be(1);
             lru.Capacity.Should().Be(4);
         }
 
         [Fact]
-        public void WhenCapacityIs5HotHasCapacity2AndColdHasCapacity2()
+        public void WhenCapacityIs5HotHasCapacity1AndColdHasCapacity2()
         {
-            var lru = new ConcurrentLru<int, int>(1, new EqualPartitioning(5), EqualityComparer<int>.Default);
+            var lru = new ConcurrentLru<int, int>(1, new EqualCapacityPartition(5), EqualityComparer<int>.Default);
 
             for (int i = 0; i < 5; i++)
             {
                 lru.GetOrAdd(i, x => x);
             }
 
-            lru.HotCount.Should().Be(2);
+            lru.HotCount.Should().Be(1);
             lru.ColdCount.Should().Be(2);
             lru.Capacity.Should().Be(5);
         }
@@ -396,7 +396,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenValueExpiresItIsDisposed()
         {
-            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, new EqualPartitioning(6), EqualityComparer<int>.Default);
+            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default);
             var disposableValueFactory = new DisposableValueFactory();
 
             for (int i = 0; i < 5; i++)
@@ -411,7 +411,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
-            var lruEvents = new ConcurrentLru<int, int>(1, new EqualPartitioning(6), EqualityComparer<int>.Default);
+            var lruEvents = new ConcurrentLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default);
             lruEvents.ItemRemoved += OnLruItemRemoved;
 
             for (int i = 0; i < 6; i++)
@@ -794,7 +794,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemsAreDisposableTrimDisposesItems()
         {
-            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, new EqualPartitioning(6), EqualityComparer<int>.Default);
+            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default);
 
             var items = Enumerable.Range(1, 4).Select(i => new DisposableItem()).ToList();
 

@@ -31,7 +31,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void ConstructPartitionCtorReturnsCapacity()
         {
-            var x = new FastConcurrentLru<int, int>(1, new EqualPartitioning(3), EqualityComparer<int>.Default);
+            var x = new FastConcurrentLru<int, int>(1, new EqualCapacityPartition(3), EqualityComparer<int>.Default);
 
             x.Capacity.Should().Be(3);
         }

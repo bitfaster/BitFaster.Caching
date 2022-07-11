@@ -75,7 +75,7 @@ namespace BitFaster.Caching.Lru
             this.warmQueue = new ConcurrentQueue<I>();
             this.coldQueue = new ConcurrentQueue<I>();
 
-            int dictionaryCapacity = this.capacity.Total + 1;
+            int dictionaryCapacity = this.Capacity + 1;
 
             this.dictionary = new ConcurrentDictionary<K, I>(concurrencyLevel, dictionaryCapacity, comparer);
             this.itemPolicy = itemPolicy;
@@ -88,7 +88,7 @@ namespace BitFaster.Caching.Lru
         public int Count => this.dictionary.Skip(0).Count();
 
         ///<inheritdoc/>
-        public int Capacity => this.capacity.Total;
+        public int Capacity => this.capacity.Hot + this.capacity.Warm + this.capacity.Cold;
 
         public int HotCount => this.hotCount;
 
@@ -316,7 +316,7 @@ namespace BitFaster.Caching.Lru
         /// </remarks>
         public void Trim(int itemCount)
         {
-            int capacity = this.capacity.Total;
+            int capacity = this.Capacity;
 
             if (itemCount < 1 || itemCount > capacity)
             { 
