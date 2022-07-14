@@ -6,7 +6,7 @@ using System.Text;
 using ConsoleTables;
 using CsvHelper;
 
-namespace BitFaster.Caching.HitRateAnalysis
+namespace BitFaster.Caching.HitRateAnalysis.Zipfian
 {
     public class AnalysisResult
     {
@@ -38,7 +38,7 @@ namespace BitFaster.Caching.HitRateAnalysis
         public static void WriteToConsole(IEnumerable<AnalysisResult> results)
         {
             ConsoleTable
-                .From<AnalysisResult>(results)
+                .From(results)
                 .Configure(o => o.NumberAlignment = Alignment.Right)
                 .Write(Format.Alternative);
         }

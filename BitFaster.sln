@@ -18,8 +18,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitFaster.Caching.HitRateAn
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitFaster.Caching.ThroughputAnalysis", "BitFaster.Caching.ThroughputAnalysis\BitFaster.Caching.ThroughputAnalysis.csproj", "{EF9968AF-10B2-4205-9C42-19A594BC98C1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitFaster.Caching.HitRateAnalysis.Wikibench", "BitFaster.Caching.HitRateAnalysis.Wikibench\BitFaster.Caching.HitRateAnalysis.Wikibench.csproj", "{9ACAEAE7-9C41-41FA-9B6B-B5455B0D67AD}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,10 +44,6 @@ Global
 		{EF9968AF-10B2-4205-9C42-19A594BC98C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF9968AF-10B2-4205-9C42-19A594BC98C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EF9968AF-10B2-4205-9C42-19A594BC98C1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9ACAEAE7-9C41-41FA-9B6B-B5455B0D67AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9ACAEAE7-9C41-41FA-9B6B-B5455B0D67AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9ACAEAE7-9C41-41FA-9B6B-B5455B0D67AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9ACAEAE7-9C41-41FA-9B6B-B5455B0D67AD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
