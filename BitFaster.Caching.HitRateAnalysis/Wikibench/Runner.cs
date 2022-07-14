@@ -50,6 +50,8 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
             {
                 a.Compare();
             }
+
+            Analysis.WriteToFile("results.wikibench.csv", analysis);
         }
     }
 }
