@@ -23,9 +23,9 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
 
         public int CacheSize => this.concurrentLru.Capacity;
 
-        public double ConcurrentLruHitRate => this.concurrentLru.HitRatio;
+        public double ConcurrentLruHitRate => this.concurrentLru.HitRatio * 100;
 
-        public double ClassicLruHitRate => this.classicLru.HitRatio;
+        public double ClassicLruHitRate => this.classicLru.HitRatio * 100;
 
         public void TestUri(Uri uri)
         {
