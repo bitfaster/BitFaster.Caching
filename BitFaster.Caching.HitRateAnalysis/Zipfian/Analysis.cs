@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BitFaster.Caching.HitRateAnalysis
+namespace BitFaster.Caching.HitRateAnalysis.Zipfian
 {
     public class Analysis
     {
@@ -16,7 +16,7 @@ namespace BitFaster.Caching.HitRateAnalysis
 
         public void WriteSummaryToConsole()
         {
-            Console.WriteLine($"Analyzing with N={N}, s={s}, Samples={Samples}, Cache Size ={CacheSizePercent*100.0}%");
+            Console.WriteLine($"Analyzing with N={N}, s={s}, Samples={Samples}, Cache Size ={CacheSizePercent * 100.0}%");
         }
     }
 }
