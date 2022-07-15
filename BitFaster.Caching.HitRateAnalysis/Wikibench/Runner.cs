@@ -45,12 +45,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
             }
 
             Console.WriteLine($"Tested {count} URIs in {sw.Elapsed}");
-
-            foreach (var a in analysis)
-            {
-                a.Compare();
-            }
-
+            analysis.WriteToConsole();
             Analysis.WriteToFile("results.wikibench.csv", analysis);
         }
     }

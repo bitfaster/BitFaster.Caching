@@ -40,11 +40,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
 
             Console.WriteLine($"Tested {count} keys in {sw.Elapsed}");
 
-            foreach (var a in this.config.Analysis)
-            {
-                a.Compare();
-            }
-
+            this.config.Analysis.WriteToConsole();
             Analysis.WriteToFile(this.config.Name, this.config.Analysis);
         }
     }

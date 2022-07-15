@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
+using ConsoleTables;
 using CsvHelper;
 
 namespace BitFaster.Caching.HitRateAnalysis.Arc
@@ -31,16 +32,6 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
         {
             concurrentLru.GetOrAdd(key, u => 1);
             classicLru.GetOrAdd(key, u => 1);
-        }
-
-        public void Compare()
-        {
-            Console.WriteLine($"Size {concurrentLru.Capacity} Classic HitRate {FormatHits(classicLru.HitRatio)} Concurrent HitRate {FormatHits(concurrentLru.HitRatio)}");
-        }
-
-        private static string FormatHits(double hitRate)
-        {
-            return string.Format("{0:N2}%", hitRate * 100.0);
         }
 
         public static void WriteToFile(string path, IEnumerable<Analysis> results)
