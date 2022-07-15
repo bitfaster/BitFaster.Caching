@@ -104,7 +104,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
                 {
                     if (int.TryParse(chunks[1], out var sequence))
                     {
-                        for (long i = startBlock; i <= startBlock + sequence; i++)
+                        for (long i = startBlock; i < startBlock + sequence; i++)
                         {
                             yield return i;
                         }
