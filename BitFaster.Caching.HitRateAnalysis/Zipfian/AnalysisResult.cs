@@ -34,13 +34,5 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                 csv.WriteRecords(results);
             }
         }
-
-        public static void WriteToConsole(IEnumerable<AnalysisResult> results)
-        {
-            ConsoleTable
-                .From(results)
-                .Configure(o => o.NumberAlignment = Alignment.Right)
-                .Write(Format.Alternative);
-        }
     }
 }
