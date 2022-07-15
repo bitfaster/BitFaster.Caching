@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
+using ConsoleTables;
 using CsvHelper;
 
 namespace BitFaster.Caching.HitRateAnalysis.Wikibench
@@ -33,16 +34,6 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
             this.classicLru.GetOrAdd(uri, u => 1);
         }
 
-        public void Compare()
-        {
-            Console.WriteLine($"Size {this.concurrentLru.Capacity} Classic HitRate {FormatHits(this.classicLru.HitRatio)} Concurrent HitRate {FormatHits(this.concurrentLru.HitRatio)}");
-        }
-
-        private static string FormatHits(double hitRate)
-        { 
-            return string.Format("{0:N2}%", hitRate * 100.0);
-        }
-
         public static void WriteToFile(string path, IEnumerable<Analysis> results)
         {
             using (var writer = new StreamWriter(path))
@@ -50,6 +41,14 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
             {
                 csv.WriteRecords(results);
             }
+        }
+
+        public static void WriteToConsole(IEnumerable<Analysis> results)
+        {
+            ConsoleTable
+                .From(results)
+                .Configure(o => o.NumberAlignment = Alignment.Right)
+                .Write(Format.MarkDown);
         }
     }
 }

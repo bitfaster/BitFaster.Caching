@@ -34,12 +34,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Glimpse
             }
 
             Console.WriteLine($"Tested {count} keys in {sw.Elapsed}");
-
-            foreach (var a in analysis)
-            {
-                a.Compare();
-            }
-
+            Analysis.WriteToConsole(analysis);
             Analysis.WriteToFile("results.glimpse.csv", analysis);
         }
     }

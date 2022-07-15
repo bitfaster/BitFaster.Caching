@@ -40,7 +40,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
             ConsoleTable
                 .From(results)
                 .Configure(o => o.NumberAlignment = Alignment.Right)
-                .Write(Format.Alternative);
+                .Write(Format.MarkDown);
         }
     }
 }
