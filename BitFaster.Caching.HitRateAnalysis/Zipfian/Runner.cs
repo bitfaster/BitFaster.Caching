@@ -163,7 +163,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                 });
             }
 
-            AnalysisResult.WriteToConsole(results);
+            results.WriteToConsole();
             AnalysisResult.WriteToFile("results.zipf.csv", results);
 
             Console.ReadLine();

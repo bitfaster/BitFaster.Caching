@@ -42,13 +42,5 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
                 csv.WriteRecords(results);
             }
         }
-
-        public static void WriteToConsole(IEnumerable<Analysis> results)
-        {
-            ConsoleTable
-                .From(results)
-                .Configure(o => o.NumberAlignment = Alignment.Right)
-                .Write(Format.MarkDown);
-        }
     }
 }
