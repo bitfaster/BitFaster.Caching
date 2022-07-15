@@ -12,7 +12,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Glimpse
     // TODO: dedupe
     public class DataFile
     {
-        private static readonly Uri Uri = new Uri("https://github.com/ben-manes/caffeine/raw/master/simulator/src/main/resources/com/github/benmanes/caffeine/cache/simulator/parser/lirs/gli.trace.gz");
+        private static readonly Uri Uri = new Uri("https://github.com/bitfaster/cache-datasets/releases/download/v1.0/gli.trace.gz");
         private static readonly string FilePath = "gli.trace";
 
         public static async Task DownloadIfNotExistsAsync()
