@@ -85,13 +85,13 @@ using (var lifetime = urlLocks.Acquire(url))
 
 ### Why not use MemoryCache?
 
-MemoryCache is perfectly serviceable, but it has some limitations:
+MemoryCache has these limitations (see [here](https://github.com/bitfaster/BitFaster.Caching/wiki) for more detail):
 
-- Makes heap allocations when the native object key is not type string.
-- Is not 'scan' resistant, fetching all keys will load everything into memory.
+- Lookups require heap allocations when the native key type is not type string.
+- Is not 'scan' resistant: fetching all keys will try to load everything into memory, which is bad.
+- Non-optimal eviction policy. MemoryCache uses an heuristic to estimate memory used, and evicts items using a timer based background thread. The 'trim' process may remove useful items, and if the timer does not fire fast enough the resulting memory pressure can be problematic (e.g. thrashing, out of memory, increased GC).
 - Does not scale well with concurrent writes.
-- Contains perf counters that can't be disabled
-- Uses an heuristic to estimate memory used, and evicts items using a timer. The 'trim' process may remove useful items, and if the timer does not fire fast enough the resulting memory pressure can be problematic (e.g. induced GC).
+- Contains perf counters that can't be disabled.
 
 # Performance
 
