@@ -282,28 +282,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
         }
 
-        //   [Theory]
-        // [InlineData(new[] { 9 }, new[] { 9, 8, 7, 3, 2, 1, 6, 5 })]
-        //[InlineData(2, new[] { 9, 8, 7, 3, 2, 1, 6 })]
-        //[InlineData(3, new[] { 9, 8, 7, 3, 2, 1 })]
-        //[InlineData(4, new[] { 9, 8, 7, 3, 2 })]
-        //[InlineData(5, new[] { 9, 8, 7, 3 })]
-        //[InlineData(6, new[] { 9, 8, 7 })]
-        //[InlineData(7, new[] { 9, 8 })]
-        //[InlineData(8, new[] { 9 })]
-        //[InlineData(9, new int[] { })]
-        //public void EvictionFlow(int[] input, int[] expected)
-        //{
-        //    this.Warmup();
-
-        //    foreach (var k in input)
-        //    { 
-        //        this.lru.GetOrAdd(k, valueFactory.Create);
-        //    }
-
-        //    lru.Keys.Should().BeEquivalentTo(expected);
-        //}
-
         [Fact]
         public void WhenValueIsNotTouchedAndExpiresFromHotValueIsBumpedToCold()
         {
@@ -729,7 +707,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Invoking(l => lru.Trim(hotCap + warmCap + coldCap + 1)).Should().Throw<ArgumentOutOfRangeException>();
         }
 
-        // TODO: review these tests - warmup changes sequence
         [Theory]
         [InlineData(1, new[] { 9, 8, 7, 3, 2, 1, 6, 5 })]
         [InlineData(2, new[] { 9, 8, 7, 3, 2, 1, 6 })]
