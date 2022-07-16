@@ -68,7 +68,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
             }
         }
 
-        public IEnumerable<long> EnumerateFileData()
+        public IEnumerable<BlockRange> EnumerateFileData()
         {
              //   File Format: 
 	         //   Every line in every file has four fields.
@@ -98,19 +98,45 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
             while (sr.Peek() >= 0)
             {
                 var line = sr.ReadLine();
-                var chunks = line.Split(' ');
 
-                if (long.TryParse(chunks[0], out var startBlock))
+                ReadOnlySpan<char> buffer = line.AsSpan();
+
+                var chunks = buffer.Split(' ');
+
+                if (chunks.MoveNext())
                 {
-                    if (int.TryParse(chunks[1], out var sequence))
+                    if (long.TryParse(buffer[chunks.Current], out long startBlock))
                     {
-                        for (long i = startBlock; i < startBlock + sequence; i++)
+                        if (chunks.MoveNext())
                         {
-                            yield return i;
+                            if (int.TryParse(buffer[chunks.Current], out var sequence))
+                            {
+                                yield return new BlockRange(startBlock, sequence);
+
+                                //for (long i = startBlock; i < startBlock + sequence; i++)
+                                //{
+                                //    yield return i;
+                                //}
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    public class BlockRange
+    {
+        private readonly long start;
+        private int sequence;
+
+        public BlockRange(long start, int sequence)
+        { 
+            this.start = start;
+            this.sequence = sequence;
+        }
+
+        public long Start => this.start;
+        public int Sequence => this.sequence;
     }
 }

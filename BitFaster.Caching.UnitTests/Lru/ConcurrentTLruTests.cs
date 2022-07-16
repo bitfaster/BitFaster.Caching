@@ -88,19 +88,23 @@ namespace BitFaster.Caching.UnitTests.Lru
             var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
             lruEvents.ItemRemoved += OnLruItemRemoved;
 
-            for (int i = 0; i < 6; i++)
+            // First 6 adds
+            // hot[6, 5], warm[2, 1], cold[4, 3]
+            // =>
+            // hot[8, 7], warm[1, 0], cold[6, 5], evicted[4, 3]
+            for (int i = 0; i < 8; i++)
             {
                 lruEvents.GetOrAdd(i + 1, i => i + 1);
             }
 
             removedItems.Count.Should().Be(2);
 
-            removedItems[0].Key.Should().Be(1);
-            removedItems[0].Value.Should().Be(2);
+            removedItems[0].Key.Should().Be(3);
+            removedItems[0].Value.Should().Be(4);
             removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
 
-            removedItems[1].Key.Should().Be(2);
-            removedItems[1].Value.Should().Be(3);
+            removedItems[1].Key.Should().Be(4);
+            removedItems[1].Value.Should().Be(5);
             removedItems[1].Reason.Should().Be(ItemRemovedReason.Evicted);
         }
 

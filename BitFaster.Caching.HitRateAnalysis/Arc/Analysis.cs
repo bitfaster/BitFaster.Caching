@@ -13,13 +13,14 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
 {
     public class Analysis
     {
-        private readonly ConcurrentLru<long, int> concurrentLru;
-        private readonly ClassicLru<long, int> classicLru;
+        private readonly ConcurrentLru<long, object> concurrentLru;
+        private readonly ClassicLru<long, object> classicLru;
+        private static readonly object dummy = new object();
 
         public Analysis(int cacheSize)
         {
-            concurrentLru = new ConcurrentLru<long, int>(1, cacheSize, EqualityComparer<long>.Default);
-            classicLru = new ClassicLru<long, int>(1, cacheSize, EqualityComparer<long>.Default);
+            concurrentLru = new ConcurrentLru<long, object>(1, cacheSize, EqualityComparer<long>.Default);
+            classicLru = new ClassicLru<long, object>(1, cacheSize, EqualityComparer<long>.Default);
         }
 
         public int CacheSize => concurrentLru.Capacity;
@@ -30,8 +31,8 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
 
         public void TestKey(long key)
         {
-            concurrentLru.GetOrAdd(key, u => 1);
-            classicLru.GetOrAdd(key, u => 1);
+            concurrentLru.GetOrAdd(key, u => dummy);
+            classicLru.GetOrAdd(key, u => dummy);
         }
 
         public static void WriteToFile(string path, IEnumerable<Analysis> results)
