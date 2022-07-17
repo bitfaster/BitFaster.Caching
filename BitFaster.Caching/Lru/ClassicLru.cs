@@ -135,6 +135,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
+                    Interlocked.Increment(ref this.metrics.evictedCount);
                     Disposer<V>.Dispose(removed.Value.Value);
                 }
 
@@ -179,6 +180,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
+                    Interlocked.Increment(ref this.metrics.evictedCount);
                     Disposer<V>.Dispose(removed.Value.Value);
                 }
 
@@ -267,6 +269,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
+                    Interlocked.Increment(ref this.metrics.evictedCount);
                     Disposer<V>.Dispose(removed.Value.Value);
                 }
 
@@ -374,6 +377,7 @@ namespace BitFaster.Caching.Lru
         {
             public long requestHitCount;
             public long requestTotalCount;
+            public long evictedCount;
 
             public double HitRatio => (double)requestHitCount / (double)requestTotalCount;
 
@@ -382,6 +386,8 @@ namespace BitFaster.Caching.Lru
             public long Hits => requestHitCount;
 
             public long Misses => requestTotalCount - requestHitCount;
+
+            public long Evicted => evictedCount;
 
             public bool IsEnabled => true;
         }

@@ -262,6 +262,23 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenMoreKeysRequestedThanCapacityEvictedMetricRecordsNumberEvicted()
+        {
+            // request 3 items, LRU is now full
+            for (int i = 0; i < capacity; i++)
+            {
+                lru.GetOrAdd(i, valueFactory.Create);
+            }
+
+            lru.Metrics.Evicted.Should().Be(0);
+
+            // request 0, now item 1 is to be evicted
+            lru.GetOrAdd(4, valueFactory.Create);
+
+            lru.Metrics.Evicted.Should().Be(1);
+        }
+
+        [Fact]
         public void WhenValueExpiresItIsDisposed()
         {
             var lruOfDisposable = new ClassicLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);

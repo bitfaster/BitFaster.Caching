@@ -495,6 +495,16 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenValuesAreEvictedEvictionMetricCountsEvicted()
+        {
+            this.Warmup();
+
+            this.lru.GetOrAdd(1, valueFactory.Create);
+
+            this.lru.Metrics.Evicted.Should().Be(1);
+        }
+
+        [Fact]
         public void WhenItemRemovedEventIsUnregisteredEventIsNotFired()
         {
             var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
