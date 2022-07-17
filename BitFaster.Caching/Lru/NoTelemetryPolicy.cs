@@ -17,6 +17,8 @@ namespace BitFaster.Caching.Lru
 
         public long Misses => 0;
 
+        public long Evicted => 0;
+
         public bool IsEnabled => false;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
