@@ -14,8 +14,6 @@ namespace BitFaster.Caching.Lru
 
         void OnItemRemoved(K key, V value, ItemRemovedReason reason);
 
-        //double HitRatio { get; }
-
         void SetEventSource(object source);
     }
 }
