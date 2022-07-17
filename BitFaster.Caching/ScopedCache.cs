@@ -21,6 +21,11 @@ namespace BitFaster.Caching
 
         public ScopedCache(ICache<K, Scoped<V>> cache)
         {
+            if (cache == null)
+            {
+                throw new ArgumentNullException(nameof(cache));
+            }
+
             this.cache = cache;
         }
 

@@ -77,26 +77,5 @@ namespace BitFaster.Caching.UnitTests
 
             valueFactory.Disposable.IsDisposed.Should().BeTrue();
         }
-
-        private class DisposableValueFactory
-        {
-            public Disposable Disposable { get; } = new Disposable();
-
-            public Scoped<Disposable> Create(int key)
-            {
-                return new Scoped<Disposable>(this.Disposable);
-            }
-        }
-
-        private class Disposable : IDisposable
-        {
-            public bool IsDisposed { get; set; }
-
-            public void Dispose()
-            {
-                this.IsDisposed.Should().BeFalse();
-                IsDisposed = true;
-            }
-        }
     }
 }
