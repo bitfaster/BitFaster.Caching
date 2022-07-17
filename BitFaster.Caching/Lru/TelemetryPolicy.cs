@@ -27,7 +27,7 @@ namespace BitFaster.Caching.Lru
 
         public bool IsEnabled => true;
 
-        public EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
+        public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
 
         public void IncrementMiss()
         {

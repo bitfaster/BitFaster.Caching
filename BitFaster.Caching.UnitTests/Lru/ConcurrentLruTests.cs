@@ -472,7 +472,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
             var lruEvents = new ConcurrentLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default);
+#pragma warning disable CS0618 // Type or member is obsolete
             lruEvents.ItemRemoved += OnLruItemRemoved;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             // First 6 adds
             // hot[6, 5], warm[2, 1], cold[4, 3]
@@ -509,8 +511,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             lruEvents.ItemRemoved += OnLruItemRemoved;
             lruEvents.ItemRemoved -= OnLruItemRemoved;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             for (int i = 0; i < 6; i++)
             {
@@ -545,7 +549,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsRemovedRemovedEventIsFired()
         {
             var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
+#pragma warning disable CS0618 // Type or member is obsolete
             lruEvents.ItemRemoved += OnLruItemRemoved;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             lruEvents.GetOrAdd(1, i => i + 2);
 
@@ -699,7 +705,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemsArClearedAnEventIsFired()
         {
             var lruEvents = new ConcurrentLru<int, int>(1, capacity, EqualityComparer<int>.Default);
+#pragma warning disable CS0618 // Type or member is obsolete
             lruEvents.ItemRemoved += OnLruItemRemoved;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             for (int i = 0; i < 6; i++)
             {
@@ -889,7 +897,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemsAreTrimmedAnEventIsFired()
         {
             var lruEvents = new ConcurrentLru<int, int>(1, capacity, EqualityComparer<int>.Default);
+#pragma warning disable CS0618 // Type or member is obsolete
             lruEvents.ItemRemoved += OnLruItemRemoved;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             for (int i = 0; i < 6; i++)
             {

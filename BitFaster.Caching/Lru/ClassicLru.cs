@@ -25,6 +25,7 @@ namespace BitFaster.Caching.Lru
         private readonly LinkedList<LruItem> linkedList = new LinkedList<LruItem>();
 
         private readonly CacheMetrics metrics = new CacheMetrics();
+        private readonly CacheEvents events = new CacheEvents();
 
         public ClassicLru(int capacity)
             : this(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default)
@@ -61,6 +62,8 @@ namespace BitFaster.Caching.Lru
 
         ///<inheritdoc/>
         public ICacheMetrics Metrics => this.metrics;
+
+        public ICacheEvents<K, V> Events => this.events;
 
         /// <summary>
         /// Gets a collection containing the keys in the cache.
@@ -390,6 +393,20 @@ namespace BitFaster.Caching.Lru
             public long Evicted => evictedCount;
 
             public bool IsEnabled => true;
+        }
+
+        private class CacheEvents : ICacheEvents<K, V>
+        {
+            public bool IsEnabled => false;
+
+#pragma warning disable CS0067 // The event 'event' is never used
+            public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
+            {
+                // no-op, nothing is registered
+                add { }
+                remove { }
+            }
+#pragma warning restore CS0067 // The event 'event' is never used
         }
     }
 }

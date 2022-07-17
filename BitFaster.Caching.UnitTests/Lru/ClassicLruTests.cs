@@ -166,6 +166,24 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void EventsAreEnabled()
+        {
+            lru.Events.IsEnabled.Should().BeFalse();
+        }
+
+        [Fact]
+        public void RegisterAndUnregisterIsNoOp()
+        {
+            lru.Events.ItemRemoved += OnItemRemoved;
+            lru.Events.ItemRemoved -= OnItemRemoved;
+        }
+
+        private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, string> e)
+        {
+            throw new NotImplementedException();
+        }
+
+        [Fact]
         public void WhenKeyIsRequestedItIsCreatedAndCached()
         {
             var result1 = lru.GetOrAdd(1, valueFactory.Create);

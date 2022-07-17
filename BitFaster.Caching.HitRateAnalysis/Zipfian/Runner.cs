@@ -122,7 +122,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                     CacheSizePercent = a.CacheSizePercent * 100.0,
                     Samples = a.Samples,
                     IsScan = false,
-                    HitRatio = classicLru.HitRatio * 100.0,
+                    HitRatio = classicLru.Metrics.HitRatio * 100.0,
                     Duration = clruSw.Elapsed,
                 });
 

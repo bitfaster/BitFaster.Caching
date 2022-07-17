@@ -29,6 +29,11 @@ namespace BitFaster.Caching
         ICacheMetrics Metrics { get; }
 
         /// <summary>
+        /// Gets the cache events.
+        /// </summary>
+        ICacheEvents<K, V> Events { get; }
+
+        /// <summary>
         /// Attempts to get the value associated with the specified key from the cache.
         /// </summary>
         /// <param name="key">The key of the value to get.</param>
