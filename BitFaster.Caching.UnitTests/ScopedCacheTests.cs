@@ -124,6 +124,22 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
+        public void WhenKeyDoesNotExistGetOrAddAddsValue()
+        {
+            this.cache.ScopedGetOrAdd(1, k => new Scoped<Disposable>(new Disposable()));
+
+            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task WhenKeyDoesNotExistGetOrAddAsyncAddsValue()
+        {
+            await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable())));
+
+            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
+        }
+
+        [Fact]
         public void GetOrAddDisposedScopeThrows()
         {
             var scope = new Scoped<Disposable>(new Disposable());
