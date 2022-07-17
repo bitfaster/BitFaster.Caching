@@ -7,7 +7,13 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
-    // simple decorator, compatible with all ICache
+    /// <summary>
+    /// A cache decorator for working with Scoped IDisposable values. The Scoped methods (e.g. ScopedGetOrAdd)
+    /// are threadsafe and create lifetimes that guarantee the value will not be disposed until the
+    /// lifetime is disposed.
+    /// </summary>
+    /// <typeparam name="K">The type of keys in the cache.</typeparam>
+    /// <typeparam name="V">The type of values in the cache.</typeparam>
     public class ScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
     {
         private readonly ICache<K, Scoped<V>> cache;
@@ -17,21 +23,26 @@ namespace BitFaster.Caching
             this.cache = cache;
         }
 
+        ///<inheritdoc/>
         public int Capacity => this.cache.Capacity;
 
+        ///<inheritdoc/>
         public int Count => this.cache.Count;
 
+        ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
         {
             this.cache.AddOrUpdate(key, new Scoped<V>(value));
         }
 
+        ///<inheritdoc/>
         public void Clear()
         {
             this.cache.Clear();
         }
 
-        public Lifetime<V> GetOrAdd(K key, Func<K, Scoped<V>> valueFactory)
+        ///<inheritdoc/>
+        public Lifetime<V> ScopedGetOrAdd(K key, Func<K, Scoped<V>> valueFactory)
         {
             var spinwait = new SpinWait();
             while (true)
@@ -47,7 +58,8 @@ namespace BitFaster.Caching
             }
         }
 
-        public async Task<Lifetime<V>> GetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+        ///<inheritdoc/>
+        public async Task<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             var spinwait = new SpinWait();
             while (true)
@@ -63,12 +75,14 @@ namespace BitFaster.Caching
             }
         }
 
+        ///<inheritdoc/>
         public void Trim(int itemCount)
         {
             this.cache.Trim(itemCount);
         }
 
-        public bool TryGet(K key, out Lifetime<V> lifetime)
+        ///<inheritdoc/>
+        public bool ScopedTryGet(K key, out Lifetime<V> lifetime)
         {
             if (this.cache.TryGet(key, out var scope))
             {
@@ -82,11 +96,13 @@ namespace BitFaster.Caching
             return false;
         }
 
+        ///<inheritdoc/>
         public bool TryRemove(K key)
         {
             return this.cache.TryRemove(key);
         }
 
+        ///<inheritdoc/>
         public bool TryUpdate(K key, V value)
         {
             return this.cache.TryUpdate(key, new Scoped<V>(value));

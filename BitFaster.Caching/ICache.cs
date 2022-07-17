@@ -38,7 +38,7 @@ namespace BitFaster.Caching
         /// <param name="key">The key of the element to add.</param>
         /// <param name="valueFactory">The factory function used to generate a value for the key.</param>
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
-        /// in the cache, or the new value if the key was not in the dictionary.</returns>
+        /// in the cache, or the new value if the key was not in the cache.</returns>
         V GetOrAdd(K key, Func<K, V> valueFactory);
 
         /// <summary>
