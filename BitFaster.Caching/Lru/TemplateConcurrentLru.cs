@@ -47,6 +47,7 @@ namespace BitFaster.Caching.Lru
         private readonly ICapacityPartition capacity;
 
         private readonly P itemPolicy;
+        private bool isWarm = false;
 
         // Since H is a struct, making it readonly will force the runtime to make defensive copies
         // if mutate methods are called. Therefore, field must be mutable to maintain count.
@@ -406,19 +407,60 @@ namespace BitFaster.Caching.Lru
 
         private void Cycle()
         {
-            // There will be races when queue count == queue capacity. Two threads may each dequeue items.
-            // This will prematurely free slots for the next caller. Each thread will still only cycle at most 5 items.
-            // Since TryDequeue is thread safe, only 1 thread can dequeue each item. Thus counts and queue state will always
-            // converge on correct over time.
-            CycleHot();
+            if (isWarm)
+            {
+                // There will be races when queue count == queue capacity. Two threads may each dequeue items.
+                // This will prematurely free slots for the next caller. Each thread will still only cycle at most 5 items.
+                // Since TryDequeue is thread safe, only 1 thread can dequeue each item. Thus counts and queue state will always
+                // converge on correct over time.
+                CycleHot();
 
-            // Multi-threaded stress tests show that due to races, the warm and cold count can increase beyond capacity when
-            // hit rate is very high. Double cycle results in stable count under all conditions. When contention is low, 
-            // secondary cycles have no effect.
-            CycleWarm();
-            CycleWarm();
-            CycleCold();
-            CycleCold();
+                // Multi-threaded stress tests show that due to races, the warm and cold count can increase beyond capacity when
+                // hit rate is very high. Double cycle results in stable count under all conditions. When contention is low, 
+                // secondary cycles have no effect.
+                CycleWarm();
+                CycleWarm();
+                CycleCold();
+                CycleCold();
+            }
+            else
+            {
+                // fill up the warm queue with new items until warm is full.
+                // else during warmup the cache will only use the hot + cold queues until any item is requested twice.
+                CycleDuringWarmup();
+            }
+        }
+
+        private void CycleDuringWarmup()
+        {
+            // do nothing until hot is full
+            if (this.hotCount > this.capacity.Hot)
+            {
+                Interlocked.Decrement(ref this.hotCount);
+
+                if (this.hotQueue.TryDequeue(out var item))
+                {
+                    // always move to warm until it is full
+                    if (this.warmCount < this.capacity.Warm)
+                    {
+                        // If there is a race, we will potentially add multiple items to warm. Guard by cycling the queue.
+                        this.Move(item, ItemDestination.Warm, ItemRemovedReason.Evicted);
+                        CycleWarm();
+                    }
+                    else
+                    {
+                        // Else mark isWarm and move items to cold.
+                        // If there is a race, we will potentially add multiple items to cold. Guard by cycling the queue.
+                        Volatile.Write(ref this.isWarm, true);
+                        this.Move(item, ItemDestination.Cold, ItemRemovedReason.Evicted);
+                        CycleCold();
+                    }
+                }
+                else
+                {
+                    Interlocked.Increment(ref this.hotCount);
+                }
+            }
         }
 
         private void CycleHot()
