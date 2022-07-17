@@ -91,6 +91,9 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public int Capacity => this.capacity.Hot + this.capacity.Warm + this.capacity.Cold;
 
+        ///<inheritdoc/>
+        public ICacheMetrics Metrics => this.telemetryPolicy;
+
         public int HotCount => this.hotCount;
 
         public int WarmCount => this.warmCount;

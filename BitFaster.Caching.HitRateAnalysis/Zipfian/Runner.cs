@@ -134,7 +134,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                     CacheSizePercent = a.CacheSizePercent * 100.0,
                     Samples = a.Samples,
                     IsScan = false,
-                    HitRatio = concurrentLru.HitRatio * 100.0,
+                    HitRatio = concurrentLru.Metrics.HitRatio * 100.0,
                     Duration = lruSw.Elapsed,
                 });
 
@@ -146,7 +146,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                     CacheSizePercent = a.CacheSizePercent * 100.0,
                     Samples = a.Samples,
                     IsScan = true,
-                    HitRatio = classicLruScan.HitRatio * 100.0,
+                    HitRatio = classicLruScan.Metrics.HitRatio * 100.0,
                     Duration = clruSwScan.Elapsed,
                 });
 
@@ -158,7 +158,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                     CacheSizePercent = a.CacheSizePercent * 100.0,
                     Samples = a.Samples,
                     IsScan = true,
-                    HitRatio = concurrentLruScan.HitRatio * 100.0,
+                    HitRatio = concurrentLruScan.Metrics.HitRatio * 100.0,
                     Duration = lruSwScan.Elapsed,
                 });
             }

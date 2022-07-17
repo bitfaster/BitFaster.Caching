@@ -18,6 +18,30 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void TotalIsZero()
+        {
+            counter.Total.Should().Be(0);
+        }
+
+        [Fact]
+        public void HitsIsZero()
+        {
+            counter.Hits.Should().Be(0);
+        }
+
+        [Fact]
+        public void MissesIsZero()
+        {
+            counter.Misses.Should().Be(0);
+        }
+
+        [Fact]
+        public void IsEnabledIsFalse()
+        {
+            counter.IsEnabled.Should().BeFalse();
+        }
+
+        [Fact]
         public void IncrementHitCountIsNoOp()
         {
             counter.Invoking(c => c.IncrementHit()).Should().NotThrow();
