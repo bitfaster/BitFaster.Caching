@@ -14,7 +14,7 @@ namespace BitFaster.Caching
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
-    public class ScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
+    public sealed class ScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
     {
         private readonly ICache<K, Scoped<V>> cache;
 
