@@ -162,9 +162,6 @@ namespace BitFaster.Caching.UnitTests
             getOrAdd.Should().ThrowAsync<InvalidOperationException>();
         }
 
-
-        // TODO: start lifetime, cycle value out of the cache, verify alive then dead
-
         [Fact]
         public void WhenCacheContainsValuesTrim1RemovesColdestValue()
         {

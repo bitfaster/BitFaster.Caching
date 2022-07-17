@@ -16,8 +16,10 @@ namespace BitFaster.Caching
     /// <typeparam name="V">The type of values in the cache.</typeparam>
     public class ScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
     {
-        private const int MaxRetry = 5;
         private readonly ICache<K, Scoped<V>> cache;
+
+        private const int MaxRetry = 5;
+        private static readonly string RetryFailureMessage = $"Exceeded {MaxRetry} attempts to create a lifetime.";
 
         public ScopedCache(ICache<K, Scoped<V>> cache)
         {
@@ -65,7 +67,7 @@ namespace BitFaster.Caching
 
                 if (c++ > MaxRetry)
                 {
-                    throw new InvalidOperationException();
+                    throw new InvalidOperationException(RetryFailureMessage);
                 }
             }
         }
@@ -88,7 +90,7 @@ namespace BitFaster.Caching
 
                 if (c++ > MaxRetry)
                 {
-                    throw new InvalidOperationException();
+                    throw new InvalidOperationException(RetryFailureMessage);
                 }
             }
         }
