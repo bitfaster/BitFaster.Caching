@@ -37,6 +37,8 @@ namespace BitFaster.Caching
         ///<inheritdoc/>
         public int Count => this.cache.Count;
 
+        public ICacheMetrics Metrics => this.cache.Metrics;
+
         ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
         {

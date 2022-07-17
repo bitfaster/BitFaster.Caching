@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
-    public interface ITelemetryPolicy<K, V>
+    public interface ITelemetryPolicy<K, V> : ICacheMetrics
     {
         void IncrementMiss();
 
@@ -14,7 +14,7 @@ namespace BitFaster.Caching.Lru
 
         void OnItemRemoved(K key, V value, ItemRemovedReason reason);
 
-        double HitRatio { get; }
+        //double HitRatio { get; }
 
         void SetEventSource(object source);
     }

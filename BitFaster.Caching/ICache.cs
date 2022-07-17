@@ -23,6 +23,8 @@ namespace BitFaster.Caching
         /// </summary>
         int Count { get; }
 
+        ICacheMetrics Metrics { get; }
+
         /// <summary>
         /// Attempts to get the value associated with the specified key from the cache.
         /// </summary>

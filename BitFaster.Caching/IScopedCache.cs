@@ -24,6 +24,11 @@ namespace BitFaster.Caching
         int Count { get; }
 
         /// <summary>
+        /// Gets the cache metrics.
+        /// </summary>
+        ICacheMetrics Metrics { get; }
+
+        /// <summary>
         /// Attempts to create a lifetime for the value associated with the specified key from the cache
         /// </summary>
         /// <param name="key">The key of the value to get.</param>
