@@ -12,6 +12,36 @@ namespace BitFaster.Caching.UnitTests.Lru
         private TelemetryPolicy<int, int> telemetryPolicy = default;
 
         [Fact]
+        public void WhenHitTotalIs1()
+        {
+            telemetryPolicy.Total.Should().Be(0);
+            telemetryPolicy.IncrementHit();
+            telemetryPolicy.Total.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenHitHitsIs1()
+        {
+            telemetryPolicy.Hits.Should().Be(0);
+            telemetryPolicy.IncrementHit();
+            telemetryPolicy.Hits.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenMissMissesIs1()
+        {
+            telemetryPolicy.Misses.Should().Be(0);
+            telemetryPolicy.IncrementMiss();
+            telemetryPolicy.Misses.Should().Be(1);
+        }
+
+        [Fact]
+        public void IsEnabledIsTrue()
+        {
+            telemetryPolicy.IsEnabled.Should().BeTrue();
+        }
+
+        [Fact]
         public void WhenHitCountAndTotalCountAreEqualRatioIs1()
         {
             telemetryPolicy.IncrementHit();

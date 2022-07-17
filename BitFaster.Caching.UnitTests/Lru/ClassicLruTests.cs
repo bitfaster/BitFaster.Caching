@@ -118,7 +118,51 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             lru.HitRatio.Should().Be(0.5);
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        [Fact]
+        public void MetricsAreEnabled()
+        {
+            lru.Metrics.IsEnabled.Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedMetricHitRatioIsHalf()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.HitRatio.Should().Be(0.5);
+        }
+
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedMetricHitsIs1()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.Hits.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedMetricTotalIs2()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.Total.Should().Be(2);
+        }
+
+        [Fact]
+        public void WhenItemDoesNotExistTryGetIncrementsMiss()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.Misses.Should().Be(1);
         }
 
         [Fact]

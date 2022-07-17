@@ -39,6 +39,16 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
+        public void WhenItemIsAddedThenLookedUpMetricsAreCorrect()
+        {
+            this.cache.AddOrUpdate(1, new Disposable());
+            this.cache.ScopedGetOrAdd(1, k => new Scoped<Disposable>(new Disposable()));
+
+            this.cache.Metrics.Misses.Should().Be(0);
+            this.cache.Metrics.Hits.Should().Be(1);
+        }
+
+        [Fact]
         public void WhenKeyDoesNotExistAddOrUpdateAddsNewItem()
         {
             var d = new Disposable();
