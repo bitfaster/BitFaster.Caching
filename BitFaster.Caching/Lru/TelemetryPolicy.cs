@@ -18,6 +18,12 @@ namespace BitFaster.Caching.Lru
 
         public long Total => this.hitCount + this.missCount;
 
+        public long Hits => this.hitCount;
+
+        public long Misses => this.missCount;
+
+        public bool IsEnabled => true;
+
         public EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
 
         public void IncrementMiss()

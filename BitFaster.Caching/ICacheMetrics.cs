@@ -6,6 +6,11 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
+    /// <summary>
+    /// Represents cache metrics collected over the lifetime of the cache.
+    /// If metrics are disabled, the IsEnabled property returns false
+    /// and all other properties return zero.
+    /// </summary>
     public interface ICacheMetrics
     {
         /// <summary>
@@ -18,6 +23,19 @@ namespace BitFaster.Caching
         /// </summary>
         long Total { get; }
 
-        //bool IsEnabled { get; }
+        /// <summary>
+        /// Gets the total number of cache hits.
+        /// </summary>
+        long Hits { get; }
+
+        /// <summary>
+        /// Gets the total number of cache misses.
+        /// </summary>
+        long Misses { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether metrics are enabled.
+        /// </summary>
+        bool IsEnabled { get; }
     }
 }

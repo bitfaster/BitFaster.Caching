@@ -13,6 +13,12 @@ namespace BitFaster.Caching.Lru
 
         public long Total => 0;
 
+        public long Hits => 0;
+
+        public long Misses => 0;
+
+        public bool IsEnabled => false;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncrementMiss()
         {

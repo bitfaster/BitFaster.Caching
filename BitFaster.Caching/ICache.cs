@@ -23,6 +23,9 @@ namespace BitFaster.Caching
         /// </summary>
         int Count { get; }
 
+        /// <summary>
+        /// Gets the cache metrics.
+        /// </summary>
         ICacheMetrics Metrics { get; }
 
         /// <summary>

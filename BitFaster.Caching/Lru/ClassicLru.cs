@@ -377,6 +377,12 @@ namespace BitFaster.Caching.Lru
             public double HitRatio => (double)requestHitCount / (double)requestTotalCount;
 
             public long Total => requestTotalCount;
+
+            public long Hits => requestHitCount;
+
+            public long Misses => requestTotalCount - requestHitCount;
+
+            public bool IsEnabled => true;
         }
     }
 }
