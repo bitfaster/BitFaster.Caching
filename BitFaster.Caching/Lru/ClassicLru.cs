@@ -59,7 +59,7 @@ namespace BitFaster.Caching.Lru
         public double HitRatio => this.Metrics.HitRatio;
 
         ///<inheritdoc/>
-        public ICacheMetrics Metrics => this.Metrics;
+        public ICacheMetrics Metrics => this.metrics;
 
         /// <summary>
         /// Gets a collection containing the keys in the cache.
