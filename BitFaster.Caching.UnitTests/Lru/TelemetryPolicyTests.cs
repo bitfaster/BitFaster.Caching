@@ -65,6 +65,22 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenItemRemovedIsEvictedIncrementEvictedCount()
+        {
+            telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Evicted);
+
+            telemetryPolicy.Evicted.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenItemRemovedIsRemovedDontIncrementEvictedCount()
+        {
+            telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Removed);
+
+            telemetryPolicy.Evicted.Should().Be(0);
+        }
+
+        [Fact]
         public void WhenOnItemRemovedInvokedEventIsFired()
         {
             List<ItemRemovedEventArgs<int, int>> eventList = new();

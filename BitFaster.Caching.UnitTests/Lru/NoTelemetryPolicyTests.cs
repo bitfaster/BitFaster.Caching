@@ -36,6 +36,12 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void EvictedIsZero()
+        {
+            counter.Evicted.Should().Be(0);
+        }
+
+        [Fact]
         public void IsEnabledIsFalse()
         {
             counter.IsEnabled.Should().BeFalse();
