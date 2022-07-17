@@ -16,6 +16,7 @@ namespace BitFaster.Caching
     /// <typeparam name="V">The type of values in the cache.</typeparam>
     public class ScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
     {
+        private const int MaxRetry = 5;
         private readonly ICache<K, Scoped<V>> cache;
 
         public ScopedCache(ICache<K, Scoped<V>> cache)
@@ -44,6 +45,7 @@ namespace BitFaster.Caching
         ///<inheritdoc/>
         public Lifetime<V> ScopedGetOrAdd(K key, Func<K, Scoped<V>> valueFactory)
         {
+            int c = 0;
             var spinwait = new SpinWait();
             while (true)
             {
@@ -55,12 +57,18 @@ namespace BitFaster.Caching
                 }
 
                 spinwait.SpinOnce();
+
+                if (c++ > MaxRetry)
+                {
+                    throw new InvalidOperationException();
+                }
             }
         }
 
         ///<inheritdoc/>
         public async Task<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
+            int c = 0;
             var spinwait = new SpinWait();
             while (true)
             {
@@ -72,6 +80,11 @@ namespace BitFaster.Caching
                 }
 
                 spinwait.SpinOnce();
+
+                if (c++ > MaxRetry)
+                {
+                    throw new InvalidOperationException();
+                }
             }
         }
 
