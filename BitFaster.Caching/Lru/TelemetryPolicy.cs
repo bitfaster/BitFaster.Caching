@@ -27,7 +27,13 @@ namespace BitFaster.Caching.Lru
 
         public bool IsEnabled => true;
 
-        public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
+        public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
+        {
+            add { this.itemRemoved += value; }
+            remove { this.itemRemoved -= value; }
+        }
+
+        private EventHandler<ItemRemovedEventArgs<K, V>> itemRemoved;
 
         public void IncrementMiss()
         {
@@ -47,7 +53,7 @@ namespace BitFaster.Caching.Lru
             }
 
             // passing 'this' as source boxes the struct, and is anyway the wrong object
-            this.ItemRemoved?.Invoke(this.eventSource, new ItemRemovedEventArgs<K, V>(key, value, reason));
+            this.itemRemoved?.Invoke(this.eventSource, new ItemRemovedEventArgs<K, V>(key, value, reason));
         }
 
         public void SetEventSource(object source)

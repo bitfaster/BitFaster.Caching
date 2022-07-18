@@ -725,6 +725,30 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenItemsArClearedAMetricsEventIsFired()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, capacity, EqualityComparer<int>.Default);
+            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
+
+            // looks like this struct is being copied defensively, so the assign above is lost
+            var e2 = lru.Events;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lruEvents.GetOrAdd(i + 1, i => i + 1);
+            }
+
+            lruEvents.Clear();
+
+            removedItems.Count.Should().Be(6);
+
+            for (int i = 0; i < 6; i++)
+            {
+                removedItems[i].Reason.Should().Be(ItemRemovedReason.Cleared);
+            }
+        }
+
+        [Fact]
         public void WhenTrimCountIsZeroThrows()
         {
             lru.Invoking(l => lru.Trim(0)).Should().Throw<ArgumentOutOfRangeException>();
