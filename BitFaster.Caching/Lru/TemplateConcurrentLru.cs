@@ -92,10 +92,10 @@ namespace BitFaster.Caching.Lru
         public int Capacity => this.capacity.Hot + this.capacity.Warm + this.capacity.Cold;
 
         ///<inheritdoc/>
-        public ICacheMetrics Metrics => new MetricsProxy(this);
+        public ICacheMetrics Metrics => new Proxy(this);
 
         ///<inheritdoc/>
-        public ICacheEvents<K, V> Events => new EventsProxy(this);
+        public ICacheEvents<K, V> Events => new Proxy(this);
 
         public int HotCount => this.hotCount;
 
@@ -619,11 +619,11 @@ namespace BitFaster.Caching.Lru
         // it becomes immutable. However, this object is then somewhere else on the 
         // heap, which slows down the policies with hit counter logic in benchmarks. Likely
         // this approach keeps the structs data members in the same CPU cache line as the LRU.
-        private class MetricsProxy : ICacheMetrics
+        private class Proxy : ICacheMetrics, ICacheEvents<K, V>
         {
             private readonly TemplateConcurrentLru<K, V, I, P, T> lru;
 
-            public MetricsProxy(TemplateConcurrentLru<K, V, I, P, T> lru)
+            public Proxy(TemplateConcurrentLru<K, V, I, P, T> lru)
             {
                 this.lru = lru;
             }
@@ -639,18 +639,6 @@ namespace BitFaster.Caching.Lru
             public long Evicted => lru.telemetryPolicy.Evicted;
 
             public bool IsEnabled => (lru.telemetryPolicy as ICacheMetrics).IsEnabled;
-        }
-
-        private class EventsProxy : ICacheEvents<K, V>
-        {
-            private readonly TemplateConcurrentLru<K, V, I, P, T> lru;
-
-            public EventsProxy(TemplateConcurrentLru<K, V, I, P, T> lru)
-            {
-                this.lru = lru;
-            }
-
-            public bool IsEnabled => (lru.telemetryPolicy as ICacheEvents<K, V>).IsEnabled;
 
             public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
             {
