@@ -58,10 +58,9 @@ namespace BitFaster.Caching.Lru
             this.data.eventSource = source;
         }
 
-        // Data exists because TelemetryPolicy is a struct (to get magic JIT optimizations),
-        // but returning it as a property from TemplateConcurrentLru causes a defensive copy
-        // to be made. By storing all the data in an encapsulated reference type, the 
-        // defensive copies of the value type have no effect - they point to the same ref.
+        // Data exists because TelemetryPolicy is a struct (to get magic JIT optimizations).
+        // By storing all the data in an encapsulated reference type, the struct is effectively
+        // immutable and defensive copies of the value type have no effect - they point to the same ref.
         private class Data
         {
             public long hitCount;
