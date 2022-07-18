@@ -14,6 +14,7 @@ namespace BitFaster.Caching.Lru
         private long missCount;
         private long evictedCount;
         private object eventSource;
+        private EventHolder eventHolder;
 
         public double HitRatio => Total == 0 ? 0 : (double)hitCount / (double)Total;
 
@@ -29,11 +30,9 @@ namespace BitFaster.Caching.Lru
 
         public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
         {
-            add { this.itemRemoved += value; }
-            remove { this.itemRemoved -= value; }
+            add { this.eventHolder.ItemRemoved += value; }
+            remove { this.eventHolder.ItemRemoved -= value; }
         }
-
-        private EventHandler<ItemRemovedEventArgs<K, V>> itemRemoved;
 
         public void IncrementMiss()
         {
@@ -53,12 +52,22 @@ namespace BitFaster.Caching.Lru
             }
 
             // passing 'this' as source boxes the struct, and is anyway the wrong object
-            this.itemRemoved?.Invoke(this.eventSource, new ItemRemovedEventArgs<K, V>(key, value, reason));
+            this.eventHolder.ItemRemoved?.Invoke(this.eventSource, new ItemRemovedEventArgs<K, V>(key, value, reason));
         }
 
         public void SetEventSource(object source)
         {
+            this.eventHolder = new EventHolder(); 
+
             this.eventSource = source;
+        }
+
+        // EventHolder exists because TelemetryPolicy is a struct, and +=/-= event handlers to 
+        // the event causes copies of the struct to be generated. Since the handlers are bound
+        // to the internal holder class, references are not lost when assigning events.
+        private class EventHolder
+        {
+            public EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
         }
     }
 }

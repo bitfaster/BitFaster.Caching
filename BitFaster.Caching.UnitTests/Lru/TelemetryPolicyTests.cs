@@ -11,6 +11,11 @@ namespace BitFaster.Caching.UnitTests.Lru
     {
         private TelemetryPolicy<int, int> telemetryPolicy = default;
 
+        public TelemetryPolicyTests()
+        {
+            telemetryPolicy.SetEventSource(this);
+        }
+
         [Fact]
         public void WhenHitTotalIs1()
         {
@@ -100,9 +105,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             List<object> eventSourceList = new();
 
+            telemetryPolicy.SetEventSource(this);
+
             telemetryPolicy.ItemRemoved += (source, args) => eventSourceList.Add(source);
 
-            telemetryPolicy.SetEventSource(this);
             telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Evicted);
 
             eventSourceList.Should().HaveCount(1);
