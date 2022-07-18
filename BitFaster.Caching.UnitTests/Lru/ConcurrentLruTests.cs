@@ -730,9 +730,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             var lruEvents = new ConcurrentLru<int, int>(1, capacity, EqualityComparer<int>.Default);
             lruEvents.Events.ItemRemoved += OnLruItemRemoved;
 
-            // looks like this struct is being copied defensively, so the assign above is lost
-            var e2 = lru.Events;
-
             for (int i = 0; i < 6; i++)
             {
                 lruEvents.GetOrAdd(i + 1, i => i + 1);
