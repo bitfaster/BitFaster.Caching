@@ -10,63 +10,65 @@ namespace BitFaster.Caching.Lru
 {
     public struct TelemetryPolicy<K, V> : ITelemetryPolicy<K, V>
     {
-        private long hitCount;
-        private long missCount;
-        private long evictedCount;
-        private object eventSource;
-        private EventHolder eventHolder;
+        private Data data;
 
-        public double HitRatio => Total == 0 ? 0 : (double)hitCount / (double)Total;
+        public double HitRatio => Total == 0 ? 0 : (double)Hits / (double)Total;
 
-        public long Total => this.hitCount + this.missCount;
+        public long Total => this.data.hitCount + this.data.missCount;
 
-        public long Hits => this.hitCount;
+        public long Hits => this.data.hitCount;
 
-        public long Misses => this.missCount;
+        public long Misses => this.data.missCount;
 
-        public long Evicted => this.evictedCount;
+        public long Evicted => this.data.evictedCount;
 
         public bool IsEnabled => true;
 
         public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
         {
-            add { this.eventHolder.ItemRemoved += value; }
-            remove { this.eventHolder.ItemRemoved -= value; }
+            add { this.data.ItemRemoved += value; }
+            remove { this.data.ItemRemoved -= value; }
         }
 
         public void IncrementMiss()
         {
-            Interlocked.Increment(ref this.missCount);
+            Interlocked.Increment(ref this.data.missCount);
         }
 
         public void IncrementHit()
         {
-            Interlocked.Increment(ref this.hitCount);
+            Interlocked.Increment(ref this.data.hitCount);
         }
 
         public void OnItemRemoved(K key, V value, ItemRemovedReason reason)
         {
             if (reason == ItemRemovedReason.Evicted)
             {
-                Interlocked.Increment(ref this.evictedCount);
+                Interlocked.Increment(ref this.data.evictedCount);
             }
 
             // passing 'this' as source boxes the struct, and is anyway the wrong object
-            this.eventHolder.ItemRemoved?.Invoke(this.eventSource, new ItemRemovedEventArgs<K, V>(key, value, reason));
+            this.data.ItemRemoved?.Invoke(this.data.eventSource, new ItemRemovedEventArgs<K, V>(key, value, reason));
         }
 
         public void SetEventSource(object source)
         {
-            this.eventHolder = new EventHolder(); 
+            this.data = new Data(); 
 
-            this.eventSource = source;
+            this.data.eventSource = source;
         }
 
-        // EventHolder exists because TelemetryPolicy is a struct, and +=/-= event handlers to 
-        // the event causes copies of the struct to be generated. Since the handlers are bound
-        // to the internal holder class, references are not lost when assigning events.
-        private class EventHolder
+        // Data exists because TelemetryPolicy is a struct (to get magic JIT optimizations),
+        // but returning it as a property from TemplateConcurrentLru causes a defensive copy
+        // to be made. By storing all the data in an encapsulated reference type, the 
+        // defensive copies of the value type have no effect - they point to the same ref.
+        private class Data
         {
+            public long hitCount;
+            public long missCount;
+            public long evictedCount;
+            public object eventSource;
+
             public EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
         }
     }
