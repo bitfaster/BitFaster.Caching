@@ -94,6 +94,9 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public ICacheMetrics Metrics => this.telemetryPolicy;
 
+        ///<inheritdoc/>
+        public ICacheEvents<K, V> Events => this.telemetryPolicy;
+
         public int HotCount => this.hotCount;
 
         public int WarmCount => this.warmCount;

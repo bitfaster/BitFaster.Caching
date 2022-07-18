@@ -21,6 +21,15 @@ namespace BitFaster.Caching.Lru
 
         public bool IsEnabled => false;
 
+#pragma warning disable 0067 // The event 'event' is never used
+        public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
+        {
+            // no-op, nothing is registered
+            add { }
+            remove { }
+        }
+#pragma warning restore 0067 // The event 'event' is never used
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncrementMiss()
         {

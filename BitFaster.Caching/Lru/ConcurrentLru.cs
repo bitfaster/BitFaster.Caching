@@ -52,10 +52,11 @@ namespace BitFaster.Caching.Lru
         /// <summary>
         /// Occurs when an item is removed from the cache.
         /// </summary>
+        [ObsoleteAttribute("This property is obsolete. Use Events instead.", false)]
         public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
         {
-            add { this.telemetryPolicy.ItemRemoved += value; }
-            remove { this.telemetryPolicy.ItemRemoved -= value; }
+            add { this.Events.ItemRemoved += value; }
+            remove { this.Events.ItemRemoved -= value; }
         }
     }
 }

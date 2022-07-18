@@ -14,6 +14,8 @@ namespace BitFaster.Caching.UnitTests
         private const int capacity = 6;
         private readonly ScopedCache<int, Disposable> cache = new (new ConcurrentLru<int, Scoped<Disposable>>(capacity));
 
+        private List<ItemRemovedEventArgs<int, Scoped<Disposable>>> removedItems = new();
+
         [Fact]
         public void WhenInnerCacheIsNullCtorThrows()
         {
@@ -46,6 +48,22 @@ namespace BitFaster.Caching.UnitTests
 
             this.cache.Metrics.Misses.Should().Be(0);
             this.cache.Metrics.Hits.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenEventHandlerIsRegisteredItIsFired()
+        {
+            this.cache.Events.ItemRemoved += OnItemRemoved;
+
+            this.cache.AddOrUpdate(1, new Disposable());
+            this.cache.TryRemove(1);
+
+            this.removedItems.First().Key.Should().Be(1);
+        }
+
+        private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, Scoped<Disposable>> e)
+        {
+            this.removedItems.Add(e);
         }
 
         [Fact]

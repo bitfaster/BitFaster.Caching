@@ -64,5 +64,16 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             counter.Invoking(c => c.OnItemRemoved(1, 2, ItemRemovedReason.Evicted)).Should().NotThrow();
         }
+
+        [Fact]
+        public void RegisterEventHandlerIsNoOp()
+        {
+            counter.ItemRemoved += OnItemRemoved;
+            counter.ItemRemoved -= OnItemRemoved;
+        }
+
+        private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
+        {
+        }
     }
 }
