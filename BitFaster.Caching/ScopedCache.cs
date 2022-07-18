@@ -40,8 +40,6 @@ namespace BitFaster.Caching
         ///<inheritdoc/>
         public ICacheMetrics Metrics => this.cache.Metrics;
 
-        // TODO: we need an event unrwap class to hide the scope here.
-        // Or, is it better to expose the scope, then the caller can keep objects alive if needed?
         ///<inheritdoc/>
         public ICacheEvents<K, Scoped<V>> Events => this.cache.Events;
 
