@@ -49,7 +49,7 @@ namespace BitFaster.Caching.Lru
         private readonly P itemPolicy;
         private bool isWarm = false;
 
-        // Since H is a struct, making it readonly will force the runtime to make defensive copies
+        // Since T is a struct, making it readonly will force the runtime to make defensive copies
         // if mutate methods are called. Therefore, field must be mutable to maintain count.
         protected T telemetryPolicy;
 
@@ -92,10 +92,10 @@ namespace BitFaster.Caching.Lru
         public int Capacity => this.capacity.Hot + this.capacity.Warm + this.capacity.Cold;
 
         ///<inheritdoc/>
-        public ICacheMetrics Metrics => this.telemetryPolicy;
+        public ICacheMetrics Metrics => new Proxy(this);
 
         ///<inheritdoc/>
-        public ICacheEvents<K, V> Events => this.telemetryPolicy;
+        public ICacheEvents<K, V> Events => new Proxy(this);
 
         public int HotCount => this.hotCount;
 
@@ -610,6 +610,41 @@ namespace BitFaster.Caching.Lru
         IEnumerator IEnumerable.GetEnumerator()
         {
             return ((TemplateConcurrentLru<K, V, I, P, T>)this).GetEnumerator();
+        }
+
+        // To get JIT optimizations, policies must be structs.
+        // If the structs are returned directly via properties, they will be copied. Since  
+        // telemetryPolicy is a mutable struct, copy is bad. One workaround is to store the 
+        // state within the struct in an object. Since the struct points to the same object
+        // it becomes immutable. However, this object is then somewhere else on the 
+        // heap, which slows down the policies with hit counter logic in benchmarks. Likely
+        // this approach keeps the structs data members in the same CPU cache line as the LRU.
+        private class Proxy : ICacheMetrics, ICacheEvents<K, V>
+        {
+            private readonly TemplateConcurrentLru<K, V, I, P, T> lru;
+
+            public Proxy(TemplateConcurrentLru<K, V, I, P, T> lru)
+            {
+                this.lru = lru;
+            }
+
+            public double HitRatio => lru.telemetryPolicy.HitRatio;
+
+            public long Total => lru.telemetryPolicy.Total;
+
+            public long Hits => lru.telemetryPolicy.Hits;
+
+            public long Misses => lru.telemetryPolicy.Misses;
+
+            public long Evicted => lru.telemetryPolicy.Evicted;
+
+            public bool IsEnabled => (lru.telemetryPolicy as ICacheMetrics).IsEnabled;
+
+            public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
+            {
+                add { this.lru.telemetryPolicy.ItemRemoved += value; }
+                remove { this.lru.telemetryPolicy.ItemRemoved -= value; }
+            }
         }
     }
 }

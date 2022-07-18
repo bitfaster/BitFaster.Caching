@@ -199,6 +199,19 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenRefToMetricsIsCapturedResultIsCorrect()
+        {
+            // this detects the case where the struct is copied. If the internal Data class
+            // doesn't work, this test fails.
+            var m = lru.Metrics;
+
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            m.HitRatio.Should().Be(0.5);
+        }
+
+        [Fact]
         public void WhenKeyIsRequestedItIsCreatedAndCached()
         {
             var result1 = lru.GetOrAdd(1, valueFactory.Create);
