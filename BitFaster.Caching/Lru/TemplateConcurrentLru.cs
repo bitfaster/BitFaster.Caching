@@ -49,7 +49,7 @@ namespace BitFaster.Caching.Lru
         private readonly P itemPolicy;
         private bool isWarm = false;
 
-        // Since H is a struct, making it readonly will force the runtime to make defensive copies
+        // Since T is a struct, making it readonly will force the runtime to make defensive copies
         // if mutate methods are called. Therefore, field must be mutable to maintain count.
         protected T telemetryPolicy;
 
@@ -612,8 +612,13 @@ namespace BitFaster.Caching.Lru
             return ((TemplateConcurrentLru<K, V, I, P, T>)this).GetEnumerator();
         }
 
-        // jump through some hoops to allow callers to capture references to the metrics
-        // not have an invalid ref to the telemetry policy struct.
+        // To get JIT optimizations, policies must be structs.
+        // If the structs are returned directly via properties, they will be copied. Since  
+        // telemetryPolicy is a mutable struct, copy is bad. One workaround is to store the 
+        // state within the struct in an object. Since the struct points to the same object
+        // it becomes immutable. However, this object is then somewhere else on the 
+        // heap, which slows down the policies with hit counter logic in benchmarks. Likely
+        // this approach keeps the structs data members in the same CPU cache line as the LRU.
         private class MetricsProxy : ICacheMetrics
         {
             private readonly TemplateConcurrentLru<K, V, I, P, T> lru;
