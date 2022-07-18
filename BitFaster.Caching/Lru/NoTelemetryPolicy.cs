@@ -23,6 +23,7 @@ namespace BitFaster.Caching.Lru
 
         public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
         {
+            // no-op, nothing is registered
             add { }
             remove { }
         }

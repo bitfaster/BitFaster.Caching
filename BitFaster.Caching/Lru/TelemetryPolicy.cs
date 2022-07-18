@@ -10,10 +10,10 @@ namespace BitFaster.Caching.Lru
 {
     public struct TelemetryPolicy<K, V> : ITelemetryPolicy<K, V>
     {
-        public long hitCount;
-        public long missCount;
-        public long evictedCount;
-        public object eventSource;
+        private long hitCount;
+        private long missCount;
+        private long evictedCount;
+        private object eventSource;
 
         public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
 
