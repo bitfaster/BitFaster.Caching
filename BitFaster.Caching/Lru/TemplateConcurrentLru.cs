@@ -92,10 +92,10 @@ namespace BitFaster.Caching.Lru
         public int Capacity => this.capacity.Hot + this.capacity.Warm + this.capacity.Cold;
 
         ///<inheritdoc/>
-        public ICacheMetrics Metrics => this.telemetryPolicy;
+        public ICacheMetrics Metrics => new MetricsProxy(this);
 
         ///<inheritdoc/>
-        public ICacheEvents<K, V> Events => this.telemetryPolicy;
+        public ICacheEvents<K, V> Events => new EventsProxy(this);
 
         public int HotCount => this.hotCount;
 
@@ -610,6 +610,48 @@ namespace BitFaster.Caching.Lru
         IEnumerator IEnumerable.GetEnumerator()
         {
             return ((TemplateConcurrentLru<K, V, I, P, T>)this).GetEnumerator();
+        }
+
+        // jump through some hoops to allow callers to capture references to the metrics
+        // not have an invalid ref to the telemetry policy struct.
+        private class MetricsProxy : ICacheMetrics
+        {
+            private readonly TemplateConcurrentLru<K, V, I, P, T> lru;
+
+            public MetricsProxy(TemplateConcurrentLru<K, V, I, P, T> lru)
+            {
+                this.lru = lru;
+            }
+
+            public double HitRatio => lru.telemetryPolicy.HitRatio;
+
+            public long Total => lru.telemetryPolicy.Total;
+
+            public long Hits => lru.telemetryPolicy.Hits;
+
+            public long Misses => lru.telemetryPolicy.Misses;
+
+            public long Evicted => lru.telemetryPolicy.Evicted;
+
+            public bool IsEnabled => (lru.telemetryPolicy as ICacheMetrics).IsEnabled;
+        }
+
+        private class EventsProxy : ICacheEvents<K, V>
+        {
+            private readonly TemplateConcurrentLru<K, V, I, P, T> lru;
+
+            public EventsProxy(TemplateConcurrentLru<K, V, I, P, T> lru)
+            {
+                this.lru = lru;
+            }
+
+            public bool IsEnabled => (lru.telemetryPolicy as ICacheEvents<K, V>).IsEnabled;
+
+            public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
+            {
+                add { this.lru.telemetryPolicy.ItemRemoved += value; }
+                remove { this.lru.telemetryPolicy.ItemRemoved -= value; }
+            }
         }
     }
 }

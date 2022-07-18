@@ -10,65 +10,49 @@ namespace BitFaster.Caching.Lru
 {
     public struct TelemetryPolicy<K, V> : ITelemetryPolicy<K, V>
     {
-        private Data data;
+        public long hitCount;
+        public long missCount;
+        public long evictedCount;
+        public object eventSource;
+
+        public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
 
         public double HitRatio => Total == 0 ? 0 : (double)Hits / (double)Total;
 
-        public long Total => this.data.hitCount + this.data.missCount;
+        public long Total => this.hitCount + this.missCount;
 
-        public long Hits => this.data.hitCount;
+        public long Hits => this.hitCount;
 
-        public long Misses => this.data.missCount;
+        public long Misses => this.missCount;
 
-        public long Evicted => this.data.evictedCount;
+        public long Evicted => this.evictedCount;
 
         public bool IsEnabled => true;
 
-        public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
-        {
-            add { this.data.ItemRemoved += value; }
-            remove { this.data.ItemRemoved -= value; }
-        }
-
         public void IncrementMiss()
         {
-            Interlocked.Increment(ref this.data.missCount);
+            Interlocked.Increment(ref this.missCount);
         }
 
         public void IncrementHit()
         {
-            Interlocked.Increment(ref this.data.hitCount);
+            Interlocked.Increment(ref this.hitCount);
         }
 
         public void OnItemRemoved(K key, V value, ItemRemovedReason reason)
         {
             if (reason == ItemRemovedReason.Evicted)
             {
-                Interlocked.Increment(ref this.data.evictedCount);
+                Interlocked.Increment(ref this.evictedCount);
             }
 
             // passing 'this' as source boxes the struct, and is anyway the wrong object
-            this.data.ItemRemoved?.Invoke(this.data.eventSource, new ItemRemovedEventArgs<K, V>(key, value, reason));
+            this.ItemRemoved?.Invoke(this.eventSource, new ItemRemovedEventArgs<K, V>(key, value, reason));
         }
 
         public void SetEventSource(object source)
         {
-            this.data = new Data(); 
-
-            this.data.eventSource = source;
-        }
-
-        // Data exists because TelemetryPolicy is a struct (to get magic JIT optimizations).
-        // By storing all the data in an encapsulated reference type, the struct is effectively
-        // immutable and defensive copies of the value type have no effect - they point to the same ref.
-        private class Data
-        {
-            public long hitCount;
-            public long missCount;
-            public long evictedCount;
-            public object eventSource;
-
-            public EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
+            this.eventSource = source;
         }
     }
 }
