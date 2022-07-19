@@ -118,7 +118,69 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             lru.HitRatio.Should().Be(0.5);
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        [Fact]
+        public void MetricsAreEnabled()
+        {
+            lru.Metrics.IsEnabled.Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedMetricHitRatioIsHalf()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.HitRatio.Should().Be(0.5);
+        }
+
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedMetricHitsIs1()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.Hits.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedMetricTotalIs2()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.Total.Should().Be(2);
+        }
+
+        [Fact]
+        public void WhenItemDoesNotExistTryGetIncrementsMiss()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.Misses.Should().Be(1);
+        }
+
+        [Fact]
+        public void EventsAreEnabled()
+        {
+            lru.Events.IsEnabled.Should().BeFalse();
+        }
+
+        [Fact]
+        public void RegisterAndUnregisterIsNoOp()
+        {
+            lru.Events.ItemRemoved += OnItemRemoved;
+            lru.Events.ItemRemoved -= OnItemRemoved;
+        }
+
+        private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, string> e)
+        {
+            throw new NotImplementedException();
         }
 
         [Fact]
@@ -215,6 +277,23 @@ namespace BitFaster.Caching.UnitTests.Lru
             // request 1, verify value factory is called (and it was therefore not cached)
             lru.GetOrAdd(1, valueFactory.Create);
             valueFactory.timesCalled.Should().Be(capacity + 2);
+        }
+
+        [Fact]
+        public void WhenMoreKeysRequestedThanCapacityEvictedMetricRecordsNumberEvicted()
+        {
+            // request 3 items, LRU is now full
+            for (int i = 0; i < capacity; i++)
+            {
+                lru.GetOrAdd(i, valueFactory.Create);
+            }
+
+            lru.Metrics.Evicted.Should().Be(0);
+
+            // request 0, now item 1 is to be evicted
+            lru.GetOrAdd(4, valueFactory.Create);
+
+            lru.Metrics.Evicted.Should().Be(1);
         }
 
         [Fact]

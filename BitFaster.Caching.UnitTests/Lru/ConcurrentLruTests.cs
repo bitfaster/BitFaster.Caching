@@ -17,8 +17,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         private const int hotCap = 3;
         private const int warmCap = 3;
         private const int coldCap = 3;
+        private static readonly ICapacityPartition capacity = new EqualCapacityPartition(hotCap + warmCap + coldCap);
 
-        private ConcurrentLru<int, string> lru = new ConcurrentLru<int, string>(1, hotCap + warmCap + coldCap, EqualityComparer<int>.Default);
+        private ConcurrentLru<int, string> lru = new ConcurrentLru<int, string>(1, capacity, EqualityComparer<int>.Default);
         private ValueFactory valueFactory = new ValueFactory();
 
         private List<ItemRemovedEventArgs<int, int>> removedItems = new List<ItemRemovedEventArgs<int, int>>();
@@ -50,6 +51,15 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenPartitionIsNullCtorThrows()
+        {
+            ICapacityPartition partition = null;
+            Action constructor = () => { var x = new ConcurrentLru<int, string>(1, partition, EqualityComparer<int>.Default); };
+
+            constructor.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact]
         public void WhenComparerIsNullCtorThrows()
         {
             Action constructor = () => { var x = new ConcurrentLru<int, string>(1, 3, null); };
@@ -58,9 +68,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void WhenCapacityIs4HotHasCapacity1AndColdHasCapacity2()
+        public void WhenCapacityIs4HotHasCapacity1AndColdHasCapacity1()
         {
-            var lru = new ConcurrentLru<int, int>(4);
+            var lru = new ConcurrentLru<int, int>(1, new EqualCapacityPartition(4), EqualityComparer<int>.Default);
 
             for (int i = 0; i < 5; i++)
             {
@@ -68,21 +78,21 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
 
             lru.HotCount.Should().Be(1);
-            lru.ColdCount.Should().Be(2);
+            lru.ColdCount.Should().Be(1);
             lru.Capacity.Should().Be(4);
         }
 
         [Fact]
-        public void WhenCapacityIs5HotHasCapacity2AndColdHasCapacity2()
+        public void WhenCapacityIs5HotHasCapacity1AndColdHasCapacity2()
         {
-            var lru = new ConcurrentLru<int, int>(5);
+            var lru = new ConcurrentLru<int, int>(1, new EqualCapacityPartition(5), EqualityComparer<int>.Default);
 
             for (int i = 0; i < 5; i++)
             {
                 lru.GetOrAdd(i, x => x);
             }
 
-            lru.HotCount.Should().Be(2);
+            lru.HotCount.Should().Be(1);
             lru.ColdCount.Should().Be(2);
             lru.Capacity.Should().Be(5);
         }
@@ -141,6 +151,14 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void FromColdWarmupFillsWarmQueue()
+        {
+            this.Warmup();
+
+            this.lru.Count.Should().Be(9);
+        }
+
+        [Fact]
         public void WhenItemExistsTryGetReturnsValueAndTrue()
         {
             lru.GetOrAdd(1, valueFactory.Create);
@@ -166,7 +184,31 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             lru.HitRatio.Should().Be(0.5);
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedMetricHitRatioIsHalf()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.HitRatio.Should().Be(0.5);
+        }
+
+        [Fact]
+        public void WhenRefToMetricsIsCapturedResultIsCorrect()
+        {
+            // this detects the case where the struct is copied. If the internal Data class
+            // doesn't work, this test fails.
+            var m = lru.Metrics;
+
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            m.HitRatio.Should().Be(0.5);
         }
 
         [Fact]
@@ -216,14 +258,12 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenValuesAreNotReadAndMoreKeysRequestedThanCapacityCountDoesNotIncrease()
         {
-            int hotColdCapacity = hotCap + coldCap;
-            for (int i = 0; i < hotColdCapacity + 1; i++)
-            {
-                lru.GetOrAdd(i, valueFactory.Create);
-            }
+            this.Warmup();
 
-            lru.Count.Should().Be(hotColdCapacity);
-            valueFactory.timesCalled.Should().Be(hotColdCapacity + 1);
+            var result = lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.Count.Should().Be(9);
+            valueFactory.timesCalled.Should().Be(10);
         }
 
         [Fact]
@@ -269,155 +309,241 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenValueIsNotTouchedAndExpiresFromHotValueIsBumpedToCold()
         {
-            lru.GetOrAdd(0, valueFactory.Create);
+            this.Warmup();
+
+            lru.GetOrAdd(0, valueFactory.Create); // Don't touch in hot
+
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
             lru.GetOrAdd(3, valueFactory.Create);
+            lru.GetOrAdd(4, valueFactory.Create);
+            lru.GetOrAdd(5, valueFactory.Create);
+            lru.GetOrAdd(6, valueFactory.Create);
+            lru.GetOrAdd(7, valueFactory.Create);
+            lru.GetOrAdd(8, valueFactory.Create);
+            lru.GetOrAdd(9, valueFactory.Create);
 
-            lru.HotCount.Should().Be(3);
-            lru.WarmCount.Should().Be(0);
-            lru.ColdCount.Should().Be(1);
+            lru.TryGet(0, out var value).Should().BeFalse();
         }
 
         [Fact]
         public void WhenValueIsTouchedAndExpiresFromHotValueIsBumpedToWarm()
         {
+            this.Warmup();
+
             lru.GetOrAdd(0, valueFactory.Create);
-            lru.GetOrAdd(0, valueFactory.Create);
+            lru.GetOrAdd(0, valueFactory.Create); // Touch in hot
 
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
             lru.GetOrAdd(3, valueFactory.Create);
+            lru.GetOrAdd(4, valueFactory.Create);
+            lru.GetOrAdd(5, valueFactory.Create);
+            lru.GetOrAdd(6, valueFactory.Create);
+            lru.GetOrAdd(7, valueFactory.Create);
+            lru.GetOrAdd(8, valueFactory.Create);
+            lru.GetOrAdd(9, valueFactory.Create);
 
-            lru.HotCount.Should().Be(3);
-            lru.WarmCount.Should().Be(1);
-            lru.ColdCount.Should().Be(0);
+            lru.TryGet(0, out var value).Should().BeTrue();
         }
 
         [Fact]
         public void WhenValueIsTouchedAndExpiresFromColdItIsBumpedToWarm()
         {
+            this.Warmup();
+
             lru.GetOrAdd(0, valueFactory.Create);
+
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
-            lru.GetOrAdd(3, valueFactory.Create);
+            lru.GetOrAdd(3, valueFactory.Create); // push 0 to cold (not touched in hot)
 
-            // touch 0 while it is in cold
-            lru.GetOrAdd(0, valueFactory.Create);
+            lru.GetOrAdd(0, valueFactory.Create); // Touch 0 in cold
 
-            lru.GetOrAdd(4, valueFactory.Create);
+            lru.GetOrAdd(4, valueFactory.Create); // fully cycle cold, this will evict 0 if it is not moved to warm
             lru.GetOrAdd(5, valueFactory.Create);
             lru.GetOrAdd(6, valueFactory.Create);
+            lru.GetOrAdd(7, valueFactory.Create);
+            lru.GetOrAdd(8, valueFactory.Create);
+            lru.GetOrAdd(9, valueFactory.Create);
 
-            lru.HotCount.Should().Be(3);
-            lru.WarmCount.Should().Be(1);
-            lru.ColdCount.Should().Be(3);
+            lru.TryGet(0, out var value).Should().BeTrue();
         }
 
         [Fact]
         public void WhenValueIsNotTouchedAndExpiresFromColdItIsRemoved()
         {
+            this.Warmup();
+
             lru.GetOrAdd(0, valueFactory.Create);
+
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
-            lru.GetOrAdd(3, valueFactory.Create);
-            lru.GetOrAdd(4, valueFactory.Create);
+            lru.GetOrAdd(3, valueFactory.Create); // push 0 to cold (not touched in hot)
+
+            // Don't touch 0 in cold
+
+            lru.GetOrAdd(4, valueFactory.Create); // fully cycle cold, this will evict 0 if it is not moved to warm
             lru.GetOrAdd(5, valueFactory.Create);
             lru.GetOrAdd(6, valueFactory.Create);
+            lru.GetOrAdd(7, valueFactory.Create);
+            lru.GetOrAdd(8, valueFactory.Create);
+            lru.GetOrAdd(9, valueFactory.Create);
 
-            // insert 7, 0th item will expire from cold
-            lru.HotCount.Should().Be(3);
-            lru.WarmCount.Should().Be(0);
-            lru.ColdCount.Should().Be(3);
-
-            lru.TryGet(0, out var value).Should().Be(false);
+            lru.TryGet(0, out var value).Should().BeFalse();
         }
 
         [Fact]
         public void WhenValueIsNotTouchedAndExpiresFromWarmValueIsBumpedToCold()
         {
-            // first 4 values are touched in hot, promote to warm
+            this.Warmup();
+
             lru.GetOrAdd(0, valueFactory.Create);
-            lru.GetOrAdd(0, valueFactory.Create);
-            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(0, valueFactory.Create); // Touch 0 in hot, it will promote to warm
+
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
-            lru.GetOrAdd(2, valueFactory.Create);
-            lru.GetOrAdd(3, valueFactory.Create);
-            lru.GetOrAdd(3, valueFactory.Create);
+            lru.GetOrAdd(3, valueFactory.Create); // push 0 to warm
 
-            // 3 values added to hot fill warm
-            lru.GetOrAdd(4, valueFactory.Create);
-            lru.GetOrAdd(5, valueFactory.Create);
-            lru.GetOrAdd(6, valueFactory.Create);
+            // touch next 3 values, so they will promote to warm
+            lru.GetOrAdd(4, valueFactory.Create); lru.GetOrAdd(4, valueFactory.Create);
+            lru.GetOrAdd(5, valueFactory.Create); lru.GetOrAdd(5, valueFactory.Create);
+            lru.GetOrAdd(6, valueFactory.Create); lru.GetOrAdd(6, valueFactory.Create);
 
-            lru.HotCount.Should().Be(3);
-            lru.WarmCount.Should().Be(3);
-            lru.ColdCount.Should().Be(1);
+            // push 4,5,6 to warm, 0 to cold
+            lru.GetOrAdd(7, valueFactory.Create);
+            lru.GetOrAdd(8, valueFactory.Create);
+            lru.GetOrAdd(9, valueFactory.Create);
+
+            // verify 0 is present, but don't touch it
+            lru.Keys.Should().Contain(0);
+
+            // push 7,8,9 to cold, evict 0
+            lru.GetOrAdd(10, valueFactory.Create);
+            lru.GetOrAdd(11, valueFactory.Create);
+            lru.GetOrAdd(12, valueFactory.Create);
+
+            lru.TryGet(0, out var value).Should().BeFalse();
         }
 
         [Fact]
         public void WhenValueIsTouchedAndExpiresFromWarmValueIsBumpedBackIntoWarm()
         {
-            // first 4 values are touched in hot, promote to warm
+            this.Warmup();
+
             lru.GetOrAdd(0, valueFactory.Create);
-            lru.GetOrAdd(0, valueFactory.Create);
-            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(0, valueFactory.Create); // Touch 0 in hot, it will promote to warm
+
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
-            lru.GetOrAdd(2, valueFactory.Create);
-            lru.GetOrAdd(3, valueFactory.Create);
-            lru.GetOrAdd(3, valueFactory.Create);
+            lru.GetOrAdd(3, valueFactory.Create); // push 0 to warm
 
-            // touch 0 while it is warm
-            lru.GetOrAdd(0, valueFactory.Create);
+            // touch next 3 values, so they will promote to warm
+            lru.GetOrAdd(4, valueFactory.Create); lru.GetOrAdd(4, valueFactory.Create);
+            lru.GetOrAdd(5, valueFactory.Create); lru.GetOrAdd(5, valueFactory.Create);
+            lru.GetOrAdd(6, valueFactory.Create); lru.GetOrAdd(6, valueFactory.Create);
 
-            // 3 values added to hot fill warm. Only 0 is touched.
-            lru.GetOrAdd(4, valueFactory.Create);
-            lru.GetOrAdd(5, valueFactory.Create);
-            lru.GetOrAdd(6, valueFactory.Create);
+            // push 4,5,6 to warm, 0 to cold
+            lru.GetOrAdd(7, valueFactory.Create);
+            lru.GetOrAdd(8, valueFactory.Create);
+            lru.GetOrAdd(9, valueFactory.Create);
 
-            // When warm fills, 2 items are processed. 1 is promoted back into warm, and 1 into cold.
-            lru.HotCount.Should().Be(3);
-            lru.WarmCount.Should().Be(3);
-            lru.ColdCount.Should().Be(1);
+            // Touch 0
+            lru.TryGet(0, out var value).Should().BeTrue();
+
+            // push 7,8,9 to cold, cycle 0 back to warm
+            lru.GetOrAdd(10, valueFactory.Create);
+            lru.GetOrAdd(11, valueFactory.Create);
+            lru.GetOrAdd(12, valueFactory.Create);
+
+            lru.TryGet(0, out value).Should().BeTrue();
         }
 
         [Fact]
         public void WhenValueExpiresItIsDisposed()
         {
-            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
+            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default);
             var disposableValueFactory = new DisposableValueFactory();
 
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 7; i++)
             {
                 lruOfDisposable.GetOrAdd(i, disposableValueFactory.Create);
             }
 
-            disposableValueFactory.Items[0].IsDisposed.Should().BeTrue();
+            disposableValueFactory.Items[0].IsDisposed.Should().BeFalse();
             disposableValueFactory.Items[1].IsDisposed.Should().BeFalse();
+
+            disposableValueFactory.Items[2].IsDisposed.Should().BeTrue();
+
+            disposableValueFactory.Items[3].IsDisposed.Should().BeFalse();
+            disposableValueFactory.Items[4].IsDisposed.Should().BeFalse();
+            disposableValueFactory.Items[5].IsDisposed.Should().BeFalse();
+            disposableValueFactory.Items[6].IsDisposed.Should().BeFalse();
         }
 
         [Fact]
-        public void WhenValueEvictedItemRemovedEventIsFired()
+        public void WhenValueEvictedItemRemovedDeprecatedEventIsFired()
         {
-            var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
+            var lruEvents = new ConcurrentLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default);
+#pragma warning disable CS0618 // Type or member is obsolete
             lruEvents.ItemRemoved += OnLruItemRemoved;
+#pragma warning restore CS0618 // Type or member is obsolete
 
-            for (int i = 0; i < 6; i++)
+            // First 6 adds
+            // hot[6, 5], warm[2, 1], cold[4, 3]
+            // =>
+            // hot[8, 7], warm[1, 0], cold[6, 5], evicted[4, 3]
+            for (int i = 0; i < 8; i++)
             {
                 lruEvents.GetOrAdd(i + 1, i => i + 1);
             }
 
             removedItems.Count.Should().Be(2);
 
-            removedItems[0].Key.Should().Be(1);
-            removedItems[0].Value.Should().Be(2);
+            removedItems[0].Key.Should().Be(3);
+            removedItems[0].Value.Should().Be(4);
             removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
 
-            removedItems[1].Key.Should().Be(2);
-            removedItems[1].Value.Should().Be(3);
+            removedItems[1].Key.Should().Be(4);
+            removedItems[1].Value.Should().Be(5);
             removedItems[1].Reason.Should().Be(ItemRemovedReason.Evicted);
+        }
+
+
+        [Fact]
+        public void WhenValueEvictedItemRemovedEventIsFired()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default);
+            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
+
+            // First 6 adds
+            // hot[6, 5], warm[2, 1], cold[4, 3]
+            // =>
+            // hot[8, 7], warm[1, 0], cold[6, 5], evicted[4, 3]
+            for (int i = 0; i < 8; i++)
+            {
+                lruEvents.GetOrAdd(i + 1, i => i + 1);
+            }
+
+            removedItems.Count.Should().Be(2);
+
+            removedItems[0].Key.Should().Be(3);
+            removedItems[0].Value.Should().Be(4);
+            removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
+
+            removedItems[1].Key.Should().Be(4);
+            removedItems[1].Value.Should().Be(5);
+            removedItems[1].Reason.Should().Be(ItemRemovedReason.Evicted);
+        }
+
+        [Fact]
+        public void WhenValuesAreEvictedEvictionMetricCountsEvicted()
+        {
+            this.Warmup();
+
+            this.lru.GetOrAdd(1, valueFactory.Create);
+
+            this.lru.Metrics.Evicted.Should().Be(1);
         }
 
         [Fact]
@@ -425,8 +551,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
 
-            lruEvents.ItemRemoved += OnLruItemRemoved;
-            lruEvents.ItemRemoved -= OnLruItemRemoved;
+            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
+            lruEvents.Events.ItemRemoved -= OnLruItemRemoved;
 
             for (int i = 0; i < 6; i++)
             {
@@ -461,7 +587,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsRemovedRemovedEventIsFired()
         {
             var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
-            lruEvents.ItemRemoved += OnLruItemRemoved;
+            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
 
             lruEvents.GetOrAdd(1, i => i + 2);
 
@@ -568,7 +694,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(4, "4");
 
             lru.HotCount.Should().Be(3);
-            lru.ColdCount.Should().Be(1); // items must have been enqueued and cycled for one of them to reach the cold queue
+            lru.WarmCount.Should().Be(1); // items must have been enqueued and cycled for one of them to reach the warm queue
         }
 
         [Fact]
@@ -614,8 +740,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemsArClearedAnEventIsFired()
         {
-            var lruEvents = new ConcurrentLru<int, int>(1, 9, EqualityComparer<int>.Default);
-            lruEvents.ItemRemoved += OnLruItemRemoved;
+            var lruEvents = new ConcurrentLru<int, int>(1, capacity, EqualityComparer<int>.Default);
+            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
 
             for (int i = 0; i < 6; i++)
             {
@@ -784,7 +910,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemsAreDisposableTrimDisposesItems()
         {
-            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
+            var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default);
 
             var items = Enumerable.Range(1, 4).Select(i => new DisposableItem()).ToList();
 
@@ -804,8 +930,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemsAreTrimmedAnEventIsFired()
         {
-            var lruEvents = new ConcurrentLru<int, int>(1, 9, EqualityComparer<int>.Default);
-            lruEvents.ItemRemoved += OnLruItemRemoved;
+            var lruEvents = new ConcurrentLru<int, int>(1, capacity, EqualityComparer<int>.Default);
+            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
 
             for (int i = 0; i < 6; i++)
             {
@@ -823,6 +949,19 @@ namespace BitFaster.Caching.UnitTests.Lru
             removedItems[1].Key.Should().Be(2);
             removedItems[1].Value.Should().Be(3);
             removedItems[1].Reason.Should().Be(ItemRemovedReason.Trimmed);
+        }
+
+        private void Warmup()
+        {
+            lru.GetOrAdd(-1, valueFactory.Create);
+            lru.GetOrAdd(-2, valueFactory.Create);
+            lru.GetOrAdd(-3, valueFactory.Create);
+            lru.GetOrAdd(-4, valueFactory.Create);
+            lru.GetOrAdd(-5, valueFactory.Create);
+            lru.GetOrAdd(-6, valueFactory.Create);
+            lru.GetOrAdd(-7, valueFactory.Create);
+            lru.GetOrAdd(-8, valueFactory.Create);
+            lru.GetOrAdd(-9, valueFactory.Create);
         }
     }
 }

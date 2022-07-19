@@ -11,6 +11,41 @@ namespace BitFaster.Caching.UnitTests.Lru
     {
         private TelemetryPolicy<int, int> telemetryPolicy = default;
 
+        public TelemetryPolicyTests()
+        {
+            telemetryPolicy.SetEventSource(this);
+        }
+
+        [Fact]
+        public void WhenHitTotalIs1()
+        {
+            telemetryPolicy.Total.Should().Be(0);
+            telemetryPolicy.IncrementHit();
+            telemetryPolicy.Total.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenHitHitsIs1()
+        {
+            telemetryPolicy.Hits.Should().Be(0);
+            telemetryPolicy.IncrementHit();
+            telemetryPolicy.Hits.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenMissMissesIs1()
+        {
+            telemetryPolicy.Misses.Should().Be(0);
+            telemetryPolicy.IncrementMiss();
+            telemetryPolicy.Misses.Should().Be(1);
+        }
+
+        [Fact]
+        public void IsEnabledIsTrue()
+        {
+            telemetryPolicy.IsEnabled.Should().BeTrue();
+        }
+
         [Fact]
         public void WhenHitCountAndTotalCountAreEqualRatioIs1()
         {
@@ -35,6 +70,22 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenItemRemovedIsEvictedIncrementEvictedCount()
+        {
+            telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Evicted);
+
+            telemetryPolicy.Evicted.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenItemRemovedIsRemovedDontIncrementEvictedCount()
+        {
+            telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Removed);
+
+            telemetryPolicy.Evicted.Should().Be(0);
+        }
+
+        [Fact]
         public void WhenOnItemRemovedInvokedEventIsFired()
         {
             List<ItemRemovedEventArgs<int, int>> eventList = new();
@@ -54,9 +105,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             List<object> eventSourceList = new();
 
+            telemetryPolicy.SetEventSource(this);
+
             telemetryPolicy.ItemRemoved += (source, args) => eventSourceList.Add(source);
 
-            telemetryPolicy.SetEventSource(this);
             telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Evicted);
 
             eventSourceList.Should().HaveCount(1);

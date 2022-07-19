@@ -24,8 +24,8 @@ namespace BitFaster.Caching.Lru
         private readonly ConcurrentDictionary<K, LinkedListNode<LruItem>> dictionary;
         private readonly LinkedList<LruItem> linkedList = new LinkedList<LruItem>();
 
-        private long requestHitCount;
-        private long requestTotalCount;
+        private readonly CacheMetrics metrics = new CacheMetrics();
+        private readonly CacheEvents events = new CacheEvents();
 
         public ClassicLru(int capacity)
             : this(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default)
@@ -57,7 +57,13 @@ namespace BitFaster.Caching.Lru
         /// <summary>
         /// Gets the ratio of hits to misses, where a value of 1 indicates 100% hits.
         /// </summary>
-        public double HitRatio => (double)requestHitCount / (double)requestTotalCount;
+        [ObsoleteAttribute("This property is obsolete. Use Metrics instead.", false)]
+        public double HitRatio => this.Metrics.HitRatio;
+
+        ///<inheritdoc/>
+        public ICacheMetrics Metrics => this.metrics;
+
+        public ICacheEvents<K, V> Events => this.events;
 
         /// <summary>
         /// Gets a collection containing the keys in the cache.
@@ -83,12 +89,12 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
-            Interlocked.Increment(ref requestTotalCount);
+            Interlocked.Increment(ref this.metrics.requestTotalCount);
 
             if (dictionary.TryGetValue(key, out var node))
             {
                 LockAndMoveToEnd(node);
-                Interlocked.Increment(ref requestHitCount);
+                Interlocked.Increment(ref this.metrics.requestHitCount);
                 value = node.Value.Value;
                 return true;
             }
@@ -132,6 +138,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
+                    Interlocked.Increment(ref this.metrics.evictedCount);
                     Disposer<V>.Dispose(removed.Value.Value);
                 }
 
@@ -176,6 +183,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
+                    Interlocked.Increment(ref this.metrics.evictedCount);
                     Disposer<V>.Dispose(removed.Value.Value);
                 }
 
@@ -264,6 +272,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
+                    Interlocked.Increment(ref this.metrics.evictedCount);
                     Disposer<V>.Dispose(removed.Value.Value);
                 }
 
@@ -365,6 +374,39 @@ namespace BitFaster.Caching.Lru
             public K Key { get; }
 
             public V Value { get; set; }
+        }
+
+        private class CacheMetrics : ICacheMetrics
+        {
+            public long requestHitCount;
+            public long requestTotalCount;
+            public long evictedCount;
+
+            public double HitRatio => (double)requestHitCount / (double)requestTotalCount;
+
+            public long Total => requestTotalCount;
+
+            public long Hits => requestHitCount;
+
+            public long Misses => requestTotalCount - requestHitCount;
+
+            public long Evicted => evictedCount;
+
+            public bool IsEnabled => true;
+        }
+
+        private class CacheEvents : ICacheEvents<K, V>
+        {
+            public bool IsEnabled => false;
+
+#pragma warning disable CS0067 // The event 'event' is never used
+            public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
+            {
+                // no-op, nothing is registered
+                add { }
+                remove { }
+            }
+#pragma warning restore CS0067 // The event 'event' is never used
         }
     }
 }

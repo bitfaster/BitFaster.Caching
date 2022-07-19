@@ -85,13 +85,13 @@ using (var lifetime = urlLocks.Acquire(url))
 
 ### Why not use MemoryCache?
 
-MemoryCache is perfectly serviceable, but it has some limitations:
+MemoryCache has these limitations (see [here](https://github.com/bitfaster/BitFaster.Caching/wiki) for more detail):
 
-- Makes heap allocations when the native object key is not type string.
-- Is not 'scan' resistant, fetching all keys will load everything into memory.
+- Lookups require heap allocations when the native key type is not type string.
+- Is not 'scan' resistant: fetching all keys will try to load everything into memory, which is bad.
+- Non-optimal eviction policy. MemoryCache uses an heuristic to estimate memory used, and evicts items using a timer based background thread. The 'trim' process may remove useful items, and if the timer does not fire fast enough the resulting memory pressure can be problematic (e.g. thrashing, out of memory, increased GC).
 - Does not scale well with concurrent writes.
-- Contains perf counters that can't be disabled
-- Uses an heuristic to estimate memory used, and evicts items using a timer. The 'trim' process may remove useful items, and if the timer does not fire fast enough the resulting memory pressure can be problematic (e.g. induced GC).
+- Contains perf counters that can't be disabled.
 
 # Performance
 
@@ -104,41 +104,41 @@ The cache replacement policy must maximize the cache hit rate, and minimize the 
 The charts below show the relative hit rate of classic LRU vs Concurrent LRU on a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) of input keys, with parameter *s* = 0.5 and *s* = 0.86 respectively. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
 
 Here *N* = 50000, and we take 1 million sample keys. The hit rate is the number of times we get a cache hit divided by 1 million.
-This test was repeated with the cache configured to different sizes expressed as a percentage *N* (e.g. 10% would be a cache with a capacity 5000).
+This test was repeated with the cache configured to different sizes expressed as a percentage *N* (e.g. 10% would be a cache with a capacity 5000). ConcurrentLru is configured with the default `FavorFrequencyPartition` to allocate internal queue capacity (see [here](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru#how-it-works) for details).
 
 <table>
   <tr>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84844130-a00d4680-affe-11ea-8f7a-e3c66180d8b9.png" width="350"/>
+<img src="https://user-images.githubusercontent.com/12851828/178164042-ecea02ee-df6f-4641-9a58-1357ec3cf292.png" width="350"/>
 </td>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84844172-b6b39d80-affe-11ea-9a29-cbdae6020246.png" width="350"/>
+<img src="https://user-images.githubusercontent.com/12851828/178164023-fdd8bea3-b7b0-4c44-be1a-843656ba5f9a.png" width="350"/>
 </td>
    </tr> 
 </table>
 
-As above, but interleaving a sequential scan of every key (aka sequential flooding). In this case, ConcurrentLru performs better across the board, and is more resistant to scanning.
+As above, but interleaving a sequential scan of every key (aka sequential flooding). In this case, ConcurrentLru performs significantly better across the board, and is therefore more resistant to scanning.
 
 <table>
   <tr>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84841922-a4366580-aff8-11ea-93dd-568d60cd82d9.png" width="350"/>
+<img src="https://user-images.githubusercontent.com/12851828/178164070-cc317a51-bba4-4e2d-af95-f4210ae7c888.png" width="350"/>
 </td>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84842237-730a6500-aff9-11ea-9a46-40141adff920.png" width="350"/>
+<img src="https://user-images.githubusercontent.com/12851828/178164094-83ce2e97-f3c3-406d-b39e-4196388ac0a6.png" width="350"/>
 </td>
    </tr> 
 </table>
 
-These charts summarize the percentage increase in hit rate ConcurrentLru vs LRU. Increase is in hit rate is significant at lower cache sizes.
+These charts summarize the percentage increase in hit rate for ConcurrentLru vs LRU. Increase is in hit rate is significant at lower cache sizes, outperforming the classic LRU by over 150% when *s* = 0.5 in the best case for both Zipf and scan access patterns.
 
 <table>
   <tr>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84843966-283f1c00-affe-11ea-99c9-20aa01f307f0.png" width="350"/>
+<img src="https://user-images.githubusercontent.com/12851828/178164132-365cfa9b-bd64-48a0-a2e0-d33a4dd0c83d.png" width="350"/>
 </td>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84844003-3d1baf80-affe-11ea-9266-e83efe2e8c35.png" width="350"/>
+<img src="https://user-images.githubusercontent.com/12851828/178164153-969501a1-c400-4464-8439-058d59d1a595.png" width="350"/>
 </td>
    </tr> 
 </table>

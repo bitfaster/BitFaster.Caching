@@ -18,6 +18,36 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void TotalIsZero()
+        {
+            counter.Total.Should().Be(0);
+        }
+
+        [Fact]
+        public void HitsIsZero()
+        {
+            counter.Hits.Should().Be(0);
+        }
+
+        [Fact]
+        public void MissesIsZero()
+        {
+            counter.Misses.Should().Be(0);
+        }
+
+        [Fact]
+        public void EvictedIsZero()
+        {
+            counter.Evicted.Should().Be(0);
+        }
+
+        [Fact]
+        public void IsEnabledIsFalse()
+        {
+            counter.IsEnabled.Should().BeFalse();
+        }
+
+        [Fact]
         public void IncrementHitCountIsNoOp()
         {
             counter.Invoking(c => c.IncrementHit()).Should().NotThrow();
@@ -33,6 +63,17 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void OnItemRemovedIsNoOp()
         {
             counter.Invoking(c => c.OnItemRemoved(1, 2, ItemRemovedReason.Evicted)).Should().NotThrow();
+        }
+
+        [Fact]
+        public void RegisterEventHandlerIsNoOp()
+        {
+            counter.ItemRemoved += OnItemRemoved;
+            counter.ItemRemoved -= OnItemRemoved;
+        }
+
+        private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
+        {
         }
     }
 }
