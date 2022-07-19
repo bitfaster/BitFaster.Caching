@@ -19,6 +19,11 @@ namespace BitFaster.Caching
 
         public int Count => this.cache.Count;
 
+        public ICacheMetrics Metrics => this.cache.Metrics;
+
+        // need to dispatch different events for this
+        public ICacheEvents<K, V> Events => throw new Exception();
+
         public void AddOrUpdate(K key, V value)
         {
             cache.AddOrUpdate(key, new AsyncAtomic<K, V>(value));

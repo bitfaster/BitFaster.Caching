@@ -117,7 +117,7 @@ namespace BitFaster.Caching
         {
             // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
 
-            // layer 1: can choose ConcurrentLru/TLru, fast etc.
+            // layer 1: can choose ConcurrentLru/TLru, FastConcurrentLru/FastConcurrentTLru 
             var c = new ConcurrentLru<int, AsyncAtomic<int, Scoped<Disposable>>>(3);
 
             // layer 2: optional atomic creation
