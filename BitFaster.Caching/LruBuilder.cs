@@ -8,7 +8,7 @@ using BitFaster.Caching.Lru;
 namespace BitFaster.Caching
 {
     // recursive generic base class
-    public abstract class LruBuilderBase<K, V, TBuilder> where TBuilder : LruBuilderBase<K, V, TBuilder>
+    public abstract class LruBuilderBase<K, V, TBuilder, TCacheReturn> where TBuilder : LruBuilderBase<K, V, TBuilder, TCacheReturn>
     {
         internal readonly LruInfo<K> info;
 
@@ -47,7 +47,22 @@ namespace BitFaster.Caching
             return this as TBuilder;
         }
 
-        public virtual ICache<K, V> Build()
+        public abstract TCacheReturn Build();
+    }
+
+    public class ConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, ConcurrentLruBuilder<K, V>, ICache<K, V>>
+    {
+        public ConcurrentLruBuilder()
+            : base(new LruInfo<K>())
+        {
+        }
+
+        internal ConcurrentLruBuilder(LruInfo<K> info)
+            : base(info)
+        {
+        }
+
+        public override ICache<K, V> Build()
         {
             if (this.info.expiration.HasValue)
             {
@@ -61,29 +76,85 @@ namespace BitFaster.Caching
                 : new FastConcurrentLru<K, V>(this.info.concurrencyLevel, this.info.capacity, this.info.comparer) as ICache<K, V>;
         }
     }
-    public class ConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, ConcurrentLruBuilder<K, V>>
+
+    // marker interface enables type constraints
+    public interface IScoped<T> where T : IDisposable
+    { }
+
+    public class ScopedLruBuilder<K, V, W> : LruBuilderBase<K, V, ScopedLruBuilder<K, V, W>, IScopedCache<K, V>> where V : IDisposable where W : IScoped<V>
     {
-        public ConcurrentLruBuilder()
-            : base(new LruInfo<K>())
+        private readonly ConcurrentLruBuilder<K, W> inner;
+
+        internal ScopedLruBuilder(ConcurrentLruBuilder<K, W> inner)
+            : base(inner.info)
         {
+            this.inner = inner;
         }
 
-        internal ConcurrentLruBuilder(LruInfo<K> info)
-            : base(info)
+        public override IScopedCache<K, V> Build()
         {
+            // this is a legal type conversion due to the generic constraint on W
+            ICache<K, Scoped<V>> scopedInnerCache = inner.Build() as ICache<K, Scoped<V>>;
+
+            return new ScopedCache<K, V>(scopedInnerCache);
+        }
+    }
+
+    public class AtomicLruBuilder<K, V> : LruBuilderBase<K, V, AtomicLruBuilder<K, V>, ICache<K, V>>
+    {
+        private readonly ConcurrentLruBuilder<K, AsyncAtomic<K, V>> inner;
+
+        internal AtomicLruBuilder(ConcurrentLruBuilder<K, AsyncAtomic<K, V>> inner)
+            : base(inner.info)
+        {
+            this.inner = inner;
+        }
+
+        public override ICache<K, V> Build()
+        {
+            ICache<K, AsyncAtomic<K, V>> innerCache = inner.Build();
+
+            return new AtomicCacheDecorator<K, V>(innerCache);
+        }
+    }
+
+    public class ScopedAtomicLruBuilder<K, V, W> : LruBuilderBase<K, V, ScopedAtomicLruBuilder<K, V, W>, IScopedCache<K, V>> where V : IDisposable where W : IScoped<V>
+    {
+        private readonly ConcurrentLruBuilder<K, AsyncAtomic<K, W>> inner;
+
+        internal ScopedAtomicLruBuilder(ConcurrentLruBuilder<K, AsyncAtomic<K, W>> inner)
+            : base(inner.info)
+        {
+            this.inner = inner;
+        }
+
+        public override IScopedCache<K, V> Build()
+        {
+            ICache<K, AsyncAtomic<K, Scoped<V>>> level1 = inner.Build() as ICache<K, AsyncAtomic<K, Scoped<V>>>;
+            var level2 = new AtomicCacheDecorator<K, Scoped<V>>(level1);
+            return new ScopedCache<K, V>(level2);
         }
     }
 
     public static class ConcurrentLruBuilderExtensions
     { 
-        public static ConcurrentLruBuilder<K, Scoped<V>> WithScopedValues<K, V>(this ConcurrentLruBuilder<K, V> b) where V : IDisposable
+        public static ScopedLruBuilder<K, V, Scoped<V>> WithScopedValues<K, V>(this ConcurrentLruBuilder<K, V> b) where V : IDisposable
         {
-            return new ConcurrentLruBuilder<K, Scoped<V>>(b.info);
+            var scoped = new ConcurrentLruBuilder<K, Scoped<V>>(b.info);
+            return new ScopedLruBuilder<K, V, Scoped<V>>(scoped);
         }
 
-        public static ConcurrentLruBuilder<K, AsyncAtomic<K, V>> WithAtomicCreate<K, V>(this ConcurrentLruBuilder<K, V> b)
+        public static AtomicLruBuilder<K, V> WithAtomicCreate<K, V>(this ConcurrentLruBuilder<K, V> b)
         {
-            return new ConcurrentLruBuilder<K, AsyncAtomic<K, V>>(b.info);
+            var a = new ConcurrentLruBuilder<K, AsyncAtomic<K, V>>(b.info);
+            return new AtomicLruBuilder<K, V>(a);
+        }
+
+        public static ScopedAtomicLruBuilder<K, V, Scoped<V>> WithAtomicCreate<K, V, W>(this ScopedLruBuilder<K, V, W> b) where V : IDisposable where W : IScoped<V>
+        {
+            var atomicScoped = new ConcurrentLruBuilder<K, AsyncAtomic<K, Scoped<V>>>(b.info);
+
+            return new ScopedAtomicLruBuilder<K, V, Scoped<V>>(atomicScoped);
         }
     }
 
@@ -117,9 +188,9 @@ namespace BitFaster.Caching
             }
 
             // This builds the correct layer 1 type, but it has not been wrapped with AtomicCacheDecorator or ScopedCache
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            var lru = new ConcurrentLruBuilder<int, Disposable>()          
                 .WithScopedValues()
-                .WithAtomicCreate()
+                //.WithAtomicCreate()
                 .WithCapacity(3)
                 .Build();
         }

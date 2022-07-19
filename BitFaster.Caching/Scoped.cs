@@ -11,7 +11,7 @@ namespace BitFaster.Caching
     /// the wrapped object from being diposed until the calling code completes.
     /// </summary>
     /// <typeparam name="T">The type of scoped value.</typeparam>
-    public sealed class Scoped<T> : IDisposable where T : IDisposable
+    public sealed class Scoped<T> : IScoped<T>, IDisposable where T : IDisposable
     {
         private ReferenceCount<T> refCount;
         private bool isDisposed;
