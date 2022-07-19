@@ -124,9 +124,9 @@ namespace BitFaster.Caching
             var atomic = new AtomicCacheDecorator<int, Scoped<Disposable>>(c);
 
             // layer 3: optional scoping
-            IScopedCache<int, Disposable> scoped = new ScopedCacheDecorator<int, Disposable>(atomic);
+            IScopedCache<int, Disposable> scoped = new ScopedCache<int, Disposable>(atomic);
 
-            using (var lifetime = scoped.GetOrAdd(1, k => new Disposable()))
+            using (var lifetime = scoped.ScopedGetOrAdd(1, k => new Scoped<Disposable>(new Disposable())))
             {
                 var d = lifetime.Value;
             }
