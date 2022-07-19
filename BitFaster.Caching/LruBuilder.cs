@@ -7,112 +7,97 @@ using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching
 {
-    public class LruBuilder<K, V>
+    // recursive generic base class
+    public abstract class LruBuilderBase<K, V, TBuilder> where TBuilder : LruBuilderBase<K, V, TBuilder>
     {
-        protected readonly Spec spec;
+        internal readonly LruInfo<K> info;
 
-        public LruBuilder()
-        { 
-            this.spec = new Spec();
+        public LruBuilderBase(LruInfo<K> info)
+        {
+            this.info = info;
         }
 
-        protected LruBuilder(Spec spec)
+        public TBuilder WithCapacity(int capacity)
         {
-            this.spec = spec;
-        }   
-
-        public LruBuilder<K, V> WithCapacity(int capacity)
-        {
-            this.spec.capacity = capacity;
-            return this;
+            this.info.capacity = capacity;
+            return this as TBuilder;
         }
 
-        public LruBuilder<K, V> WithConcurrencyLevel(int concurrencyLevel)
+        public TBuilder WithConcurrencyLevel(int concurrencyLevel)
         {
-            this.spec.concurrencyLevel = concurrencyLevel;
-            return this;
+            this.info.concurrencyLevel = concurrencyLevel;
+            return this as TBuilder;
         }
 
-        public LruBuilder<K, V> WithExpiration(TimeSpan expiration)
+        public TBuilder WithKeyComparer(IEqualityComparer<K> comparer)
         {
-            this.spec.expiration = expiration;
-            return this;
+            this.info.comparer = comparer;
+            return this as TBuilder;
         }
 
-        public LruBuilder<K, V> WithInstrumentation()
+        public TBuilder WithMetrics()
         {
-            this.spec.withInstrumentation = true;
-            return this;
+            this.info.withMetrics = true;
+            return this as TBuilder;
         }
 
-        public AtomicLruBuilder<K, V> WithAtomicCreate()
+        public TBuilder WithAbosluteExpiry(TimeSpan expiration)
         {
-            return new AtomicLruBuilder<K, V>(this.spec);
+            this.info.expiration = expiration;
+            return this as TBuilder;
         }
 
-        // pretty crappy implementation...
         public virtual ICache<K, V> Build()
         {
-            if (this.spec.expiration.HasValue)
+            if (this.info.expiration.HasValue)
             {
-                return spec.withInstrumentation ?
-                    new ConcurrentTLru<K, V>(this.spec.concurrencyLevel, this.spec.capacity, this.spec.comparer, this.spec.expiration.Value)
-                    : new FastConcurrentTLru<K, V>(this.spec.concurrencyLevel, this.spec.capacity, this.spec.comparer, this.spec.expiration.Value) as ICache<K, V>;
+                return info.withMetrics ?
+                    new ConcurrentTLru<K, V>(this.info.concurrencyLevel, this.info.capacity, this.info.comparer, this.info.expiration.Value)
+                    : new FastConcurrentTLru<K, V>(this.info.concurrencyLevel, this.info.capacity, this.info.comparer, this.info.expiration.Value) as ICache<K, V>;
             }
 
-            return spec.withInstrumentation ?
-                new ConcurrentLru<K, V>(this.spec.concurrencyLevel, this.spec.capacity, this.spec.comparer)
-                : new FastConcurrentLru<K, V>(this.spec.concurrencyLevel, this.spec.capacity, this.spec.comparer) as ICache<K, V>;
+            return info.withMetrics ?
+                new ConcurrentLru<K, V>(this.info.concurrencyLevel, this.info.capacity, this.info.comparer)
+                : new FastConcurrentLru<K, V>(this.info.concurrencyLevel, this.info.capacity, this.info.comparer) as ICache<K, V>;
+        }
+    }
+    public class ConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, ConcurrentLruBuilder<K, V>>
+    {
+        public ConcurrentLruBuilder()
+            : base(new LruInfo<K>())
+        {
         }
 
-        public class Spec
+        internal ConcurrentLruBuilder(LruInfo<K> info)
+            : base(info)
         {
-            public int capacity = 128;
-            public int concurrencyLevel = Defaults.ConcurrencyLevel;
-            public TimeSpan? expiration = null;
-            public bool withInstrumentation = false;
-            public IEqualityComparer<K> comparer = EqualityComparer<K>.Default;
         }
     }
 
-    public class AtomicLruBuilder<K, V> : LruBuilder<K, V>
-    {
-        public AtomicLruBuilder(Spec spec)
-            : base(spec)
-        { 
-        }
-
-        public override ICache<K, V> Build()
+    public static class ConcurrentLruBuilderExtensions
+    { 
+        public static ConcurrentLruBuilder<K, Scoped<V>> WithScopedValues<K, V>(this ConcurrentLruBuilder<K, V> b) where V : IDisposable
         {
-            ICache<K, AsyncAtomic<K, V>> ret = null;
-
-            if (this.spec.expiration.HasValue)
-            {
-                ret = spec.withInstrumentation ?
-                    new ConcurrentTLru<K, AsyncAtomic<K, V>>(this.spec.concurrencyLevel, this.spec.capacity, this.spec.comparer, this.spec.expiration.Value)
-                    : new FastConcurrentTLru<K, AsyncAtomic<K, V>>(this.spec.concurrencyLevel, this.spec.capacity, this.spec.comparer, this.spec.expiration.Value) as ICache<K, AsyncAtomic<K, V>>;
-            }
-            else
-            {
-                ret = spec.withInstrumentation ?
-                    new ConcurrentLru<K, AsyncAtomic<K, V>>(this.spec.concurrencyLevel, this.spec.capacity, this.spec.comparer)
-                    : new FastConcurrentLru<K, AsyncAtomic<K, V>>(this.spec.concurrencyLevel, this.spec.capacity, this.spec.comparer) as ICache<K, AsyncAtomic<K, V>>;
-            }
-
-            return new AtomicCacheDecorator<K, V>(ret);
+            return new ConcurrentLruBuilder<K, Scoped<V>>(b.info);
         }
+
+        public static ConcurrentLruBuilder<K, AsyncAtomic<K, V>> WithAtomicCreate<K, V>(this ConcurrentLruBuilder<K, V> b)
+        {
+            return new ConcurrentLruBuilder<K, AsyncAtomic<K, V>>(b.info);
+        }
+    }
+
+    public class LruInfo<K>
+    {
+        public int capacity = 128;
+        public int concurrencyLevel = Defaults.ConcurrencyLevel;
+        public TimeSpan? expiration = null;
+        public bool withMetrics = false;
+        public IEqualityComparer<K> comparer = EqualityComparer<K>.Default;
     }
 
     public class Test
     {
-        public void T()
-        {
-            var cache = new LruBuilder<int, int>()
-                .WithAtomicCreate()
-                .WithInstrumentation()
-                .Build();
-        }
-
         public void ScopedPOC()
         {
             // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
@@ -130,6 +115,13 @@ namespace BitFaster.Caching
             {
                 var d = lifetime.Value;
             }
+
+            // This builds the correct layer 1 type, but it has not been wrapped with AtomicCacheDecorator or ScopedCache
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithScopedValues()
+                .WithAtomicCreate()
+                .WithCapacity(3)
+                .Build();
         }
 
         public class Disposable : IDisposable
