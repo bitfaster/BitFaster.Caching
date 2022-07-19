@@ -190,12 +190,27 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void MetricsAreEnabled()
+        {
+            lru.Metrics.IsEnabled.Should().BeTrue();
+        }
+
+        [Fact]
         public void WhenItemIsAddedThenRetrievedMetricHitRatioIsHalf()
         {
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
             lru.Metrics.HitRatio.Should().Be(0.5);
+        }
+
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedTotalIs2()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.Total.Should().Be(2);
         }
 
         [Fact]
