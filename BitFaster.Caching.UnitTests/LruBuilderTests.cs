@@ -49,6 +49,7 @@ namespace BitFaster.Caching.UnitTests
                  .Build();
 
             lru.Should().BeOfType<ConcurrentTLru<int, int>>();
+            lru.Capacity.Should().Be(128);
         }
 
         [Fact]
@@ -60,6 +61,7 @@ namespace BitFaster.Caching.UnitTests
                 .Build();
 
             lru.Should().BeOfType<ScopedCache<int, Disposable>>();
+            lru.Capacity.Should().Be(3);
         }
 
         [Fact]
@@ -72,6 +74,20 @@ namespace BitFaster.Caching.UnitTests
                 .Build();
 
             lru.Should().BeOfType<ScopedCache<int, Disposable>>();
+            lru.Capacity.Should().Be(3);
+        }
+
+        [Fact]
+        public void TestScopedAtomicReverse()
+        {
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithAtomicCreate()
+                .WithScopedValues()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeOfType<ScopedCache<int, Disposable>>();
+            lru.Capacity.Should().Be(3);
         }
 
         [Fact]
