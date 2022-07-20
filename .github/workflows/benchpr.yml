@@ -35,7 +35,7 @@ jobs:
       run: splitasm\splitasm\bin\Release\net6.0\splitasm.exe %GITHUB_WORKSPACE%\BenchmarkDotNet.Artifacts\results
       shell: cmd
     - name: Publish Results
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v3
       with:
         name: Benchmark Artifacts
         path: BenchmarkDotNet.Artifacts
