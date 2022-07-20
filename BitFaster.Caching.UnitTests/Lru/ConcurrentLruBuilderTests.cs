@@ -9,7 +9,7 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class LruBuilderTests
+    public class ConcurrentLruBuilderTests
     {
         [Fact]
         public void TestFastLru()
@@ -85,6 +85,26 @@ namespace BitFaster.Caching.UnitTests.Lru
             Action constructor = () => { var x = b.Build(); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void TestIntCapacity()
+        {
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Capacity.Should().Be(3);
+        }
+
+        [Fact]
+        public void TestPartitionCapacity()
+        {
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithCapacity(new FavorFrequencyPartition(6))
+                .Build();
+
+            lru.Capacity.Should().Be(6);
         }
     }
 }
