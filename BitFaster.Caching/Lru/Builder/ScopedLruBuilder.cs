@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru.Builder
 {
-    public class ScopedLruBuilder<K, V, W> : LruBuilderBase<K, V, ScopedLruBuilder<K, V, W>, IScopedCache<K, V>> where V : IDisposable where W : IScoped<V>
+    public sealed class ScopedLruBuilder<K, V, W> : LruBuilderBase<K, V, ScopedLruBuilder<K, V, W>, IScopedCache<K, V>> where V : IDisposable where W : IScoped<V>
     {
         private readonly ConcurrentLruBuilder<K, W> inner;
 
@@ -16,6 +16,7 @@ namespace BitFaster.Caching.Lru.Builder
             this.inner = inner;
         }
 
+        ///<inheritdoc/>
         public override IScopedCache<K, V> Build()
         {
             // this is a legal type conversion due to the generic constraint on W
