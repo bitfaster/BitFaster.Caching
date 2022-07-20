@@ -65,43 +65,6 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void TestScopedAtomic()
-        {
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithScopedValues()
-                .WithAtomicCreate()
-                .WithCapacity(3)
-                .Build();
-
-            lru.Should().BeOfType<ScopedCache<int, Disposable>>();
-            lru.Capacity.Should().Be(3);
-        }
-
-        [Fact]
-        public void TestScopedAtomicReverse()
-        {
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithAtomicCreate()
-                .WithScopedValues()
-                .WithCapacity(3)
-                .Build();
-
-            lru.Should().BeOfType<ScopedCache<int, Disposable>>();
-            lru.Capacity.Should().Be(3);
-        }
-
-        [Fact]
-        public void TestAtomic()
-        {
-            var lru = new ConcurrentLruBuilder<int, int>()
-                .WithAtomicCreate()
-                .WithCapacity(3)
-                .Build();
-
-            lru.Should().BeOfType<AtomicCacheDecorator<int, int>>();
-        }
-
-        [Fact]
         public void TestComparer()
         {
             var fastLru = new ConcurrentLruBuilder<string, int>()
@@ -121,26 +84,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             Action constructor = () => { var x = b.Build(); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
-        }
-
-        [Fact]
-        public void ScopedPOC()
-        {
-            // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
-
-            // layer 1: can choose ConcurrentLru/TLru, FastConcurrentLru/FastConcurrentTLru 
-            var c = new ConcurrentLru<int, AsyncAtomic<int, Scoped<Disposable>>>(3);
-
-            // layer 2: optional atomic creation
-            var atomic = new AtomicCacheDecorator<int, Scoped<Disposable>>(c);
-
-            // layer 3: optional scoping
-            IScopedCache<int, Disposable> scoped = new ScopedCache<int, Disposable>(atomic);
-
-            using (var lifetime = scoped.ScopedGetOrAdd(1, k => new Scoped<Disposable>(new Disposable())))
-            {
-                var d = lifetime.Value;
-            }
         }
     }
 }
