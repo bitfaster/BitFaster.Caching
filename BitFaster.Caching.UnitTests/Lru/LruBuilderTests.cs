@@ -7,7 +7,7 @@ using BitFaster.Caching.Lru;
 using FluentAssertions;
 using Xunit;
 
-namespace BitFaster.Caching.UnitTests
+namespace BitFaster.Caching.UnitTests.Lru
 {
     public class LruBuilderTests
     {
@@ -99,6 +99,28 @@ namespace BitFaster.Caching.UnitTests
                 .Build();
 
             lru.Should().BeOfType<AtomicCacheDecorator<int, int>>();
+        }
+
+        [Fact]
+        public void TestComparer()
+        {
+            var fastLru = new ConcurrentLruBuilder<string, int>()
+                .WithKeyComparer(StringComparer.OrdinalIgnoreCase)
+                .Build();
+
+            fastLru.GetOrAdd("a", k => 1);
+            fastLru.TryGet("A", out var value).Should().BeTrue();
+        }
+
+        [Fact]
+        public void TestConcurrencyLevel()
+        {
+            var b = new ConcurrentLruBuilder<int, int>()
+                .WithConcurrencyLevel(-1);
+
+            Action constructor = () => { var x = b.Build(); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [Fact]

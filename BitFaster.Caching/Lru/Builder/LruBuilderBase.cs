@@ -16,33 +16,35 @@ namespace BitFaster.Caching.Lru.Builder
             this.info = info;
         }
 
+        public LruInfo<K> Info { get; }
+
         public TBuilder WithCapacity(int capacity)
         {
-            this.info.capacity = capacity;
+            this.info.Capacity = capacity;
             return this as TBuilder;
         }
 
         public TBuilder WithConcurrencyLevel(int concurrencyLevel)
         {
-            this.info.concurrencyLevel = concurrencyLevel;
+            this.info.ConcurrencyLevel = concurrencyLevel;
             return this as TBuilder;
         }
 
         public TBuilder WithKeyComparer(IEqualityComparer<K> comparer)
         {
-            this.info.comparer = comparer;
+            this.info.KeyComparer = comparer;
             return this as TBuilder;
         }
 
         public TBuilder WithMetrics()
         {
-            this.info.withMetrics = true;
+            this.info.WithMetrics = true;
             return this as TBuilder;
         }
 
         public TBuilder WithAbosluteExpiry(TimeSpan expiration)
         {
-            this.info.expiration = expiration;
+            this.info.Expiration = expiration;
             return this as TBuilder;
         }
 

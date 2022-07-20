@@ -21,16 +21,17 @@ namespace BitFaster.Caching.Lru
 
         public override ICache<K, V> Build()
         {
-            if (info.expiration.HasValue)
+            switch (info)
             {
-                return info.withMetrics ?
-                    new ConcurrentTLru<K, V>(info.concurrencyLevel, info.capacity, info.comparer, info.expiration.Value)
-                    : new FastConcurrentTLru<K, V>(info.concurrencyLevel, info.capacity, info.comparer, info.expiration.Value) as ICache<K, V>;
+                case LruInfo<K> i when i.WithMetrics && !i.Expiration.HasValue:
+                    return new ConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer);
+                case LruInfo<K> i when i.WithMetrics && i.Expiration.HasValue:
+                    return new ConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.Expiration.Value);
+                case LruInfo<K> i when i.Expiration.HasValue:
+                    return new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.Expiration.Value);
+                default:
+                    return new FastConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer);
             }
-
-            return info.withMetrics ?
-                new ConcurrentLru<K, V>(info.concurrencyLevel, info.capacity, info.comparer)
-                : new FastConcurrentLru<K, V>(info.concurrencyLevel, info.capacity, info.comparer) as ICache<K, V>;
         }
     }
 }

@@ -8,10 +8,14 @@ namespace BitFaster.Caching.Lru.Builder
 {
     public class LruInfo<K>
     {
-        public int capacity = 128;
-        public int concurrencyLevel = Defaults.ConcurrencyLevel;
-        public TimeSpan? expiration = null;
-        public bool withMetrics = false;
-        public IEqualityComparer<K> comparer = EqualityComparer<K>.Default;
+        public int Capacity { get; set; } = 128;
+
+        public int ConcurrencyLevel { get; set; } = Defaults.ConcurrencyLevel;
+
+        public TimeSpan? Expiration { get; set; } = null;
+
+        public bool WithMetrics { get; set; } = false;
+
+        public IEqualityComparer<K> KeyComparer { get; set; } = EqualityComparer<K>.Default;
     }
 }
