@@ -69,7 +69,7 @@ namespace BitFaster.Caching.Lru.Builder
         /// <returns>A ConcurrentLruBuilder</returns>
         public TBuilder WithExpireAfterWrite(TimeSpan expiration)
         {
-            this.info.Expiration = expiration;
+            this.info.TimeToExpireAfterWrite = expiration;
             return this as TBuilder;
         }
 

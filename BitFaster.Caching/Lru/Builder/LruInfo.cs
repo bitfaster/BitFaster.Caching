@@ -12,7 +12,7 @@ namespace BitFaster.Caching.Lru.Builder
 
         public int ConcurrencyLevel { get; set; } = Defaults.ConcurrencyLevel;
 
-        public TimeSpan? Expiration { get; set; } = null;
+        public TimeSpan? TimeToExpireAfterWrite { get; set; } = null;
 
         public bool WithMetrics { get; set; } = false;
 

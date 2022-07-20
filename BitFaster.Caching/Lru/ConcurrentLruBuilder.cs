@@ -41,12 +41,12 @@ namespace BitFaster.Caching.Lru
         {
             switch (info)
             {
-                case LruInfo<K> i when i.WithMetrics && !i.Expiration.HasValue:
+                case LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue:
                     return new ConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer);
-                case LruInfo<K> i when i.WithMetrics && i.Expiration.HasValue:
-                    return new ConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.Expiration.Value);
-                case LruInfo<K> i when i.Expiration.HasValue:
-                    return new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.Expiration.Value);
+                case LruInfo<K> i when i.WithMetrics && i.TimeToExpireAfterWrite.HasValue:
+                    return new ConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value);
+                case LruInfo<K> i when i.TimeToExpireAfterWrite.HasValue:
+                    return new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value);
                 default:
                     return new FastConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer);
             }
