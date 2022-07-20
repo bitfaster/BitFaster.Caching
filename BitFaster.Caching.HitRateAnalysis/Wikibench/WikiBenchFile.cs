@@ -102,7 +102,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
                 "/error:"
             };
 
-        private static string? ParseLine(string line)
+        private static string ParseLine(string line)
         {
             // Example lines
             // 929840853 1190146243.326 http://upload.wikimedia.org/wikipedia/en/thumb/e/e4/James_Johnson.jpg/200px-James_Johnson.jpg -
