@@ -44,6 +44,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestMetricsTLru()
         {
             var lru = new ConcurrentLruBuilder<int, int>()
+                 .WithAbosluteExpiry(TimeSpan.FromSeconds(1))
                  .WithMetrics()
                  .Build();
 
