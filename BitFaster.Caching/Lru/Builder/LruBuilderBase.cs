@@ -26,6 +26,18 @@ namespace BitFaster.Caching.Lru.Builder
         /// <returns>A ConcurrentLruBuilder</returns>
         public TBuilder WithCapacity(int capacity)
         {
+            this.info.Capacity = new FavorFrequencyPartition(capacity);
+            return this as TBuilder;
+        }
+
+        /// <summary>
+        /// Set the maximum number of values to keep in the cache. If more items than this are added, 
+        /// the cache eviction policy will determine which values to remove.
+        /// </summary>
+        /// <param name="capacity">The capacity partition scheme to use.</param>
+        /// <returns>A ConcurrentLruBuilder</returns>
+        public TBuilder WithCapacity(ICapacityPartition capacity)
+        {
             this.info.Capacity = capacity;
             return this as TBuilder;
         }

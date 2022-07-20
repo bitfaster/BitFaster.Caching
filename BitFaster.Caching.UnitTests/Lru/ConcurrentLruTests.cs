@@ -60,6 +60,15 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenPartitionIsInvalidThrows()
+        {
+            var p = new TestCapacityPartition { Cold = 2, Warm = 0, Hot = 2 };
+            Action constructor = () => { var x = new ConcurrentLru<int, string>(1, p, EqualityComparer<int>.Default); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
         public void WhenComparerIsNullCtorThrows()
         {
             Action constructor = () => { var x = new ConcurrentLru<int, string>(1, 3, null); };
