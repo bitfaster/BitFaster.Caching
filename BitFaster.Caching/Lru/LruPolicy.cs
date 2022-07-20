@@ -25,7 +25,18 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Update(LruItem<K, V> item)
+        {
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LruItem<K, V> item)
+        {
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool CanDiscard()
         {
             return false;
         }

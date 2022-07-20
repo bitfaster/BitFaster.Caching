@@ -43,6 +43,19 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public async Task UpdateUpdatesTickCount()
+        {
+            var item = this.policy.CreateItem(1, 2);
+            var ts = item.TimeStamp;
+
+            await Task.Delay(TimeSpan.FromMilliseconds(1));
+
+            this.policy.Update(item);
+
+            item.TimeStamp.Should().BeAfter(ts);
+        }
+
+        [Fact]
         public void WhenItemIsExpiredShouldDiscardIsTrue()
         {
             var item = this.policy.CreateItem(1, 2);
@@ -58,6 +71,12 @@ namespace BitFaster.Caching.UnitTests.Lru
             item.TimeStamp = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(9));
 
             this.policy.ShouldDiscard(item).Should().BeFalse();
+        }
+
+        [Fact]
+        public void CanDiscardIsTrue()
+        { 
+            this.policy.CanDiscard().Should().BeTrue();
         }
 
         [Theory]

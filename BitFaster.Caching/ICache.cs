@@ -14,6 +14,26 @@ namespace BitFaster.Caching
     public interface ICache<K, V>
     {
         /// <summary>
+        /// Gets the total number of items that can be stored in the cache.
+        /// </summary>
+        int Capacity { get; }
+
+        /// <summary>
+        /// Gets the number of items currently held in the cache.
+        /// </summary>
+        int Count { get; }
+
+        /// <summary>
+        /// Gets the cache metrics.
+        /// </summary>
+        ICacheMetrics Metrics { get; }
+
+        /// <summary>
+        /// Gets the cache events.
+        /// </summary>
+        ICacheEvents<K, V> Events { get; }
+
+        /// <summary>
         /// Attempts to get the value associated with the specified key from the cache.
         /// </summary>
         /// <param name="key">The key of the value to get.</param>
@@ -28,7 +48,7 @@ namespace BitFaster.Caching
         /// <param name="key">The key of the element to add.</param>
         /// <param name="valueFactory">The factory function used to generate a value for the key.</param>
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
-        /// in the cache, or the new value if the key was not in the dictionary.</returns>
+        /// in the cache, or the new value if the key was not in the cache.</returns>
         V GetOrAdd(K key, Func<K, V> valueFactory);
 
         /// <summary>
@@ -67,5 +87,11 @@ namespace BitFaster.Caching
         /// Removes all keys and values from the cache.
         /// </summary>
         void Clear();
+
+        /// <summary>
+        /// Trim the specified number of items from the cache.
+        /// </summary>
+        /// <param name="itemCount">The number of items to remove.</param>
+        void Trim(int itemCount);
     }
 }

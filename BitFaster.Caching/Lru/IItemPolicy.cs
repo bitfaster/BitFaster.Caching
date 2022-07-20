@@ -12,7 +12,11 @@ namespace BitFaster.Caching.Lru
 
         void Touch(I item);
 
+        void Update(I item);
+
         bool ShouldDiscard(I item);
+
+        bool CanDiscard();
 
         ItemDestination RouteHot(I item);
 

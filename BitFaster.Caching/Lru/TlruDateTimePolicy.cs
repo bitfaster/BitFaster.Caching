@@ -33,6 +33,12 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Update(TimeStampedLruItem<K, V> item)
+        {
+            item.TimeStamp = DateTime.UtcNow;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(TimeStampedLruItem<K, V> item)
         {
             if (DateTime.UtcNow - item.TimeStamp > this.timeToLive)
@@ -41,6 +47,12 @@ namespace BitFaster.Caching.Lru
             }
 
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool CanDiscard()
+        {
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

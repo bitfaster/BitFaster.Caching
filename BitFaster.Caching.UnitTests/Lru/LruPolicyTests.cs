@@ -56,6 +56,12 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.policy.ShouldDiscard(item).Should().BeFalse();
         }
 
+        [Fact]
+        public void CanDiscardIsFalse()
+        {
+            this.policy.CanDiscard().Should().BeFalse();
+        }
+
         [Theory]
         [InlineData(true, ItemDestination.Warm)]
         [InlineData(false, ItemDestination.Cold)]

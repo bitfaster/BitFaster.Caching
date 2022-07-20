@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,18 +18,18 @@ namespace BitFaster.Caching.Lru
     /// </remarks>
     /// <typeparam name="K">The type of the key</typeparam>
     /// <typeparam name="V">The type of the value</typeparam>
-    public sealed class ClassicLru<K, V> : ICache<K, V>
+    public sealed class ClassicLru<K, V> : ICache<K, V>, IEnumerable<KeyValuePair<K, V>>
     {
         private readonly int capacity;
         private readonly ConcurrentDictionary<K, LinkedListNode<LruItem>> dictionary;
         private readonly LinkedList<LruItem> linkedList = new LinkedList<LruItem>();
 
-        private long requestHitCount;
-        private long requestTotalCount;
+        private readonly CacheMetrics metrics = new CacheMetrics();
+        private readonly CacheEvents events = new CacheEvents();
 
         public ClassicLru(int capacity)
             : this(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default)
-        { 
+        {
         }
 
         public ClassicLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer)
@@ -47,19 +48,53 @@ namespace BitFaster.Caching.Lru
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, this.capacity + 1, comparer);
         }
 
+        ///<inheritdoc/>
         public int Count => this.linkedList.Count;
 
-        public double HitRatio => (double)requestHitCount / (double)requestTotalCount;
+        ///<inheritdoc/>
+        public int Capacity => this.capacity;
+
+        /// <summary>
+        /// Gets the ratio of hits to misses, where a value of 1 indicates 100% hits.
+        /// </summary>
+        [ObsoleteAttribute("This property is obsolete. Use Metrics instead.", false)]
+        public double HitRatio => this.Metrics.HitRatio;
+
+        ///<inheritdoc/>
+        public ICacheMetrics Metrics => this.metrics;
+
+        public ICacheEvents<K, V> Events => this.events;
+
+        /// <summary>
+        /// Gets a collection containing the keys in the cache.
+        /// </summary>
+        public ICollection<K> Keys => this.dictionary.Keys;
+
+        /// <summary>Returns an enumerator that iterates through the cache.</summary>
+        /// <returns>An enumerator for the cache.</returns>
+        /// <remarks>
+        /// The enumerator returned from the cache is safe to use concurrently with
+        /// reads and writes, however it does not represent a moment-in-time snapshot.  
+        /// The contents exposed through the enumerator may contain modifications
+        /// made after <see cref="GetEnumerator"/> was called.
+        /// </remarks>
+        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
+        {
+            foreach (var kvp in this.dictionary)
+            {
+                yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.Value.Value);
+            }
+        }
 
         ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
-            Interlocked.Increment(ref requestTotalCount);
+            Interlocked.Increment(ref this.metrics.requestTotalCount);
 
             if (dictionary.TryGetValue(key, out var node))
             {
                 LockAndMoveToEnd(node);
-                Interlocked.Increment(ref requestHitCount);
+                Interlocked.Increment(ref this.metrics.requestHitCount);
                 value = node.Value.Value;
                 return true;
             }
@@ -103,6 +138,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
+                    Interlocked.Increment(ref this.metrics.evictedCount);
                     Disposer<V>.Dispose(removed.Value.Value);
                 }
 
@@ -147,6 +183,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
+                    Interlocked.Increment(ref this.metrics.evictedCount);
                     Disposer<V>.Dispose(removed.Value.Value);
                 }
 
@@ -199,7 +236,7 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         ///<remarks>Note: Updates to existing items do not affect LRU order. Added items are at the top of the LRU.</remarks>
         public void AddOrUpdate(K key, V value)
-        { 
+        {
             // first, try to update
             if (this.dictionary.TryGetValue(key, out var existingNode))
             {
@@ -235,6 +272,7 @@ namespace BitFaster.Caching.Lru
                 {
                     dictionary.TryRemove(first.Value.Key, out var removed);
 
+                    Interlocked.Increment(ref this.metrics.evictedCount);
                     Disposer<V>.Dispose(removed.Value.Value);
                 }
 
@@ -247,14 +285,45 @@ namespace BitFaster.Caching.Lru
 
         ///<inheritdoc/>
         public void Clear()
-        { 
+        {
             // take a key snapshot
             var keys = this.dictionary.Keys.ToList();
 
             // remove all keys in the snapshot - this correctly handles disposable values
             foreach (var key in keys)
-            { 
-                TryRemove(key);    
+            {
+                TryRemove(key);
+            }
+        }
+
+        ///<inheritdoc/>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="itemCount"/> is less than 0./</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="itemCount"/> is greater than capacity./</exception>
+        public void Trim(int itemCount)
+        {
+            if (itemCount < 1 || itemCount > this.capacity)
+            {
+                throw new ArgumentOutOfRangeException(nameof(itemCount), "itemCount must be greater than or equal to one, and less than the capacity of the cache.");
+            }
+
+            for (int i = 0; i < itemCount; i++)
+            {
+                LinkedListNode<LruItem> first = null;
+
+                lock (this.linkedList)
+                {
+                    if (linkedList.Count > 0)
+                    {
+                        first = linkedList.First;
+                        linkedList.RemoveFirst();
+                    }
+                }
+
+                if (first != null)
+                {
+                    dictionary.TryRemove(first.Value.Key, out var removed);
+                    Disposer<V>.Dispose(removed.Value.Value);
+                }
             }
         }
 
@@ -281,6 +350,19 @@ namespace BitFaster.Caching.Lru
             }
         }
 
+        /// <summary>Returns an enumerator that iterates through the cache.</summary>
+        /// <returns>An enumerator for the cache.</returns>
+        /// <remarks>
+        /// The enumerator returned from the cache is safe to use concurrently with
+        /// reads and writes, however it does not represent a moment-in-time snapshot.  
+        /// The contents exposed through the enumerator may contain modifications
+        /// made after <see cref="GetEnumerator"/> was called.
+        /// </remarks>
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((ClassicLru<K, V>)this).GetEnumerator();
+        }
+
         private class LruItem
         {
             public LruItem(K k, V v)
@@ -292,6 +374,39 @@ namespace BitFaster.Caching.Lru
             public K Key { get; }
 
             public V Value { get; set; }
+        }
+
+        private class CacheMetrics : ICacheMetrics
+        {
+            public long requestHitCount;
+            public long requestTotalCount;
+            public long evictedCount;
+
+            public double HitRatio => (double)requestHitCount / (double)requestTotalCount;
+
+            public long Total => requestTotalCount;
+
+            public long Hits => requestHitCount;
+
+            public long Misses => requestTotalCount - requestHitCount;
+
+            public long Evicted => evictedCount;
+
+            public bool IsEnabled => true;
+        }
+
+        private class CacheEvents : ICacheEvents<K, V>
+        {
+            public bool IsEnabled => false;
+
+#pragma warning disable CS0067 // The event 'event' is never used
+            public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
+            {
+                // no-op, nothing is registered
+                add { }
+                remove { }
+            }
+#pragma warning restore CS0067 // The event 'event' is never used
         }
     }
 }

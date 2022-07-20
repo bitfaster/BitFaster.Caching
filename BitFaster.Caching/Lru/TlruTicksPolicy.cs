@@ -38,6 +38,12 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Update(TickCountLruItem<K, V> item)
+        {
+            item.TickCount = Environment.TickCount;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(TickCountLruItem<K, V> item)
         {
             if (Environment.TickCount - item.TickCount > this.timeToLive)
@@ -46,6 +52,12 @@ namespace BitFaster.Caching.Lru
             }
 
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool CanDiscard()
+        {
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

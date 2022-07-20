@@ -10,8 +10,8 @@ namespace BitFaster.Caching.UnitTests.Lru
 {
     public class ConcurrentTLruTests
     {
-        private readonly TimeSpan timeToLive = TimeSpan.FromSeconds(1);
-        private const int capacity = 9;
+        private readonly TimeSpan timeToLive = TimeSpan.FromMilliseconds(10);
+        private readonly ICapacityPartition capacity = new EqualCapacityPartition(9);
         private ConcurrentTLru<int, string> lru;
 
         private ValueFactory valueFactory = new ValueFactory();
@@ -29,11 +29,27 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void ConstructAddAndRetrieveWithDefaultCtorReturnsValue()
+        public void ConstructWithDefaultCtorReturnsCapacity()
         {
             var x = new ConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
 
-            x.GetOrAdd(1, k => k).Should().Be(1);
+            x.Capacity.Should().Be(3);
+        }
+
+        [Fact]
+        public void ConstructCapacityCtorReturnsCapacity()
+        {
+            var x = new ConcurrentTLru<int, int>(1, 3, EqualityComparer<int>.Default, TimeSpan.FromSeconds(1));
+
+            x.Capacity.Should().Be(3);
+        }
+
+        [Fact]
+        public void ConstructPartitionCtorReturnsCapacity()
+        {
+            var x = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(3), EqualityComparer<int>.Default, TimeSpan.FromSeconds(1));
+
+            x.Capacity.Should().Be(3);
         }
 
         [Fact]
@@ -55,34 +71,77 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void WhenValueEvictedItemRemovedEventIsFired()
+        public async Task WhenItemIsUpdatedTtlIsExtended()
         {
-            var lruEvents = new ConcurrentTLru<int, int>(1, 6, EqualityComparer<int>.Default, timeToLive);
-            lruEvents.ItemRemoved += OnLruItemRemoved;
+            lru.GetOrAdd(1, valueFactory.Create);
 
-            for (int i = 0; i < 6; i++)
+            await Task.Delay(timeToLive * 2);
+
+            lru.TryUpdate(1, "3");
+
+            lru.TryGet(1, out var value).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenValueEvictedItemRemovedDeprecatedEventIsFired()
+        {
+            var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
+#pragma warning disable CS0618 // Type or member is obsolete
+            lruEvents.ItemRemoved += OnLruItemRemoved;
+#pragma warning restore CS0618 // Type or member is obsolete
+
+            // First 6 adds
+            // hot[6, 5], warm[2, 1], cold[4, 3]
+            // =>
+            // hot[8, 7], warm[1, 0], cold[6, 5], evicted[4, 3]
+            for (int i = 0; i < 8; i++)
             {
                 lruEvents.GetOrAdd(i + 1, i => i + 1);
             }
 
             removedItems.Count.Should().Be(2);
 
-            removedItems[0].Key.Should().Be(1);
-            removedItems[0].Value.Should().Be(2);
+            removedItems[0].Key.Should().Be(3);
+            removedItems[0].Value.Should().Be(4);
             removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
 
-            removedItems[1].Key.Should().Be(2);
-            removedItems[1].Value.Should().Be(3);
+            removedItems[1].Key.Should().Be(4);
+            removedItems[1].Value.Should().Be(5);
+            removedItems[1].Reason.Should().Be(ItemRemovedReason.Evicted);
+        }
+
+        [Fact]
+        public void WhenValueEvictedItemRemovedEventIsFired()
+        {
+            var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
+            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
+
+            // First 6 adds
+            // hot[6, 5], warm[2, 1], cold[4, 3]
+            // =>
+            // hot[8, 7], warm[1, 0], cold[6, 5], evicted[4, 3]
+            for (int i = 0; i < 8; i++)
+            {
+                lruEvents.GetOrAdd(i + 1, i => i + 1);
+            }
+
+            removedItems.Count.Should().Be(2);
+
+            removedItems[0].Key.Should().Be(3);
+            removedItems[0].Value.Should().Be(4);
+            removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
+
+            removedItems[1].Key.Should().Be(4);
+            removedItems[1].Value.Should().Be(5);
             removedItems[1].Reason.Should().Be(ItemRemovedReason.Evicted);
         }
 
         [Fact]
         public void WhenItemRemovedEventIsUnregisteredEventIsNotFired()
         {
-            var lruEvents = new ConcurrentTLru<int, int>(1, 6, EqualityComparer<int>.Default, timeToLive);
-
-            lruEvents.ItemRemoved += OnLruItemRemoved;
-            lruEvents.ItemRemoved -= OnLruItemRemoved;
+            var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
+            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
+            lruEvents.Events.ItemRemoved -= OnLruItemRemoved;
 
             for (int i = 0; i < 6; i++)
             {
@@ -98,7 +157,70 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             lru.HitRatio.Should().Be(0.5);
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        [Fact]
+        public async Task WhenItemsAreExpiredExpireRemovesExpiredItems()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+            lru.GetOrAdd(3, valueFactory.Create);
+
+            lru.AddOrUpdate(4, "4");
+            lru.AddOrUpdate(5, "5");
+            lru.AddOrUpdate(6, "6");
+
+            lru.AddOrUpdate(7, "7");
+            lru.AddOrUpdate(8, "8");
+            lru.AddOrUpdate(9, "9");
+
+            await Task.Delay(timeToLive * 2);
+
+            lru.TrimExpired();
+
+            lru.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+
+            lru.AddOrUpdate(4, "4");
+            lru.AddOrUpdate(5, "5");
+            lru.AddOrUpdate(6, "6");
+
+            await Task.Delay(timeToLive * 4);
+
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+            lru.GetOrAdd(3, valueFactory.Create);
+
+            lru.TrimExpired();
+
+            lru.Count.Should().Be(3);
+        }
+
+        [Fact]
+        public async Task WhenItemsAreExpiredTrimRemovesExpiredItems()
+        {
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+
+            await Task.Delay(timeToLive * 2);
+
+            lru.Trim(1);
+
+            lru.Count.Should().Be(0);
         }
     }
 }

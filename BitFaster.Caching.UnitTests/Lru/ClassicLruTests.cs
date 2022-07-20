@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
+using System.Collections;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -49,11 +50,46 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenCtorCapacityArgIs3CapacityIs3()
+        {
+            new ClassicLru<int, int>(3).Capacity.Should().Be(3);
+        }
+
+        [Fact]
         public void WhenItemIsAddedCountIsCorrect()
         {
             lru.Count.Should().Be(0);
             lru.GetOrAdd(1, valueFactory.Create);
             lru.Count.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenItemsAddedKeysContainsTheKeys()
+        {
+            lru.Count.Should().Be(0);
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+            lru.Keys.Should().BeEquivalentTo(new[] { 1, 2 });
+        }
+
+        [Fact]
+        public void WhenItemsAddedGenericEnumerateContainsKvps()
+        {
+            lru.Count.Should().Be(0);
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+            lru.Should().BeEquivalentTo(new[] { new KeyValuePair<int, string>(1, "1"), new KeyValuePair<int, string>(2, "2") });
+        }
+
+        [Fact]
+        public void WhenItemsAddedEnumerateContainsKvps()
+        {
+            lru.Count.Should().Be(0);
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+
+            var enumerable = (IEnumerable)lru;
+            enumerable.Should().BeEquivalentTo(new[] { new KeyValuePair<int, string>(1, "1"), new KeyValuePair<int, string>(2, "2") });
         }
 
         [Fact]
@@ -82,7 +118,69 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             lru.HitRatio.Should().Be(0.5);
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        [Fact]
+        public void MetricsAreEnabled()
+        {
+            lru.Metrics.IsEnabled.Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedMetricHitRatioIsHalf()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.HitRatio.Should().Be(0.5);
+        }
+
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedMetricHitsIs1()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.Hits.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenItemIsAddedThenRetrievedMetricTotalIs2()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.Total.Should().Be(2);
+        }
+
+        [Fact]
+        public void WhenItemDoesNotExistTryGetIncrementsMiss()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            bool result = lru.TryGet(1, out var value);
+
+            lru.Metrics.Misses.Should().Be(1);
+        }
+
+        [Fact]
+        public void EventsAreEnabled()
+        {
+            lru.Events.IsEnabled.Should().BeFalse();
+        }
+
+        [Fact]
+        public void RegisterAndUnregisterIsNoOp()
+        {
+            lru.Events.ItemRemoved += OnItemRemoved;
+            lru.Events.ItemRemoved -= OnItemRemoved;
+        }
+
+        private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, string> e)
+        {
+            throw new NotImplementedException();
         }
 
         [Fact]
@@ -179,6 +277,23 @@ namespace BitFaster.Caching.UnitTests.Lru
             // request 1, verify value factory is called (and it was therefore not cached)
             lru.GetOrAdd(1, valueFactory.Create);
             valueFactory.timesCalled.Should().Be(capacity + 2);
+        }
+
+        [Fact]
+        public void WhenMoreKeysRequestedThanCapacityEvictedMetricRecordsNumberEvicted()
+        {
+            // request 3 items, LRU is now full
+            for (int i = 0; i < capacity; i++)
+            {
+                lru.GetOrAdd(i, valueFactory.Create);
+            }
+
+            lru.Metrics.Evicted.Should().Be(0);
+
+            // request 0, now item 1 is to be evicted
+            lru.GetOrAdd(4, valueFactory.Create);
+
+            lru.Metrics.Evicted.Should().Be(1);
         }
 
         [Fact]
@@ -359,6 +474,63 @@ namespace BitFaster.Caching.UnitTests.Lru
             lruOfDisposable.Clear();
 
             items.All(i => i.IsDisposed == true).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenTrimCountIsZeroThrows()
+        { 
+            lru.Invoking(l => lru.Trim(0)).Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenTrimCountIsMoreThanCapacityThrows()
+        {
+            lru.Invoking(l => lru.Trim(capacity + 1)).Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Theory]
+        [InlineData(1, new[] { 1, 3 })]
+        [InlineData(2, new[] { 1 })]
+        [InlineData(3, new int[] { })]
+        public void WhenItemsExistTrimRemovesExpectedItemCount(int trimCount, int[] expected)
+        {
+            // initial state:
+            // 1, 3, 2
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "2");
+            lru.AddOrUpdate(3, "3");
+
+            lru.GetOrAdd(1, i => i.ToString());
+
+            lru.Trim(trimCount);
+
+            lru.Keys.Should().BeEquivalentTo(expected);
+        }
+
+        [Fact]
+        public void WhenCacheIsEmptyTrimIsNoOp()
+        {
+            lru.Trim(2);
+        }
+
+        [Fact]
+        public void WhenItemsAreDisposableTrimDisposesItems()
+        {
+            var lruOfDisposable = new ClassicLru<int, DisposableItem>(1, 4, EqualityComparer<int>.Default);
+
+            var items = Enumerable.Range(1, 4).Select(i => new DisposableItem()).ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                lruOfDisposable.AddOrUpdate(i, items[i]);
+            }
+
+            lruOfDisposable.Trim(2);
+
+            items[0].IsDisposed.Should().BeTrue();
+            items[1].IsDisposed.Should().BeTrue();
+            items[2].IsDisposed.Should().BeFalse();
+            items[3].IsDisposed.Should().BeFalse();
         }
     }
 }

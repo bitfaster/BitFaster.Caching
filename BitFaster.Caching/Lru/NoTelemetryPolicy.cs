@@ -11,6 +11,23 @@ namespace BitFaster.Caching.Lru
     {
         public double HitRatio => 0.0;
 
+        public long Total => 0;
+
+        public long Hits => 0;
+
+        public long Misses => 0;
+
+        public long Evicted => 0;
+
+        public bool IsEnabled => false;
+
+        public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
+        {
+            // no-op, nothing is registered
+            add { }
+            remove { }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncrementMiss()
         {

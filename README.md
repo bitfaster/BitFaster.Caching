@@ -85,13 +85,13 @@ using (var lifetime = urlLocks.Acquire(url))
 
 ### Why not use MemoryCache?
 
-MemoryCache is perfectly servicable, but it has some limitations:
+MemoryCache has these limitations (see [here](https://github.com/bitfaster/BitFaster.Caching/wiki) for more detail):
 
-- Makes heap allocations when the native object key is not type string.
-- Is not 'scan' resistant, fetching all keys will load everything into memory.
+- Lookups require heap allocations when the native key type is not type string.
+- Is not 'scan' resistant: fetching all keys will try to load everything into memory, which is bad.
+- Non-optimal eviction policy. MemoryCache uses an heuristic to estimate memory used, and evicts items using a timer based background thread. The 'trim' process may remove useful items, and if the timer does not fire fast enough the resulting memory pressure can be problematic (e.g. thrashing, out of memory, increased GC).
 - Does not scale well with concurrent writes.
-- Contains perf counters that can't be disabled
-- Uses an heuristic to estimate memory used, and evicts items using a timer. The 'trim' process may remove useful items, and if the timer does not fire fast enough the resulting memory pressure can be problematic (e.g. induced GC).
+- Contains perf counters that can't be disabled.
 
 # Performance
 
@@ -104,41 +104,41 @@ The cache replacement policy must maximize the cache hit rate, and minimize the 
 The charts below show the relative hit rate of classic LRU vs Concurrent LRU on a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) of input keys, with parameter *s* = 0.5 and *s* = 0.86 respectively. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
 
 Here *N* = 50000, and we take 1 million sample keys. The hit rate is the number of times we get a cache hit divided by 1 million.
-This test was repeated with the cache configured to different sizes expressed as a percentage *N* (e.g. 10% would be a cache with a capacity 5000).
+This test was repeated with the cache configured to different sizes expressed as a percentage *N* (e.g. 10% would be a cache with a capacity 5000). ConcurrentLru is configured with the default `FavorFrequencyPartition` to allocate internal queue capacity (see [here](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru#how-it-works) for details).
 
 <table>
   <tr>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84844130-a00d4680-affe-11ea-8f7a-e3c66180d8b9.png" width="350"/>
+<img src="https://user-images.githubusercontent.com/12851828/178164042-ecea02ee-df6f-4641-9a58-1357ec3cf292.png" width="350"/>
 </td>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84844172-b6b39d80-affe-11ea-9a29-cbdae6020246.png" width="350"/>
+<img src="https://user-images.githubusercontent.com/12851828/178164023-fdd8bea3-b7b0-4c44-be1a-843656ba5f9a.png" width="350"/>
 </td>
    </tr> 
 </table>
 
-As above, but interleaving a sequential scan of every key (aka sequential flooding). In this case, ConcurrentLru performs better across the board, and is more resistant to scanning.
+As above, but interleaving a sequential scan of every key (aka sequential flooding). In this case, ConcurrentLru performs significantly better across the board, and is therefore more resistant to scanning.
 
 <table>
   <tr>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84841922-a4366580-aff8-11ea-93dd-568d60cd82d9.png" width="350"/>
+<img src="https://user-images.githubusercontent.com/12851828/178164070-cc317a51-bba4-4e2d-af95-f4210ae7c888.png" width="350"/>
 </td>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84842237-730a6500-aff9-11ea-9a46-40141adff920.png" width="350"/>
+<img src="https://user-images.githubusercontent.com/12851828/178164094-83ce2e97-f3c3-406d-b39e-4196388ac0a6.png" width="350"/>
 </td>
    </tr> 
 </table>
 
-These charts summarize the percentage increase in hit rate ConcurrentLru vs LRU. Increase is in hit rate is significant at lower cache sizes.
+These charts summarize the percentage increase in hit rate for ConcurrentLru vs LRU. Increase is in hit rate is significant at lower cache sizes, outperforming the classic LRU by over 150% when *s* = 0.5 in the best case for both Zipf and scan access patterns.
 
 <table>
   <tr>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84843966-283f1c00-affe-11ea-99c9-20aa01f307f0.png" width="350"/>
+<img src="https://user-images.githubusercontent.com/12851828/178164132-365cfa9b-bd64-48a0-a2e0-d33a4dd0c83d.png" width="350"/>
 </td>
     <td>
-<img src="https://user-images.githubusercontent.com/12851828/84844003-3d1baf80-affe-11ea-9266-e83efe2e8c35.png" width="350"/>
+<img src="https://user-images.githubusercontent.com/12851828/178164153-969501a1-c400-4464-8439-058d59d1a595.png" width="350"/>
 </td>
    </tr> 
 </table>
@@ -149,19 +149,17 @@ In these benchmarks, a cache miss is essentially free. These tests exist purely 
 
 Benchmarks are based on BenchmarkDotNet, so are single threaded. The ConcurrentLru family of classes are composed internally of ConcurrentDictionary.GetOrAdd and ConcurrentQueue.Enqueue/Dequeue method calls, and scale well to concurrent workloads.
 
-Benchmark results below are from a computer with a mobile class Broadwell CPU with small caches (128kb L1/512kb L2/4mb L3):
+Benchmark results below are from a workstation with the following config:
 
 ~~~
-BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.264 (2004/?/20H1)
-Intel Core i7-5600U CPU 2.60GHz (Broadwell), 1 CPU, 4 logical and 2 physical cores
-.NET Core SDK=3.1.301
-  [Host]    : .NET Core 3.1.5 (CoreCLR 4.700.20.26901, CoreFX 4.700.20.27001), X64 RyuJIT
-  RyuJitX64 : .NET Core 3.1.5 (CoreCLR 4.700.20.26901, CoreFX 4.700.20.27001), X64 RyuJIT
-
-Job=RyuJitX64  Jit=RyuJit  Platform=X64
+BenchmarkDotNet=v0.13.1, OS=Windows 10.0.22000
+Intel Xeon W-2133 CPU 3.60GHz, 1 CPU, 12 logical and 6 physical cores
+  [Host]             : .NET Framework 4.8 (4.8.4510.0), X64 RyuJIT
+  .NET 6.0           : .NET 6.0.5 (6.0.522.21309), X64 RyuJIT
+  .NET Framework 4.8 : .NET Framework 4.8 (4.8.4510.0), X64 RyuJIT
 ~~~
-    
-Benchmarks have been repeated across supported .NET Frameworks and on the CPU architectures available in Azure (e.g. Intel Skylake, AMD Zen). Results are repeatable within +/-5%.
+
+The relative ranking of each cache implementation is stable across .NET Framework/Core/5/6 and on the CPU architectures available in Azure (e.g. Intel Skylake, AMD Zen). Absolute performance can vary.
 
 ### What are FastConcurrentLru/FastConcurrentTLru?
 
@@ -192,19 +190,27 @@ In this test the same items are fetched repeatedly, no items are evicted. Repres
 - Classic Lru must maintain item order, and is internally splicing the fetched item to the head of the linked list.
 - MemoryCache and ConcurrentDictionary represent a pure lookup. This is the best case scenario for MemoryCache, since the lookup key is a string (if the key were a Guid, using MemoryCache adds string conversion overhead). 
 
-FastConcurrentLru does not allocate and is approximately 10x faster than System.Runtime.Caching.MemoryCache or the newer Microsoft.Extensions.Caching.Memory.MemoryCache.
+FastConcurrentLru does not allocate and is approximately 5-10x faster than System.Runtime.Caching.MemoryCache or the newer Microsoft.Extensions.Caching.Memory.MemoryCache.
 
-|                   Method |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Allocated |
-|------------------------- |----------:|---------:|---------:|------:|-------:|----------:|
-|     ConcurrentDictionary |  16.76 ns | 0.322 ns | 0.285 ns |  1.00 |      - |         - |
-|        FastConcurrentLru |  18.94 ns | 0.249 ns | 0.220 ns |  1.13 |      - |         - |
-|            ConcurrentLru |  21.46 ns | 0.204 ns | 0.191 ns |  1.28 |      - |         - |
-|       FastConcurrentTLru |  41.57 ns | 0.450 ns | 0.376 ns |  2.48 |      - |         - |
-|           ConcurrentTLru |  43.95 ns | 0.588 ns | 0.521 ns |  2.62 |      - |         - |
-|               ClassicLru |  67.62 ns | 0.901 ns | 0.799 ns |  4.03 |      - |         - |
-|    RuntimeMemoryCacheGet | 279.70 ns | 3.825 ns | 3.578 ns | 16.70 | 0.0153 |      32 B |
-| ExtensionsMemoryCacheGet | 341.67 ns | 6.617 ns | 6.499 ns | 20.35 | 0.0114 |      24 B |
-
+|                   Method |           Runtime |       Mean |    StdDev | Ratio |Allocated |
+|------------------------- |------------------ |-----------:|----------:|------:|---------:|
+|     ConcurrentDictionary |          .NET 6.0 |   7.783 ns | 0.0720 ns |  1.00 |        - |
+|        FastConcurrentLru |          .NET 6.0 |   9.773 ns | 0.0361 ns |  1.26 |        - |
+|            ConcurrentLru |          .NET 6.0 |  13.615 ns | 0.0606 ns |  1.75 |        - |
+|       FastConcurrentTLru |          .NET 6.0 |  25.480 ns | 0.0935 ns |  3.28 |        - |
+|           ConcurrentTLru |          .NET 6.0 |  29.890 ns | 0.2107 ns |  3.84 |        - |
+|               ClassicLru |          .NET 6.0 |  54.422 ns | 0.2935 ns |  7.00 |        - |
+|    RuntimeMemoryCacheGet |          .NET 6.0 | 115.016 ns | 0.6619 ns | 14.79 |     32 B |
+| ExtensionsMemoryCacheGet |          .NET 6.0 |  53.328 ns | 0.2130 ns |  6.85 |     24 B |
+|                          |                   |            |           |       |          |
+|     ConcurrentDictionary |.NET Framework 4.8 |  13.644 ns | 0.0601 ns |  1.00 |        - |
+|        FastConcurrentLru |.NET Framework 4.8 |  14.639 ns | 0.0892 ns |  1.07 |        - |
+|            ConcurrentLru |.NET Framework 4.8 |  17.008 ns | 0.2538 ns |  1.25 |        - |
+|       FastConcurrentTLru |.NET Framework 4.8 |  43.854 ns | 0.0827 ns |  3.22 |        - |
+|           ConcurrentTLru |.NET Framework 4.8 |  47.954 ns | 1.2772 ns |  3.52 |        - |
+|               ClassicLru |.NET Framework 4.8 |  62.683 ns | 0.8105 ns |  4.60 |        - |
+|    RuntimeMemoryCacheGet |.NET Framework 4.8 | 287.627 ns | 1.3691 ns | 21.08 |     32 B |
+| ExtensionsMemoryCacheGet |.NET Framework 4.8 | 114.511 ns | 0.5902 ns |  8.39 |     24 B |
 
 ## ConcurrentLru Throughput
 
