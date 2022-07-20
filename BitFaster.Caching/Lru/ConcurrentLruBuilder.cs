@@ -7,8 +7,25 @@ using BitFaster.Caching.Lru.Builder;
 
 namespace BitFaster.Caching.Lru
 {
-    public class ConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, ConcurrentLruBuilder<K, V>, ICache<K, V>>
+    /// <summary>
+    /// A builder of ICache and IScopedCache instances with the following configuration
+    /// settings:
+    /// - The maximum size.
+    /// - The concurrency level.
+    /// - The key comparer.
+    /// 
+    /// The following features can be selected which change the underlying cache implementation: 
+    /// - Collect metrics (e.g. hit rate). Small perf penalty.
+    /// - Time based expiration, measured since write.
+    /// - Scoped IDisposable values.
+    /// </summary>
+    /// <typeparam name="K">The type of keys in the cache.</typeparam>
+    /// <typeparam name="V">The type of values in the cache.</typeparam>
+    public sealed class ConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, ConcurrentLruBuilder<K, V>, ICache<K, V>>
     {
+        /// <summary>
+        /// Creates a ConcurrentLruBuilder.
+        /// </summary>
         public ConcurrentLruBuilder()
             : base(new LruInfo<K>())
         {
@@ -19,6 +36,7 @@ namespace BitFaster.Caching.Lru
         {
         }
 
+        ///<inheritdoc/>
         public override ICache<K, V> Build()
         {
             switch (info)

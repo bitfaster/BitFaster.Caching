@@ -34,7 +34,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestFastTLru()
         {
             var lru = new ConcurrentLruBuilder<int, int>()
-                .WithAbosluteExpiry(TimeSpan.FromSeconds(1))
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
                 .Build();
 
             lru.Should().BeOfType<FastConcurrentTLru<int, int>>();
@@ -44,7 +44,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestMetricsTLru()
         {
             var lru = new ConcurrentLruBuilder<int, int>()
-                 .WithAbosluteExpiry(TimeSpan.FromSeconds(1))
+                 .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
                  .WithMetrics()
                  .Build();
 
@@ -58,7 +58,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             var lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithScopedValues()
                 .WithCapacity(3)
-                .WithAbosluteExpiry(TimeSpan.FromMinutes(1))
+                .WithExpireAfterWrite(TimeSpan.FromMinutes(1))
                 .Build();
 
             lru.Should().BeOfType<ScopedCache<int, Disposable>>();

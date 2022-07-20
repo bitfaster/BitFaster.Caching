@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru.Builder
 {
-    public class LruInfo<K>
+    public sealed class LruInfo<K>
     {
         public int Capacity { get; set; } = 128;
 

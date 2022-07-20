@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
-    // marker interface enables type constraints
+    /// <summary>
+    /// A marker interface for scopes to enable type constraints.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public interface IScoped<T> where T : IDisposable
     { }
 }
