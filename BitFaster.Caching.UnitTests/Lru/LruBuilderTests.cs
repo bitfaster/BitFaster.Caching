@@ -44,7 +44,6 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestMetricsTLru()
         {
             var lru = new ConcurrentLruBuilder<int, int>()
-                 .WithAbosluteExpiry(TimeSpan.FromSeconds(1))
                  .WithMetrics()
                  .Build();
 
@@ -53,11 +52,12 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void TestScopedOnly()
+        public void TestScoped()
         {
             var lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithScopedValues()
                 .WithCapacity(3)
+                .WithAbosluteExpiry(TimeSpan.FromMinutes(1))
                 .Build();
 
             lru.Should().BeOfType<ScopedCache<int, Disposable>>();

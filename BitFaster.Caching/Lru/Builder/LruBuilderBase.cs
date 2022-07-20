@@ -16,8 +16,6 @@ namespace BitFaster.Caching.Lru.Builder
             this.info = info;
         }
 
-        public LruInfo<K> Info { get; }
-
         public TBuilder WithCapacity(int capacity)
         {
             this.info.Capacity = capacity;
