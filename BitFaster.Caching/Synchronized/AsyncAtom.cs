@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching
+namespace BitFaster.Caching.Synchronized
 {
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
     public class AsyncAtom<K, V>
@@ -18,7 +18,7 @@ namespace BitFaster.Caching
 
         public AsyncAtom()
         {
-            this.initializer = new Initializer();
+            initializer = new Initializer();
         }
 
         public AsyncAtom(V value)
@@ -28,40 +28,40 @@ namespace BitFaster.Caching
 
         public async Task<V> GetValueAsync(K key, Func<K, Task<V>> valueFactory)
         {
-            if (this.initializer == null)
+            if (initializer == null)
             {
-                return this.value;
+                return value;
             }
 
             return await CreateValueAsync(key, valueFactory).ConfigureAwait(false);
         }
 
-        public bool IsValueCreated => this.initializer == null;
+        public bool IsValueCreated => initializer == null;
 
         public V ValueIfCreated
         {
             get
             {
-                if (!this.IsValueCreated)
+                if (!IsValueCreated)
                 {
                     return default;
                 }
 
-                return this.value;
+                return value;
             }
         }
 
         private async Task<V> CreateValueAsync(K key, Func<K, Task<V>> valueFactory)
         {
-            Initializer init = this.initializer;
+            var init = initializer;
 
             if (init != null)
             {
-                this.value = await init.CreateValueAsync(key, valueFactory).ConfigureAwait(false);
-                this.initializer = null;
+                value = await init.CreateValueAsync(key, valueFactory).ConfigureAwait(false);
+                initializer = null;
             }
 
-            return this.value;
+            return value;
         }
 
         private class Initializer
@@ -101,19 +101,19 @@ namespace BitFaster.Caching
                 // Fast path
                 if (Volatile.Read(ref isInitialized))
                 {
-                    return this.valueTask;
+                    return valueTask;
                 }
 
                 lock (syncLock)
                 {
                     if (!Volatile.Read(ref isInitialized))
                     {
-                        this.valueTask = value;
+                        valueTask = value;
                         Volatile.Write(ref isInitialized, true);
                     }
                 }
 
-                return this.valueTask;
+                return valueTask;
             }
         }
     }

@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using BitFaster.Caching.Synchronized;
 using FluentAssertions;
 using Xunit;
 
-namespace BitFaster.Caching.UnitTests
+namespace BitFaster.Caching.UnitTests.Synchronized
 {
     public class AsyncAtomTests
     {
@@ -51,7 +52,7 @@ namespace BitFaster.Caching.UnitTests
         public async Task WhenValueCreateThrowsValueIsNotStored()
         {
             var a = new AsyncAtom<int, int>();
-            
+
             Func<Task> getOrAdd = async () => { await a.GetValueAsync(1, k => throw new ArithmeticException()); };
 
             await getOrAdd.Should().ThrowAsync<ArithmeticException>();
@@ -66,10 +67,10 @@ namespace BitFaster.Caching.UnitTests
             var resume = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var atom = new AsyncAtom<int, int>();
-            int result = 0;
-            int winners = 0;
+            var result = 0;
+            var winners = 0;
 
-            Task<int> first = atom.GetValueAsync(1, async k => 
+            Task<int> first = atom.GetValueAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;

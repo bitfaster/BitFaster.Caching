@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using BitFaster.Caching.Synchronized;
 using FluentAssertions;
 using Xunit;
 
-namespace BitFaster.Caching.UnitTests
+namespace BitFaster.Caching.UnitTests.Synchronized
 {
     public class AtomTests
     {
@@ -54,8 +55,8 @@ namespace BitFaster.Caching.UnitTests
             var resume = new ManualResetEvent(false);
 
             var atom = new Atom<int, int>();
-            int result = 0;
-            int winners = 0;
+            var result = 0;
+            var winners = 0;
 
             Task<int> first = Task.Run(() =>
             {

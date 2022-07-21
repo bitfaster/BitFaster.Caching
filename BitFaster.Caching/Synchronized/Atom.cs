@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching
+namespace BitFaster.Caching.Synchronized
 {
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
     public class Atom<K, V>
@@ -18,7 +18,7 @@ namespace BitFaster.Caching
 
         public Atom()
         {
-            this.initializer = new Initializer();
+            initializer = new Initializer();
         }
 
         public Atom(V value)
@@ -28,40 +28,40 @@ namespace BitFaster.Caching
 
         public V GetValue(K key, Func<K, V> valueFactory)
         {
-            if (this.initializer == null)
+            if (initializer == null)
             {
-                return this.value;
+                return value;
             }
 
             return CreateValue(key, valueFactory);
         }
 
-        public bool IsValueCreated => this.initializer == null;
+        public bool IsValueCreated => initializer == null;
 
         public V ValueIfCreated
         {
             get
             {
-                if (!this.IsValueCreated)
+                if (!IsValueCreated)
                 {
                     return default;
                 }
 
-                return this.value;
+                return value;
             }
         }
 
         private V CreateValue(K key, Func<K, V> valueFactory)
         {
-            Initializer init = this.initializer;
+            var init = initializer;
 
             if (init != null)
             {
-                this.value = init.CreateValue(key, valueFactory);
-                this.initializer = null;
+                value = init.CreateValue(key, valueFactory);
+                initializer = null;
             }
 
-            return this.value;
+            return value;
         }
 
         private class Initializer
