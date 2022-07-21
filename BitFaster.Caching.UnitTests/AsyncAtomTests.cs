@@ -45,5 +45,17 @@ namespace BitFaster.Caching.UnitTests
             await a.GetValueAsync(1, k => Task.FromResult(2));
             (await a.GetValueAsync(1, k => Task.FromResult(3))).Should().Be(2);
         }
+
+        [Fact]
+        public async Task WhenValueCreateThrowsValueIsNotStored()
+        {
+            var a = new AsyncAtom<int, int>();
+            
+            Func<Task> getOrAdd = async () => { await a.GetValueAsync(1, k => throw new ArithmeticException()); };
+
+            await getOrAdd.Should().ThrowAsync<ArithmeticException>();
+
+            (await a.GetValueAsync(1, k => Task.FromResult(3))).Should().Be(3);
+        }
     }
 }
