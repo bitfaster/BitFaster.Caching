@@ -16,6 +16,7 @@ namespace BitFaster.Caching.UnitTests
             var a = new AsyncAtom<int, int>();
 
             a.IsValueCreated.Should().BeFalse();
+            a.ValueIfCreated.Should().Be(0);
         }
 
         [Fact]
