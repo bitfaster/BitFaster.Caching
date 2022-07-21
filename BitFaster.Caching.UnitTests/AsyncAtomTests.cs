@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
@@ -56,6 +57,45 @@ namespace BitFaster.Caching.UnitTests
             await getOrAdd.Should().ThrowAsync<ArithmeticException>();
 
             (await a.GetValueAsync(1, k => Task.FromResult(3))).Should().Be(3);
+        }
+
+        [Fact]
+        public async Task WhenCallersRunConcurrentlyResultIsFromWinner()
+        {
+            var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var resume = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var atom = new AsyncAtom<int, int>();
+            int result = 0;
+            int winners = 0;
+
+            Task<int> first = atom.GetValueAsync(1, async k => 
+            {
+                enter.SetResult(true);
+                await resume.Task;
+
+                result = 1;
+                Interlocked.Increment(ref winners);
+                return 1;
+            });
+
+            Task<int> second = atom.GetValueAsync(1, async k =>
+            {
+                enter.SetResult(true);
+                await resume.Task;
+
+                result = 2;
+                Interlocked.Increment(ref winners);
+                return 2;
+            });
+
+            await enter.Task;
+            resume.SetResult(true);
+
+            (await first).Should().Be(result);
+            (await second).Should().Be(result);
+
+            winners.Should().Be(1);
         }
     }
 }
