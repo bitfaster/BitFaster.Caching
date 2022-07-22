@@ -17,9 +17,9 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         {
             var atom = new ScopedAsyncAtom<int, IntHolder>(new IntHolder() { actualNumber = 1 });
 
-            (bool r, Lifetime<IntHolder> l) result = await atom.TryCreateLifetimeAsync(1, async k =>
+            (bool r, Lifetime<IntHolder> l) result = await atom.TryCreateLifetimeAsync(1, k =>
             {
-                return new IntHolder() { actualNumber = 2 };
+                return Task.FromResult(new IntHolder() { actualNumber = 2 });
             });
 
             result.r.Should().BeTrue();
@@ -32,9 +32,9 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var atom = new ScopedAsyncAtom<int, IntHolder>(new IntHolder() { actualNumber = 1 });
             atom.Dispose();
 
-            (bool r, Lifetime<IntHolder> l) result = await atom.TryCreateLifetimeAsync(1, async k =>
+            (bool r, Lifetime<IntHolder> l) result = await atom.TryCreateLifetimeAsync(1, k =>
             {
-                return new IntHolder() { actualNumber = 2 };
+                return Task.FromResult(new IntHolder() { actualNumber = 2 });
             });
 
             result.r.Should().BeFalse();
@@ -154,9 +154,9 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             Func<Task> tryCreateAsync = async () => { await first; };
             await tryCreateAsync.Should().ThrowAsync<InvalidOperationException>();
 
-            (bool r, Lifetime < IntHolder > l) result = await atom.TryCreateLifetimeAsync(1, async k =>
+            (bool r, Lifetime < IntHolder > l) result = await atom.TryCreateLifetimeAsync(1, k =>
             {
-                return holder;
+                return Task.FromResult(holder);
             });
 
             result.r.Should().BeFalse();
