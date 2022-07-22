@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.Synchronized;
 using FluentAssertions;
 using Xunit;
 
@@ -149,10 +150,10 @@ namespace BitFaster.Caching.UnitTests.Lru
             // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
 
             // layer 1: can choose ConcurrentLru/TLru, FastConcurrentLru/FastConcurrentTLru 
-            var c = new ConcurrentLru<int, AsyncAtomic<int, Scoped<Disposable>>>(3);
+            var c = new ConcurrentLru<int, AsyncIdempotent<int, Scoped<Disposable>>>(3);
 
             // layer 2: optional atomic creation
-            var atomic = new AtomicCacheDecorator<int, Scoped<Disposable>>(c);
+            var atomic = new IdempotentAsyncCache<int, Scoped<Disposable>>(c);
 
             // layer 3: optional scoping
             IScopedCache<int, Disposable> scoped = new ScopedCache<int, Disposable>(atomic);

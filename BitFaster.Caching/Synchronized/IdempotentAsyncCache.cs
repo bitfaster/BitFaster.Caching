@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Synchronized
 {
-    public class AtomicCacheDecorator<K, V> : ICache<K, V>
+    public class IdempotentAsyncCache<K, V> : ICache<K, V>
     {
         private readonly ICache<K, AsyncIdempotent<K, V>> cache;
 
-        public AtomicCacheDecorator(ICache<K, AsyncIdempotent<K, V>> cache)
+        public IdempotentAsyncCache(ICache<K, AsyncIdempotent<K, V>> cache)
         {
             this.cache = cache;
         }
