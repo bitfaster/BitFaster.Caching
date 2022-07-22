@@ -6,53 +6,53 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Synchronized
 {
-    public class AtomicFactoryAsyncCache<K, V> : ICache<K, V>
+    public class AtomicFactoryCache<K, V> : ICache<K, V>
     {
-        private readonly ICache<K, AsyncAtomicFactory<K, V>> cache;
+        private readonly ICache<K, AtomicFactory<K, V>> cache;
 
-        public AtomicFactoryAsyncCache(ICache<K, AsyncAtomicFactory<K, V>> cache)
+        public AtomicFactoryCache(ICache<K, AtomicFactory<K, V>> cache)
         {
             this.cache = cache;
         }
 
-        public int Capacity => cache.Capacity;
+        public int Capacity => this.cache.Capacity;
 
-        public int Count => cache.Count;
+        public int Count => this.cache.Count;
 
-        public ICacheMetrics Metrics => cache.Metrics;
+        public ICacheMetrics Metrics => this.cache.Metrics;
 
-        // need to dispatch different events for this
-        public ICacheEvents<K, V> Events => throw new Exception();
+        // TODO: wrapper
+        public ICacheEvents<K, V> Events => throw new NotImplementedException(); // this.cache.Events;
 
         public void AddOrUpdate(K key, V value)
         {
-            cache.AddOrUpdate(key, new AsyncAtomicFactory<K, V>(value));
+            this.cache.AddOrUpdate(key, new AtomicFactory<K, V>(value));
         }
 
         public void Clear()
         {
-            cache.Clear();
+            this.cache.Clear();
         }
 
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
-            throw new NotImplementedException();
+            var atomicFactory = cache.GetOrAdd(key, _ => new AtomicFactory<K, V>());
+            return atomicFactory.GetValue(key, valueFactory);
         }
 
         public Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
-            var synchronized = cache.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
-            return synchronized.GetValueAsync(key, valueFactory);
+            throw new NotImplementedException();
         }
 
         public void Trim(int itemCount)
         {
-            cache.Trim(itemCount);
+            this.cache.Trim(itemCount);
         }
 
         public bool TryGet(K key, out V value)
         {
-            AsyncAtomicFactory<K, V> output;
+            AtomicFactory<K, V> output;
             var ret = cache.TryGet(key, out output);
 
             if (ret && output.IsValueCreated)
@@ -72,7 +72,7 @@ namespace BitFaster.Caching.Synchronized
 
         public bool TryUpdate(K key, V value)
         {
-            return cache.TryUpdate(key, new AsyncAtomicFactory<K, V>(value));
+            return cache.TryUpdate(key, new AtomicFactory<K, V>(value)); 
         }
     }
 }
