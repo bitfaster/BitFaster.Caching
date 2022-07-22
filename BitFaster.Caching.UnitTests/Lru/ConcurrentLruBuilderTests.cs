@@ -98,7 +98,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeOfType<AtomicCacheDecorator<int, int>>();
+            lru.Should().BeOfType<IdempotentAsyncCache<int, int>>();
         }
 
         [Fact]
