@@ -10,12 +10,12 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Synchronized
 {
-    public class AtomTests
+    public class AtomicTests
     {
         [Fact]
         public void DefaultCtorValueIsNotCreated()
         {
-            var a = new Atom<int, int>();
+            var a = new Atomic<int, int>();
 
             a.IsValueCreated.Should().BeFalse();
             a.ValueIfCreated.Should().Be(0);
@@ -24,7 +24,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public void WhenValuePassedToCtorValueIsStored()
         {
-            var a = new Atom<int, int>(1);
+            var a = new Atomic<int, int>(1);
 
             a.ValueIfCreated.Should().Be(1);
             a.IsValueCreated.Should().BeTrue();
@@ -33,7 +33,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public void WhenValueCreatedValueReturned()
         {
-            var a = new Atom<int, int>();
+            var a = new Atomic<int, int>();
             a.GetValue(1, k => 2).Should().Be(2);
 
             a.ValueIfCreated.Should().Be(2);
@@ -43,7 +43,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public void WhenValueCreatedGetValueReturnsOriginalValue()
         {
-            var a = new Atom<int, int>();
+            var a = new Atomic<int, int>();
             a.GetValue(1, k => 2);
             a.GetValue(1, k => 3).Should().Be(2);
         }
@@ -54,7 +54,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var enter = new ManualResetEvent(false);
             var resume = new ManualResetEvent(false);
 
-            var atom = new Atom<int, int>();
+            var atom = new Atomic<int, int>();
             var result = 0;
             var winnerCount = 0;
 

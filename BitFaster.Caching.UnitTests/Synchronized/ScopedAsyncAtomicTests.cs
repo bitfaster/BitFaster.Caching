@@ -10,12 +10,12 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Synchronized
 {
-    public class ScopedAsyncAtomTests
+    public class ScopedAsyncAtomicTests
     {
         [Fact]
         public async Task WhenCreateFromValueLifetimeContainsValue()
         {
-            var atom = new ScopedAsyncAtom<int, IntHolder>(new IntHolder() { actualNumber = 1 });
+            var atom = new ScopedAsyncAtomic<int, IntHolder>(new IntHolder() { actualNumber = 1 });
 
             (bool r, Lifetime<IntHolder> l) result = await atom.TryCreateLifetimeAsync(1, k =>
             {
@@ -29,7 +29,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public async Task WhenScopeIsDisposedTryCreateReturnsFalse()
         {
-            var atom = new ScopedAsyncAtom<int, IntHolder>(new IntHolder() { actualNumber = 1 });
+            var atom = new ScopedAsyncAtomic<int, IntHolder>(new IntHolder() { actualNumber = 1 });
             atom.Dispose();
 
             (bool r, Lifetime<IntHolder> l) result = await atom.TryCreateLifetimeAsync(1, k =>
@@ -45,7 +45,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         public void WhenValueIsCreatedDisposeDisposesValue()
         {
             var holder = new IntHolder() { actualNumber = 2 };
-            var atom = new ScopedAsyncAtom<int, IntHolder>(holder);
+            var atom = new ScopedAsyncAtomic<int, IntHolder>(holder);
             
             atom.Dispose();
 
@@ -58,7 +58,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var resume = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var atom = new ScopedAsyncAtom<int, IntHolder>();
+            var atom = new ScopedAsyncAtomic<int, IntHolder>();
             var winningNumber = 0;
             var winnerCount = 0;
 
@@ -103,7 +103,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var resume = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var atom = new ScopedAsyncAtom<int, IntHolder>();
+            var atom = new ScopedAsyncAtomic<int, IntHolder>();
             var holder = new IntHolder() { actualNumber = 1 };
 
             Task<(bool r, Lifetime<IntHolder> l)> first = atom.TryCreateLifetimeAsync(1, async k =>
@@ -132,7 +132,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var resume = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var atom = new ScopedAsyncAtom<int, IntHolder>();
+            var atom = new ScopedAsyncAtomic<int, IntHolder>();
             var holder = new IntHolder() { actualNumber = 1 };
 
             Task<(bool r, Lifetime<IntHolder> l)> first = atom.TryCreateLifetimeAsync(1, async k =>

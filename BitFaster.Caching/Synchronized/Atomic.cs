@@ -9,19 +9,19 @@ using System.Threading.Tasks;
 namespace BitFaster.Caching.Synchronized
 {
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
-    public class Atom<K, V>
+    public class Atomic<K, V>
     {
         private Initializer initializer;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private V value;
 
-        public Atom()
+        public Atomic()
         {
             initializer = new Initializer();
         }
 
-        public Atom(V value)
+        public Atomic(V value)
         {
             this.value = value;
         }

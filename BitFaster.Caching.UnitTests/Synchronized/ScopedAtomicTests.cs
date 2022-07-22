@@ -9,13 +9,13 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Synchronized
 {
-    public class ScopedAtomTests
+    public class ScopedAtomicTests
     {
         [Fact]
         public void WhenInitializedWithValueTryCreateLifetimeCreatesLifetimeWithValue()
         {
             var expectedDisposable = new Disposable();
-            var sa = new ScopedAtom<int, Disposable>(expectedDisposable);
+            var sa = new ScopedAtomic<int, Disposable>(expectedDisposable);
 
             sa.TryCreateLifetime(1, k => new Disposable(), out var lifetime).Should().BeTrue();
 
@@ -26,7 +26,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         public void WhenInitializedWithFactoryTryCreateLifetimeCreatesLifetimeWithValue()
         {
             var expectedDisposable = new Disposable();
-            var sa = new ScopedAtom<int, Disposable>();
+            var sa = new ScopedAtomic<int, Disposable>();
 
             sa.TryCreateLifetime(1, k => expectedDisposable, out var lifetime).Should().BeTrue();
 
@@ -37,7 +37,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         public void WhenInitializedWithFactoryValueIsCached()
         {
             var expectedDisposable = new Disposable();
-            var sa = new ScopedAtom<int, Disposable>();
+            var sa = new ScopedAtomic<int, Disposable>();
 
             sa.TryCreateLifetime(1, k => expectedDisposable, out var lifetime1).Should().BeTrue();
             sa.TryCreateLifetime(1, k => new Disposable(), out var lifetime2).Should().BeTrue();
@@ -48,7 +48,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public void WhenInitializedWithValueThenDisposedCreateLifetimeIsFalse()
         {
-            var sa = new ScopedAtom<int, Disposable>(new Disposable());
+            var sa = new ScopedAtomic<int, Disposable>(new Disposable());
             sa.Dispose();
 
             sa.TryCreateLifetime(1, k => new Disposable(), out var l).Should().BeFalse();
@@ -57,7 +57,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public void WhenCreatedThenDisposedCreateLifetimeIsFalse()
         {
-            var sa = new ScopedAtom<int, Disposable>();
+            var sa = new ScopedAtomic<int, Disposable>();
             sa.Dispose();
 
             sa.TryCreateLifetime(1, k => new Disposable(), out var l).Should().BeFalse();
@@ -67,7 +67,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         public void WhenInitializedLifetimeKeepsValueAlive()
         {
             var disposable = new Disposable();
-            var sa = new ScopedAtom<int, Disposable>();
+            var sa = new ScopedAtomic<int, Disposable>();
 
             sa.TryCreateLifetime(1, k => disposable, out var lifetime1).Should().BeTrue();
             sa.TryCreateLifetime(1, k => null, out var lifetime2).Should().BeTrue();

@@ -10,12 +10,12 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Synchronized
 {
-    public class AsyncAtomTests
+    public class AsyncAtomicTests
     {
         [Fact]
         public void DefaultCtorValueIsNotCreated()
         {
-            var a = new AsyncAtom<int, int>();
+            var a = new AsyncAtomic<int, int>();
 
             a.IsValueCreated.Should().BeFalse();
             a.ValueIfCreated.Should().Be(0);
@@ -24,7 +24,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public void WhenValuePassedToCtorValueIsStored()
         {
-            var a = new AsyncAtom<int, int>(1);
+            var a = new AsyncAtomic<int, int>(1);
 
             a.ValueIfCreated.Should().Be(1);
             a.IsValueCreated.Should().BeTrue();
@@ -33,7 +33,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public async Task WhenValueCreatedValueReturned()
         {
-            var a = new AsyncAtom<int, int>();
+            var a = new AsyncAtomic<int, int>();
             (await a.GetValueAsync(1, k => Task.FromResult(2))).Should().Be(2);
 
             a.ValueIfCreated.Should().Be(2);
@@ -43,7 +43,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public async Task WhenValueCreatedGetValueReturnsOriginalValue()
         {
-            var a = new AsyncAtom<int, int>();
+            var a = new AsyncAtomic<int, int>();
             await a.GetValueAsync(1, k => Task.FromResult(2));
             (await a.GetValueAsync(1, k => Task.FromResult(3))).Should().Be(2);
         }
@@ -51,7 +51,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public async Task WhenValueCreateThrowsValueIsNotStored()
         {
-            var a = new AsyncAtom<int, int>();
+            var a = new AsyncAtomic<int, int>();
 
             Func<Task> getOrAdd = async () => { await a.GetValueAsync(1, k => throw new ArithmeticException()); };
 
@@ -66,7 +66,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var resume = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var atom = new AsyncAtom<int, int>();
+            var atom = new AsyncAtomic<int, int>();
             var result = 0;
             var winnerCount = 0;
 
