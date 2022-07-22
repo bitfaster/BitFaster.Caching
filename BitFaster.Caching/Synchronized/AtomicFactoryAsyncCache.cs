@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Synchronized
 {
-    public class IdempotentAsyncCache<K, V> : ICache<K, V>
+    public class AtomicFactoryAsyncCache<K, V> : ICache<K, V>
     {
-        private readonly ICache<K, AsyncIdempotent<K, V>> cache;
+        private readonly ICache<K, AsyncAtomicFactory<K, V>> cache;
 
-        public IdempotentAsyncCache(ICache<K, AsyncIdempotent<K, V>> cache)
+        public AtomicFactoryAsyncCache(ICache<K, AsyncAtomicFactory<K, V>> cache)
         {
             this.cache = cache;
         }
@@ -26,7 +26,7 @@ namespace BitFaster.Caching.Synchronized
 
         public void AddOrUpdate(K key, V value)
         {
-            cache.AddOrUpdate(key, new AsyncIdempotent<K, V>(value));
+            cache.AddOrUpdate(key, new AsyncAtomicFactory<K, V>(value));
         }
 
         public void Clear()
@@ -41,7 +41,7 @@ namespace BitFaster.Caching.Synchronized
 
         public Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
-            var synchronized = cache.GetOrAdd(key, _ => new AsyncIdempotent<K, V>());
+            var synchronized = cache.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
             return synchronized.GetValueAsync(key, valueFactory);
         }
 
@@ -52,7 +52,7 @@ namespace BitFaster.Caching.Synchronized
 
         public bool TryGet(K key, out V value)
         {
-            AsyncIdempotent<K, V> output;
+            AsyncAtomicFactory<K, V> output;
             var ret = cache.TryGet(key, out output);
 
             if (ret && output.IsValueCreated)
@@ -72,7 +72,7 @@ namespace BitFaster.Caching.Synchronized
 
         public bool TryUpdate(K key, V value)
         {
-            return cache.TryUpdate(key, new AsyncIdempotent<K, V>(value)); ;
+            return cache.TryUpdate(key, new AsyncAtomicFactory<K, V>(value)); ;
         }
     }
 }

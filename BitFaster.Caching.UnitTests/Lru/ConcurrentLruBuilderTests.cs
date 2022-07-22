@@ -99,7 +99,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeOfType<IdempotentAsyncCache<int, int>>();
+            lru.Should().BeOfType<AtomicFactoryAsyncCache<int, int>>();
         }
 
         [Fact]
@@ -150,10 +150,10 @@ namespace BitFaster.Caching.UnitTests.Lru
             // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
 
             // layer 1: can choose ConcurrentLru/TLru, FastConcurrentLru/FastConcurrentTLru 
-            var c = new ConcurrentLru<int, AsyncIdempotent<int, Scoped<Disposable>>>(3);
+            var c = new ConcurrentLru<int, AsyncAtomicFactory<int, Scoped<Disposable>>>(3);
 
             // layer 2: optional atomic creation
-            var atomic = new IdempotentAsyncCache<int, Scoped<Disposable>>(c);
+            var atomic = new AtomicFactoryAsyncCache<int, Scoped<Disposable>>(c);
 
             // layer 3: optional scoping
             IScopedCache<int, Disposable> scoped = new ScopedCache<int, Disposable>(atomic);
