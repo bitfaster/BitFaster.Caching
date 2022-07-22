@@ -12,17 +12,17 @@ namespace BitFaster.Caching.Synchronized
     // 1. Exactly once disposal.
     // 2. Exactly once invocation of value factory (synchronized create).
     // 3. Resolve race between create dispose init, if disposed is called before value is created, scoped value is disposed for life.
-    public class ScopedAtomic<K, V> : IScoped<V>, IDisposable where V : IDisposable
+    public class ScopedIdempotent<K, V> : IScoped<V>, IDisposable where V : IDisposable
     {
         private Scoped<V> scope;
         private Initializer initializer;
 
-        public ScopedAtomic()
+        public ScopedIdempotent()
         {
             initializer = new Initializer();
         }
 
-        public ScopedAtomic(V value)
+        public ScopedIdempotent(V value)
         {
             scope = new Scoped<V>(value);
         }

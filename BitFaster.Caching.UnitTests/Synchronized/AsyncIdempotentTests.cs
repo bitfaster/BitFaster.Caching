@@ -10,12 +10,12 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Synchronized
 {
-    public class AsyncAtomicTests
+    public class AsyncIdempotentTests
     {
         [Fact]
         public void DefaultCtorValueIsNotCreated()
         {
-            var a = new AsyncAtomic<int, int>();
+            var a = new AsyncIdempotent<int, int>();
 
             a.IsValueCreated.Should().BeFalse();
             a.ValueIfCreated.Should().Be(0);
@@ -24,7 +24,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public void WhenValuePassedToCtorValueIsStored()
         {
-            var a = new AsyncAtomic<int, int>(1);
+            var a = new AsyncIdempotent<int, int>(1);
 
             a.ValueIfCreated.Should().Be(1);
             a.IsValueCreated.Should().BeTrue();
@@ -33,7 +33,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public async Task WhenValueCreatedValueReturned()
         {
-            var a = new AsyncAtomic<int, int>();
+            var a = new AsyncIdempotent<int, int>();
             (await a.GetValueAsync(1, k => Task.FromResult(2))).Should().Be(2);
 
             a.ValueIfCreated.Should().Be(2);
@@ -43,7 +43,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public async Task WhenValueCreatedGetValueReturnsOriginalValue()
         {
-            var a = new AsyncAtomic<int, int>();
+            var a = new AsyncIdempotent<int, int>();
             await a.GetValueAsync(1, k => Task.FromResult(2));
             (await a.GetValueAsync(1, k => Task.FromResult(3))).Should().Be(2);
         }
@@ -51,7 +51,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public async Task WhenValueCreateThrowsValueIsNotStored()
         {
-            var a = new AsyncAtomic<int, int>();
+            var a = new AsyncIdempotent<int, int>();
 
             Func<Task> getOrAdd = async () => { await a.GetValueAsync(1, k => throw new ArithmeticException()); };
 
@@ -66,11 +66,11 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var resume = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var atom = new AsyncAtomic<int, int>();
+            var idempotent = new AsyncIdempotent<int, int>();
             var result = 0;
             var winnerCount = 0;
 
-            Task<int> first = atom.GetValueAsync(1, async k =>
+            Task<int> first = idempotent.GetValueAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;
@@ -80,7 +80,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
                 return 1;
             });
 
-            Task<int> second = atom.GetValueAsync(1, async k =>
+            Task<int> second = idempotent.GetValueAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;
