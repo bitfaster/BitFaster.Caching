@@ -56,7 +56,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
 
             var atom = new Atom<int, int>();
             var result = 0;
-            var winners = 0;
+            var winnerCount = 0;
 
             Task<int> first = Task.Run(() =>
             {
@@ -66,7 +66,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
                     resume.WaitOne();
 
                     result = 1;
-                    Interlocked.Increment(ref winners);
+                    Interlocked.Increment(ref winnerCount);
                     return 1;
                 });
             });
@@ -79,7 +79,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
                     resume.WaitOne();
 
                     result = 2;
-                    Interlocked.Increment(ref winners);
+                    Interlocked.Increment(ref winnerCount);
                     return 2;
                 });
             });
@@ -90,7 +90,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             (await first).Should().Be(result);
             (await second).Should().Be(result);
 
-            winners.Should().Be(1);
+            winnerCount.Should().Be(1);
         }
     }
 }
