@@ -12,12 +12,9 @@ namespace BitFaster.Caching.Synchronized
     // 1. Exactly once disposal.
     // 2. Exactly once invocation of value factory (synchronized create).
     // 3. Resolve race between create dispose init, if disposed is called before value is created, scoped value is disposed for life.
-
-    // TODO: how close is Handle to a scoped instance?
-    
     public class ScopedAtom<K, V> : IScoped<V>, IDisposable where V : IDisposable
     {
-        private Handle handle;
+        private Scoped<V> scope;
         private Initializer initializer;
 
         public ScopedAtom()
@@ -27,34 +24,33 @@ namespace BitFaster.Caching.Synchronized
 
         public ScopedAtom(V value)
         {
-            handle = new Handle() { refCount = new ReferenceCount<V>(value) };
+            scope = new Scoped<V>(value);
         }
 
         public bool TryCreateLifetime(K key, Func<K, V> valueFactory, out Lifetime<V> lifetime)
         {
-            // if disposed, return
-            if (handle?.refCount.Count == 0)
+            if(scope?.IsDisposed ?? false)
             {
                 lifetime = default;
                 return false;
             }
 
-            // Create handle EXACTLY once, ref count cas operates over same handle
+            // Create scope EXACTLY once, ref count cas operates over same scope
             if (initializer != null)
             {
-                InitializeHandle(key, valueFactory);
+                InitializeScope(key, valueFactory);
             }
 
-            return handle.TryCreateLifetime(out lifetime);
+            return scope.TryCreateLifetime(out lifetime);
         }
 
-        private void InitializeHandle(K key, Func<K, V> valueFactory)
+        private void InitializeScope(K key, Func<K, V> valueFactory)
         {
             var init = initializer;
 
             if (init != null)
             {
-                handle = init.CreateHandle(key, valueFactory);
+                scope = init.CreateScope(key, valueFactory);
                 initializer = null;
             }
         }
@@ -64,69 +60,19 @@ namespace BitFaster.Caching.Synchronized
 
             if (init != null)
             {
-                handle = init.TryCreateDisposedHandle();
+                scope = init.TryCreateDisposedScope();
             }
 
-            handle.DecrementReferenceCount();
-        }
-
-        private class Handle
-        {
-            public ReferenceCount<V> refCount;
-
-            public bool TryCreateLifetime(out Lifetime<V> lifetime)
-            {
-                while (true)
-                {
-                    var oldRefCount = refCount;
-
-                    // If old ref count is 0, the scoped object has been disposed.
-                    if (oldRefCount.Count == 0)
-                    {
-                        lifetime = default;
-                        return false;
-                    }
-
-                    if (oldRefCount == Interlocked.CompareExchange(ref refCount, oldRefCount.IncrementCopy(), oldRefCount))
-                    {
-                        // When Lifetime is disposed, it calls DecrementReferenceCount
-                        lifetime = new Lifetime<V>(oldRefCount, DecrementReferenceCount);
-                        return true;
-                    }
-                }
-            }
-
-            public void DecrementReferenceCount()
-            {
-                while (true)
-                {
-                    var oldRefCount = refCount;
-
-                    if (oldRefCount.Count == 0)
-                    {
-                        return;
-                    }
-
-                    if (oldRefCount == Interlocked.CompareExchange(ref refCount, oldRefCount.DecrementCopy(), oldRefCount))
-                    {
-                        if (refCount.Count == 0)
-                        {
-                            refCount.Value.Dispose();
-                        }
-
-                        break;
-                    }
-                }
-            }
+            scope.Dispose();
         }
 
         private class Initializer
         {
             private object syncLock = new object();
             private bool isInitialized;
-            private Handle value;
+            private Scoped<V> value;
 
-            public Handle CreateHandle(K key, Func<K, V> valueFactory)
+            public Scoped<V> CreateScope(K key, Func<K, V> valueFactory)
             {
                 if (Volatile.Read(ref isInitialized))
                 {
@@ -140,14 +86,14 @@ namespace BitFaster.Caching.Synchronized
                         return value;
                     }
 
-                    value = new Handle { refCount = new ReferenceCount<V>(valueFactory(key)) };
+                    value = new Scoped<V>(valueFactory(key));
                     Volatile.Write(ref isInitialized, true);
 
                     return value;
                 }
             }
 
-            public Handle TryCreateDisposedHandle()
+            public Scoped<V> TryCreateDisposedScope()
             {
                 // already exists, return it
                 if (Volatile.Read(ref isInitialized))
@@ -162,8 +108,10 @@ namespace BitFaster.Caching.Synchronized
                         return value;
                     }
 
-                    // zero == Disposed, start at zero via decrememt copy
-                    value = new Handle() { refCount = new ReferenceCount<V>(default).DecrementCopy() };
+                    // don't expose to other threads until disposed
+                    var temp = new Scoped<V>(default);
+                    temp.Dispose();
+                    value = temp;
                     Volatile.Write(ref isInitialized, true);
 
                     return value;

@@ -26,6 +26,8 @@ namespace BitFaster.Caching
             this.refCount = new ReferenceCount<T>(value);
         }
 
+        public bool IsDisposed => isDisposed;
+
         /// <summary>
         /// Attempts to create a lifetime for the scoped value. The lifetime guarantees the value is alive until 
         /// the lifetime is disposed.
@@ -80,7 +82,7 @@ namespace BitFaster.Caching
                 {
                     if (this.refCount.Count == 0)
                     {
-                        this.refCount.Value.Dispose();
+                        this.refCount.Value?.Dispose();
                     }
 
                     break;
