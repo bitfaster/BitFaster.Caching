@@ -42,6 +42,17 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         }
 
         [Fact]
+        public void WhenValueIsCreatedDisposeDisposesValue()
+        {
+            var holder = new IntHolder() { actualNumber = 2 };
+            var atom = new ScopedAsyncAtom<int, IntHolder>(holder);
+            
+            atom.Dispose();
+
+            holder.disposed.Should().BeTrue();
+        }
+
+        [Fact]
         public async Task WhenCallersRunConcurrentlyResultIsFromWinner()
         {
             var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
