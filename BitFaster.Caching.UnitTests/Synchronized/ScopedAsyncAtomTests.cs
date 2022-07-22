@@ -154,7 +154,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             Func<Task> tryCreateAsync = async () => { await first; };
             await tryCreateAsync.Should().ThrowAsync<InvalidOperationException>();
 
-            (bool r, Lifetime < IntHolder > l) result = await atom.TryCreateLifetimeAsync(1, k =>
+            (bool r, Lifetime<IntHolder> l) result = await atom.TryCreateLifetimeAsync(1, k =>
             {
                 return Task.FromResult(holder);
             });
