@@ -70,6 +70,7 @@ namespace BitFaster.Caching.Lru
                 throw new ArgumentNullException(nameof(comparer));
             }
 
+            capacity.Validate();
             this.capacity = capacity;
 
             this.hotQueue = new ConcurrentQueue<I>();

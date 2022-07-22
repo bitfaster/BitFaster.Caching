@@ -9,7 +9,7 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class LruBuilderTests
+    public class ConcurrentLruBuilderTests
     {
         [Fact]
         public void TestFastLru()
@@ -124,6 +124,26 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void TestIntCapacity()
+        {
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Capacity.Should().Be(3);
+        }
+
+        [Fact]
+        public void TestPartitionCapacity()
+        {
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithCapacity(new FavorFrequencyPartition(6))
+                .Build();
+
+            lru.Capacity.Should().Be(6);
+		}
+		
+		[Fact]
         public void ScopedPOC()
         {
             // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
