@@ -46,6 +46,54 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         }
 
         [Fact]
+        public void WhenScopeIsNotCreatedScopeIfCreatedReturnsNull()
+        {
+            var sa = new ScopedAtomicFactory<int, Disposable>();
+
+            sa.ScopeIfCreated.Should().BeNull();
+        }
+
+        [Fact]
+        public void WhenScopeIsCreatedScopeIfCreatedReturnsScope()
+        {
+            var expectedDisposable = new Disposable();
+            var sa = new ScopedAtomicFactory<int, Disposable>(expectedDisposable);
+
+            sa.ScopeIfCreated.Should().NotBeNull();
+            sa.ScopeIfCreated.TryCreateLifetime(out var lifetime).Should().BeTrue();
+            lifetime.Value.Should().Be(expectedDisposable);
+        }
+
+
+        // when scope disposed try create returns false
+
+        [Fact]
+        public void WhenNotInitTryCreateReturnsFalse()
+        {
+            var sa = new ScopedAtomicFactory<int, Disposable>();
+            sa.TryCreateLifetime(out var l).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenCreatedTryCreateLifetimeReturnsScope()
+        {
+            var expectedDisposable = new Disposable();
+            var sa = new ScopedAtomicFactory<int, Disposable>(expectedDisposable);
+
+            sa.TryCreateLifetime(out var lifetime).Should().BeTrue();
+            lifetime.Value.Should().Be(expectedDisposable);
+        }
+
+        [Fact]
+        public void WhenScopeDisposedTryCreateLifetimeReturnsFalse()
+        {
+            var sa = new ScopedAtomicFactory<int, Disposable>();
+            sa.Dispose();
+
+            sa.TryCreateLifetime(out var lifetime).Should().BeFalse();
+        }
+
+        [Fact]
         public void WhenInitializedWithValueThenDisposedCreateLifetimeIsFalse()
         {
             var sa = new ScopedAtomicFactory<int, Disposable>(new Disposable());

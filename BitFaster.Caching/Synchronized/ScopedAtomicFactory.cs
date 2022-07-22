@@ -42,7 +42,7 @@ namespace BitFaster.Caching.Synchronized
 
         public bool TryCreateLifetime(out Lifetime<V> lifetime)
         {
-            if (scope?.IsDisposed ?? false || initializer == null)
+            if (scope?.IsDisposed ?? false || initializer != null)
             {
                 lifetime = default;
                 return false;

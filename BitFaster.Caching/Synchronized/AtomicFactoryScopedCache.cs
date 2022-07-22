@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Synchronized
 {
@@ -132,5 +133,55 @@ namespace BitFaster.Caching.Synchronized
                 itemRemovedProxy.Invoke(sender, new Lru.ItemRemovedEventArgs<K, Scoped<V>>(e.Key, e.Value.ScopeIfCreated, e.Reason));
             }
         }
+
+        private class EventProxy : EventProxyBase<K, ScopedAtomicFactory<K, V>, Scoped<V>>
+        {
+            public EventProxy(ICacheEvents<K, ScopedAtomicFactory<K, V>> inner) 
+                : base(inner)
+            {
+            }
+
+            protected override void OnItemRemoved(object sender, ItemRemovedEventArgs<K, ScopedAtomicFactory<K, V>> e)
+            {
+                //itemRemovedProxy.Invoke(sender, new Lru.ItemRemovedEventArgs<K, Scoped<V>>(e.Key, e.Value.ScopeIfCreated, e.Reason));
+            }
+        }
+    }
+
+    public abstract class EventProxyBase<K, TInner, TOuter> : ICacheEvents<K, TOuter>
+    {
+        private readonly ICacheEvents<K, TInner> inner;
+        protected event EventHandler<Lru.ItemRemovedEventArgs<K, TOuter>> itemRemovedProxy;
+
+        public EventProxyBase(ICacheEvents<K, TInner> inner)
+        {
+            this.inner = inner;
+        }
+
+        public bool IsEnabled => this.inner.IsEnabled;
+
+        public event EventHandler<Lru.ItemRemovedEventArgs<K, TOuter>> ItemRemoved
+        {
+            add { this.Register(value); }
+            remove { this.UnRegister(value); }
+        }
+
+        private void Register(EventHandler<Lru.ItemRemovedEventArgs<K, TOuter>> value)
+        {
+            itemRemovedProxy += value;
+            inner.ItemRemoved += OnItemRemoved;
+        }
+
+        private void UnRegister(EventHandler<Lru.ItemRemovedEventArgs<K, TOuter>> value)
+        {
+            this.itemRemovedProxy -= value;
+
+            if (this.itemRemovedProxy.GetInvocationList().Length == 0)
+            {
+                this.inner.ItemRemoved -= OnItemRemoved;
+            }
+        }
+
+        protected abstract void OnItemRemoved(object sender, Lru.ItemRemovedEventArgs<K, TInner> e);
     }
 }
