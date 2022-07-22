@@ -18,9 +18,6 @@ namespace BitFaster.Caching
     {
         private readonly ICache<K, Scoped<V>> cache;
 
-        private const int MaxRetry = 5;
-        private static readonly string RetryFailureMessage = $"Exceeded {MaxRetry} attempts to create a lifetime.";
-
         public ScopedCache(ICache<K, Scoped<V>> cache)
         {
             if (cache == null)
@@ -71,9 +68,9 @@ namespace BitFaster.Caching
 
                 spinwait.SpinOnce();
 
-                if (c++ > MaxRetry)
+                if (c++ > ScopedCacheDefaults.MaxRetry)
                 {
-                    throw new InvalidOperationException(RetryFailureMessage);
+                    throw new InvalidOperationException(ScopedCacheDefaults.RetryFailureMessage);
                 }
             }
         }
@@ -94,9 +91,9 @@ namespace BitFaster.Caching
 
                 spinwait.SpinOnce();
 
-                if (c++ > MaxRetry)
+                if (c++ > ScopedCacheDefaults.MaxRetry)
                 {
-                    throw new InvalidOperationException(RetryFailureMessage);
+                    throw new InvalidOperationException(ScopedCacheDefaults.RetryFailureMessage);
                 }
             }
         }
