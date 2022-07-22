@@ -22,7 +22,7 @@ namespace BitFaster.Caching.Synchronized
             scope = new Scoped<V>(value);
         }
 
-        public async Task<(bool, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<V>> valueFactory)
+        public async Task<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<V>> valueFactory)
         {
             // if disposed, return
             if (scope?.IsDisposed ?? false)
