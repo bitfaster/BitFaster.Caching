@@ -145,7 +145,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 		}
 		
 		[Fact]
-        public void ScopedPOC()
+        public async Task ScopedPOC()
         {
             // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
 
@@ -158,7 +158,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             // layer 3: optional scoping
             IScopedCache<int, Disposable> scoped = new ScopedCache<int, Disposable>(atomic);
 
-            using (var lifetime = scoped.ScopedGetOrAdd(1, k => new Scoped<Disposable>(new Disposable())))
+            using (var lifetime = await scoped.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable()))))
             {
                 var d = lifetime.Value;
             }
