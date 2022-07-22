@@ -7,17 +7,17 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Synchronized
 {
-    public class ScopedAsyncIdempotent<K, V> : IScoped<V>, IDisposable where V : IDisposable
+    public class ScopedAsyncAtomicFactory<K, V> : IScoped<V>, IDisposable where V : IDisposable
     {
         private Scoped<V> scope;
         private Initializer initializer;
 
-        public ScopedAsyncIdempotent()
+        public ScopedAsyncAtomicFactory()
         {
             initializer = new Initializer();
         }
 
-        public ScopedAsyncIdempotent(V value)
+        public ScopedAsyncAtomicFactory(V value)
         {
             scope = new Scoped<V>(value);
         }
