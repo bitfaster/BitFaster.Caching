@@ -13,6 +13,35 @@ namespace BitFaster.Caching.UnitTests.Synchronized
     public class ScopedAsyncAtomTests
     {
         [Fact]
+        public async Task WhenCreateFromValueLifetimeContainsValue()
+        {
+            var atom = new ScopedAsyncAtom<int, IntHolder>(new IntHolder() { actualNumber = 1 });
+
+            (bool r, Lifetime<IntHolder> l) result = await atom.TryCreateLifetimeAsync(1, async k =>
+            {
+                return new IntHolder() { actualNumber = 2 };
+            });
+
+            result.r.Should().BeTrue();
+            result.l.Value.actualNumber.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task WhenScopeIsDisposedTryCreateReturnsFalse()
+        {
+            var atom = new ScopedAsyncAtom<int, IntHolder>(new IntHolder() { actualNumber = 1 });
+            atom.Dispose();
+
+            (bool r, Lifetime<IntHolder> l) result = await atom.TryCreateLifetimeAsync(1, async k =>
+            {
+                return new IntHolder() { actualNumber = 2 };
+            });
+
+            result.r.Should().BeFalse();
+            result.l.Should().BeNull();
+        }
+
+        [Fact]
         public async Task WhenCallersRunConcurrentlyResultIsFromWinner()
         {
             var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
