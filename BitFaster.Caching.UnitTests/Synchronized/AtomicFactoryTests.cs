@@ -10,12 +10,12 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Synchronized
 {
-    public class IdempotentTests
+    public class AtomicFactoryTests
     {
         [Fact]
         public void DefaultCtorValueIsNotCreated()
         {
-            var a = new Idempotent<int, int>();
+            var a = new AtomicFactory<int, int>();
 
             a.IsValueCreated.Should().BeFalse();
             a.ValueIfCreated.Should().Be(0);
@@ -24,7 +24,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public void WhenValuePassedToCtorValueIsStored()
         {
-            var a = new Idempotent<int, int>(1);
+            var a = new AtomicFactory<int, int>(1);
 
             a.ValueIfCreated.Should().Be(1);
             a.IsValueCreated.Should().BeTrue();
@@ -33,7 +33,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public void WhenValueCreatedValueReturned()
         {
-            var a = new Idempotent<int, int>();
+            var a = new AtomicFactory<int, int>();
             a.GetValue(1, k => 2).Should().Be(2);
 
             a.ValueIfCreated.Should().Be(2);
@@ -43,7 +43,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public void WhenValueCreatedGetValueReturnsOriginalValue()
         {
-            var a = new Idempotent<int, int>();
+            var a = new AtomicFactory<int, int>();
             a.GetValue(1, k => 2);
             a.GetValue(1, k => 3).Should().Be(2);
         }
@@ -54,13 +54,13 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var enter = new ManualResetEvent(false);
             var resume = new ManualResetEvent(false);
 
-            var idempotent = new Idempotent<int, int>();
+            var atomicFactory = new AtomicFactory<int, int>();
             var result = 0;
             var winnerCount = 0;
 
             Task<int> first = Task.Run(() =>
             {
-                return idempotent.GetValue(1, k =>
+                return atomicFactory.GetValue(1, k =>
                 {
                     enter.Set();
                     resume.WaitOne();
@@ -73,7 +73,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
 
             Task<int> second = Task.Run(() =>
             {
-                return idempotent.GetValue(1, k =>
+                return atomicFactory.GetValue(1, k =>
                 {
                     enter.Set();
                     resume.WaitOne();

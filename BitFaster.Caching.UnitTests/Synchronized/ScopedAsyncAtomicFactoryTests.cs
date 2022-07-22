@@ -10,14 +10,14 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Synchronized
 {
-    public class ScopedAsyncIdempotentTests
+    public class ScopedAsyncAtomicFactoryTests
     {
         [Fact]
         public async Task WhenCreateFromValueLifetimeContainsValue()
         {
-            var idempotent = new ScopedAsyncIdempotent<int, IntHolder>(new IntHolder() { actualNumber = 1 });
+            var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>(new IntHolder() { actualNumber = 1 });
 
-            (bool r, Lifetime<IntHolder> l) result = await idempotent.TryCreateLifetimeAsync(1, k =>
+            (bool r, Lifetime<IntHolder> l) result = await atomicFactory.TryCreateLifetimeAsync(1, k =>
             {
                 return Task.FromResult(new IntHolder() { actualNumber = 2 });
             });
@@ -29,10 +29,10 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         [Fact]
         public async Task WhenScopeIsDisposedTryCreateReturnsFalse()
         {
-            var idempotent = new ScopedAsyncIdempotent<int, IntHolder>(new IntHolder() { actualNumber = 1 });
-            idempotent.Dispose();
+            var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>(new IntHolder() { actualNumber = 1 });
+            atomicFactory.Dispose();
 
-            (bool r, Lifetime<IntHolder> l) result = await idempotent.TryCreateLifetimeAsync(1, k =>
+            (bool r, Lifetime<IntHolder> l) result = await atomicFactory.TryCreateLifetimeAsync(1, k =>
             {
                 return Task.FromResult(new IntHolder() { actualNumber = 2 });
             });
@@ -45,9 +45,9 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         public void WhenValueIsCreatedDisposeDisposesValue()
         {
             var holder = new IntHolder() { actualNumber = 2 };
-            var idempotent = new ScopedAsyncIdempotent<int, IntHolder>(holder);
+            var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>(holder);
             
-            idempotent.Dispose();
+            atomicFactory.Dispose();
 
             holder.disposed.Should().BeTrue();
         }
@@ -58,11 +58,11 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var resume = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var idempotent = new ScopedAsyncIdempotent<int, IntHolder>();
+            var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>();
             var winningNumber = 0;
             var winnerCount = 0;
 
-            Task<(bool r, Lifetime<IntHolder> l)> first = idempotent.TryCreateLifetimeAsync(1, async k =>
+            Task<(bool r, Lifetime<IntHolder> l)> first = atomicFactory.TryCreateLifetimeAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;
@@ -72,7 +72,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
                 return new IntHolder() { actualNumber = 1 };
             });
 
-            Task<(bool r, Lifetime<IntHolder> l)> second = idempotent.TryCreateLifetimeAsync(1, async k =>
+            Task<(bool r, Lifetime<IntHolder> l)> second = atomicFactory.TryCreateLifetimeAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;
@@ -103,10 +103,10 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var resume = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var idempotent = new ScopedAsyncIdempotent<int, IntHolder>();
+            var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>();
             var holder = new IntHolder() { actualNumber = 1 };
 
-            Task<(bool r, Lifetime<IntHolder> l)> first = idempotent.TryCreateLifetimeAsync(1, async k =>
+            Task<(bool r, Lifetime<IntHolder> l)> first = atomicFactory.TryCreateLifetimeAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;
@@ -115,7 +115,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             });
 
             await enter.Task;
-            idempotent.Dispose();
+            atomicFactory.Dispose();
             resume.SetResult(true);
 
             var result = await first;
@@ -132,10 +132,10 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var resume = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var idempotent = new ScopedAsyncIdempotent<int, IntHolder>();
+            var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>();
             var holder = new IntHolder() { actualNumber = 1 };
 
-            Task<(bool r, Lifetime<IntHolder> l)> first = idempotent.TryCreateLifetimeAsync(1, async k =>
+            Task<(bool r, Lifetime<IntHolder> l)> first = atomicFactory.TryCreateLifetimeAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;
@@ -144,7 +144,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             });
 
             await enter.Task;
-            idempotent.Dispose();
+            atomicFactory.Dispose();
             resume.SetResult(true);
 
             // At this point, the scoped value is not created but the initializer is marked
@@ -154,7 +154,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             Func<Task> tryCreateAsync = async () => { await first; };
             await tryCreateAsync.Should().ThrowAsync<InvalidOperationException>();
 
-            (bool r, Lifetime<IntHolder> l) result = await idempotent.TryCreateLifetimeAsync(1, k =>
+            (bool r, Lifetime<IntHolder> l) result = await atomicFactory.TryCreateLifetimeAsync(1, k =>
             {
                 return Task.FromResult(holder);
             });
