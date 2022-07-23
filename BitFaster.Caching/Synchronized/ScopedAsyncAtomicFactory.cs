@@ -35,6 +35,18 @@ namespace BitFaster.Caching.Synchronized
             }
         }
 
+        // TODO: unit tests
+        public bool TryCreateLifetime(out Lifetime<V> lifetime)
+        {
+            if (scope?.IsDisposed ?? false || initializer != null)
+            {
+                lifetime = default;
+                return false;
+            }
+
+            return scope.TryCreateLifetime(out lifetime);
+        }
+
         public async Task<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             // if disposed, return

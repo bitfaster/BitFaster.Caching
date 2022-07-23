@@ -73,22 +73,31 @@ namespace BitFaster.Caching.Synchronized
 
         public bool ScopedTryGet(K key, out Lifetime<V> lifetime)
         {
-            throw new NotImplementedException();
+            if (this.cache.TryGet(key, out var scope))
+            {
+                if (scope.TryCreateLifetime(out lifetime))
+                {
+                    return true;
+                }
+            }
+
+            lifetime = default;
+            return false;
         }
 
         public void Trim(int itemCount)
         {
-            throw new NotImplementedException();
+            this.cache.Trim(itemCount);
         }
 
         public bool TryRemove(K key)
         {
-            throw new NotImplementedException();
+            return this.cache.TryRemove(key);
         }
 
         public bool TryUpdate(K key, V value)
         {
-            throw new NotImplementedException();
+            return this.cache.TryUpdate(key, new ScopedAsyncAtomicFactory<K, V>(value));
         }
 
         private class EventProxy : CacheEventProxyBase<K, ScopedAsyncAtomicFactory<K, V>, Scoped<V>>

@@ -10,19 +10,17 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Synchronized
 {
-    public class AtomicFactoryScopedCacheTests
+    public class AtomicFactoryScopedAsyncCacheTests
     {
         private const int capacity = 6;
-        private readonly AtomicFactoryScopedCache<int, Disposable> cache = new(new ConcurrentLru<int, ScopedAtomicFactory<int, Disposable>>(capacity));
+        private readonly AtomicFactoryScopedAsyncCache<int, Disposable> cache = new(new ConcurrentLru<int, ScopedAsyncAtomicFactory<int, Disposable>>(capacity));
 
         private List<ItemRemovedEventArgs<int, Scoped<Disposable>>> removedItems = new();
-
-        // TODO: this is almost identical to ScopedCacheTests
 
         [Fact]
         public void WhenInnerCacheIsNullCtorThrows()
         {
-            Action constructor = () => { var x = new AtomicFactoryScopedCache<int, Disposable>(null); };
+            Action constructor = () => { var x = new AtomicFactoryScopedAsyncCache<int, Disposable>(null); };
 
             constructor.Should().Throw<ArgumentNullException>();
         }
@@ -44,51 +42,19 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         }
 
         [Fact]
-        public void WhenItemIsAddedThenLookedUpMetricsAreCorrect()
+        public async Task WhenItemIsAddedThenLookedUpMetricsAreCorrect()
         {
             this.cache.AddOrUpdate(1, new Disposable());
-            this.cache.ScopedGetOrAdd(1, k => new Scoped<Disposable>(new Disposable()));
+            await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable())));
 
             this.cache.Metrics.Misses.Should().Be(0);
             this.cache.Metrics.Hits.Should().Be(1);
-        }
-
-        // TODO: test via base
-        [Fact]
-        public void EventsAreEnabled()
-        {
-            this.cache.Events.IsEnabled.Should().BeTrue();
         }
 
         [Fact]
         public void WhenEventHandlerIsRegisteredItIsFired()
         {
             this.cache.Events.ItemRemoved += OnItemRemoved;
-
-            this.cache.AddOrUpdate(1, new Disposable());
-            this.cache.TryRemove(1);
-
-            this.removedItems.First().Key.Should().Be(1);
-        }
-
-        [Fact]
-        public void WhenEventHandlerIsAddedThenRemovedItIsNotFired()
-        {
-            this.cache.Events.ItemRemoved += OnItemRemoved;
-            this.cache.Events.ItemRemoved -= OnItemRemoved;
-
-            this.cache.AddOrUpdate(1, new Disposable());
-            this.cache.TryRemove(1);
-
-            this.removedItems.Count.Should().Be(0);
-        }
-
-        [Fact]
-        public void WhenTwoEventHandlersAddedThenOneRemovedEventIsFired()
-        {
-            this.cache.Events.ItemRemoved += OnItemRemoved;
-            this.cache.Events.ItemRemoved += OnItemRemovedThrow;
-            this.cache.Events.ItemRemoved -= OnItemRemovedThrow;
 
             this.cache.AddOrUpdate(1, new Disposable());
             this.cache.TryRemove(1);
@@ -170,11 +136,11 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         }
 
         [Fact]
-        public void WhenScopeIsDisposedTryGetReturnsFalse()
+        public async Task WhenScopeIsDisposedTryGetReturnsFalse()
         {
             var scope = new Scoped<Disposable>(new Disposable());
 
-            this.cache.ScopedGetOrAdd(1, k => scope);
+            await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(scope));
 
             scope.Dispose();
 
@@ -182,41 +148,30 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         }
 
         [Fact]
-        public void WhenKeyDoesNotExistGetOrAddAddsValue()
+        public void WhenKeyDoesNotExistGetOrAddThrows()
         {
-            this.cache.ScopedGetOrAdd(1, k => new Scoped<Disposable>(new Disposable()));
+            Action getOrAdd = () => { this.cache.ScopedGetOrAdd(1, k => new Scoped<Disposable>(new Disposable())); };
+
+            getOrAdd.Should().Throw<NotImplementedException>();
+        }
+
+        [Fact]
+        public async Task WhenKeyDoesNotExistGetOrAddAsyncAddsValue()
+        {
+            await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable())));
 
             this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
         }
 
         [Fact]
-        public async Task WhenKeyDoesNotExistGetOrAddAsyncThrows()
-        {
-            Func<Task> getOrAdd = async () => { await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable()))); };
-
-            await getOrAdd.Should().ThrowAsync<NotImplementedException>();
-        }
-
-        [Fact]
-        public void GetOrAddDisposedScopeThrows()
-        {
-            var scope = new Scoped<Disposable>(new Disposable());
-            scope.Dispose();
-
-            Action getOrAdd = () => { this.cache.ScopedGetOrAdd(1, k => scope); };
-
-            getOrAdd.Should().Throw<InvalidOperationException>();
-        }
-
-        [Fact]
-        public void GetOrAddAsyncDisposedScopeThrows()
+        public async Task GetOrAddAsyncDisposedScopeThrows()
         {
             var scope = new Scoped<Disposable>(new Disposable());
             scope.Dispose();
 
             Func<Task> getOrAdd = async () => { await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(scope)); };
 
-            getOrAdd.Should().ThrowAsync<InvalidOperationException>();
+            await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
         }
 
         [Fact]
@@ -261,11 +216,6 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, Scoped<Disposable>> e)
         {
             this.removedItems.Add(e);
-        }
-
-        private void OnItemRemovedThrow(object sender, ItemRemovedEventArgs<int, Scoped<Disposable>> e)
-        {
-            throw new Exception("Should never happen");
         }
     }
 }
