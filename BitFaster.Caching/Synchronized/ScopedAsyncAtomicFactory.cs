@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Synchronized
 {
-    public class ScopedAsyncAtomicFactory<K, V> : IScoped<V>, IDisposable where V : IDisposable
+    public sealed class ScopedAsyncAtomicFactory<K, V> : IScoped<V>, IDisposable where V : IDisposable
     {
         private Scoped<V> scope;
         private Initializer initializer;
@@ -22,7 +22,31 @@ namespace BitFaster.Caching.Synchronized
             scope = new Scoped<V>(value);
         }
 
-        public async Task<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<V>> valueFactory)
+        public Scoped<V> ScopeIfCreated
+        {
+            get
+            {
+                if (initializer != null)
+                {
+                    return default;
+                }
+
+                return scope;
+            }
+        }
+
+        public bool TryCreateLifetime(out Lifetime<V> lifetime)
+        {
+            if (scope?.IsDisposed ?? false || initializer != null)
+            {
+                lifetime = default;
+                return false;
+            }
+
+            return scope.TryCreateLifetime(out lifetime);
+        }
+
+        public async Task<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             // if disposed, return
             if (scope?.IsDisposed ?? false)
@@ -40,7 +64,7 @@ namespace BitFaster.Caching.Synchronized
             return (res, lifetime);
         }
 
-        private async Task InitializeScopeAsync(K key, Func<K, Task<V>> valueFactory)
+        private async Task InitializeScopeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             var init = initializer;
 
@@ -73,7 +97,7 @@ namespace BitFaster.Caching.Synchronized
             private bool isDisposeRequested;
             private Task<Scoped<V>> task;
 
-            public async Task<Scoped<V>> CreateScopeAsync(K key, Func<K, Task<V>> valueFactory)
+            public async Task<Scoped<V>> CreateScopeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
             {
                 var tcs = new TaskCompletionSource<Scoped<V>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -83,8 +107,7 @@ namespace BitFaster.Caching.Synchronized
                 {
                     try
                     {
-                        var value = await valueFactory(key).ConfigureAwait(false);
-                        var scope = new Scoped<V>(value);
+                        var scope = await valueFactory(key).ConfigureAwait(false);
                         tcs.SetResult(scope);
 
                         Volatile.Write(ref isTaskCompleted, true);

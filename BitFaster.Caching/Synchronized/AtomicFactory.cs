@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace BitFaster.Caching.Synchronized
 {
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
-    public class AtomicFactory<K, V>
+    public sealed class AtomicFactory<K, V>
     {
         private Initializer initializer;
 

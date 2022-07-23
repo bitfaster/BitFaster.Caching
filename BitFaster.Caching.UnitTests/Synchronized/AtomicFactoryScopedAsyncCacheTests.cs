@@ -4,32 +4,33 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.Synchronized;
 using FluentAssertions;
 using Xunit;
 
-namespace BitFaster.Caching.UnitTests
+namespace BitFaster.Caching.UnitTests.Synchronized
 {
-    public class ScopedCacheTests : ScopedCacheTestBase
+    public class AtomicFactoryScopedAsyncCacheTests : ScopedCacheTestBase
     {
-        public ScopedCacheTests() 
-            : base(new ScopedCache<int, Disposable>(new ConcurrentLru<int, Scoped<Disposable>>(capacity)))
+        public AtomicFactoryScopedAsyncCacheTests()
+            : base(new AtomicFactoryScopedAsyncCache<int, Disposable>(new ConcurrentLru<int, ScopedAsyncAtomicFactory<int, Disposable>>(capacity)))
         {
         }
 
         [Fact]
         public void WhenInnerCacheIsNullCtorThrows()
         {
-            Action constructor = () => { var x = new ScopedCache<int, Disposable>(null); };
+            Action constructor = () => { var x = new AtomicFactoryScopedAsyncCache<int, Disposable>(null); };
 
             constructor.Should().Throw<ArgumentNullException>();
         }
 
         [Fact]
-        public void WhenScopeIsDisposedTryGetReturnsFalse()
+        public async Task WhenScopeIsDisposedTryGetReturnsFalse()
         {
             var scope = new Scoped<Disposable>(new Disposable());
-            
-            this.cache.ScopedGetOrAdd(1, k => scope);
+
+            await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(scope));
 
             scope.Dispose();
 
@@ -37,11 +38,11 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public void WhenKeyDoesNotExistGetOrAddAddsValue()
+        public void WhenKeyDoesNotExistGetOrAddThrows()
         {
-            this.cache.ScopedGetOrAdd(1, k => new Scoped<Disposable>(new Disposable()));
+            Action getOrAdd = () => { this.cache.ScopedGetOrAdd(1, k => new Scoped<Disposable>(new Disposable())); };
 
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
+            getOrAdd.Should().Throw<NotImplementedException>();
         }
 
         [Fact]
@@ -50,17 +51,6 @@ namespace BitFaster.Caching.UnitTests
             await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable())));
 
             this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
-        }
-
-        [Fact]
-        public void GetOrAddDisposedScopeThrows()
-        {
-            var scope = new Scoped<Disposable>(new Disposable());
-            scope.Dispose();
-            
-            Action getOrAdd = () => { this.cache.ScopedGetOrAdd(1, k => scope); };
-
-            getOrAdd.Should().Throw<InvalidOperationException>();
         }
 
         [Fact]

@@ -4,16 +4,24 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Synchronized
 {
-    public class AtomicFactoryScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
+    public sealed class AtomicFactoryScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
     {
         private readonly ICache<K, ScopedAtomicFactory<K, V>> cache;
+        private readonly EventProxy eventProxy;
 
         public AtomicFactoryScopedCache(ICache<K, ScopedAtomicFactory<K, V>> cache)
         {
+            if (cache == null)
+            {
+                throw new ArgumentNullException(nameof(cache));
+            }
+
             this.cache = cache;
+            this.eventProxy = new EventProxy(cache.Events);
         }
 
         public int Capacity => this.cache.Capacity;
@@ -22,7 +30,7 @@ namespace BitFaster.Caching.Synchronized
 
         public ICacheMetrics Metrics => this.cache.Metrics;
 
-        public ICacheEvents<K, Scoped<V>> Events => throw new NotImplementedException();
+        public ICacheEvents<K, Scoped<V>> Events => this.eventProxy;
 
         public void AddOrUpdate(K key, V value)
         {
@@ -53,9 +61,9 @@ namespace BitFaster.Caching.Synchronized
 
                 spinwait.SpinOnce();
 
-                if (c++ > MaxRetry)
+                if (c++ > ScopedCacheDefaults.MaxRetry)
                 {
-                    throw new InvalidOperationException(RetryFailureMessage);
+                    throw new InvalidOperationException(ScopedCacheDefaults.RetryFailureMessage);
                 }
             }
         }
@@ -67,22 +75,44 @@ namespace BitFaster.Caching.Synchronized
 
         public bool ScopedTryGet(K key, out Lifetime<V> lifetime)
         {
-            throw new NotImplementedException();
+            if (this.cache.TryGet(key, out var scope))
+            {
+                if (scope.TryCreateLifetime(out lifetime))
+                {
+                    return true;
+                }
+            }
+
+            lifetime = default;
+            return false;
         }
 
         public void Trim(int itemCount)
         {
-            throw new NotImplementedException();
+            this.cache.Trim(itemCount);
         }
 
         public bool TryRemove(K key)
         {
-            throw new NotImplementedException();
+            return this.cache.TryRemove(key);
         }
 
         public bool TryUpdate(K key, V value)
         {
-            throw new NotImplementedException();
+            return this.cache.TryUpdate(key, new ScopedAtomicFactory<K, V>(value));
+        }
+
+        private class EventProxy : CacheEventProxyBase<K, ScopedAtomicFactory<K, V>, Scoped<V>>
+        {
+            public EventProxy(ICacheEvents<K, ScopedAtomicFactory<K, V>> inner) 
+                : base(inner)
+            {
+            }
+
+            protected override ItemRemovedEventArgs<K, Scoped<V>> TranslateOnRemoved(ItemRemovedEventArgs<K, ScopedAtomicFactory<K, V>> inner)
+            {
+                return new Lru.ItemRemovedEventArgs<K, Scoped<V>>(inner.Key, inner.Value.ScopeIfCreated, inner.Reason);
+            }
         }
     }
 }
