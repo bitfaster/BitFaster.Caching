@@ -99,7 +99,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeOfType<AtomicFactoryAsyncCache<int, int>>();
+            lru.Should().BeOfType<AtomicFactoryCache<int, int>>();
         }
 
         [Fact]
