@@ -7,7 +7,7 @@ using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Synchronized
 {
-    public class AtomicFactoryCache<K, V> : ICache<K, V>
+    public sealed class AtomicFactoryCache<K, V> : ICache<K, V>
     {
         private readonly ICache<K, AtomicFactory<K, V>> cache;
         private readonly EventProxy eventProxy;
