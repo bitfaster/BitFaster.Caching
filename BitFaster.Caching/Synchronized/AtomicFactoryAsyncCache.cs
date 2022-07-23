@@ -3,16 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Synchronized
 {
     public class AtomicFactoryAsyncCache<K, V> : ICache<K, V>
     {
         private readonly ICache<K, AsyncAtomicFactory<K, V>> cache;
+        private readonly EventProxy eventProxy;
 
         public AtomicFactoryAsyncCache(ICache<K, AsyncAtomicFactory<K, V>> cache)
         {
+            if (cache == null)
+            {
+                throw new ArgumentNullException(nameof(cache));
+            }
+
             this.cache = cache;
+            this.eventProxy = new EventProxy(cache.Events);
         }
 
         public int Capacity => cache.Capacity;
@@ -21,8 +29,7 @@ namespace BitFaster.Caching.Synchronized
 
         public ICacheMetrics Metrics => cache.Metrics;
 
-        // need to dispatch different events for this
-        public ICacheEvents<K, V> Events => throw new Exception();
+        public ICacheEvents<K, V> Events => this.eventProxy;
 
         public void AddOrUpdate(K key, V value)
         {
@@ -73,6 +80,19 @@ namespace BitFaster.Caching.Synchronized
         public bool TryUpdate(K key, V value)
         {
             return cache.TryUpdate(key, new AsyncAtomicFactory<K, V>(value));
+        }
+
+        private class EventProxy : CacheEventProxyBase<K, AsyncAtomicFactory<K, V>, V>
+        {
+            public EventProxy(ICacheEvents<K, AsyncAtomicFactory<K, V>> inner)
+                : base(inner)
+            {
+            }
+
+            protected override ItemRemovedEventArgs<K, V> TranslateOnRemoved(ItemRemovedEventArgs<K, AsyncAtomicFactory<K, V>> inner)
+            {
+                return new Lru.ItemRemovedEventArgs<K, V>(inner.Key, inner.Value.ValueIfCreated, inner.Reason);
+            }
         }
     }
 }

@@ -64,9 +64,6 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             lifetime.Value.Should().Be(expectedDisposable);
         }
 
-
-        // when scope disposed try create returns false
-
         [Fact]
         public void WhenNotInitTryCreateReturnsFalse()
         {

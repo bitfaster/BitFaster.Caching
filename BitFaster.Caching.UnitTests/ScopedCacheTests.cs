@@ -180,14 +180,14 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public void GetOrAddAsyncDisposedScopeThrows()
+        public async Task GetOrAddAsyncDisposedScopeThrows()
         {
             var scope = new Scoped<Disposable>(new Disposable());
             scope.Dispose();
 
             Func<Task> getOrAdd = async () => { await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(scope)); };
 
-            getOrAdd.Should().ThrowAsync<InvalidOperationException>();
+            await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
         }
 
         [Fact]
