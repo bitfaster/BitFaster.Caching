@@ -10,8 +10,10 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Synchronized
 {
-    public class AtomicFactoryScopedAsyncCacheTests : ScopedCacheTestBase
+    public class AtomicFactoryScopedAsyncCacheTests : ScopedAsyncCacheTestBase
     {
+
+
         public AtomicFactoryScopedAsyncCacheTests()
             : base(new AtomicFactoryScopedAsyncCache<int, Disposable>(new ConcurrentLru<int, ScopedAsyncAtomicFactory<int, Disposable>>(capacity)))
         {
@@ -35,14 +37,6 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             scope.Dispose();
 
             this.cache.ScopedTryGet(1, out var lifetime).Should().BeFalse();
-        }
-
-        [Fact]
-        public void WhenKeyDoesNotExistGetOrAddThrows()
-        {
-            Action getOrAdd = () => { this.cache.ScopedGetOrAdd(1, k => new Scoped<Disposable>(new Disposable())); };
-
-            getOrAdd.Should().Throw<NotImplementedException>();
         }
 
         [Fact]

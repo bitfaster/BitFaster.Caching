@@ -144,24 +144,24 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Capacity.Should().Be(6);
 		}
 		
-		[Fact]
-        public async Task ScopedPOC()
-        {
-            // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
+		//[Fact]
+  //      public async Task ScopedPOC()
+  //      {
+  //          // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
 
-            // layer 1: can choose ConcurrentLru/TLru, FastConcurrentLru/FastConcurrentTLru 
-            var c = new ConcurrentLru<int, AsyncAtomicFactory<int, Scoped<Disposable>>>(3);
+  //          // layer 1: can choose ConcurrentLru/TLru, FastConcurrentLru/FastConcurrentTLru 
+  //          var c = new ConcurrentLru<int, AsyncAtomicFactory<int, Scoped<Disposable>>>(3);
 
-            // layer 2: optional atomic creation
-            var atomic = new AtomicFactoryAsyncCache<int, Scoped<Disposable>>(c);
+  //          // layer 2: optional atomic creation
+  //          var atomic = new AtomicFactoryCache<int, Scoped<Disposable>>(c);
 
-            // layer 3: optional scoping
-            IScopedCache<int, Disposable> scoped = new ScopedCache<int, Disposable>(atomic);
+  //          // layer 3: optional scoping
+  //          IScopedCache<int, Disposable> scoped = new ScopedCache<int, Disposable>(atomic);
 
-            using (var lifetime = await scoped.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable()))))
-            {
-                var d = lifetime.Value;
-            }
-        }
+  //          using (var lifetime = await scoped.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable()))))
+  //          {
+  //              var d = lifetime.Value;
+  //          }
+  //      }
     }
 }

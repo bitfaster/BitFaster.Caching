@@ -44,13 +44,13 @@ namespace BitFaster.Caching.UnitTests
             this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
         }
 
-        [Fact]
-        public async Task WhenKeyDoesNotExistGetOrAddAsyncAddsValue()
-        {
-            await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable())));
+        //[Fact]
+        //public async Task WhenKeyDoesNotExistGetOrAddAsyncAddsValue()
+        //{
+        //    await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable())));
 
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
-        }
+        //    this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
+        //}
 
         [Fact]
         public void GetOrAddDisposedScopeThrows()
@@ -63,15 +63,15 @@ namespace BitFaster.Caching.UnitTests
             getOrAdd.Should().Throw<InvalidOperationException>();
         }
 
-        [Fact]
-        public async Task GetOrAddAsyncDisposedScopeThrows()
-        {
-            var scope = new Scoped<Disposable>(new Disposable());
-            scope.Dispose();
+        //[Fact]
+        //public async Task GetOrAddAsyncDisposedScopeThrows()
+        //{
+        //    var scope = new Scoped<Disposable>(new Disposable());
+        //    scope.Dispose();
 
-            Func<Task> getOrAdd = async () => { await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(scope)); };
+        //    Func<Task> getOrAdd = async () => { await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(scope)); };
 
-            await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
-        }
+        //    await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
+        //}
     }
 }

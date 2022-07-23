@@ -14,11 +14,11 @@ namespace BitFaster.Caching
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
-    public sealed class ScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
+    public sealed class ScopedAsyncCache<K, V> : IScopedAsyncCache<K, V> where V : IDisposable
     {
-        private readonly ICache<K, Scoped<V>> cache;
+        private readonly IAsyncCache<K, Scoped<V>> cache;
 
-        public ScopedCache(ICache<K, Scoped<V>> cache)
+        public ScopedAsyncCache(IAsyncCache<K, Scoped<V>> cache)
         {
             if (cache == null)
             {
@@ -53,13 +53,13 @@ namespace BitFaster.Caching
         }
 
         ///<inheritdoc/>
-        public Lifetime<V> ScopedGetOrAdd(K key, Func<K, Scoped<V>> valueFactory)
+        public async Task<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             int c = 0;
             var spinwait = new SpinWait();
             while (true)
             {
-                var scope = cache.GetOrAdd(key, k => valueFactory(k));
+                var scope = await cache.GetOrAddAsync(key, valueFactory);
 
                 if (scope.TryCreateLifetime(out var lifetime))
                 {

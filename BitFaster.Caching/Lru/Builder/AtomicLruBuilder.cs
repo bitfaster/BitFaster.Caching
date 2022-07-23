@@ -24,7 +24,7 @@ namespace BitFaster.Caching.Lru.Builder
         }
     }
 
-    public class AsyncAtomicLruBuilder<K, V> : LruBuilderBase<K, V, AsyncAtomicLruBuilder<K, V>, ICache<K, V>>
+    public class AsyncAtomicLruBuilder<K, V> : LruBuilderBase<K, V, AsyncAtomicLruBuilder<K, V>, IAsyncCache<K, V>>
     {
         private readonly ConcurrentLruBuilder<K, AsyncAtomicFactory<K, V>> inner;
 
@@ -34,7 +34,7 @@ namespace BitFaster.Caching.Lru.Builder
             this.inner = inner;
         }
 
-        public override ICache<K, V> Build()
+        public override IAsyncCache<K, V> Build()
         {
             var level1 = inner.Build();
             return new AtomicFactoryAsyncCache<K, V>(level1);

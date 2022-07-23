@@ -7,7 +7,7 @@ using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Synchronized
 {
-    public sealed class AtomicFactoryAsyncCache<K, V> : ICache<K, V>
+    public sealed class AtomicFactoryAsyncCache<K, V> : IAsyncCache<K, V>
     {
         private readonly ICache<K, AsyncAtomicFactory<K, V>> cache;
         private readonly EventProxy eventProxy;
@@ -39,11 +39,6 @@ namespace BitFaster.Caching.Synchronized
         public void Clear()
         {
             cache.Clear();
-        }
-
-        public V GetOrAdd(K key, Func<K, V> valueFactory)
-        {
-            throw new NotImplementedException();
         }
 
         public Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)

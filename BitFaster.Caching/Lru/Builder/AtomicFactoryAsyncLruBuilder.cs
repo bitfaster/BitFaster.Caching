@@ -7,7 +7,7 @@ using BitFaster.Caching.Synchronized;
 
 namespace BitFaster.Caching.Lru.Builder
 {
-    public class AtomicFactoryAsyncLruBuilder<K, V> : LruBuilderBase<K, V, AtomicFactoryAsyncLruBuilder<K, V>, ICache<K, V>>
+    public class AtomicFactoryAsyncLruBuilder<K, V> : LruBuilderBase<K, V, AtomicFactoryAsyncLruBuilder<K, V>, IAsyncCache<K, V>>
     {
         private readonly ConcurrentLruBuilder<K, AsyncAtomicFactory<K, V>> inner;
 
@@ -17,7 +17,7 @@ namespace BitFaster.Caching.Lru.Builder
             this.inner = inner;
         }
 
-        public override ICache<K, V> Build()
+        public override IAsyncCache<K, V> Build()
         {
             var innerCache = inner.Build();
 
