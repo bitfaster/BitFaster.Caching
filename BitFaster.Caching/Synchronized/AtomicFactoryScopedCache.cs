@@ -42,10 +42,6 @@ namespace BitFaster.Caching.Synchronized
             this.cache.Clear();
         }
 
-        // TODO: dedupe
-        private const int MaxRetry = 5;
-        private static readonly string RetryFailureMessage = $"Exceeded {MaxRetry} attempts to create a lifetime.";
-
         public Lifetime<V> ScopedGetOrAdd(K key, Func<K, Scoped<V>> valueFactory)
         {
             int c = 0;

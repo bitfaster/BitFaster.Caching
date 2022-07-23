@@ -79,7 +79,7 @@ namespace BitFaster.Caching.Synchronized
 
         public bool TryUpdate(K key, V value)
         {
-            return cache.TryUpdate(key, new AtomicFactory<K, V>(value)); 
+            return cache.TryUpdate(key, new AtomicFactory<K, V>(value));
         }
 
         private class EventProxy : CacheEventProxyBase<K, AtomicFactory<K, V>, V>
