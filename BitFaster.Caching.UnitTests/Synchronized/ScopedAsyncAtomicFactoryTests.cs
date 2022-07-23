@@ -19,7 +19,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
 
             (bool r, Lifetime<IntHolder> l) result = await atomicFactory.TryCreateLifetimeAsync(1, k =>
             {
-                return Task.FromResult(new IntHolder() { actualNumber = 2 });
+                return Task.FromResult(new Scoped<IntHolder>(new IntHolder() { actualNumber = 2 }));
             });
 
             result.r.Should().BeTrue();
@@ -34,7 +34,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
 
             (bool r, Lifetime<IntHolder> l) result = await atomicFactory.TryCreateLifetimeAsync(1, k =>
             {
-                return Task.FromResult(new IntHolder() { actualNumber = 2 });
+                return Task.FromResult(new Scoped<IntHolder>(new IntHolder() { actualNumber = 2 }));
             });
 
             result.r.Should().BeFalse();
@@ -69,7 +69,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
 
                 winningNumber = 1;
                 Interlocked.Increment(ref winnerCount);
-                return new IntHolder() { actualNumber = 1 };
+                return new Scoped<IntHolder>(new IntHolder() { actualNumber = 1 });
             });
 
             Task<(bool r, Lifetime<IntHolder> l)> second = atomicFactory.TryCreateLifetimeAsync(1, async k =>
@@ -79,7 +79,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
 
                 winningNumber = 2;
                 Interlocked.Increment(ref winnerCount);
-                return new IntHolder() { actualNumber = 2 };
+                return new Scoped<IntHolder>(new IntHolder() { actualNumber = 2 });
             });
 
             await enter.Task;
@@ -111,7 +111,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
                 enter.SetResult(true);
                 await resume.Task;
 
-                return holder;
+                return new Scoped<IntHolder>(holder);
             });
 
             await enter.Task;
@@ -156,7 +156,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
 
             (bool r, Lifetime<IntHolder> l) result = await atomicFactory.TryCreateLifetimeAsync(1, k =>
             {
-                return Task.FromResult(holder);
+                return Task.FromResult(new Scoped<IntHolder>(holder));
             });
 
             result.r.Should().BeFalse();

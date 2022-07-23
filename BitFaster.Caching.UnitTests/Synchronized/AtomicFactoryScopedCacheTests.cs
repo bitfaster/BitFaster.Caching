@@ -54,6 +54,12 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         }
 
         [Fact]
+        public void EventsAreEnabled()
+        {
+            this.cache.Events.IsEnabled.Should().BeTrue();
+        }
+
+        [Fact]
         public void WhenEventHandlerIsRegisteredItIsFired()
         {
             this.cache.Events.ItemRemoved += OnItemRemoved;

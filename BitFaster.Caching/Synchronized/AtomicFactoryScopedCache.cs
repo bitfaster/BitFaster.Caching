@@ -98,48 +98,7 @@ namespace BitFaster.Caching.Synchronized
             return this.cache.TryUpdate(key, new ScopedAtomicFactory<K, V>(value));
         }
 
-        //private class EventsProxy : ICacheEvents<K, Scoped<V>>
-        //{
-        //    private readonly ICacheEvents<K, ScopedAtomicFactory<K, V>> inner;
-        //    private event EventHandler<Lru.ItemRemovedEventArgs<K, Scoped<V>>> itemRemovedProxy;
-
-        //    public EventsProxy(ICacheEvents<K, ScopedAtomicFactory<K, V>> inner)
-        //    {
-        //        this.inner = inner;
-        //    }
-
-        //    public bool IsEnabled => this.inner.IsEnabled;
-
-        //    public event EventHandler<Lru.ItemRemovedEventArgs<K, Scoped<V>>> ItemRemoved
-        //    {
-        //        add { this.Register(value); }
-        //        remove { this.UnRegister(value); }
-        //    }
-
-        //    private void Register(EventHandler<Lru.ItemRemovedEventArgs<K, Scoped<V>>> value)
-        //    {
-        //        itemRemovedProxy += value;
-        //        inner.ItemRemoved += OnItemRemoved;
-        //    }
-
-        //    private void UnRegister(EventHandler<Lru.ItemRemovedEventArgs<K, Scoped<V>>> value)
-        //    {
-        //        this.itemRemovedProxy -= value;
-
-        //        if (this.itemRemovedProxy.GetInvocationList().Length == 0)
-        //        {
-        //            this.inner.ItemRemoved -= OnItemRemoved;
-        //        }
-        //    }
-
-        //    private void OnItemRemoved(object sender, Lru.ItemRemovedEventArgs<K, ScopedAtomicFactory<K, V>> e)
-        //    {
-        //        // forward from inner to outer
-        //        itemRemovedProxy.Invoke(sender, new Lru.ItemRemovedEventArgs<K, Scoped<V>>(e.Key, e.Value.ScopeIfCreated, e.Reason));
-        //    }
-        //}
-
-        private class EventProxy : EventProxyBase<K, ScopedAtomicFactory<K, V>, Scoped<V>>
+        private class EventProxy : CacheEventProxyBase<K, ScopedAtomicFactory<K, V>, Scoped<V>>
         {
             public EventProxy(ICacheEvents<K, ScopedAtomicFactory<K, V>> inner) 
                 : base(inner)
@@ -151,47 +110,5 @@ namespace BitFaster.Caching.Synchronized
                 return new Lru.ItemRemovedEventArgs<K, Scoped<V>>(inner.Key, inner.Value.ScopeIfCreated, inner.Reason);
             }
         }
-    }
-
-    public abstract class EventProxyBase<K, TInner, TOuter> : ICacheEvents<K, TOuter>
-    {
-        private readonly ICacheEvents<K, TInner> inner;
-        protected event EventHandler<Lru.ItemRemovedEventArgs<K, TOuter>> itemRemovedProxy;
-
-        public EventProxyBase(ICacheEvents<K, TInner> inner)
-        {
-            this.inner = inner;
-        }
-
-        public bool IsEnabled => this.inner.IsEnabled;
-
-        public event EventHandler<Lru.ItemRemovedEventArgs<K, TOuter>> ItemRemoved
-        {
-            add { this.Register(value); }
-            remove { this.UnRegister(value); }
-        }
-
-        private void Register(EventHandler<Lru.ItemRemovedEventArgs<K, TOuter>> value)
-        {
-            itemRemovedProxy += value;
-            inner.ItemRemoved += OnItemRemoved;
-        }
-
-        private void UnRegister(EventHandler<Lru.ItemRemovedEventArgs<K, TOuter>> value)
-        {
-            this.itemRemovedProxy -= value;
-
-            if (this.itemRemovedProxy == null)
-            {
-                this.inner.ItemRemoved -= OnItemRemoved;
-            }
-        }
-
-        private void OnItemRemoved(object sender, Lru.ItemRemovedEventArgs<K, TInner> e)
-        {
-            itemRemovedProxy(sender, TranslateOnRemoved(e));
-        }
-
-        protected abstract ItemRemovedEventArgs<K, TOuter> TranslateOnRemoved(ItemRemovedEventArgs<K, TInner> inner);
     }
 }
