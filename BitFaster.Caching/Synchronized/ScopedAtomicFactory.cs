@@ -12,7 +12,7 @@ namespace BitFaster.Caching.Synchronized
     // 1. Exactly once disposal.
     // 2. Exactly once invocation of value factory (synchronized create).
     // 3. Resolve race between create dispose init, if disposed is called before value is created, scoped value is disposed for life.
-    public class ScopedAtomicFactory<K, V> : IScoped<V>, IDisposable where V : IDisposable
+    public sealed class ScopedAtomicFactory<K, V> : IScoped<V>, IDisposable where V : IDisposable
     {
         private Scoped<V> scope;
         private Initializer initializer;
@@ -27,7 +27,31 @@ namespace BitFaster.Caching.Synchronized
             scope = new Scoped<V>(value);
         }
 
-        public bool TryCreateLifetime(K key, Func<K, V> valueFactory, out Lifetime<V> lifetime)
+        public Scoped<V> ScopeIfCreated
+        {
+            get
+            {
+                if (initializer != null)
+                {
+                    return default;
+                }
+
+                return scope;
+            }
+        }
+
+        public bool TryCreateLifetime(out Lifetime<V> lifetime)
+        {
+            if (scope?.IsDisposed ?? false || initializer != null)
+            {
+                lifetime = default;
+                return false;
+            }
+
+            return scope.TryCreateLifetime(out lifetime);
+        }
+
+        public bool TryCreateLifetime(K key, Func<K, Scoped<V>> valueFactory, out Lifetime<V> lifetime)
         {
             if(scope?.IsDisposed ?? false)
             {
@@ -44,7 +68,7 @@ namespace BitFaster.Caching.Synchronized
             return scope.TryCreateLifetime(out lifetime);
         }
 
-        private void InitializeScope(K key, Func<K, V> valueFactory)
+        private void InitializeScope(K key, Func<K, Scoped<V>> valueFactory)
         {
             var init = initializer;
 
@@ -72,7 +96,7 @@ namespace BitFaster.Caching.Synchronized
             private bool isInitialized;
             private Scoped<V> value;
 
-            public Scoped<V> CreateScope(K key, Func<K, V> valueFactory)
+            public Scoped<V> CreateScope(K key, Func<K, Scoped<V>> valueFactory)
             {
                 if (Volatile.Read(ref isInitialized))
                 {
@@ -86,7 +110,7 @@ namespace BitFaster.Caching.Synchronized
                         return value;
                     }
 
-                    value = new Scoped<V>(valueFactory(key));
+                    value = valueFactory(key);
                     Volatile.Write(ref isInitialized, true);
 
                     return value;
