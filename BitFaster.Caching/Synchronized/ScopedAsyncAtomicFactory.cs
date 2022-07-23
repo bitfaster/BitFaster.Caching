@@ -35,7 +35,6 @@ namespace BitFaster.Caching.Synchronized
             }
         }
 
-        // TODO: unit tests
         public bool TryCreateLifetime(out Lifetime<V> lifetime)
         {
             if (scope?.IsDisposed ?? false || initializer != null)

@@ -32,6 +32,23 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         }
 
         [Fact]
+        public void WhenNotInitTryCreateReturnsFalse()
+        {
+            var sa = new ScopedAsyncAtomicFactory<int, Disposable>();
+            sa.TryCreateLifetime(out var l).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenCreatedTryCreateLifetimeReturnsScope()
+        {
+            var expectedDisposable = new Disposable();
+            var sa = new ScopedAsyncAtomicFactory<int, Disposable>(expectedDisposable);
+
+            sa.TryCreateLifetime(out var lifetime).Should().BeTrue();
+            lifetime.Value.Should().Be(expectedDisposable);
+        }
+
+        [Fact]
         public async Task WhenCreateFromValueLifetimeContainsValue()
         {
             var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>(new IntHolder() { actualNumber = 1 });
