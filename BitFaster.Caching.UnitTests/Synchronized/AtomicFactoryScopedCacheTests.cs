@@ -53,42 +53,10 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             this.cache.Metrics.Hits.Should().Be(1);
         }
 
-        // TODO: test via base
-        [Fact]
-        public void EventsAreEnabled()
-        {
-            this.cache.Events.IsEnabled.Should().BeTrue();
-        }
-
         [Fact]
         public void WhenEventHandlerIsRegisteredItIsFired()
         {
             this.cache.Events.ItemRemoved += OnItemRemoved;
-
-            this.cache.AddOrUpdate(1, new Disposable());
-            this.cache.TryRemove(1);
-
-            this.removedItems.First().Key.Should().Be(1);
-        }
-
-        [Fact]
-        public void WhenEventHandlerIsAddedThenRemovedItIsNotFired()
-        {
-            this.cache.Events.ItemRemoved += OnItemRemoved;
-            this.cache.Events.ItemRemoved -= OnItemRemoved;
-
-            this.cache.AddOrUpdate(1, new Disposable());
-            this.cache.TryRemove(1);
-
-            this.removedItems.Count.Should().Be(0);
-        }
-
-        [Fact]
-        public void WhenTwoEventHandlersAddedThenOneRemovedEventIsFired()
-        {
-            this.cache.Events.ItemRemoved += OnItemRemoved;
-            this.cache.Events.ItemRemoved += OnItemRemovedThrow;
-            this.cache.Events.ItemRemoved -= OnItemRemovedThrow;
 
             this.cache.AddOrUpdate(1, new Disposable());
             this.cache.TryRemove(1);
@@ -261,11 +229,6 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, Scoped<Disposable>> e)
         {
             this.removedItems.Add(e);
-        }
-
-        private void OnItemRemovedThrow(object sender, ItemRemovedEventArgs<int, Scoped<Disposable>> e)
-        {
-            throw new Exception("Should never happen");
         }
     }
 }
