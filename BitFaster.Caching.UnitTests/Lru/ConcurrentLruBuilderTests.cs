@@ -74,7 +74,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeOfType<ScopedCache<int, Disposable>>();
+            lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
             lru.Capacity.Should().Be(3);
         }
 
@@ -87,7 +87,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeOfType<ScopedCache<int, Disposable>>();
+            lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
             lru.Capacity.Should().Be(3);
         }
 

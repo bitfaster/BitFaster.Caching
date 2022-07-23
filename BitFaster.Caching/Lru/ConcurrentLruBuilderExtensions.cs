@@ -30,17 +30,17 @@ namespace BitFaster.Caching.Lru
             return new AtomicFactoryAsyncLruBuilder<K, V>(a);
         }
 
-        public static ScopedAtomicLruBuilder<K, V, Scoped<V>> WithAtomicCreate<K, V, W>(this ScopedLruBuilder<K, V, W> b) where V : IDisposable where W : IScoped<V>
+        public static ScopedAtomicLruBuilder<K, V> WithAtomicCreate<K, V, W>(this ScopedLruBuilder<K, V, W> b) where V : IDisposable where W : IScoped<V>
         {
-            var atomicScoped = new ConcurrentLruBuilder<K, AsyncAtomicFactory<K, Scoped<V>>>(b.info);
+            var atomicScoped = new ConcurrentLruBuilder<K, ScopedAtomicFactory<K, V>>(b.info);
 
-            return new ScopedAtomicLruBuilder<K, V, Scoped<V>>(atomicScoped);
+            return new ScopedAtomicLruBuilder<K, V>(atomicScoped);
         }
 
-        public static ScopedAtomicLruBuilder<K, V, Scoped<V>> WithScopedValues<K, V>(this AtomicFactoryAsyncLruBuilder<K, V> b) where V : IDisposable
+        public static ScopedAtomicLruBuilder<K, V> WithScopedValues<K, V>(this AtomicFactoryAsyncLruBuilder<K, V> b) where V : IDisposable
         {
-            var atomicScoped = new ConcurrentLruBuilder<K, AsyncAtomicFactory<K, Scoped<V>>>(b.info);
-            return new ScopedAtomicLruBuilder<K, V, Scoped<V>>(atomicScoped);
+            var atomicScoped = new ConcurrentLruBuilder<K, ScopedAtomicFactory<K, V>>(b.info);
+            return new ScopedAtomicLruBuilder<K, V>(atomicScoped);
         }
     }
 }

@@ -18,8 +18,6 @@ namespace BitFaster.Caching.Lru.Builder
             this.info = info;
         }
 
-        public LruInfo<K> Info { get; }
-
         /// <summary>
         /// Set the maximum number of values to keep in the cache. If more items than this are added, 
         /// the cache eviction policy will determine which values to remove.

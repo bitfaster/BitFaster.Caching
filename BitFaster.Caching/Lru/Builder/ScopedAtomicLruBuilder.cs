@@ -7,11 +7,11 @@ using BitFaster.Caching.Synchronized;
 
 namespace BitFaster.Caching.Lru.Builder
 {
-    public class ScopedAtomicLruBuilder<K, V, W> : LruBuilderBase<K, V, ScopedAtomicLruBuilder<K, V, W>, IScopedCache<K, V>> where V : IDisposable where W : IScoped<V>
+    public class ScopedAtomicLruBuilder<K, V> : LruBuilderBase<K, V, ScopedAtomicLruBuilder<K, V>, IScopedCache<K, V>> where V : IDisposable
     {
-        private readonly ConcurrentLruBuilder<K, AsyncAtomicFactory<K, W>> inner;
+        private readonly ConcurrentLruBuilder<K, ScopedAtomicFactory<K, V>> inner;
 
-        internal ScopedAtomicLruBuilder(ConcurrentLruBuilder<K, AsyncAtomicFactory<K, W>> inner)
+        internal ScopedAtomicLruBuilder(ConcurrentLruBuilder<K, ScopedAtomicFactory<K, V>> inner)
             : base(inner.info)
         {
             this.inner = inner;
@@ -19,10 +19,25 @@ namespace BitFaster.Caching.Lru.Builder
 
         public override IScopedCache<K, V> Build()
         {
-            // TODO: This is actually wrong
-            var level1 = inner.Build() as ICache<K, AsyncAtomicFactory<K, Scoped<V>>>;
-            var level2 = new AtomicFactoryAsyncCache<K, Scoped<V>>(level1);
-            return new ScopedCache<K, V>(level2);
+            var level1 = inner.Build() as ICache<K, ScopedAtomicFactory<K, V>>;
+            return new AtomicFactoryScopedCache<K, V>(level1);
+        }
+    }
+
+    public class ScopedAsyncAtomicLruBuilder<K, V> : LruBuilderBase<K, V, ScopedAsyncAtomicLruBuilder<K, V>, IScopedCache<K, V>> where V : IDisposable
+    {
+        private readonly ConcurrentLruBuilder<K, ScopedAsyncAtomicFactory<K, V>> inner;
+
+        internal ScopedAsyncAtomicLruBuilder(ConcurrentLruBuilder<K, ScopedAsyncAtomicFactory<K, V>> inner)
+            : base(inner.info)
+        {
+            this.inner = inner;
+        }
+
+        public override IScopedCache<K, V> Build()
+        {
+            var level1 = inner.Build() as ICache<K, ScopedAsyncAtomicFactory<K, V>>;
+            return new AtomicFactoryScopedAsyncCache<K, V>(level1);
         }
     }
 }
