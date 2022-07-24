@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -39,6 +40,9 @@ namespace BitFaster.Caching
 
         ///<inheritdoc/>
         public ICacheEvents<K, Scoped<V>> Events => this.cache.Events;
+
+        ///<inheritdoc/>
+        public ICollection<K> Keys => this.cache.Keys;
 
         ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
@@ -106,6 +110,19 @@ namespace BitFaster.Caching
         public bool TryUpdate(K key, V value)
         {
             return this.cache.TryUpdate(key, new Scoped<V>(value));
+        }
+
+        public IEnumerator<KeyValuePair<K, Scoped<V>>> GetEnumerator()
+        {
+            foreach (var kvp in this.cache)
+            {
+                yield return kvp;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((ScopedAsyncCache<K, V>)this).GetEnumerator();
         }
     }
 }

@@ -11,7 +11,7 @@ namespace BitFaster.Caching
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
-    public interface IScopedCache<K, V>  where V : IDisposable
+    public interface IScopedCache<K, V> : IEnumerable<KeyValuePair<K, Scoped<V>>> where V : IDisposable
     {
         /// <summary>
         /// Gets the total number of items that can be stored in the cache.
@@ -36,6 +36,11 @@ namespace BitFaster.Caching
         /// create a Lifetime from the scope.
         /// </remarks>
         ICacheEvents<K, Scoped<V>> Events { get; }
+
+        /// <summary>
+        /// Gets a collection containing the keys in the cache.
+        /// </summary>
+        ICollection<K> Keys { get; }
 
         /// <summary>
         /// Attempts to create a lifetime for the value associated with the specified key from the cache
