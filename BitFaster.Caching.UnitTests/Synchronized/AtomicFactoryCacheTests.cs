@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -145,6 +146,35 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             this.cache.TryUpdate(1, 2).Should().BeTrue();
             this.cache.TryGet(1, out var value);
             value.Should().Be(2);
+        }
+
+        [Fact]
+        public void WhenItemsAddedKeysContainsTheKeys()
+        {
+            cache.Count.Should().Be(0);
+            cache.AddOrUpdate(1, 1);
+            cache.AddOrUpdate(2, 2);
+            cache.Keys.Should().BeEquivalentTo(new[] { 1, 2 });
+        }
+
+        [Fact]
+        public void WhenItemsAddedGenericEnumerateContainsKvps()
+        {
+            cache.Count.Should().Be(0);
+            cache.AddOrUpdate(1, 1);
+            cache.AddOrUpdate(2, 2);
+            cache.Should().BeEquivalentTo(new[] { new KeyValuePair<int, int>(1, 1), new KeyValuePair<int, int>(2, 2) });
+        }
+
+        [Fact]
+        public void WhenItemsAddedEnumerateContainsKvps()
+        {
+            cache.Count.Should().Be(0);
+            cache.AddOrUpdate(1, 1);
+            cache.AddOrUpdate(2, 2);
+
+            var enumerable = (IEnumerable)cache;
+            enumerable.Should().BeEquivalentTo(new[] { new KeyValuePair<int, int>(1, 1), new KeyValuePair<int, int>(2, 2) });
         }
 
         private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
