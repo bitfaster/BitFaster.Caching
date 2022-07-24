@@ -107,14 +107,6 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         }
 
         [Fact]
-        public async Task GetOrAddAsyncThrows()
-        {
-            Func<Task> getOrAdd = async () => { await this.cache.GetOrAddAsync(1, k => Task.FromResult(k)); };
-
-            await getOrAdd.Should().ThrowAsync<NotImplementedException>();
-        }
-
-        [Fact]
         public void WhenCacheContainsValuesTrim1RemovesColdestValue()
         {
             this.cache.AddOrUpdate(0, 0);

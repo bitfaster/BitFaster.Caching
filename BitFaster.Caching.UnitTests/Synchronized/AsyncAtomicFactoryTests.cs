@@ -70,7 +70,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var result = 0;
             var winnerCount = 0;
 
-            Task<int> first = atomicFactory.GetValueAsync(1, async k =>
+            var first = atomicFactory.GetValueAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;
@@ -80,7 +80,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
                 return 1;
             });
 
-            Task<int> second = atomicFactory.GetValueAsync(1, async k =>
+            var second = atomicFactory.GetValueAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;
