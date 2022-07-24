@@ -8,7 +8,7 @@ namespace BitFaster.Caching.Lru.Builder
 {
     public sealed class LruInfo<K>
     {
-        public ICapacityPartition Capacity { get; set; } = new FavorFrequencyPartition(128);
+        public ICapacityPartition Capacity { get; set; } = new FavorWarmPartition(128);
 
         public int ConcurrencyLevel { get; set; } = Defaults.ConcurrencyLevel;
 
