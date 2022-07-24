@@ -9,12 +9,12 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class FavorFrequencyPartitionTests
+    public class FavorWarmPartitionTests
     {
         [Fact]
         public void WhenCapacityBelow3Throws()
         {
-            Action constructor = () => { var x = new FavorFrequencyPartition(2); };
+            Action constructor = () => { var x = new FavorWarmPartition(2); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
@@ -22,7 +22,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenRatioBelow0Throws()
         {
-            Action constructor = () => { var x = new FavorFrequencyPartition(5, 0.0); };
+            Action constructor = () => { var x = new FavorWarmPartition(5, 0.0); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
@@ -30,7 +30,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenRatioAbove1Throws()
         {
-            Action constructor = () => { var x = new FavorFrequencyPartition(5, 1.0); };
+            Action constructor = () => { var x = new FavorWarmPartition(5, 1.0); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
@@ -50,7 +50,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(100, 10, 80, 10)]
         public void EqualPartitioningCreatesEqualQueues(int totalCapacity, int expectedHot, int expectedWarm, int expectedCold)
         {
-            var p = new FavorFrequencyPartition(totalCapacity);
+            var p = new FavorWarmPartition(totalCapacity);
 
             p.Hot.Should().Be(expectedHot);
             p.Warm.Should().Be(expectedWarm);

@@ -10,7 +10,7 @@ namespace BitFaster.Caching.Lru
     /// A capacity partitioning scheme that favors frequently accessed items by allocating 80% 
     /// capacity to the warm queue.
     /// </summary>
-    public class FavorFrequencyPartition : ICapacityPartition
+    public class FavorWarmPartition : ICapacityPartition
     {
         private readonly int hotCapacity;
         private readonly int warmCapacity;
@@ -20,12 +20,12 @@ namespace BitFaster.Caching.Lru
         // This favors frequently accessed items.
         public const double DefaultWarmRatio = 0.8;
 
-        public FavorFrequencyPartition(int totalCapacity)
+        public FavorWarmPartition(int totalCapacity)
             : this(totalCapacity, DefaultWarmRatio)
         {
         }
 
-        public FavorFrequencyPartition(int totalCapacity, double warmRatio)
+        public FavorWarmPartition(int totalCapacity, double warmRatio)
         {
             var (hot, warm, cold) = ComputeQueueCapacity(totalCapacity, warmRatio);
             this.hotCapacity = hot;

@@ -26,7 +26,7 @@ namespace BitFaster.Caching.Lru.Builder
         /// <returns>A ConcurrentLruBuilder</returns>
         public TBuilder WithCapacity(int capacity)
         {
-            this.info.Capacity = new FavorFrequencyPartition(capacity);
+            this.info.Capacity = new FavorWarmPartition(capacity);
             return this as TBuilder;
         }
 

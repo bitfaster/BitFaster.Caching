@@ -135,7 +135,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestPartitionCapacity()
         {
             ICache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithCapacity(new FavorFrequencyPartition(6))
+                .WithCapacity(new FavorWarmPartition(6))
                 .Build();
 
             lru.Capacity.Should().Be(6);
