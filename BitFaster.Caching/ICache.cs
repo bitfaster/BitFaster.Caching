@@ -34,6 +34,11 @@ namespace BitFaster.Caching
         ICacheEvents<K, V> Events { get; }
 
         /// <summary>
+        /// Gets a collection containing the keys in the cache.
+        /// </summary>
+        ICollection<K> Keys { get; }
+
+        /// <summary>
         /// Attempts to get the value associated with the specified key from the cache.
         /// </summary>
         /// <param name="key">The key of the value to get.</param>

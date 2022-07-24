@@ -31,6 +31,8 @@ namespace BitFaster.Caching.Synchronized
 
         public ICacheEvents<K, V> Events => this.eventProxy;
 
+        public ICollection<K> Keys => this.cache.Keys;
+
         public void AddOrUpdate(K key, V value)
         {
             cache.AddOrUpdate(key, new AsyncAtomicFactory<K, V>(value));
