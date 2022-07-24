@@ -42,5 +42,52 @@ namespace BitFaster.Caching.Lru
             var atomicScoped = new ConcurrentLruBuilder<K, ScopedAtomicFactory<K, V>>(b.info);
             return new ScopedAtomicLruBuilder<K, V>(atomicScoped);
         }
+
+        public static AsyncConcurrentLruBuilder<K, V> AsAsyncCache<K, V>(this ConcurrentLruBuilder<K, V> builder)
+        {
+            return new AsyncConcurrentLruBuilder<K, V>(builder.info);
+        }
+
+        public static ScopedAsyncLruBuilder<K, V> WithScopedValues<K, V>(this AsyncConcurrentLruBuilder<K, V> b) where V : IDisposable
+        {
+            var asyncScoped = new AsyncConcurrentLruBuilder<K, Scoped<V>>(b.info);
+            return new ScopedAsyncLruBuilder<K, V>(asyncScoped);
+        }
+
+        public static ScopedAsyncLruBuilder<K, V> AsAsyncCache<K, V>(this ScopedLruBuilder<K, V, Scoped<V>> b) where V : IDisposable
+        {
+            var asyncScoped = new AsyncConcurrentLruBuilder<K, Scoped<V>>(b.info);
+            return new ScopedAsyncLruBuilder<K, V>(asyncScoped);
+        }
+
+        public static AsyncAtomicLruBuilder<K, V> AsAsyncCache<K, V>(this AtomicLruBuilder<K, V> b)
+        {
+            var a = new ConcurrentLruBuilder<K, AsyncAtomicFactory<K, V>>(b.info);
+            return new AsyncAtomicLruBuilder<K, V>(a);
+        }
+
+        public static AsyncAtomicLruBuilder<K, V> WithAtomicCreate<K, V>(this AsyncConcurrentLruBuilder<K, V> b)
+        {
+            var a = new ConcurrentLruBuilder<K, AsyncAtomicFactory<K, V>>(b.info);
+            return new AsyncAtomicLruBuilder<K, V>(a);
+        }
+
+        public static ScopedAsyncAtomicLruBuilder<K, V> AsAsyncCache<K, V>(this ScopedAtomicLruBuilder<K, V> b) where V : IDisposable
+        {
+            var a = new AsyncConcurrentLruBuilder<K, ScopedAsyncAtomicFactory<K, V>>(b.info);
+            return new ScopedAsyncAtomicLruBuilder<K, V>(a);
+        }
+
+        public static ScopedAsyncAtomicLruBuilder<K, V> WithScopedValues<K, V>(this AsyncAtomicLruBuilder<K, V> b) where V : IDisposable
+        {
+            var a = new AsyncConcurrentLruBuilder<K, ScopedAsyncAtomicFactory<K, V>>(b.info);
+            return new ScopedAsyncAtomicLruBuilder<K, V>(a);
+        }
+
+        public static ScopedAsyncAtomicLruBuilder<K, V> WithAtomicCreate<K, V>(this ScopedAsyncLruBuilder<K, V> b) where V : IDisposable
+        {
+            var a = new AsyncConcurrentLruBuilder<K, ScopedAsyncAtomicFactory<K, V>>(b.info);
+            return new ScopedAsyncAtomicLruBuilder<K, V>(a);
+        }
     }
 }

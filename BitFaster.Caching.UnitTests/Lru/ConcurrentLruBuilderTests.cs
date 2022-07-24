@@ -53,54 +53,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Capacity.Should().Be(128);
         }
 
-        [Fact]
-        public void TestScopedOnly()
-        {
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithScopedValues()
-                .WithCapacity(3)
-                .Build();
-
-            lru.Should().BeOfType<ScopedCache<int, Disposable>>();
-            lru.Capacity.Should().Be(3);
-        }
-
-        [Fact]
-        public void TestScopedAtomic()
-        {
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithScopedValues()
-                .WithAtomicCreate()
-                .WithCapacity(3)
-                .Build();
-
-            lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
-            lru.Capacity.Should().Be(3);
-        }
-
-        [Fact]
-        public void TestScopedAtomicReverse()
-        {
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithAtomicCreate()
-                .WithScopedValues()
-                .WithCapacity(3)
-                .Build();
-
-            lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
-            lru.Capacity.Should().Be(3);
-        }
-
-        [Fact]
-        public void TestAtomic()
-        {
-            var lru = new ConcurrentLruBuilder<int, int>()
-                .WithAtomicCreate()
-                .WithCapacity(3)
-                .Build();
-
-            lru.Should().BeOfType<AtomicFactoryCache<int, int>>();
-        }
 
         [Fact]
         public void TestComparer()
@@ -142,26 +94,292 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .Build();
 
             lru.Capacity.Should().Be(6);
-		}
-		
-		//[Fact]
-  //      public async Task ScopedPOC()
-  //      {
-  //          // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
+        }
 
-  //          // layer 1: can choose ConcurrentLru/TLru, FastConcurrentLru/FastConcurrentTLru 
-  //          var c = new ConcurrentLru<int, AsyncAtomicFactory<int, Scoped<Disposable>>>(3);
+        //  There are 15 combinations to test:
+        //  -----------------------------
+        //1 WithAtomic
+        //2 WithScoped
+        //3 AsAsync
+        //
+        //  -----------------------------
+        //4 WithAtomic
+        //  WithScoped
+        //
+        //5 WithScoped
+        //  WithAtomic
+        //
+        //6 AsAsync
+        //  WithScoped
+        //
+        //7 WithScoped
+        //  AsAsync
+        //
+        //8 WithAtomic
+        //  AsAsync
+        //
+        //9 AsAsync
+        //  WithAtomic
+        //
+        //  -----------------------------
+        //10 WithAtomic
+        //   WithScoped
+        //   AsAsync
+        //
+        //11 WithAtomic
+        //   AsAsync
+        //   WithScoped
+        //
+        //12 WithScoped
+        //   WithAtomic
+        //   AsAsync
+        //
+        //13 WithScoped
+        //   AsAsync
+        //   WithAtomic
+        //
+        //14 AsAsync
+        //   WithScoped
+        //   WithAtomic
+        //
+        //15 AsAsync
+        //   WithAtomic
+        //   WithScoped
 
-  //          // layer 2: optional atomic creation
-  //          var atomic = new AtomicFactoryCache<int, Scoped<Disposable>>(c);
+        // 1
+        [Fact]
+        public void WithScopedValues()
+        {
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithScopedValues()
+                .WithCapacity(3)
+                .Build();
 
-  //          // layer 3: optional scoping
-  //          IScopedCache<int, Disposable> scoped = new ScopedCache<int, Disposable>(atomic);
+            lru.Should().BeOfType<ScopedCache<int, Disposable>>();
+            lru.Capacity.Should().Be(3);
+        }
 
-  //          using (var lifetime = await scoped.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable()))))
-  //          {
-  //              var d = lifetime.Value;
-  //          }
-  //      }
+        // 2
+        [Fact]
+        public void WithAtomicFactory()
+        {
+            var lru = new ConcurrentLruBuilder<int, int>()
+                .WithAtomicCreate()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeOfType<AtomicFactoryCache<int, int>>();
+        }
+
+        // 3
+        [Fact]
+        public void AsAsync()
+        {
+            var lru = new ConcurrentLruBuilder<int, int>()
+                .AsAsyncCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
+        }
+
+        // 4
+        [Fact]
+        public void WithAtomicWithScope()
+        {
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithAtomicCreate()
+                .WithScopedValues()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
+            lru.Capacity.Should().Be(3);
+        }
+
+        // 5
+        [Fact]
+        public void WithScopedWithAtomic()
+        {
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithScopedValues()
+                .WithAtomicCreate()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
+            lru.Capacity.Should().Be(3);
+        }
+
+        // 6
+        [Fact]
+        public void AsAsyncWithScoped()
+        {
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .AsAsyncCache()
+                .WithScopedValues()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+
+            lru.Capacity.Should().Be(3);
+        }
+
+        // 7
+        [Fact]
+        public void WithScopedAsAsync()
+        {
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithScopedValues()
+                .AsAsyncCache()           
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+            lru.Capacity.Should().Be(3);
+        }
+
+        // 8
+        [Fact]
+        public void WithAtomicAsAsync()
+        {
+            var lru = new ConcurrentLruBuilder<int, int>()
+                .WithAtomicCreate()
+                .AsAsyncCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
+        }
+
+        // 9
+        [Fact]
+        public void AsAsyncWithAtomic()
+        {
+            var lru = new ConcurrentLruBuilder<int, int>()
+                .AsAsyncCache()
+                .WithAtomicCreate()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
+        }
+
+        // 10
+        [Fact]
+        public void WithAtomicWithScopedAsAsync()
+        {
+            // TODO: this will not resolve a TLru
+
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithAtomicCreate()
+                .WithScopedValues()
+                .AsAsyncCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+        }
+
+        // 11
+        [Fact]
+        public void WithAtomicAsAsyncWithScoped()
+        {
+            // TODO: this will not resolve a TLru
+
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithAtomicCreate()
+                .AsAsyncCache()
+                .WithScopedValues()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+        }
+
+        // 12
+        [Fact]
+        public void WithScopedWithAtomicAsAsync()
+        {
+            // TODO: this will not resolve a TLru
+
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithScopedValues()
+                .WithAtomicCreate()
+                .AsAsyncCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+        }
+
+        // 13
+        [Fact]
+        public void WithScopedAsAsyncWithAtomic()
+        {
+            // TODO: this will not resolve a TLru
+
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .WithScopedValues()
+                .AsAsyncCache()
+                .WithAtomicCreate()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+        }
+
+        // 14
+        [Fact]
+        public void AsAsyncWithScopedWithAtomic()
+        {
+            // TODO: this will not resolve a TLru
+
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .AsAsyncCache()
+                .WithScopedValues()
+                .WithAtomicCreate()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+        }
+
+        // 15
+        [Fact]
+        public void AsAsyncWithAtomicWithScoped()
+        {
+            // TODO: this will not resolve a TLru
+
+            var lru = new ConcurrentLruBuilder<int, Disposable>()
+                .AsAsyncCache()
+                .WithAtomicCreate()
+                .WithScopedValues()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+        }
+
+        //[Fact]
+        //      public async Task ScopedPOC()
+        //      {
+        //          // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
+
+        //          // layer 1: can choose ConcurrentLru/TLru, FastConcurrentLru/FastConcurrentTLru 
+        //          var c = new ConcurrentLru<int, AsyncAtomicFactory<int, Scoped<Disposable>>>(3);
+
+        //          // layer 2: optional atomic creation
+        //          var atomic = new AtomicFactoryCache<int, Scoped<Disposable>>(c);
+
+        //          // layer 3: optional scoping
+        //          IScopedCache<int, Disposable> scoped = new ScopedCache<int, Disposable>(atomic);
+
+        //          using (var lifetime = await scoped.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable()))))
+        //          {
+        //              var d = lifetime.Value;
+        //          }
+        //      }
     }
 }

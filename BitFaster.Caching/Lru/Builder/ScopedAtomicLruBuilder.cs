@@ -23,21 +23,4 @@ namespace BitFaster.Caching.Lru.Builder
             return new AtomicFactoryScopedCache<K, V>(level1);
         }
     }
-
-    public class ScopedAsyncAtomicLruBuilder<K, V> : LruBuilderBase<K, V, ScopedAsyncAtomicLruBuilder<K, V>, IScopedAsyncCache<K, V>> where V : IDisposable
-    {
-        private readonly ConcurrentLruBuilder<K, ScopedAsyncAtomicFactory<K, V>> inner;
-
-        internal ScopedAsyncAtomicLruBuilder(ConcurrentLruBuilder<K, ScopedAsyncAtomicFactory<K, V>> inner)
-            : base(inner.info)
-        {
-            this.inner = inner;
-        }
-
-        public override IScopedAsyncCache<K, V> Build()
-        {
-            var level1 = inner.Build() as ICache<K, ScopedAsyncAtomicFactory<K, V>>;
-            return new AtomicFactoryScopedAsyncCache<K, V>(level1);
-        }
-    }
 }
