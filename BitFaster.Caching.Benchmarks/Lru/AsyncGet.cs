@@ -15,29 +15,25 @@ namespace BitFaster.Caching.Benchmarks.Lru
     [MemoryDiagnoser]
     public class AsyncGet
     {
-        private static readonly IAsyncCache<int, int> concurrentLru = new ConcurrentLruBuilder<int, int>().AsAsyncCache().Build();
-        private static readonly IAsyncCache<int, int> atomicConcurrentLru = new ConcurrentLruBuilder<int, int>().AsAsyncCache().WithAtomicCreate().Build();
+        private static readonly IAsyncCache<int, string> concurrentLru = new ConcurrentLruBuilder<int, string>().AsAsyncCache().Build();
+        private static readonly IAsyncCache<int, string> atomicConcurrentLru = new ConcurrentLruBuilder<int, string>().AsAsyncCache().WithAtomicCreate().Build();
 
-        private static Task<int> returnTask = Task.FromResult(1);
-
-        private static int[] data = new int[128];
+        private static Task<string> returnTask = Task.FromResult("1");
 
         [Benchmark()]
-        public async Task GetOrAddAsync()
+        public async ValueTask<string> GetOrAddAsync()
         {
-            Func<int, Task<int>> func = x => returnTask;
+            Func<int, Task<string>> func = x => returnTask;
 
-            for (int i = 0; i < 128; i++)
-                data[i] = await concurrentLru.GetOrAddAsync(i, func);
+            return await concurrentLru.GetOrAddAsync(1, func);
         }
 
         [Benchmark()]
-        public async Task AtomicGetOrAddAsync()
+        public async ValueTask<string> AtomicGetOrAddAsync()
         {
-            Func<int, Task<int>> func = x => returnTask;
+            Func<int, Task<string>> func = x => returnTask;
 
-            for (int i = 0; i < 128; i++)
-                data[i] = await atomicConcurrentLru.GetOrAddAsync(i, func);
+            return await atomicConcurrentLru.GetOrAddAsync(1, func);
         }
     }
 }
