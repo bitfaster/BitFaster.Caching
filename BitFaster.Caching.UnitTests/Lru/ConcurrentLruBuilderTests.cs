@@ -315,6 +315,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithAtomicWithScopedAsAsync()
         {
+            // TODO: this will not resolve a TLru
+
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithAtomicCreate()
                 .WithScopedValues()
@@ -329,6 +331,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithAtomicAsAsyncWithScoped()
         {
+            // TODO: this will not resolve a TLru
+
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithAtomicCreate()
                 .AsAsyncCache()
@@ -343,6 +347,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithScopedWithAtomicAsAsync()
         {
+            // TODO: this will not resolve a TLru
+
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithScopedValues()
                 .WithAtomicCreate()
@@ -357,6 +363,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithScopedAsAsyncWithAtomic()
         {
+            // TODO: this will not resolve a TLru
+
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithScopedValues()
                 .AsAsyncCache()
@@ -371,6 +379,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void AsAsyncWithScopedWithAtomic()
         {
+            // TODO: this will not resolve a TLru
+
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsAsyncCache()
                 .WithScopedValues()
@@ -385,6 +395,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void AsAsyncWithAtomicWithScoped()
         {
+            // TODO: this will not resolve a TLru
+
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsAsyncCache()
                 .WithAtomicCreate()
