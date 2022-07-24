@@ -4,16 +4,21 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using BitFaster.Caching.Lru;
 
-namespace BitFaster.Caching.Synchronized
+namespace BitFaster.Caching
 {
-    public sealed class AtomicFactoryScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
+    /// <summary>
+    /// A cache decorator for working with Scoped IDisposable values. The Scoped methods (e.g. ScopedGetOrAdd)
+    /// are threadsafe and create lifetimes that guarantee the value will not be disposed until the
+    /// lifetime is disposed.
+    /// </summary>
+    /// <typeparam name="K">The type of keys in the cache.</typeparam>
+    /// <typeparam name="V">The type of values in the cache.</typeparam>
+    public sealed class ScopedAsyncCache<K, V> : IScopedAsyncCache<K, V> where V : IDisposable
     {
-        private readonly ICache<K, ScopedAtomicFactory<K, V>> cache;
-        private readonly EventProxy eventProxy;
+        private readonly IAsyncCache<K, Scoped<V>> cache;
 
-        public AtomicFactoryScopedCache(ICache<K, ScopedAtomicFactory<K, V>> cache)
+        public ScopedAsyncCache(IAsyncCache<K, Scoped<V>> cache)
         {
             if (cache == null)
             {
@@ -21,36 +26,42 @@ namespace BitFaster.Caching.Synchronized
             }
 
             this.cache = cache;
-            this.eventProxy = new EventProxy(cache.Events);
         }
 
+        ///<inheritdoc/>
         public int Capacity => this.cache.Capacity;
 
+        ///<inheritdoc/>
         public int Count => this.cache.Count;
 
+        ///<inheritdoc/>
         public ICacheMetrics Metrics => this.cache.Metrics;
 
-        public ICacheEvents<K, Scoped<V>> Events => this.eventProxy;
+        ///<inheritdoc/>
+        public ICacheEvents<K, Scoped<V>> Events => this.cache.Events;
 
+        ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
         {
-            this.cache.AddOrUpdate(key, new ScopedAtomicFactory<K, V>(value));
+            this.cache.AddOrUpdate(key, new Scoped<V>(value));
         }
 
+        ///<inheritdoc/>
         public void Clear()
         {
             this.cache.Clear();
         }
 
-        public Lifetime<V> ScopedGetOrAdd(K key, Func<K, Scoped<V>> valueFactory)
+        ///<inheritdoc/>
+        public async Task<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             int c = 0;
             var spinwait = new SpinWait();
             while (true)
             {
-                var scope = cache.GetOrAdd(key, _ => new ScopedAtomicFactory<K, V>());
+                var scope = await cache.GetOrAddAsync(key, valueFactory);
 
-                if (scope.TryCreateLifetime(key, valueFactory, out var lifetime))
+                if (scope.TryCreateLifetime(out var lifetime))
                 {
                     return lifetime;
                 }
@@ -64,6 +75,13 @@ namespace BitFaster.Caching.Synchronized
             }
         }
 
+        ///<inheritdoc/>
+        public void Trim(int itemCount)
+        {
+            this.cache.Trim(itemCount);
+        }
+
+        ///<inheritdoc/>
         public bool ScopedTryGet(K key, out Lifetime<V> lifetime)
         {
             if (this.cache.TryGet(key, out var scope))
@@ -78,32 +96,16 @@ namespace BitFaster.Caching.Synchronized
             return false;
         }
 
-        public void Trim(int itemCount)
-        {
-            this.cache.Trim(itemCount);
-        }
-
+        ///<inheritdoc/>
         public bool TryRemove(K key)
         {
             return this.cache.TryRemove(key);
         }
 
+        ///<inheritdoc/>
         public bool TryUpdate(K key, V value)
         {
-            return this.cache.TryUpdate(key, new ScopedAtomicFactory<K, V>(value));
-        }
-
-        private class EventProxy : CacheEventProxyBase<K, ScopedAtomicFactory<K, V>, Scoped<V>>
-        {
-            public EventProxy(ICacheEvents<K, ScopedAtomicFactory<K, V>> inner) 
-                : base(inner)
-            {
-            }
-
-            protected override ItemRemovedEventArgs<K, Scoped<V>> TranslateOnRemoved(ItemRemovedEventArgs<K, ScopedAtomicFactory<K, V>> inner)
-            {
-                return new Lru.ItemRemovedEventArgs<K, Scoped<V>>(inner.Key, inner.Value.ScopeIfCreated, inner.Reason);
-            }
+            return this.cache.TryUpdate(key, new Scoped<V>(value));
         }
     }
 }

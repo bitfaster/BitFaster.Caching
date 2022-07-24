@@ -76,29 +76,6 @@ namespace BitFaster.Caching
         }
 
         ///<inheritdoc/>
-        public async Task<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
-        {
-            int c = 0;
-            var spinwait = new SpinWait();
-            while (true)
-            {
-                var scope = await cache.GetOrAddAsync(key, valueFactory);
-
-                if (scope.TryCreateLifetime(out var lifetime))
-                {
-                    return lifetime;
-                }
-
-                spinwait.SpinOnce();
-
-                if (c++ > ScopedCacheDefaults.MaxRetry)
-                {
-                    throw new InvalidOperationException(ScopedCacheDefaults.RetryFailureMessage);
-                }
-            }
-        }
-
-        ///<inheritdoc/>
         public void Trim(int itemCount)
         {
             this.cache.Trim(itemCount);

@@ -4,25 +4,22 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
-using BitFaster.Caching.Synchronized;
 using FluentAssertions;
 using Xunit;
 
-namespace BitFaster.Caching.UnitTests.Synchronized
+namespace BitFaster.Caching.UnitTests
 {
-    public class AtomicFactoryScopedAsyncCacheTests : ScopedAsyncCacheTestBase
+    public class ScopedAsyncCacheTests : ScopedAsyncCacheTestBase
     {
-
-
-        public AtomicFactoryScopedAsyncCacheTests()
-            : base(new AtomicFactoryScopedAsyncCache<int, Disposable>(new ConcurrentLru<int, ScopedAsyncAtomicFactory<int, Disposable>>(capacity)))
+        public ScopedAsyncCacheTests() 
+            : base(new ScopedAsyncCache<int, Disposable>(new ConcurrentLru<int, Scoped<Disposable>>(capacity)))
         {
         }
 
         [Fact]
         public void WhenInnerCacheIsNullCtorThrows()
         {
-            Action constructor = () => { var x = new AtomicFactoryScopedAsyncCache<int, Disposable>(null); };
+            Action constructor = () => { var x = new ScopedAsyncCache<int, Disposable>(null); };
 
             constructor.Should().Throw<ArgumentNullException>();
         }

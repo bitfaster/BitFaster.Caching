@@ -18,7 +18,7 @@ namespace BitFaster.Caching.Lru
     /// </remarks>
     /// <typeparam name="K">The type of the key</typeparam>
     /// <typeparam name="V">The type of the value</typeparam>
-    public sealed class ClassicLru<K, V> : ICache<K, V>, IEnumerable<KeyValuePair<K, V>>
+    public sealed class ClassicLru<K, V> : ICache<K, V>, IAsyncCache<K, V>, IEnumerable<KeyValuePair<K, V>>
     {
         private readonly int capacity;
         private readonly ConcurrentDictionary<K, LinkedListNode<LruItem>> dictionary;

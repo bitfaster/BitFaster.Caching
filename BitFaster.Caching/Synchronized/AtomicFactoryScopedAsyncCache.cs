@@ -8,7 +8,7 @@ using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Synchronized
 {
-    public sealed class AtomicFactoryScopedAsyncCache<K, V> : IScopedCache<K, V> where V : IDisposable
+    public sealed class AtomicFactoryScopedAsyncCache<K, V> : IScopedAsyncCache<K, V> where V : IDisposable
     {
         private readonly ICache<K, ScopedAsyncAtomicFactory<K, V>> cache;
         private readonly EventProxy eventProxy;
@@ -40,11 +40,6 @@ namespace BitFaster.Caching.Synchronized
         public void Clear()
         {
             this.cache.Clear();
-        }
-
-        public Lifetime<V> ScopedGetOrAdd(K key, Func<K, Scoped<V>> valueFactory)
-        {
-            throw new NotImplementedException();
         }
 
         public async Task<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)

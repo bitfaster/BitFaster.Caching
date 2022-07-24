@@ -98,14 +98,6 @@ namespace BitFaster.Caching.UnitTests.Synchronized
         }
 
         [Fact]
-        public void GetOrAddThrows()
-        {
-            Action getOrAdd = () => { this.cache.GetOrAdd(1, k => k); };
-
-            getOrAdd.Should().Throw<NotImplementedException>();
-        }
-
-        [Fact]
         public async Task WhenKeyDoesNotExistGetOrAddAsyncAddsValue()
         {
             await this.cache.GetOrAddAsync(1, k => Task.FromResult(k));
