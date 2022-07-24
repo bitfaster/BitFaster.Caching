@@ -204,10 +204,16 @@ namespace BitFaster.Caching.UnitTests
             cache.AddOrUpdate(2, d2);
 
             var enumerable = (IEnumerable)cache;
-            enumerable            
-                .Cast<KeyValuePair<int, Scoped<Disposable>>>()
-                .Select(kvp => new KeyValuePair<int, Disposable>(kvp.Key, kvp.Value.CreateLifetime().Value))
-                .Should().BeEquivalentTo(new[] { new KeyValuePair<int, Disposable>(1, d1), new KeyValuePair<int, Disposable>(2, d2) });
+
+            var list = new List<KeyValuePair<int, Disposable>>();
+
+            foreach (var i in enumerable)
+            {
+                var kvp = (KeyValuePair<int, Scoped<Disposable>>)i;
+                list.Add(new KeyValuePair<int, Disposable>(kvp.Key, kvp.Value.CreateLifetime().Value));
+            }
+
+            list.Should().BeEquivalentTo(new[] { new KeyValuePair<int, Disposable>(1, d1), new KeyValuePair<int, Disposable>(2, d2) });
         }
 
         protected void OnItemRemoved(object sender, ItemRemovedEventArgs<int, Scoped<Disposable>> e)
