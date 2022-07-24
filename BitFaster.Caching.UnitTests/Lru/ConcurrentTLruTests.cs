@@ -83,34 +83,6 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void WhenValueEvictedItemRemovedDeprecatedEventIsFired()
-        {
-            var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
-#pragma warning disable CS0618 // Type or member is obsolete
-            lruEvents.ItemRemoved += OnLruItemRemoved;
-#pragma warning restore CS0618 // Type or member is obsolete
-
-            // First 6 adds
-            // hot[6, 5], warm[2, 1], cold[4, 3]
-            // =>
-            // hot[8, 7], warm[1, 0], cold[6, 5], evicted[4, 3]
-            for (int i = 0; i < 8; i++)
-            {
-                lruEvents.GetOrAdd(i + 1, i => i + 1);
-            }
-
-            removedItems.Count.Should().Be(2);
-
-            removedItems[0].Key.Should().Be(3);
-            removedItems[0].Value.Should().Be(4);
-            removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
-
-            removedItems[1].Key.Should().Be(4);
-            removedItems[1].Value.Should().Be(5);
-            removedItems[1].Reason.Should().Be(ItemRemovedReason.Evicted);
-        }
-
-        [Fact]
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
             var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
@@ -149,17 +121,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
 
             removedItems.Count.Should().Be(0);
-        }
-
-        [Fact]
-        public void WhenItemIsAddedThenRetrievedHitRatioIsHalf()
-        {
-            lru.GetOrAdd(1, valueFactory.Create);
-            bool result = lru.TryGet(1, out var value);
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            lru.HitRatio.Should().Be(0.5);
-#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         [Fact]
