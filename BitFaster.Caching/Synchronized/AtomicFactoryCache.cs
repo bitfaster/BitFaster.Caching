@@ -46,11 +46,6 @@ namespace BitFaster.Caching.Synchronized
             return atomicFactory.GetValue(key, valueFactory);
         }
 
-        public Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
-        {
-            throw new NotImplementedException();
-        }
-
         public void Trim(int itemCount)
         {
             this.cache.Trim(itemCount);
