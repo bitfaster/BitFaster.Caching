@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.Lru
+namespace BitFaster.Caching
 {
     /// <summary>
     /// Provides data for the ItemRemoved event.
@@ -21,9 +21,9 @@ namespace BitFaster.Caching.Lru
         /// <param name="reason">The reason the item was removed from the cache.</param>
         public ItemRemovedEventArgs(K key, V value, ItemRemovedReason reason)
         {
-            this.Key = key;
-            this.Value = value;
-            this.Reason = reason;
+            Key = key;
+            Value = value;
+            Reason = reason;
         }
 
         /// <summary>

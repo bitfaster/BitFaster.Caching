@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.Lru
+namespace BitFaster.Caching
 {
     /// <summary>
     /// Specifies the reason an item was removed from the Cache.
