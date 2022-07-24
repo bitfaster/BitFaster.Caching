@@ -15,7 +15,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void TestFastLru()
         {
-            var lru = new ConcurrentLruBuilder<int, int>()
+            ICache<int, int> lru = new ConcurrentLruBuilder<int, int>()
                 .Build();
 
             lru.Should().BeOfType<FastConcurrentLru<int, int>>();
@@ -24,7 +24,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void TestMetricsLru()
         {
-            var lru = new ConcurrentLruBuilder<int, int>()
+            ICache<int, int> lru = new ConcurrentLruBuilder<int, int>()
                 .WithMetrics()
                 .Build();
 
@@ -34,7 +34,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void TestFastTLru()
         {
-            var lru = new ConcurrentLruBuilder<int, int>()
+            ICache<int, int> lru = new ConcurrentLruBuilder<int, int>()
                 .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
                 .Build();
 
@@ -44,9 +44,54 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void TestMetricsTLru()
         {
-            var lru = new ConcurrentLruBuilder<int, int>()
+            ICache<int, int> lru = new ConcurrentLruBuilder<int, int>()
                  .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
                  .WithMetrics()
+                 .Build();
+
+            lru.Should().BeOfType<ConcurrentTLru<int, int>>();
+            lru.Capacity.Should().Be(128);
+        }
+
+        [Fact]
+        public void AsAsyncTestFastLru()
+        {
+            IAsyncCache<int, int> lru = new ConcurrentLruBuilder<int, int>()
+                .AsAsyncCache()
+                .Build();
+
+            lru.Should().BeOfType<FastConcurrentLru<int, int>>();
+        }
+
+        [Fact]
+        public void AsAsyncTestMetricsLru()
+        {
+            IAsyncCache<int, int> lru = new ConcurrentLruBuilder<int, int>()
+                .WithMetrics()
+                .AsAsyncCache()
+                .Build();
+
+            lru.Should().BeOfType<ConcurrentLru<int, int>>();
+        }
+
+        [Fact]
+        public void AsAsyncTestFastTLru()
+        {
+            IAsyncCache<int, int> lru = new ConcurrentLruBuilder<int, int>()
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .AsAsyncCache()
+                .Build();
+
+            lru.Should().BeOfType<FastConcurrentTLru<int, int>>();
+        }
+
+        [Fact]
+        public void AsAsyncTestMetricsTLru()
+        {
+            IAsyncCache<int, int> lru = new ConcurrentLruBuilder<int, int>()
+                 .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                 .WithMetrics()
+                 .AsAsyncCache()
                  .Build();
 
             lru.Should().BeOfType<ConcurrentTLru<int, int>>();
@@ -57,7 +102,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void TestComparer()
         {
-            var fastLru = new ConcurrentLruBuilder<string, int>()
+            ICache<string, int> fastLru = new ConcurrentLruBuilder<string, int>()
                 .WithKeyComparer(StringComparer.OrdinalIgnoreCase)
                 .Build();
 
@@ -79,7 +124,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void TestIntCapacity()
         {
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            ICache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithCapacity(3)
                 .Build();
 
@@ -89,7 +134,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void TestPartitionCapacity()
         {
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            ICache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithCapacity(new FavorFrequencyPartition(6))
                 .Build();
 
@@ -150,7 +195,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithScopedValues()
         {
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            IScopedCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithScopedValues()
                 .WithCapacity(3)
                 .Build();
@@ -163,7 +208,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithAtomicFactory()
         {
-            var lru = new ConcurrentLruBuilder<int, int>()
+            ICache<int, int> lru = new ConcurrentLruBuilder<int, int>()
                 .WithAtomicCreate()
                 .WithCapacity(3)
                 .Build();
@@ -175,7 +220,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void AsAsync()
         {
-            var lru = new ConcurrentLruBuilder<int, int>()
+            IAsyncCache<int, int> lru = new ConcurrentLruBuilder<int, int>()
                 .AsAsyncCache()
                 .WithCapacity(3)
                 .Build();
@@ -187,7 +232,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithAtomicWithScope()
         {
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            IScopedCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithAtomicCreate()
                 .WithScopedValues()
                 .WithCapacity(3)
@@ -201,7 +246,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithScopedWithAtomic()
         {
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            IScopedCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithScopedValues()
                 .WithAtomicCreate()
                 .WithCapacity(3)
@@ -215,7 +260,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void AsAsyncWithScoped()
         {
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsAsyncCache()
                 .WithScopedValues()
                 .WithCapacity(3)
@@ -230,7 +275,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithScopedAsAsync()
         {
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithScopedValues()
                 .AsAsyncCache()           
                 .WithCapacity(3)
@@ -244,7 +289,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithAtomicAsAsync()
         {
-            var lru = new ConcurrentLruBuilder<int, int>()
+            IAsyncCache<int, int> lru = new ConcurrentLruBuilder<int, int>()
                 .WithAtomicCreate()
                 .AsAsyncCache()
                 .WithCapacity(3)
@@ -257,7 +302,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void AsAsyncWithAtomic()
         {
-            var lru = new ConcurrentLruBuilder<int, int>()
+            IAsyncCache<int, int> lru = new ConcurrentLruBuilder<int, int>()
                 .AsAsyncCache()
                 .WithAtomicCreate()
                 .WithCapacity(3)
@@ -272,7 +317,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             // TODO: this will not resolve a TLru
 
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithAtomicCreate()
                 .WithScopedValues()
                 .AsAsyncCache()
@@ -288,7 +333,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             // TODO: this will not resolve a TLru
 
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithAtomicCreate()
                 .AsAsyncCache()
                 .WithScopedValues()
@@ -304,7 +349,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             // TODO: this will not resolve a TLru
 
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithScopedValues()
                 .WithAtomicCreate()
                 .AsAsyncCache()
@@ -320,7 +365,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             // TODO: this will not resolve a TLru
 
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .WithScopedValues()
                 .AsAsyncCache()
                 .WithAtomicCreate()
@@ -336,7 +381,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             // TODO: this will not resolve a TLru
 
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsAsyncCache()
                 .WithScopedValues()
                 .WithAtomicCreate()
@@ -352,7 +397,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             // TODO: this will not resolve a TLru
 
-            var lru = new ConcurrentLruBuilder<int, Disposable>()
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsAsyncCache()
                 .WithAtomicCreate()
                 .WithScopedValues()
@@ -361,25 +406,5 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
         }
-
-        //[Fact]
-        //      public async Task ScopedPOC()
-        //      {
-        //          // Choose from 16 combinations of Lru/TLru, Instrumented/NotInstrumented, Atomic create/not atomic create, scoped/not scoped
-
-        //          // layer 1: can choose ConcurrentLru/TLru, FastConcurrentLru/FastConcurrentTLru 
-        //          var c = new ConcurrentLru<int, AsyncAtomicFactory<int, Scoped<Disposable>>>(3);
-
-        //          // layer 2: optional atomic creation
-        //          var atomic = new AtomicFactoryCache<int, Scoped<Disposable>>(c);
-
-        //          // layer 3: optional scoping
-        //          IScopedCache<int, Disposable> scoped = new ScopedCache<int, Disposable>(atomic);
-
-        //          using (var lifetime = await scoped.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable()))))
-        //          {
-        //              var d = lifetime.Value;
-        //          }
-        //      }
     }
 }

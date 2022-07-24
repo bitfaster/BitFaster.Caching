@@ -64,11 +64,6 @@ namespace BitFaster.Caching.Synchronized
             }
         }
 
-        public Task<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
-        {
-            throw new NotImplementedException();
-        }
-
         public bool ScopedTryGet(K key, out Lifetime<V> lifetime)
         {
             if (this.cache.TryGet(key, out var scope))
