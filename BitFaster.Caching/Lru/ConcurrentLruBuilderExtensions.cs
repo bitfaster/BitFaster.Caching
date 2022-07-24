@@ -11,56 +11,56 @@ namespace BitFaster.Caching.Lru
     public static class ConcurrentLruBuilderExtensions
     {
         /// <summary>
-        /// Wrap IDisposable values in a lifetime scope. Scoped caches return lifetimes that prevent
+        /// Build an IScopedCache. IDisposable values are wrapped in a lifetime scope. Scoped caches return lifetimes that prevent
         /// values from being disposed until the calling code completes.
         /// </summary>
         /// <typeparam name="K">The type of keys in the cache.</typeparam>
         /// <typeparam name="V">The type of values in the cache.</typeparam>
         /// <param name="builder">The ConcurrentLruBuilder to chain method calls onto.</param>
         /// <returns>A ScopedConcurrentLruBuilder.</returns>
-        public static ScopedConcurrentLruBuilder<K, V, Scoped<V>> WithScopedValues<K, V>(this ConcurrentLruBuilder<K, V> builder) where V : IDisposable
+        public static ScopedConcurrentLruBuilder<K, V, Scoped<V>> AsScopedCache<K, V>(this ConcurrentLruBuilder<K, V> builder) where V : IDisposable
         {
             var convertBuilder = new ConcurrentLruBuilder<K, Scoped<V>>(builder.info);
             return new ScopedConcurrentLruBuilder<K, V, Scoped<V>>(convertBuilder);
         }
 
         /// <summary>
-        /// Wrap IDisposable values in a lifetime scope. Scoped caches return lifetimes that prevent
+        /// Build an IScopedCache. IDisposable values are wrapped in a lifetime scope. Scoped caches return lifetimes that prevent
         /// values from being disposed until the calling code completes.
         /// </summary>
         /// <typeparam name="K">The type of keys in the cache.</typeparam>
         /// <typeparam name="V">The type of values in the cache.</typeparam>
         /// <param name="builder">The AtomicConcurrentLruBuilder to chain method calls onto.</param>
         /// <returns>An AtomicScopedConcurrentLruBuilder.</returns>
-        public static AtomicScopedConcurrentLruBuilder<K, V> WithScopedValues<K, V>(this AtomicConcurrentLruBuilder<K, V> builder) where V : IDisposable
+        public static AtomicScopedConcurrentLruBuilder<K, V> AsScopedCache<K, V>(this AtomicConcurrentLruBuilder<K, V> builder) where V : IDisposable
         {
             var convertBuilder = new ConcurrentLruBuilder<K, ScopedAtomicFactory<K, V>>(builder.info);
             return new AtomicScopedConcurrentLruBuilder<K, V>(convertBuilder);
         }
 
         /// <summary>
-        /// Wrap IDisposable values in a lifetime scope. Scoped caches return lifetimes that prevent
+        /// Build an IScopedAsyncCache. IDisposable values are wrapped in a lifetime scope. Scoped caches return lifetimes that prevent
         /// values from being disposed until the calling code completes.
         /// </summary>
         /// <typeparam name="K">The type of keys in the cache.</typeparam>
         /// <typeparam name="V">The type of values in the cache.</typeparam>
         /// <param name="builder">The AsyncConcurrentLruBuilder to chain method calls onto.</param>
         /// <returns>A ScopedAsyncConcurrentLruBuilder.</returns>
-        public static ScopedAsyncConcurrentLruBuilder<K, V> WithScopedValues<K, V>(this AsyncConcurrentLruBuilder<K, V> builder) where V : IDisposable
+        public static ScopedAsyncConcurrentLruBuilder<K, V> AsScopedCache<K, V>(this AsyncConcurrentLruBuilder<K, V> builder) where V : IDisposable
         {
             var convertBuilder = new AsyncConcurrentLruBuilder<K, Scoped<V>>(builder.info);
             return new ScopedAsyncConcurrentLruBuilder<K, V>(convertBuilder);
         }
 
         /// <summary>
-        /// Wrap IDisposable values in a lifetime scope. Scoped caches return lifetimes that prevent
+        /// Build an IScopedAsyncCache. IDisposable values are wrapped in a lifetime scope. Scoped caches return lifetimes that prevent
         /// values from being disposed until the calling code completes.
         /// </summary>
         /// <typeparam name="K">The type of keys in the cache.</typeparam>
         /// <typeparam name="V">The type of values in the cache.</typeparam>
         /// <param name="builder">The AtomicAsyncConcurrentLruBuilder to chain method calls onto.</param>
         /// <returns>An AtomicScopedAsyncConcurrentLruBuilder.</returns>
-        public static AtomicScopedAsyncConcurrentLruBuilder<K, V> WithScopedValues<K, V>(this AtomicAsyncConcurrentLruBuilder<K, V> builder) where V : IDisposable
+        public static AtomicScopedAsyncConcurrentLruBuilder<K, V> AsScopedCache<K, V>(this AtomicAsyncConcurrentLruBuilder<K, V> builder) where V : IDisposable
         {
             var convertBuilder = new AsyncConcurrentLruBuilder<K, ScopedAsyncAtomicFactory<K, V>>(builder.info);
             return new AtomicScopedAsyncConcurrentLruBuilder<K, V>(convertBuilder);
@@ -74,7 +74,7 @@ namespace BitFaster.Caching.Lru
         /// <typeparam name="V">The type of values in the cache.</typeparam>
         /// <param name="builder">The ConcurrentLruBuilder to chain method calls onto.</param>
         /// <returns>An AtomicConcurrentLruBuilder.</returns>
-        public static AtomicConcurrentLruBuilder<K, V> WithAtomicCreate<K, V>(this ConcurrentLruBuilder<K, V> builder)
+        public static AtomicConcurrentLruBuilder<K, V> WithAtomicValueFactory<K, V>(this ConcurrentLruBuilder<K, V> builder)
         {
             var convertBuilder = new ConcurrentLruBuilder<K, AtomicFactory<K, V>>(builder.info);
             return new AtomicConcurrentLruBuilder<K, V>(convertBuilder);
@@ -89,7 +89,7 @@ namespace BitFaster.Caching.Lru
         /// <typeparam name="W">The wrapped value type.</typeparam>
         /// <param name="builder">The ScopedConcurrentLruBuilder to chain method calls onto.</param>
         /// <returns>An AtomicScopedConcurrentLruBuilder.</returns>
-        public static AtomicScopedConcurrentLruBuilder<K, V> WithAtomicCreate<K, V, W>(this ScopedConcurrentLruBuilder<K, V, W> builder) where V : IDisposable where W : IScoped<V>
+        public static AtomicScopedConcurrentLruBuilder<K, V> WithAtomicValueFactory<K, V, W>(this ScopedConcurrentLruBuilder<K, V, W> builder) where V : IDisposable where W : IScoped<V>
         {
             var convertBuilder = new ConcurrentLruBuilder<K, ScopedAtomicFactory<K, V>>(builder.info);
             return new AtomicScopedConcurrentLruBuilder<K, V>(convertBuilder);
@@ -103,7 +103,7 @@ namespace BitFaster.Caching.Lru
         /// <typeparam name="V">The type of values in the cache.</typeparam>
         /// <param name="builder">The AsyncConcurrentLruBuilder to chain method calls onto.</param>
         /// <returns>An AtomicAsyncConcurrentLruBuilder.</returns>
-        public static AtomicAsyncConcurrentLruBuilder<K, V> WithAtomicCreate<K, V>(this AsyncConcurrentLruBuilder<K, V> builder)
+        public static AtomicAsyncConcurrentLruBuilder<K, V> WithAtomicValueFactory<K, V>(this AsyncConcurrentLruBuilder<K, V> builder)
         {
             var convertBuilder = new ConcurrentLruBuilder<K, AsyncAtomicFactory<K, V>>(builder.info);
             return new AtomicAsyncConcurrentLruBuilder<K, V>(convertBuilder);
@@ -117,7 +117,7 @@ namespace BitFaster.Caching.Lru
         /// <typeparam name="V">The type of values in the cache.</typeparam>
         /// <param name="builder">The ScopedAsyncConcurrentLruBuilder to chain method calls onto.</param>
         /// <returns>An AtomicScopedAsyncConcurrentLruBuilder.</returns>
-        public static AtomicScopedAsyncConcurrentLruBuilder<K, V> WithAtomicCreate<K, V>(this ScopedAsyncConcurrentLruBuilder<K, V> builder) where V : IDisposable
+        public static AtomicScopedAsyncConcurrentLruBuilder<K, V> WithAtomicValueFactory<K, V>(this ScopedAsyncConcurrentLruBuilder<K, V> builder) where V : IDisposable
         {
             var convertBuilder = new AsyncConcurrentLruBuilder<K, ScopedAsyncAtomicFactory<K, V>>(builder.info);
             return new AtomicScopedAsyncConcurrentLruBuilder<K, V>(convertBuilder);
