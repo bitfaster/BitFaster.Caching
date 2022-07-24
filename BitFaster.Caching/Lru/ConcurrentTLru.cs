@@ -47,22 +47,6 @@ namespace BitFaster.Caching.Lru
         }
 
         /// <summary>
-        /// Gets the ratio of hits to misses, where a value of 1 indicates 100% hits.
-        /// </summary>
-        [ObsoleteAttribute("This property is obsolete. Use Metrics instead.", false)]
-        public double HitRatio => this.telemetryPolicy.HitRatio;
-
-        /// <summary>
-        /// Occurs when an item is removed from the cache.
-        /// </summary>
-        [ObsoleteAttribute("This property is obsolete. Use Events instead.", false)]
-        public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
-        {
-            add { this.Events.ItemRemoved += value; }
-            remove { this.Events.ItemRemoved -= value; }
-        }
-
-        /// <summary>
         /// Remove all expired items from the cache.
         /// </summary>
         /// <remarks>O(n) where n is the number of items in the cache.</remarks>
