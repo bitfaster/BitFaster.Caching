@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -167,6 +168,46 @@ namespace BitFaster.Caching.UnitTests
             this.cache.AddOrUpdate(1, new Disposable());
 
             this.cache.TryUpdate(1, new Disposable()).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenItemsAddedKeysContainsTheKeys()
+        {
+            cache.Count.Should().Be(0);
+            cache.AddOrUpdate(1, new Disposable());
+            cache.AddOrUpdate(2, new Disposable());
+            cache.Keys.Should().BeEquivalentTo(new[] { 1, 2 });
+        }
+
+        [Fact]
+        public void WhenItemsAddedGenericEnumerateContainsKvps()
+        {
+            var d1 = new Disposable();
+            var d2 = new Disposable();
+
+            cache.Count.Should().Be(0);
+            cache.AddOrUpdate(1, d1);
+            cache.AddOrUpdate(2, d2);
+            cache
+                .Select(kvp => new KeyValuePair<int, Disposable>(kvp.Key, kvp.Value.CreateLifetime().Value))
+                .Should().BeEquivalentTo(new[] { new KeyValuePair<int, Disposable>(1, d1), new KeyValuePair<int, Disposable>(2, d2) });
+        }
+
+        [Fact]
+        public void WhenItemsAddedEnumerateContainsKvps()
+        {
+            var d1 = new Disposable();
+            var d2 = new Disposable();
+
+            cache.Count.Should().Be(0);
+            cache.AddOrUpdate(1, d1);
+            cache.AddOrUpdate(2, d2);
+
+            var enumerable = (IEnumerable)cache;
+            enumerable            
+                .Cast<KeyValuePair<int, Scoped<Disposable>>>()
+                .Select(kvp => new KeyValuePair<int, Disposable>(kvp.Key, kvp.Value.CreateLifetime().Value))
+                .Should().BeEquivalentTo(new[] { new KeyValuePair<int, Disposable>(1, d1), new KeyValuePair<int, Disposable>(2, d2) });
         }
 
         protected void OnItemRemoved(object sender, ItemRemovedEventArgs<int, Scoped<Disposable>> e)
