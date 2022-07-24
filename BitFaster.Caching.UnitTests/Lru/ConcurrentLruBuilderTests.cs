@@ -196,7 +196,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WithScopedValues()
         {
             IScopedCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithScopedValues()
+                .AsScopedCache()
                 .WithCapacity(3)
                 .Build();
 
@@ -209,7 +209,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WithAtomicFactory()
         {
             ICache<int, int> lru = new ConcurrentLruBuilder<int, int>()
-                .WithAtomicCreate()
+                .WithAtomicValueFactory()
                 .WithCapacity(3)
                 .Build();
 
@@ -233,8 +233,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WithAtomicWithScope()
         {
             IScopedCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithAtomicCreate()
-                .WithScopedValues()
+                .WithAtomicValueFactory()
+                .AsScopedCache()
                 .WithCapacity(3)
                 .Build();
 
@@ -247,8 +247,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WithScopedWithAtomic()
         {
             IScopedCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithScopedValues()
-                .WithAtomicCreate()
+                .AsScopedCache()
+                .WithAtomicValueFactory()
                 .WithCapacity(3)
                 .Build();
 
@@ -262,7 +262,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsAsyncCache()
-                .WithScopedValues()
+                .AsScopedCache()
                 .WithCapacity(3)
                 .Build();
 
@@ -276,7 +276,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WithScopedAsAsync()
         {
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithScopedValues()
+                .AsScopedCache()
                 .AsAsyncCache()           
                 .WithCapacity(3)
                 .Build();
@@ -290,7 +290,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WithAtomicAsAsync()
         {
             IAsyncCache<int, int> lru = new ConcurrentLruBuilder<int, int>()
-                .WithAtomicCreate()
+                .WithAtomicValueFactory()
                 .AsAsyncCache()
                 .WithCapacity(3)
                 .Build();
@@ -304,7 +304,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             IAsyncCache<int, int> lru = new ConcurrentLruBuilder<int, int>()
                 .AsAsyncCache()
-                .WithAtomicCreate()
+                .WithAtomicValueFactory()
                 .WithCapacity(3)
                 .Build();
 
@@ -315,11 +315,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithAtomicWithScopedAsAsync()
         {
-            // TODO: this will not resolve a TLru
-
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithAtomicCreate()
-                .WithScopedValues()
+                .WithAtomicValueFactory()
+                .AsScopedCache()
                 .AsAsyncCache()
                 .WithCapacity(3)
                 .Build();
@@ -331,12 +329,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithAtomicAsAsyncWithScoped()
         {
-            // TODO: this will not resolve a TLru
-
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithAtomicCreate()
+                .WithAtomicValueFactory()
                 .AsAsyncCache()
-                .WithScopedValues()
+                .AsScopedCache()
                 .WithCapacity(3)
                 .Build();
 
@@ -347,11 +343,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithScopedWithAtomicAsAsync()
         {
-            // TODO: this will not resolve a TLru
-
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithScopedValues()
-                .WithAtomicCreate()
+                .AsScopedCache()
+                .WithAtomicValueFactory()
                 .AsAsyncCache()
                 .WithCapacity(3)
                 .Build();
@@ -363,12 +357,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WithScopedAsAsyncWithAtomic()
         {
-            // TODO: this will not resolve a TLru
-
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithScopedValues()
+                .AsScopedCache()
                 .AsAsyncCache()
-                .WithAtomicCreate()
+                .WithAtomicValueFactory()
                 .WithCapacity(3)
                 .Build();
 
@@ -379,12 +371,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void AsAsyncWithScopedWithAtomic()
         {
-            // TODO: this will not resolve a TLru
-
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsAsyncCache()
-                .WithScopedValues()
-                .WithAtomicCreate()
+                .AsScopedCache()
+                .WithAtomicValueFactory()
                 .WithCapacity(3)
                 .Build();
 
@@ -395,12 +385,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void AsAsyncWithAtomicWithScoped()
         {
-            // TODO: this will not resolve a TLru
-
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsAsyncCache()
-                .WithAtomicCreate()
-                .WithScopedValues()
+                .WithAtomicValueFactory()
+                .AsScopedCache()
                 .WithCapacity(3)
                 .Build();
 

@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru.Builder
 {
-    public sealed class ScopedAsyncLruBuilder<K, V> : LruBuilderBase<K, V, ScopedAsyncLruBuilder<K, V>, IScopedAsyncCache<K, V>> where V : IDisposable
+    public sealed class ScopedAsyncConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, ScopedAsyncConcurrentLruBuilder<K, V>, IScopedAsyncCache<K, V>> where V : IDisposable
     {
         private readonly AsyncConcurrentLruBuilder<K, Scoped<V>> inner;
 
-        internal ScopedAsyncLruBuilder(AsyncConcurrentLruBuilder<K, Scoped<V>> inner)
+        internal ScopedAsyncConcurrentLruBuilder(AsyncConcurrentLruBuilder<K, Scoped<V>> inner)
             : base(inner.info)
         {
             this.inner = inner;

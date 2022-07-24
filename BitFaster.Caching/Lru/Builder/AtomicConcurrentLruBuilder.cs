@@ -7,11 +7,11 @@ using BitFaster.Caching.Synchronized;
 
 namespace BitFaster.Caching.Lru.Builder
 {
-    public class AtomicLruBuilder<K, V> : LruBuilderBase<K, V, AtomicLruBuilder<K, V>, ICache<K, V>>
+    public class AtomicConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, AtomicConcurrentLruBuilder<K, V>, ICache<K, V>>
     {
         private readonly ConcurrentLruBuilder<K, AtomicFactory<K, V>> inner;
 
-        internal AtomicLruBuilder(ConcurrentLruBuilder<K, AtomicFactory<K, V>> inner)
+        internal AtomicConcurrentLruBuilder(ConcurrentLruBuilder<K, AtomicFactory<K, V>> inner)
             : base(inner.info)
         {
             this.inner = inner;
