@@ -48,7 +48,7 @@ namespace BitFaster.Caching
         /// <param name="key">The key of the element to add.</param>
         /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
         /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
-        Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory);
+        ValueTask<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory);
 
         /// <summary>
         /// Attempts to remove the value that has the specified key.

@@ -98,7 +98,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var winningNumber = 0;
             var winnerCount = 0;
 
-            Task<(bool r, Lifetime<IntHolder> l)> first = atomicFactory.TryCreateLifetimeAsync(1, async k =>
+            ValueTask<(bool r, Lifetime<IntHolder> l)> first = atomicFactory.TryCreateLifetimeAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;
@@ -108,7 +108,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
                 return new Scoped<IntHolder>(new IntHolder() { actualNumber = 1 });
             });
 
-            Task<(bool r, Lifetime<IntHolder> l)> second = atomicFactory.TryCreateLifetimeAsync(1, async k =>
+            ValueTask<(bool r, Lifetime<IntHolder> l)> second = atomicFactory.TryCreateLifetimeAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;
@@ -142,7 +142,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>();
             var holder = new IntHolder() { actualNumber = 1 };
 
-            Task<(bool r, Lifetime<IntHolder> l)> first = atomicFactory.TryCreateLifetimeAsync(1, async k =>
+            ValueTask<(bool r, Lifetime<IntHolder> l)> first = atomicFactory.TryCreateLifetimeAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;
@@ -171,7 +171,7 @@ namespace BitFaster.Caching.UnitTests.Synchronized
             var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>();
             var holder = new IntHolder() { actualNumber = 1 };
 
-            Task<(bool r, Lifetime<IntHolder> l)> first = atomicFactory.TryCreateLifetimeAsync(1, async k =>
+            ValueTask<(bool r, Lifetime<IntHolder> l)> first = atomicFactory.TryCreateLifetimeAsync(1, async k =>
             {
                 enter.SetResult(true);
                 await resume.Task;

@@ -40,7 +40,7 @@ namespace BitFaster.Caching.Synchronized
             cache.Clear();
         }
 
-        public Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
+        public ValueTask<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
             var synchronized = cache.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
             return synchronized.GetValueAsync(key, valueFactory);

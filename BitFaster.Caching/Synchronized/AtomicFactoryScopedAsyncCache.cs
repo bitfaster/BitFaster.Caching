@@ -41,7 +41,7 @@ namespace BitFaster.Caching.Synchronized
             this.cache.Clear();
         }
 
-        public async Task<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+        public async ValueTask<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             int c = 0;
             var spinwait = new SpinWait();

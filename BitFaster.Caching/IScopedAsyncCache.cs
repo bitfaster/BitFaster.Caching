@@ -53,7 +53,7 @@ namespace BitFaster.Caching
         /// <param name="key">The key of the element to add.</param>
         /// <param name="valueFactory">The factory function used to asynchronously generate a scoped value for the key.</param>
         /// <returns>A task that represents the asynchronous ScopedGetOrAdd operation.</returns>
-        Task<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory);
+        ValueTask<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory);
 
         /// <summary>
         /// Attempts to remove the value that has the specified key.

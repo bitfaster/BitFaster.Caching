@@ -26,7 +26,7 @@ namespace BitFaster.Caching.Synchronized
             this.value = value;
         }
 
-        public async Task<V> GetValueAsync(K key, Func<K, Task<V>> valueFactory)
+        public async ValueTask<V> GetValueAsync(K key, Func<K, Task<V>> valueFactory)
         {
             if (initializer == null)
             {
@@ -51,7 +51,7 @@ namespace BitFaster.Caching.Synchronized
             }
         }
 
-        private async Task<V> CreateValueAsync(K key, Func<K, Task<V>> valueFactory)
+        private async ValueTask<V> CreateValueAsync(K key, Func<K, Task<V>> valueFactory)
         {
             var init = initializer;
 
@@ -70,7 +70,7 @@ namespace BitFaster.Caching.Synchronized
             private bool isInitialized;
             private Task<V> valueTask;
 
-            public async Task<V> CreateValueAsync(K key, Func<K, Task<V>> valueFactory)
+            public async ValueTask<V> CreateValueAsync(K key, Func<K, Task<V>> valueFactory)
             {
                 var tcs = new TaskCompletionSource<V>(TaskCreationOptions.RunContinuationsAsynchronously);
 

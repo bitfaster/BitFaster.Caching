@@ -46,7 +46,7 @@ namespace BitFaster.Caching.Synchronized
             return scope.TryCreateLifetime(out lifetime);
         }
 
-        public async Task<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+        public async ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             // if disposed, return
             if (scope?.IsDisposed ?? false)
@@ -64,7 +64,7 @@ namespace BitFaster.Caching.Synchronized
             return (res, lifetime);
         }
 
-        private async Task InitializeScopeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+        private async ValueTask InitializeScopeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             var init = initializer;
 
@@ -97,7 +97,7 @@ namespace BitFaster.Caching.Synchronized
             private bool isDisposeRequested;
             private Task<Scoped<V>> task;
 
-            public async Task<Scoped<V>> CreateScopeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+            public async ValueTask<Scoped<V>> CreateScopeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
             {
                 var tcs = new TaskCompletionSource<Scoped<V>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
