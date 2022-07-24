@@ -44,6 +44,8 @@ namespace BitFaster.Caching.Benchmarks
         private static readonly FastConcurrentLru<int, int> fastConcurrentLru = new FastConcurrentLru<int, int>(8, 9, EqualityComparer<int>.Default);
         private static readonly FastConcurrentTLru<int, int> fastConcurrentTLru = new FastConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
 
+        private static readonly ICache<int, int> atomicFastLru = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithAtomicCreate().Build();
+
         private static readonly int key = 1;
         private static System.Runtime.Caching.MemoryCache memoryCache = System.Runtime.Caching.MemoryCache.Default;
 
@@ -76,6 +78,13 @@ namespace BitFaster.Caching.Benchmarks
         {
             Func<int, int> func = x => x;
             concurrentLru.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void AtomicFastLru()
+        {
+            Func<int, int> func = x => x;
+            atomicFastLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
