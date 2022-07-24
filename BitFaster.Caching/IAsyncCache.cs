@@ -11,7 +11,7 @@ namespace BitFaster.Caching
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
-    public interface IAsyncCache<K, V>
+    public interface IAsyncCache<K, V> : IEnumerable<KeyValuePair<K, V>>
     {
         /// <summary>
         /// Gets the total number of items that can be stored in the cache.
@@ -32,6 +32,11 @@ namespace BitFaster.Caching
         /// Gets the cache events.
         /// </summary>
         ICacheEvents<K, V> Events { get; }
+
+        /// <summary>
+        /// Gets a collection containing the keys in the cache.
+        /// </summary>
+        ICollection<K> Keys { get; }
 
         /// <summary>
         /// Attempts to get the value associated with the specified key from the cache.

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,6 +30,8 @@ namespace BitFaster.Caching.Synchronized
         public ICacheMetrics Metrics => this.cache.Metrics;
 
         public ICacheEvents<K, V> Events => this.eventProxy;
+
+        public ICollection<K> Keys => this.cache.Keys;
 
         public void AddOrUpdate(K key, V value)
         {
@@ -74,6 +77,19 @@ namespace BitFaster.Caching.Synchronized
         public bool TryUpdate(K key, V value)
         {
             return cache.TryUpdate(key, new AtomicFactory<K, V>(value));
+        }
+
+        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
+        {
+            foreach (var kvp in this.cache)
+            {
+                yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.ValueIfCreated);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((AtomicFactoryCache<K, V>)this).GetEnumerator();
         }
 
         private class EventProxy : CacheEventProxyBase<K, AtomicFactory<K, V>, V>
