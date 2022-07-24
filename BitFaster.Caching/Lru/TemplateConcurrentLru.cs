@@ -184,7 +184,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
-        public async Task<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
+        public async ValueTask<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
             while (true)
             {
