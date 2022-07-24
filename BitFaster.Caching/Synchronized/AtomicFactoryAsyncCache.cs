@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -74,6 +75,19 @@ namespace BitFaster.Caching.Synchronized
         public bool TryUpdate(K key, V value)
         {
             return cache.TryUpdate(key, new AsyncAtomicFactory<K, V>(value));
+        }
+
+        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
+        {
+            foreach (var kvp in this.cache)
+            {
+                yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.ValueIfCreated);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((AtomicFactoryAsyncCache<K, V>)this).GetEnumerator();
         }
 
         private class EventProxy : CacheEventProxyBase<K, AsyncAtomicFactory<K, V>, V>

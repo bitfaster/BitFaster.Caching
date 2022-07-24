@@ -11,7 +11,7 @@ namespace BitFaster.Caching
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
-    public interface IScopedCache<K, V> where V : IDisposable
+    public interface IScopedCache<K, V>  where V : IDisposable
     {
         /// <summary>
         /// Gets the total number of items that can be stored in the cache.
