@@ -24,7 +24,7 @@ namespace BitFaster.Caching.Lru
     public sealed class ConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, ConcurrentLruBuilder<K, V>, ICache<K, V>>
     {
         /// <summary>
-        /// Creates a ConcurrentLruBuilder.
+        /// Creates a ConcurrentLruBuilder. Chain method calls onto ConcurrentLruBuilder to configure the cache then call Build to create a cache instance.
         /// </summary>
         public ConcurrentLruBuilder()
             : base(new LruInfo<K>())
