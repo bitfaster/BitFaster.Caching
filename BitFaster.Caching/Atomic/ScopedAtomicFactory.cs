@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.Synchronized
+namespace BitFaster.Caching.Atomic
 {
     // Requirements:
     // 1. Exactly once disposal.

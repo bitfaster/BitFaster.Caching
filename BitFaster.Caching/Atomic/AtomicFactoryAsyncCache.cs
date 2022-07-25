@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.Synchronized
+namespace BitFaster.Caching.Atomic
 {
     public sealed class AtomicFactoryAsyncCache<K, V> : IAsyncCache<K, V>
     {

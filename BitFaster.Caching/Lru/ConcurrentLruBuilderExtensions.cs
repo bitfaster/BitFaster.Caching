@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru.Builder;
-using BitFaster.Caching.Synchronized;
+using BitFaster.Caching.Atomic;
 
 namespace BitFaster.Caching.Lru
 {

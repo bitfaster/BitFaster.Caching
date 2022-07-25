@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BitFaster.Caching.Synchronized;
+using BitFaster.Caching.Atomic;
 using FluentAssertions;
 using Xunit;
 
-namespace BitFaster.Caching.UnitTests.Synchronized
+namespace BitFaster.Caching.UnitTests.Atomic
 {
     public class ScopedAtomicFactoryTests
     {
