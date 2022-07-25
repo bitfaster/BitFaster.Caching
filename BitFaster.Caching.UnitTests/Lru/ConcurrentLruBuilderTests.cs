@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
-using BitFaster.Caching.Synchronized;
+using BitFaster.Caching.Atomic;
 using FluentAssertions;
 using Xunit;
 

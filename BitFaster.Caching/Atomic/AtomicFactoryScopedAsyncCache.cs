@@ -6,14 +6,14 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BitFaster.Caching.Synchronized
+namespace BitFaster.Caching.Atomic
 {
-    public sealed class AtomicFactoryScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
+    public sealed class AtomicFactoryScopedAsyncCache<K, V> : IScopedAsyncCache<K, V> where V : IDisposable
     {
-        private readonly ICache<K, ScopedAtomicFactory<K, V>> cache;
+        private readonly ICache<K, ScopedAsyncAtomicFactory<K, V>> cache;
         private readonly EventProxy eventProxy;
 
-        public AtomicFactoryScopedCache(ICache<K, ScopedAtomicFactory<K, V>> cache)
+        public AtomicFactoryScopedAsyncCache(ICache<K, ScopedAsyncAtomicFactory<K, V>> cache)
         {
             if (cache == null)
             {
@@ -37,7 +37,7 @@ namespace BitFaster.Caching.Synchronized
 
         public void AddOrUpdate(K key, V value)
         {
-            this.cache.AddOrUpdate(key, new ScopedAtomicFactory<K, V>(value));
+            this.cache.AddOrUpdate(key, new ScopedAsyncAtomicFactory<K, V>(value));
         }
 
         public void Clear()
@@ -45,17 +45,19 @@ namespace BitFaster.Caching.Synchronized
             this.cache.Clear();
         }
 
-        public Lifetime<V> ScopedGetOrAdd(K key, Func<K, Scoped<V>> valueFactory)
+        public async ValueTask<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             int c = 0;
             var spinwait = new SpinWait();
             while (true)
             {
-                var scope = cache.GetOrAdd(key, _ => new ScopedAtomicFactory<K, V>());
+                var scope = cache.GetOrAdd(key, _ => new ScopedAsyncAtomicFactory<K, V>());
 
-                if (scope.TryCreateLifetime(key, valueFactory, out var lifetime))
+                var result = await scope.TryCreateLifetimeAsync(key, valueFactory).ConfigureAwait(false);
+
+                if (result.success)
                 {
-                    return lifetime;
+                    return result.lifetime;
                 }
 
                 spinwait.SpinOnce();
@@ -93,7 +95,7 @@ namespace BitFaster.Caching.Synchronized
 
         public bool TryUpdate(K key, V value)
         {
-            return this.cache.TryUpdate(key, new ScopedAtomicFactory<K, V>(value));
+            return this.cache.TryUpdate(key, new ScopedAsyncAtomicFactory<K, V>(value));
         }
 
         public IEnumerator<KeyValuePair<K, Scoped<V>>> GetEnumerator()
@@ -106,17 +108,17 @@ namespace BitFaster.Caching.Synchronized
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return ((AtomicFactoryScopedCache<K, V>)this).GetEnumerator();
+            return ((AtomicFactoryScopedAsyncCache<K, V>)this).GetEnumerator();
         }
 
-        private class EventProxy : CacheEventProxyBase<K, ScopedAtomicFactory<K, V>, Scoped<V>>
+        private class EventProxy : CacheEventProxyBase<K, ScopedAsyncAtomicFactory<K, V>, Scoped<V>>
         {
-            public EventProxy(ICacheEvents<K, ScopedAtomicFactory<K, V>> inner) 
+            public EventProxy(ICacheEvents<K, ScopedAsyncAtomicFactory<K, V>> inner)
                 : base(inner)
             {
             }
 
-            protected override ItemRemovedEventArgs<K, Scoped<V>> TranslateOnRemoved(ItemRemovedEventArgs<K, ScopedAtomicFactory<K, V>> inner)
+            protected override ItemRemovedEventArgs<K, Scoped<V>> TranslateOnRemoved(ItemRemovedEventArgs<K, ScopedAsyncAtomicFactory<K, V>> inner)
             {
                 return new ItemRemovedEventArgs<K, Scoped<V>>(inner.Key, inner.Value.ScopeIfCreated, inner.Reason);
             }
