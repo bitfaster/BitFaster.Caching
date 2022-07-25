@@ -20,7 +20,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     {
         // if the cache value is a value type, value task has no effect - so use string to repro.
         private static readonly IAsyncCache<int, string> concurrentLru = new ConcurrentLruBuilder<int, string>().AsAsyncCache().Build();
-        private static readonly IAsyncCache<int, string> atomicConcurrentLru = new ConcurrentLruBuilder<int, string>().AsAsyncCache().WithAtomicValueFactory().Build();
+        private static readonly IAsyncCache<int, string> atomicConcurrentLru = new ConcurrentLruBuilder<int, string>().AsAsyncCache().WithAtomicGetOrAdd().Build();
 
         private static Task<string> returnTask = Task.FromResult("1");
 
