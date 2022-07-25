@@ -67,57 +67,61 @@ namespace BitFaster.Caching.Lru
         }
 
         /// <summary>
-        /// Execute the cache's GetOrAdd value factory atomically, such that it is applied at most once per key. Other threads
-        /// attempting to update the same key will be blocked until value factory completes.
+        /// Execute the cache's GetOrAdd method atomically, such that it is applied at most once per key. Other threads
+        /// attempting to update the same key will be blocked until value factory completes. Incurs a small performance
+        /// penalty.
         /// </summary>
         /// <typeparam name="K">The type of keys in the cache.</typeparam>
         /// <typeparam name="V">The type of values in the cache.</typeparam>
         /// <param name="builder">The ConcurrentLruBuilder to chain method calls onto.</param>
         /// <returns>An AtomicConcurrentLruBuilder.</returns>
-        public static AtomicConcurrentLruBuilder<K, V> WithAtomicValueFactory<K, V>(this ConcurrentLruBuilder<K, V> builder)
+        public static AtomicConcurrentLruBuilder<K, V> WithAtomicGetOrAdd<K, V>(this ConcurrentLruBuilder<K, V> builder)
         {
             var convertBuilder = new ConcurrentLruBuilder<K, AtomicFactory<K, V>>(builder.info);
             return new AtomicConcurrentLruBuilder<K, V>(convertBuilder);
         }
 
         /// <summary>
-        /// Execute the cache's ScopedGetOrAdd value factory atomically, such that it is applied at most once per key. Other threads
-        /// attempting to update the same key will be blocked until value factory completes.
+        /// Execute the cache's GetOrAdd method atomically, such that it is applied at most once per key. Other threads
+        /// attempting to update the same key will be blocked until value factory completes. Incurs a small performance
+        /// penalty.
         /// </summary>
         /// <typeparam name="K">The type of keys in the cache.</typeparam>
         /// <typeparam name="V">The type of values in the cache.</typeparam>
         /// <typeparam name="W">The wrapped value type.</typeparam>
         /// <param name="builder">The ScopedConcurrentLruBuilder to chain method calls onto.</param>
         /// <returns>An AtomicScopedConcurrentLruBuilder.</returns>
-        public static AtomicScopedConcurrentLruBuilder<K, V> WithAtomicValueFactory<K, V, W>(this ScopedConcurrentLruBuilder<K, V, W> builder) where V : IDisposable where W : IScoped<V>
+        public static AtomicScopedConcurrentLruBuilder<K, V> WithAtomicGetOrAdd<K, V, W>(this ScopedConcurrentLruBuilder<K, V, W> builder) where V : IDisposable where W : IScoped<V>
         {
             var convertBuilder = new ConcurrentLruBuilder<K, ScopedAtomicFactory<K, V>>(builder.info);
             return new AtomicScopedConcurrentLruBuilder<K, V>(convertBuilder);
         }
 
         /// <summary>
-        /// Execute the cache's GetOrAddAsync value factory atomically, such that it is applied at most once per key. Other threads
-        /// attempting to update the same key will wait on the same value factory task.
+        /// Execute the cache's GetOrAdd method atomically, such that it is applied at most once per key. Other threads
+        /// attempting to update the same key will be blocked until value factory completes. Incurs a small performance
+        /// penalty.
         /// </summary>
         /// <typeparam name="K">The type of keys in the cache.</typeparam>
         /// <typeparam name="V">The type of values in the cache.</typeparam>
         /// <param name="builder">The AsyncConcurrentLruBuilder to chain method calls onto.</param>
         /// <returns>An AtomicAsyncConcurrentLruBuilder.</returns>
-        public static AtomicAsyncConcurrentLruBuilder<K, V> WithAtomicValueFactory<K, V>(this AsyncConcurrentLruBuilder<K, V> builder)
+        public static AtomicAsyncConcurrentLruBuilder<K, V> WithAtomicGetOrAdd<K, V>(this AsyncConcurrentLruBuilder<K, V> builder)
         {
             var convertBuilder = new ConcurrentLruBuilder<K, AsyncAtomicFactory<K, V>>(builder.info);
             return new AtomicAsyncConcurrentLruBuilder<K, V>(convertBuilder);
         }
 
         /// <summary>
-        /// Execute the cache's ScopedGetOrAddAsync value factory atomically, such that it is applied at most once per key. Other threads
-        /// attempting to update the same key will wait on the same value factory task.
+        /// Execute the cache's GetOrAdd method atomically, such that it is applied at most once per key. Other threads
+        /// attempting to update the same key will be blocked until value factory completes. Incurs a small performance
+        /// penalty.
         /// </summary>
         /// <typeparam name="K">The type of keys in the cache.</typeparam>
         /// <typeparam name="V">The type of values in the cache.</typeparam>
         /// <param name="builder">The ScopedAsyncConcurrentLruBuilder to chain method calls onto.</param>
         /// <returns>An AtomicScopedAsyncConcurrentLruBuilder.</returns>
-        public static AtomicScopedAsyncConcurrentLruBuilder<K, V> WithAtomicValueFactory<K, V>(this ScopedAsyncConcurrentLruBuilder<K, V> builder) where V : IDisposable
+        public static AtomicScopedAsyncConcurrentLruBuilder<K, V> WithAtomicGetOrAdd<K, V>(this ScopedAsyncConcurrentLruBuilder<K, V> builder) where V : IDisposable
         {
             var convertBuilder = new AsyncConcurrentLruBuilder<K, ScopedAsyncAtomicFactory<K, V>>(builder.info);
             return new AtomicScopedAsyncConcurrentLruBuilder<K, V>(convertBuilder);

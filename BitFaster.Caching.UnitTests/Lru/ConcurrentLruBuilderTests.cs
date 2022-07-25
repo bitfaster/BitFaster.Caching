@@ -209,7 +209,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WithAtomicFactory()
         {
             ICache<int, int> lru = new ConcurrentLruBuilder<int, int>()
-                .WithAtomicValueFactory()
+                .WithAtomicGetOrAdd()
                 .WithCapacity(3)
                 .Build();
 
@@ -233,7 +233,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WithAtomicWithScope()
         {
             IScopedCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithAtomicValueFactory()
+                .WithAtomicGetOrAdd()
                 .AsScopedCache()
                 .WithCapacity(3)
                 .Build();
@@ -248,7 +248,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             IScopedCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsScopedCache()
-                .WithAtomicValueFactory()
+                .WithAtomicGetOrAdd()
                 .WithCapacity(3)
                 .Build();
 
@@ -290,7 +290,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WithAtomicAsAsync()
         {
             IAsyncCache<int, int> lru = new ConcurrentLruBuilder<int, int>()
-                .WithAtomicValueFactory()
+                .WithAtomicGetOrAdd()
                 .AsAsyncCache()
                 .WithCapacity(3)
                 .Build();
@@ -304,7 +304,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             IAsyncCache<int, int> lru = new ConcurrentLruBuilder<int, int>()
                 .AsAsyncCache()
-                .WithAtomicValueFactory()
+                .WithAtomicGetOrAdd()
                 .WithCapacity(3)
                 .Build();
 
@@ -316,7 +316,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WithAtomicWithScopedAsAsync()
         {
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithAtomicValueFactory()
+                .WithAtomicGetOrAdd()
                 .AsScopedCache()
                 .AsAsyncCache()
                 .WithCapacity(3)
@@ -330,7 +330,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WithAtomicAsAsyncWithScoped()
         {
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
-                .WithAtomicValueFactory()
+                .WithAtomicGetOrAdd()
                 .AsAsyncCache()
                 .AsScopedCache()
                 .WithCapacity(3)
@@ -345,7 +345,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsScopedCache()
-                .WithAtomicValueFactory()
+                .WithAtomicGetOrAdd()
                 .AsAsyncCache()
                 .WithCapacity(3)
                 .Build();
@@ -360,7 +360,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsScopedCache()
                 .AsAsyncCache()
-                .WithAtomicValueFactory()
+                .WithAtomicGetOrAdd()
                 .WithCapacity(3)
                 .Build();
 
@@ -374,7 +374,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsAsyncCache()
                 .AsScopedCache()
-                .WithAtomicValueFactory()
+                .WithAtomicGetOrAdd()
                 .WithCapacity(3)
                 .Build();
 
@@ -387,7 +387,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsAsyncCache()
-                .WithAtomicValueFactory()
+                .WithAtomicGetOrAdd()
                 .AsScopedCache()
                 .WithCapacity(3)
                 .Build();
