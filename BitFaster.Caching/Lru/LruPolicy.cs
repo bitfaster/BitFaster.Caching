@@ -12,6 +12,8 @@ namespace BitFaster.Caching.Lru
     /// </summary>
     public readonly struct LruPolicy<K, V> : IItemPolicy<K, V, LruItem<K, V>>
     {
+        public TimeSpan TimeToLive => NoneTimePolicy.Infinite;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LruItem<K, V> CreateItem(K key, V value)
         {

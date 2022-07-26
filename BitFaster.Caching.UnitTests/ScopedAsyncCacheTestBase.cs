@@ -24,7 +24,7 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void WhenCreatedCapacityPropertyWrapsInnerCache()
         {
-            this.cache.Capacity.Should().Be(capacity);
+            this.cache.Policy.Eviction.Capacity.Should().Be(capacity);
         }
 
         [Fact]
@@ -138,7 +138,7 @@ namespace BitFaster.Caching.UnitTests
             this.cache.AddOrUpdate(1, new Disposable());
             this.cache.AddOrUpdate(2, new Disposable());
 
-            this.cache.Trim(1);
+            this.cache.Policy.Eviction.Trim(1);
 
             this.cache.ScopedTryGet(0, out var lifetime).Should().BeFalse();
         }

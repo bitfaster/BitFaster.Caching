@@ -6,45 +6,63 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
-    public interface ICachePolicy<K>
+    public class CachePolicy
     {
-        BoundedPolicy Eviction { get; }
+        public CachePolicy(IBoundedPolicy eviction, ITimePolicy expireAfterWrite)
+        {
+            this.Eviction = eviction;
+            this.ExpireAfterWrite = expireAfterWrite;
+        }
 
-        TimePolicy<K> ExpireAfterWrite { get; }
+        public IBoundedPolicy Eviction { get; }
 
-        bool IsWriteAtomic { get; }
+        public ITimePolicy ExpireAfterWrite { get; }
     }
 
-    public class BoundedPolicy
+    public interface IBoundedPolicy
     {
-        public static readonly BoundedPolicy None = new BoundedPolicy(i => { });
+        /// <summary>
+        /// Gets the total number of items that can be stored in the cache.
+        /// </summary>
+        int Capacity { get; }
 
-        private readonly Action<int> trimCallback;
-
-        public BoundedPolicy(Action<int> trimCallback)
-        { 
-            this.trimCallback = trimCallback;
-        }
-
-        public void Trim(int itemCount)
-        {
-            trimCallback(itemCount);
-        }
+        /// <summary>
+        /// Trim the specified number of items from the cache.
+        /// </summary>
+        /// <param name="itemCount">The number of items to remove.</param>
+        void Trim(int itemCount);
     }
 
-    public class TimePolicy<K>
+    public interface ITimePolicy
     {
-        public static readonly TimePolicy<K> None = new TimePolicy<K>();
+        /// <summary>
+        /// Gets a value indicating whether the cache can expire items based on time.
+        /// </summary>
+        bool CanExpire { get; }
 
-        public TimeSpan TimeToLive { get; }
+        /// <summary>
+        /// Gets the time to live for items in the cache.
+        /// </summary>
+        TimeSpan TimeToLive { get; }
 
-        public TimeSpan? AgeOf(K key)
-        {
-            return null;
-        }
+        /// <summary>
+        /// Remove all expired items from the cache.
+        /// </summary>
+        void TrimExpired();
+    }
+
+    public class NoneTimePolicy : ITimePolicy
+    {
+        public static readonly TimeSpan Infinite = new TimeSpan(0, 0, 0, 0, -1);
+
+        public static NoneTimePolicy Instance = new NoneTimePolicy();
+
+        public bool CanExpire => false;
+
+        public TimeSpan TimeToLive => Infinite;
 
         public void TrimExpired()
-        { 
+        {
         }
     }
 }

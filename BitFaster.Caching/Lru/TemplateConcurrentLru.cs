@@ -28,7 +28,7 @@ namespace BitFaster.Caching.Lru
     /// 5. When warm is full, warm tail is moved to warm head or cold depending on WasAccessed.
     /// 6. When cold is full, cold tail is moved to warm head or removed from dictionary on depending on WasAccessed.
     /// </remarks>
-    public class TemplateConcurrentLru<K, V, I, P, T> : ICache<K, V>, IAsyncCache<K, V>, IEnumerable<KeyValuePair<K, V>>
+    public class TemplateConcurrentLru<K, V, I, P, T> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy, ITimePolicy, IEnumerable<KeyValuePair<K, V>>
         where I : LruItem<K, V>
         where P : struct, IItemPolicy<K, V, I>
         where T : struct, ITelemetryPolicy<K, V>
@@ -52,6 +52,8 @@ namespace BitFaster.Caching.Lru
         // Since T is a struct, making it readonly will force the runtime to make defensive copies
         // if mutate methods are called. Therefore, field must be mutable to maintain count.
         protected T telemetryPolicy;
+
+        private readonly CachePolicy policy;
 
         public TemplateConcurrentLru(
             int concurrencyLevel,
@@ -83,6 +85,8 @@ namespace BitFaster.Caching.Lru
             this.itemPolicy = itemPolicy;
             this.telemetryPolicy = telemetryPolicy;
             this.telemetryPolicy.SetEventSource(this);
+
+            this.policy = new CachePolicy(this, this);
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -108,6 +112,12 @@ namespace BitFaster.Caching.Lru
         /// Gets a collection containing the keys in the cache.
         /// </summary>
         public ICollection<K> Keys => this.dictionary.Keys;
+
+        public CachePolicy Policy => this.policy;
+
+        public bool CanExpire => this.itemPolicy.CanDiscard();
+
+        public TimeSpan TimeToLive => this.itemPolicy.TimeToLive;
 
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
         /// <returns>An enumerator for the cache.</returns>
@@ -338,6 +348,14 @@ namespace BitFaster.Caching.Lru
             int itemsRemoved = this.itemPolicy.CanDiscard() ? TrimAllDiscardedItems() : 0;
 
             TrimLiveItems(itemsRemoved, itemCount, capacity);
+        }
+
+        public void TrimExpired()
+        {
+            if (this.itemPolicy.CanDiscard())
+            {
+                TrimAllDiscardedItems();
+            }
         }
 
         protected int TrimAllDiscardedItems()
