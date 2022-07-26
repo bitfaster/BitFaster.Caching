@@ -113,17 +113,6 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void WhenItemIsAddedThenRetrievedHitRatioIsHalf()
-        {
-            lru.GetOrAdd(1, valueFactory.Create);
-            bool result = lru.TryGet(1, out var value);
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            lru.HitRatio.Should().Be(0.5);
-#pragma warning restore CS0618 // Type or member is obsolete
-        }
-
-        [Fact]
         public void MetricsAreEnabled()
         {
             lru.Metrics.IsEnabled.Should().BeTrue();
