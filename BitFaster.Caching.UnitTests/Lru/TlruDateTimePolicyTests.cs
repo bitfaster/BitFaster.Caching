@@ -15,6 +15,12 @@ namespace BitFaster.Caching.UnitTests.Lru
         private readonly TLruDateTimePolicy<int, int> policy = new TLruDateTimePolicy<int, int>(TimeSpan.FromSeconds(10));
 
         [Fact]
+        public void TimeToLiveShouldBeTenSecs()
+        {
+            this.policy.TimeToLive.Should().Be(TimeSpan.FromSeconds(10));
+        }
+
+        [Fact]
         public void CreateItemInitializesKeyAndValue()
         {
             var item = this.policy.CreateItem(1, 2);

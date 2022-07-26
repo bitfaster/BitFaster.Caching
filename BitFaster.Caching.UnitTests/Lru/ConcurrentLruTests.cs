@@ -225,6 +225,18 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void CanExpireIsFalse()
+        {
+            this.lru.CanExpire.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TimeToLiveIsInfinite()
+        {
+            this.lru.TimeToLive.Should().Be(NoneTimePolicy.Infinite);
+        }
+
+        [Fact]
         public void WhenKeyIsRequestedItIsCreatedAndCached()
         {
             var result1 = lru.GetOrAdd(1, valueFactory.Create);
