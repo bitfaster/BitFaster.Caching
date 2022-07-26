@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
+    /// <summary>
+    /// Represents a time based cache policy.
+    /// </summary>
     public interface ITimePolicy
     {
         /// <summary>

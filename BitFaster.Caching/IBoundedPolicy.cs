@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
+    /// <summary>
+    /// Represents a bounded size cache policy.
+    /// </summary>
     public interface IBoundedPolicy
     {
         /// <summary>
