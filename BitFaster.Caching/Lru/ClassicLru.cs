@@ -56,12 +56,6 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public int Capacity => this.capacity;
 
-        /// <summary>
-        /// Gets the ratio of hits to misses, where a value of 1 indicates 100% hits.
-        /// </summary>
-        [ObsoleteAttribute("This property is obsolete. Use Metrics instead.", false)]
-        public double HitRatio => this.Metrics.HitRatio;
-
         ///<inheritdoc/>
         public ICacheMetrics Metrics => this.metrics;
 
