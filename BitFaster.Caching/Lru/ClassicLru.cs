@@ -18,7 +18,7 @@ namespace BitFaster.Caching.Lru
     /// </remarks>
     /// <typeparam name="K">The type of the key</typeparam>
     /// <typeparam name="V">The type of the value</typeparam>
-    public sealed class ClassicLru<K, V> : ICache<K, V>, IAsyncCache<K, V>, IEnumerable<KeyValuePair<K, V>>
+    public sealed class ClassicLru<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy, IEnumerable<KeyValuePair<K, V>>
     {
         private readonly int capacity;
         private readonly ConcurrentDictionary<K, LinkedListNode<LruItem>> dictionary;
@@ -26,6 +26,7 @@ namespace BitFaster.Caching.Lru
 
         private readonly CacheMetrics metrics = new CacheMetrics();
         private readonly CacheEvents events = new CacheEvents();
+        private readonly CachePolicy policy;
 
         public ClassicLru(int capacity)
             : this(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default)
@@ -46,6 +47,7 @@ namespace BitFaster.Caching.Lru
 
             this.capacity = capacity;
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, this.capacity + 1, comparer);
+            this.policy = new CachePolicy(this, NoneTimePolicy.Instance);
         }
 
         ///<inheritdoc/>
@@ -64,6 +66,8 @@ namespace BitFaster.Caching.Lru
         public ICacheMetrics Metrics => this.metrics;
 
         public ICacheEvents<K, V> Events => this.events;
+
+        public CachePolicy Policy => this.policy;
 
         /// <summary>
         /// Gets a collection containing the keys in the cache.

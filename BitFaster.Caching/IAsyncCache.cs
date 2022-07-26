@@ -14,11 +14,6 @@ namespace BitFaster.Caching
     public interface IAsyncCache<K, V> : IEnumerable<KeyValuePair<K, V>>
     {
         /// <summary>
-        /// Gets the total number of items that can be stored in the cache.
-        /// </summary>
-        int Capacity { get; }
-
-        /// <summary>
         /// Gets the number of items currently held in the cache.
         /// </summary>
         int Count { get; }
@@ -32,6 +27,8 @@ namespace BitFaster.Caching
         /// Gets the cache events.
         /// </summary>
         ICacheEvents<K, V> Events { get; }
+
+        CachePolicy Policy { get; }
 
         /// <summary>
         /// Gets a collection containing the keys in the cache.
@@ -82,11 +79,5 @@ namespace BitFaster.Caching
         /// Removes all keys and values from the cache.
         /// </summary>
         void Clear();
-
-        /// <summary>
-        /// Trim the specified number of items from the cache.
-        /// </summary>
-        /// <param name="itemCount">The number of items to remove.</param>
-        void Trim(int itemCount);
     }
 }

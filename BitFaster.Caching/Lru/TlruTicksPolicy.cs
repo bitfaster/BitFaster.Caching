@@ -20,6 +20,8 @@ namespace BitFaster.Caching.Lru
     {
         private readonly int timeToLive;
 
+        public TimeSpan TimeToLive => TimeSpan.FromMilliseconds(timeToLive);
+
         public TLruTicksPolicy(TimeSpan timeToLive)
         {
             this.timeToLive = (int)timeToLive.TotalMilliseconds;

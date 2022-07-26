@@ -184,6 +184,13 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void ExpireAfterWriteIsDisabled()
+        {
+            lru.Policy.ExpireAfterWrite.Should().Be(NoneTimePolicy.Instance);
+            lru.Policy.ExpireAfterWrite.CanExpire.Should().BeFalse();
+        }
+
+        [Fact]
         public void WhenKeyIsRequestedItIsCreatedAndCached()
         {
             var result1 = lru.GetOrAdd(1, valueFactory.Create);

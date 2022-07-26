@@ -33,6 +33,8 @@ namespace BitFaster.Caching.Atomic
 
         public ICollection<K> Keys => this.cache.Keys;
 
+        public CachePolicy Policy => this.cache.Policy;
+
         public void AddOrUpdate(K key, V value)
         {
             this.cache.AddOrUpdate(key, new AtomicFactory<K, V>(value));
@@ -47,11 +49,6 @@ namespace BitFaster.Caching.Atomic
         {
             var atomicFactory = cache.GetOrAdd(key, _ => new AtomicFactory<K, V>());
             return atomicFactory.GetValue(key, valueFactory);
-        }
-
-        public void Trim(int itemCount)
-        {
-            this.cache.Trim(itemCount);
         }
 
         public bool TryGet(K key, out V value)

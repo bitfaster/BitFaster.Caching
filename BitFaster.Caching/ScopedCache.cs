@@ -41,6 +41,8 @@ namespace BitFaster.Caching
         ///<inheritdoc/>
         public ICacheEvents<K, Scoped<V>> Events => this.cache.Events;
 
+        public CachePolicy Policy => this.cache.Policy;
+
         ///<inheritdoc/>
         public ICollection<K> Keys => this.cache.Keys;
 
@@ -77,12 +79,6 @@ namespace BitFaster.Caching
                     throw new InvalidOperationException(ScopedCacheDefaults.RetryFailureMessage);
                 }
             }
-        }
-
-        ///<inheritdoc/>
-        public void Trim(int itemCount)
-        {
-            this.cache.Trim(itemCount);
         }
 
         ///<inheritdoc/>

@@ -23,5 +23,7 @@ namespace BitFaster.Caching.Lru
         ItemDestination RouteWarm(I item);
 
         ItemDestination RouteCold(I item);
+
+        TimeSpan TimeToLive { get; }
     }
 }

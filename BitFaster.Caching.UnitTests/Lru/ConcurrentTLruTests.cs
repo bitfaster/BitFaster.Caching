@@ -53,6 +53,18 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void CanExpireIsTrue()
+        {
+            this.lru.CanExpire.Should().BeTrue();
+        }
+
+        [Fact]
+        public void TimeToLiveIsCtorArg()
+        {
+            this.lru.TimeToLive.Should().Be(timeToLive);
+        }
+
+        [Fact]
         public void WhenItemIsNotExpiredItIsNotRemoved()
         {
             lru.GetOrAdd(1, valueFactory.Create);

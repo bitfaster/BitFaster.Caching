@@ -24,13 +24,13 @@ namespace BitFaster.Caching.Atomic
             this.eventProxy = new EventProxy(cache.Events);
         }
 
-        public int Capacity => this.cache.Capacity;
-
         public int Count => this.cache.Count;
 
         public ICacheMetrics Metrics => this.cache.Metrics;
 
         public ICacheEvents<K, Scoped<V>> Events => this.eventProxy;
+
+        public CachePolicy Policy => this.cache.Policy;
 
         ///<inheritdoc/>
         public ICollection<K> Keys => this.cache.Keys;
@@ -81,11 +81,6 @@ namespace BitFaster.Caching.Atomic
 
             lifetime = default;
             return false;
-        }
-
-        public void Trim(int itemCount)
-        {
-            this.cache.Trim(itemCount);
         }
 
         public bool TryRemove(K key)

@@ -12,6 +12,12 @@ namespace BitFaster.Caching.UnitTests.Lru
         private readonly LruPolicy<int, int> policy = new LruPolicy<int, int>();
 
         [Fact]
+        public void TimeToLiveIsInfinite()
+        {
+            this.policy.TimeToLive.Should().Be(NoneTimePolicy.Infinite);
+        }
+
+        [Fact]
         public void CreateItemInitializesKeyAndValue()
         {
             var item = this.policy.CreateItem(1, 2);

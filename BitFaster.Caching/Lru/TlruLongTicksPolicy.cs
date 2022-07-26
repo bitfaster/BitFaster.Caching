@@ -109,9 +109,16 @@ namespace BitFaster.Caching.Lru
             return ItemDestination.Remove;
         }
 
+        public TimeSpan TimeToLive => FromTicks(timeToLive);
+
         public static long ToTicks(TimeSpan timespan)
         {
             return (long)(timespan.Ticks * stopwatchAdjustmentFactor);
+        }
+
+        public static TimeSpan FromTicks(long ticks)
+        { 
+            return TimeSpan.FromTicks((long)(ticks / stopwatchAdjustmentFactor));
         }
     }
 }

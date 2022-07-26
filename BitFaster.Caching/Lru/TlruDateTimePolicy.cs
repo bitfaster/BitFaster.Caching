@@ -15,6 +15,8 @@ namespace BitFaster.Caching.Lru
     {
         private readonly TimeSpan timeToLive;
 
+        public TimeSpan TimeToLive => timeToLive;
+
         public TLruDateTimePolicy(TimeSpan timeToLive)
         {
             this.timeToLive = timeToLive;
