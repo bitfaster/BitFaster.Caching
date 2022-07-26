@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
+    /// <summary>
+    /// Represents the cache policy. Cache policy is dependent on the parameters chosen
+    /// when constructing the cache.
+    /// </summary>
     public class CachePolicy
     {
         public CachePolicy(IBoundedPolicy eviction, ITimePolicy expireAfterWrite)
@@ -14,8 +18,16 @@ namespace BitFaster.Caching
             this.ExpireAfterWrite = expireAfterWrite;
         }
 
+        /// <summary>
+        /// Gets the bounded size eviction policy. This policy evicts items from the cache
+        /// if it exceeds capacity.
+        /// </summary>
         public IBoundedPolicy Eviction { get; }
 
+        /// <summary>
+        /// Gets the expire after write policy, if any. This policy evicts items after a 
+        /// fixed duration since an entry's creation or most recent replacement.
+        /// </summary>
         public ITimePolicy ExpireAfterWrite { get; }
     }
 }

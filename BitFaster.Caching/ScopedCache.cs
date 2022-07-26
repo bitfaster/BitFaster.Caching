@@ -41,6 +41,7 @@ namespace BitFaster.Caching
         ///<inheritdoc/>
         public ICacheEvents<K, Scoped<V>> Events => this.cache.Events;
 
+        ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;
 
         ///<inheritdoc/>

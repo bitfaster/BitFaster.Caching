@@ -37,6 +37,9 @@ namespace BitFaster.Caching
         /// </remarks>
         ICacheEvents<K, Scoped<V>> Events { get; }
 
+        /// <summary>
+        /// Gets the cache policy.
+        /// </summary>
         CachePolicy Policy { get; }
 
         /// <summary>
