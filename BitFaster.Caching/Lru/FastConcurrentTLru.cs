@@ -42,14 +42,5 @@ namespace BitFaster.Caching.Lru
             : base(concurrencyLevel, capacity, comparer, new TLruLongTicksPolicy<K, V>(timeToLive), default)
         {
         }
-
-        /// <summary>
-        /// Remove all expired items from the cache.
-        /// </summary>
-        /// <remarks>O(n) where n is the number of items in the cache.</remarks>
-        public void TrimExpired()
-        {
-            this.TrimAllDiscardedItems();
-        }
     }
 }
