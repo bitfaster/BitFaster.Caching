@@ -35,27 +35,4 @@ namespace BitFaster.Caching
             return new Optional<T>();
         }
     }
-
-    public static class OptionalExtensions
-    {
-        public static Optional<T> IfValue<T>(this Optional<T> optional, Action<T> action)
-        {
-            if (optional.HasValue)
-            {
-                action(optional.Value);
-            }
-
-            return optional;
-        }
-
-        public static TOut ValueOrDefault<T, TOut>(this Optional<T> optional, Func<T, TOut> func)
-        {
-            if (optional.HasValue)
-            {
-                return func(optional.Value);
-            }
-
-            return default;
-        }
-    }
 }
