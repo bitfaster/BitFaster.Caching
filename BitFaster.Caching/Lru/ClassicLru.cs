@@ -47,7 +47,7 @@ namespace BitFaster.Caching.Lru
 
             this.capacity = capacity;
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, this.capacity + 1, comparer);
-            this.policy = new CachePolicy(this, NoneTimePolicy.Instance);
+            this.policy = new CachePolicy(this, Optional<ITimePolicy>.None());
         }
 
         ///<inheritdoc/>

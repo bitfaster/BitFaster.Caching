@@ -95,7 +95,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                  .Build();
 
             lru.Should().BeOfType<ConcurrentTLru<int, int>>();
-            lru.Policy.Eviction.Capacity.Should().Be(128);
+            lru.Policy.Eviction.IfValue(e => e.Capacity.Should().Be(128)); // TODO no else here
         }
 
 
@@ -268,7 +268,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
 
-            lru.Policy.Eviction.Capacity.Should().Be(3);
+            lru.Policy.Eviction.ValueOrDefault(e => e.Capacity).Should().Be(3);
         }
 
         // 7
@@ -282,7 +282,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .Build();
 
             lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
-            lru.Policy.Eviction.Capacity.Should().Be(3);
+            lru.Policy.Eviction.ValueOrDefault(e => e.Capacity).Should().Be(3);
         }
 
         // 8

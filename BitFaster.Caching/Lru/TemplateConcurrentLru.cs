@@ -86,7 +86,7 @@ namespace BitFaster.Caching.Lru
             this.telemetryPolicy = telemetryPolicy;
             this.telemetryPolicy.SetEventSource(this);
 
-            this.policy = new CachePolicy(this, this);
+            this.policy = new CachePolicy(this, Optional<ITimePolicy>.From(this));
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/

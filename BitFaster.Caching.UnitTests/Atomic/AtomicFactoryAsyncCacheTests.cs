@@ -114,7 +114,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.cache.AddOrUpdate(1, 1);
             this.cache.AddOrUpdate(2, 2);
 
-            this.cache.Policy.Eviction.Trim(1);
+            this.cache.Policy.Eviction.IfValue(e => e.Trim(1));
 
             this.cache.TryGet(0, out var value).Should().BeFalse();
         }
