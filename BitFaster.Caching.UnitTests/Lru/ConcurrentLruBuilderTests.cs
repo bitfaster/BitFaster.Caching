@@ -50,7 +50,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                  .Build();
 
             lru.Should().BeOfType<ConcurrentTLru<int, int>>();
-            lru.Capacity.Should().Be(128);
+            lru.Policy.Eviction.Capacity.Should().Be(128);
         }
 
         [Fact]
@@ -128,7 +128,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Capacity.Should().Be(3);
+            lru.Policy.Eviction.Capacity.Should().Be(3);
         }
 
         [Fact]
@@ -138,7 +138,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(new FavorWarmPartition(6))
                 .Build();
 
-            lru.Capacity.Should().Be(6);
+            lru.Policy.Eviction.Capacity.Should().Be(6);
         }
 
         //  There are 15 combinations to test:
@@ -201,7 +201,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .Build();
 
             lru.Should().BeOfType<ScopedCache<int, Disposable>>();
-            lru.Capacity.Should().Be(3);
+            lru.Policy.Eviction.Capacity.Should().Be(3);
         }
 
         // 2
@@ -239,7 +239,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .Build();
 
             lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
-            lru.Capacity.Should().Be(3);
+            lru.Policy.Eviction.Capacity.Should().Be(3);
         }
 
         // 5
@@ -253,7 +253,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .Build();
 
             lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
-            lru.Capacity.Should().Be(3);
+            lru.Policy.Eviction.Capacity.Should().Be(3);
         }
 
         // 6
