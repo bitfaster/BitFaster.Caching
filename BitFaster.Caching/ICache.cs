@@ -14,11 +14,6 @@ namespace BitFaster.Caching
     public interface ICache<K, V> : IEnumerable<KeyValuePair<K, V>>
     {
         /// <summary>
-        /// Gets the total number of items that can be stored in the cache.
-        /// </summary>
-        int Capacity { get; }
-
-        /// <summary>
         /// Gets the number of items currently held in the cache.
         /// </summary>
         int Count { get; }

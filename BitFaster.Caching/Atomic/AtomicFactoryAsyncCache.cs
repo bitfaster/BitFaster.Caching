@@ -23,8 +23,6 @@ namespace BitFaster.Caching.Atomic
             this.eventProxy = new EventProxy(cache.Events);
         }
 
-        public int Capacity => cache.Capacity;
-
         public int Count => cache.Count;
 
         public ICacheMetrics Metrics => cache.Metrics;

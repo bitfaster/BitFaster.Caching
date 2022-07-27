@@ -14,11 +14,6 @@ namespace BitFaster.Caching
     public interface IScopedCache<K, V> : IEnumerable<KeyValuePair<K, Scoped<V>>> where V : IDisposable
     {
         /// <summary>
-        /// Gets the total number of items that can be stored in the cache.
-        /// </summary>
-        int Capacity { get; }
-
-        /// <summary>
         /// Gets the number of items currently held in the cache.
         /// </summary>
         int Count { get; }
