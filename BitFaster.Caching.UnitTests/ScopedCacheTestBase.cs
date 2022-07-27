@@ -24,7 +24,7 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void WhenCreatedCapacityPropertyWrapsInnerCache()
         {
-            this.cache.Capacity.Should().Be(capacity);
+            this.cache.Policy.Eviction.Capacity.Should().Be(capacity);
         }
 
         [Fact]
