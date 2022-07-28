@@ -115,7 +115,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void MetricsAreEnabled()
         {
-            lru.Metrics.IsEnabled.Should().BeTrue();
+            lru.Metrics.HasValue.Should().BeTrue();
         }
 
         [Fact]
@@ -124,7 +124,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
-            lru.Metrics.HitRatio.Should().Be(0.5);
+            lru.Metrics.Value.HitRatio.Should().Be(0.5);
         }
 
         [Fact]
@@ -133,7 +133,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
-            lru.Metrics.Hits.Should().Be(1);
+            lru.Metrics.Value.Hits.Should().Be(1);
         }
 
         [Fact]
@@ -142,7 +142,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
-            lru.Metrics.Total.Should().Be(2);
+            lru.Metrics.Value.Total.Should().Be(2);
         }
 
         [Fact]
@@ -151,20 +151,20 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
-            lru.Metrics.Misses.Should().Be(1);
+            lru.Metrics.Value.Misses.Should().Be(1);
         }
 
         [Fact]
         public void EventsAreEnabled()
         {
-            lru.Events.IsEnabled.Should().BeFalse();
+            lru.Events.HasValue.Should().BeFalse();
         }
 
         [Fact]
         public void RegisterAndUnregisterIsNoOp()
         {
-            lru.Events.ItemRemoved += OnItemRemoved;
-            lru.Events.ItemRemoved -= OnItemRemoved;
+            lru.Events.Value.ItemRemoved += OnItemRemoved;
+            lru.Events.Value.ItemRemoved -= OnItemRemoved;
         }
 
         private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, string> e)
@@ -284,12 +284,12 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lru.GetOrAdd(i, valueFactory.Create);
             }
 
-            lru.Metrics.Evicted.Should().Be(0);
+            lru.Metrics.Value.Evicted.Should().Be(0);
 
             // request 0, now item 1 is to be evicted
             lru.GetOrAdd(4, valueFactory.Create);
 
-            lru.Metrics.Evicted.Should().Be(1);
+            lru.Metrics.Value.Evicted.Should().Be(1);
         }
 
         [Fact]

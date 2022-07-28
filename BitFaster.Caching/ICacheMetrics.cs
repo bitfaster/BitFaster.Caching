@@ -37,10 +37,5 @@ namespace BitFaster.Caching
         /// Gets the total number of evicted items.
         /// </summary>
         long Evicted { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether metrics are enabled.
-        /// </summary>
-        bool IsEnabled { get; }
     }
 }

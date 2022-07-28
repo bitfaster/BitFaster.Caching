@@ -23,14 +23,6 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public void EventsAreEnabled()
-        {
-            this.testCacheEvents.IsEnabled = true;
-
-            this.eventProxy.IsEnabled.Should().BeTrue();
-        }
-
-        [Fact]
         public void WhenEventHandlerIsRegisteredItIsFired()
         {
             this.eventProxy.ItemRemoved += OnItemRemoved;

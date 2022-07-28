@@ -21,7 +21,7 @@ namespace BitFaster.Caching
         /// <summary>
         /// Gets the cache metrics.
         /// </summary>
-        ICacheMetrics Metrics { get; }
+        Optional<ICacheMetrics> Metrics { get; }
 
         /// <summary>
         /// Gets the cache events.
@@ -30,7 +30,7 @@ namespace BitFaster.Caching
         /// Events expose the Scoped instance wrapping each value. To keep the value alive (blocking Dispose), try to 
         /// create a Lifetime from the scope.
         /// </remarks>
-        ICacheEvents<K, Scoped<V>> Events { get; }
+        Optional<ICacheEvents<K, Scoped<V>>> Events { get; }
 
         /// <summary>
         /// Gets the cache policy.

@@ -16,10 +16,5 @@ namespace BitFaster.Caching
         /// Occurs when an item is removed from the cache.
         /// </summary>
         event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
-
-        /// <summary>
-        /// Gets a value indicating whether events are enabled.
-        /// </summary>
-        bool IsEnabled { get; }
     }
 }

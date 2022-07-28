@@ -24,9 +24,9 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
 
         public int CacheSize => concurrentLru.Capacity;
 
-        public double ConcurrentLruHitRate => concurrentLru.Metrics.HitRatio * 100;
+        public double ConcurrentLruHitRate => concurrentLru.Metrics.Value.HitRatio * 100;
 
-        public double ClassicLruHitRate => classicLru.Metrics.HitRatio * 100;
+        public double ClassicLruHitRate => classicLru.Metrics.Value.HitRatio * 100;
 
         public void TestKey(long key)
         {

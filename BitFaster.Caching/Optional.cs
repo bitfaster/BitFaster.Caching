@@ -15,7 +15,7 @@ namespace BitFaster.Caching
         private readonly T value;
         private readonly bool hasValue;
 
-        private Optional(T value)
+        public Optional(T value)
         {
             this.value = value;
             this.hasValue = true;
@@ -24,11 +24,6 @@ namespace BitFaster.Caching
         public T Value => this.value;
 
         public bool HasValue => this.hasValue;
-
-        public static Optional<T> From(T value)
-        {
-            return new Optional<T>(value);
-        }
 
         public static Optional<T> None()
         {

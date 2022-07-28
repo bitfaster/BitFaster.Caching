@@ -10,7 +10,7 @@ namespace BitFaster.Caching.Atomic
     public sealed class AtomicFactoryAsyncCache<K, V> : IAsyncCache<K, V>
     {
         private readonly ICache<K, AsyncAtomicFactory<K, V>> cache;
-        private readonly EventProxy eventProxy;
+        private readonly Optional<ICacheEvents<K, V>> events;
 
         public AtomicFactoryAsyncCache(ICache<K, AsyncAtomicFactory<K, V>> cache)
         {
@@ -20,14 +20,22 @@ namespace BitFaster.Caching.Atomic
             }
 
             this.cache = cache;
-            this.eventProxy = new EventProxy(cache.Events);
+
+            if (cache.Events.HasValue)
+            {
+                this.events = new Optional<ICacheEvents<K, V>>(new EventProxy(cache.Events.Value));
+            }
+            else
+            {
+                this.events = Optional<ICacheEvents<K, V>>.None();
+            }
         }
 
         public int Count => cache.Count;
 
-        public ICacheMetrics Metrics => cache.Metrics;
+        public Optional<ICacheMetrics> Metrics => cache.Metrics;
 
-        public ICacheEvents<K, V> Events => this.eventProxy;
+        public Optional<ICacheEvents<K, V>> Events => this.events;
 
         public ICollection<K> Keys => this.cache.Keys;
 

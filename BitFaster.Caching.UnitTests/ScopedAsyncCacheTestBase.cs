@@ -43,14 +43,14 @@ namespace BitFaster.Caching.UnitTests
             this.cache.AddOrUpdate(1, new Disposable());
             this.cache.ScopedTryGet(1, out var lifetime);
 
-            this.cache.Metrics.Misses.Should().Be(0);
-            this.cache.Metrics.Hits.Should().Be(1);
+            this.cache.Metrics.Value.Misses.Should().Be(0);
+            this.cache.Metrics.Value.Hits.Should().Be(1);
         }
 
         [Fact]
         public void WhenEventHandlerIsRegisteredItIsFired()
         {
-            this.cache.Events.ItemRemoved += OnItemRemoved;
+            this.cache.Events.Value.ItemRemoved += OnItemRemoved;
 
             this.cache.AddOrUpdate(1, new Disposable());
             this.cache.TryRemove(1);

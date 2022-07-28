@@ -12,9 +12,9 @@ namespace BitFaster.Caching
     /// </summary>
     public class CachePolicy
     {
-        public CachePolicy(IBoundedPolicy eviction, Optional<ITimePolicy> expireAfterWrite)
+        public CachePolicy(Optional<IBoundedPolicy> eviction, Optional<ITimePolicy> expireAfterWrite)
         {
-            this.Eviction = Optional<IBoundedPolicy>.From(eviction);
+            this.Eviction = eviction;
             this.ExpireAfterWrite = expireAfterWrite;
         }
 

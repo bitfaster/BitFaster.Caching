@@ -33,10 +33,10 @@ namespace BitFaster.Caching
         public int Count => this.cache.Count;
 
         ///<inheritdoc/>
-        public ICacheMetrics Metrics => this.cache.Metrics;
+        public Optional<ICacheMetrics> Metrics => this.cache.Metrics;
 
         ///<inheritdoc/>
-        public ICacheEvents<K, Scoped<V>> Events => this.cache.Events;
+        public Optional<ICacheEvents<K, Scoped<V>>> Events => this.cache.Events;
 
         ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;

@@ -86,7 +86,7 @@ namespace BitFaster.Caching.Lru
             this.telemetryPolicy = telemetryPolicy;
             this.telemetryPolicy.SetEventSource(this);
 
-            this.policy = new CachePolicy(this, Optional<ITimePolicy>.From(this));
+            this.policy = new CachePolicy(new Optional<IBoundedPolicy>(this), new Optional<ITimePolicy>(this));
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -97,10 +97,10 @@ namespace BitFaster.Caching.Lru
         public int Capacity => this.capacity.Hot + this.capacity.Warm + this.capacity.Cold;
 
         ///<inheritdoc/>
-        public ICacheMetrics Metrics => new Proxy(this);
+        public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(new Proxy(this));
 
         ///<inheritdoc/>
-        public ICacheEvents<K, V> Events => new Proxy(this);
+        public Optional<ICacheEvents<K, V>> Events => new Optional<ICacheEvents<K, V>>(new Proxy(this));
 
         public int HotCount => this.hotCount;
 
@@ -656,8 +656,6 @@ namespace BitFaster.Caching.Lru
             public long Misses => lru.telemetryPolicy.Misses;
 
             public long Evicted => lru.telemetryPolicy.Evicted;
-
-            public bool IsEnabled => (lru.telemetryPolicy as ICacheMetrics).IsEnabled;
 
             public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
             {

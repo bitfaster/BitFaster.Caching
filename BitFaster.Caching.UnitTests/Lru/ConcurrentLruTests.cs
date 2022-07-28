@@ -190,7 +190,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void MetricsAreEnabled()
         {
-            lru.Metrics.IsEnabled.Should().BeTrue();
+            lru.Metrics.HasValue.Should().BeTrue();
         }
 
         [Fact]
@@ -199,7 +199,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
-            lru.Metrics.HitRatio.Should().Be(0.5);
+            lru.Metrics.Value.HitRatio.Should().Be(0.5);
         }
 
         [Fact]
@@ -208,7 +208,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
-            lru.Metrics.Total.Should().Be(2);
+            lru.Metrics.Value.Total.Should().Be(2);
         }
 
         [Fact]
@@ -221,7 +221,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
-            m.HitRatio.Should().Be(0.5);
+            m.Value.HitRatio.Should().Be(0.5);
         }
 
         [Fact]
@@ -511,7 +511,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
             var lruEvents = new ConcurrentLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default);
-            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
+            lruEvents.Events.Value.ItemRemoved += OnLruItemRemoved;
 
             // First 6 adds
             // hot[6, 5], warm[2, 1], cold[4, 3]
@@ -540,7 +540,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             this.lru.GetOrAdd(1, valueFactory.Create);
 
-            this.lru.Metrics.Evicted.Should().Be(1);
+            this.lru.Metrics.Value.Evicted.Should().Be(1);
         }
 
         [Fact]
@@ -548,8 +548,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
 
-            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
-            lruEvents.Events.ItemRemoved -= OnLruItemRemoved;
+            lruEvents.Events.Value.ItemRemoved += OnLruItemRemoved;
+            lruEvents.Events.Value.ItemRemoved -= OnLruItemRemoved;
 
             for (int i = 0; i < 6; i++)
             {
@@ -584,7 +584,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsRemovedRemovedEventIsFired()
         {
             var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
-            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
+            lruEvents.Events.Value.ItemRemoved += OnLruItemRemoved;
 
             lruEvents.GetOrAdd(1, i => i + 2);
 
@@ -738,7 +738,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemsArClearedAnEventIsFired()
         {
             var lruEvents = new ConcurrentLru<int, int>(1, capacity, EqualityComparer<int>.Default);
-            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
+            lruEvents.Events.Value.ItemRemoved += OnLruItemRemoved;
 
             for (int i = 0; i < 6; i++)
             {
@@ -928,7 +928,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemsAreTrimmedAnEventIsFired()
         {
             var lruEvents = new ConcurrentLru<int, int>(1, capacity, EqualityComparer<int>.Default);
-            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
+            lruEvents.Events.Value.ItemRemoved += OnLruItemRemoved;
 
             for (int i = 0; i < 6; i++)
             {
