@@ -342,6 +342,13 @@ namespace BitFaster.Caching.Lru
             TrimLiveItems(itemsRemoved, itemCount, capacity);
         }
 
+        private void TrimExpired()
+        {
+            if (this.itemPolicy.CanDiscard())
+            {
+                this.TrimAllDiscardedItems();
+            }
+        }
 
         protected int TrimAllDiscardedItems()
         {
@@ -669,10 +676,7 @@ namespace BitFaster.Caching.Lru
 
             public void TrimExpired()
             {
-                if (lru.itemPolicy.CanDiscard())
-                {
-                    lru.TrimAllDiscardedItems();
-                }
+                lru.TrimExpired();
             }
         }
     }
