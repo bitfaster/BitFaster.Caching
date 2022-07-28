@@ -8,6 +8,7 @@ using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
 using Xunit;
+using Moq;
 
 namespace BitFaster.Caching.UnitTests.Atomic
 {
@@ -50,6 +51,17 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             this.cache.Metrics.Value.Misses.Should().Be(0);
             this.cache.Metrics.Value.Hits.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenNoInnerEventsNoOuterEvents()
+        {
+            var inner = new Mock<ICache<int, AsyncAtomicFactory<int, int>>>();
+            inner.SetupGet(c => c.Events).Returns(Optional<ICacheEvents<int, AsyncAtomicFactory<int, int>>>.None);
+
+            var cache = new AtomicFactoryAsyncCache<int, int>(inner.Object);
+
+            cache.Events.HasValue.Should().BeFalse();
         }
 
         [Fact]

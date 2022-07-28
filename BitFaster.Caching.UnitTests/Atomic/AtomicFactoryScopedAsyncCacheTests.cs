@@ -7,13 +7,12 @@ using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
 using Xunit;
+using Moq;
 
 namespace BitFaster.Caching.UnitTests.Atomic
 {
     public class AtomicFactoryScopedAsyncCacheTests : ScopedAsyncCacheTestBase
     {
-
-
         public AtomicFactoryScopedAsyncCacheTests()
             : base(new AtomicFactoryScopedAsyncCache<int, Disposable>(new ConcurrentLru<int, ScopedAsyncAtomicFactory<int, Disposable>>(capacity)))
         {
@@ -56,6 +55,17 @@ namespace BitFaster.Caching.UnitTests.Atomic
             Func<Task> getOrAdd = async () => { await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(scope)); };
 
             await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void WhenNoInnerEventsNoOuterEvents()
+        {
+            var inner = new Mock<ICache<int, ScopedAsyncAtomicFactory<int, Disposable>>>();
+            inner.SetupGet(c => c.Events).Returns(Optional<ICacheEvents<int, ScopedAsyncAtomicFactory<int, Disposable>>>.None());
+
+            var cache = new AtomicFactoryScopedAsyncCache<int, Disposable>(inner.Object);
+
+            cache.Events.HasValue.Should().BeFalse();
         }
     }
 }
