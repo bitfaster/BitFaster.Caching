@@ -24,7 +24,7 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void WhenCreatedCapacityPropertyWrapsInnerCache()
         {
-            this.cache.Policy.Eviction.Capacity.Should().Be(capacity);
+            this.cache.Policy.Eviction.Value.Capacity.Should().Be(capacity);
         }
 
         [Fact]
@@ -43,14 +43,14 @@ namespace BitFaster.Caching.UnitTests
             this.cache.AddOrUpdate(1, new Disposable());
             this.cache.ScopedTryGet(1, out var lifetime);
 
-            this.cache.Metrics.Misses.Should().Be(0);
-            this.cache.Metrics.Hits.Should().Be(1);
+            this.cache.Metrics.Value.Misses.Should().Be(0);
+            this.cache.Metrics.Value.Hits.Should().Be(1);
         }
 
         [Fact]
         public void WhenEventHandlerIsRegisteredItIsFired()
         {
-            this.cache.Events.ItemRemoved += OnItemRemoved;
+            this.cache.Events.Value.ItemRemoved += OnItemRemoved;
 
             this.cache.AddOrUpdate(1, new Disposable());
             this.cache.TryRemove(1);
@@ -138,7 +138,7 @@ namespace BitFaster.Caching.UnitTests
             this.cache.AddOrUpdate(1, new Disposable());
             this.cache.AddOrUpdate(2, new Disposable());
 
-            this.cache.Policy.Eviction.Trim(1);
+            this.cache.Policy.Eviction.Value.Trim(1);
 
             this.cache.ScopedTryGet(0, out var lifetime).Should().BeFalse();
         }

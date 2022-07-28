@@ -41,7 +41,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
         [GlobalSetup]
         public void GlobalSetup()
         {
-            concurrentLruEvent.Events.ItemRemoved += OnItemRemoved;
+            concurrentLruEvent.Events.Value.ItemRemoved += OnItemRemoved;
         }
 
         public static int field;

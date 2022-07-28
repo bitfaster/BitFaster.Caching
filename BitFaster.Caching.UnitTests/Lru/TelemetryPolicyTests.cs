@@ -41,12 +41,6 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void IsEnabledIsTrue()
-        {
-            telemetryPolicy.IsEnabled.Should().BeTrue();
-        }
-
-        [Fact]
         public void WhenHitCountAndTotalCountAreEqualRatioIs1()
         {
             telemetryPolicy.IncrementHit();

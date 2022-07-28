@@ -17,10 +17,10 @@ namespace BitFaster.Caching.UnitTests
             var eviction = new Mock<IBoundedPolicy>();
             var expire = new Mock<ITimePolicy>();
 
-            var cp = new CachePolicy(eviction.Object, expire.Object);
+            var cp = new CachePolicy(new Optional<IBoundedPolicy>(eviction.Object), new Optional<ITimePolicy>(expire.Object));
 
-            cp.Eviction.Should().Be(eviction.Object);
-            cp.ExpireAfterWrite.Should().Be(expire.Object);
+            cp.Eviction.Value.Should().Be(eviction.Object);
+            cp.ExpireAfterWrite.Value.Should().Be(expire.Object);
         }
     }
 }

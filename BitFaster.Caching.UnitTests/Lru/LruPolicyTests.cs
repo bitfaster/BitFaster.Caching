@@ -14,7 +14,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void TimeToLiveIsInfinite()
         {
-            this.policy.TimeToLive.Should().Be(NoneTimePolicy.Infinite);
+            this.policy.TimeToLive.Should().Be(new TimeSpan(0, 0, 0, 0, -1));
         }
 
         [Fact]

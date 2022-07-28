@@ -25,7 +25,6 @@ namespace BitFaster.Caching.Lru
         private readonly LinkedList<LruItem> linkedList = new LinkedList<LruItem>();
 
         private readonly CacheMetrics metrics = new CacheMetrics();
-        private readonly CacheEvents events = new CacheEvents();
         private readonly CachePolicy policy;
 
         public ClassicLru(int capacity)
@@ -47,7 +46,7 @@ namespace BitFaster.Caching.Lru
 
             this.capacity = capacity;
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, this.capacity + 1, comparer);
-            this.policy = new CachePolicy(this, NoneTimePolicy.Instance);
+            this.policy = new CachePolicy(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
         }
 
         ///<inheritdoc/>
@@ -57,9 +56,9 @@ namespace BitFaster.Caching.Lru
         public int Capacity => this.capacity;
 
         ///<inheritdoc/>
-        public ICacheMetrics Metrics => this.metrics;
+        public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(this.metrics);
 
-        public ICacheEvents<K, V> Events => this.events;
+        public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
 
         public CachePolicy Policy => this.policy;
 
@@ -389,22 +388,6 @@ namespace BitFaster.Caching.Lru
             public long Misses => requestTotalCount - requestHitCount;
 
             public long Evicted => evictedCount;
-
-            public bool IsEnabled => true;
-        }
-
-        private class CacheEvents : ICacheEvents<K, V>
-        {
-            public bool IsEnabled => false;
-
-#pragma warning disable CS0067 // The event 'event' is never used
-            public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
-            {
-                // no-op, nothing is registered
-                add { }
-                remove { }
-            }
-#pragma warning restore CS0067 // The event 'event' is never used
         }
     }
 }

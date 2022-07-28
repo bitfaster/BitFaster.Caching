@@ -12,11 +12,6 @@ namespace BitFaster.Caching
     public interface ITimePolicy
     {
         /// <summary>
-        /// Gets a value indicating whether the cache can expire items based on time.
-        /// </summary>
-        bool CanExpire { get; }
-
-        /// <summary>
         /// Gets the time to live for items in the cache.
         /// </summary>
         TimeSpan TimeToLive { get; }

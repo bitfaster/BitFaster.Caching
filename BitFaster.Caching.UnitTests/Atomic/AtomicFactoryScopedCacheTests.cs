@@ -7,6 +7,7 @@ using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
 using Xunit;
+using Moq;
 
 namespace BitFaster.Caching.UnitTests.Atomic
 {
@@ -54,6 +55,17 @@ namespace BitFaster.Caching.UnitTests.Atomic
             Action getOrAdd = () => { this.cache.ScopedGetOrAdd(1, k => scope); };
 
             getOrAdd.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void WhenNoInnerEventsNoOuterEvents()
+        {
+            var inner = new Mock<ICache<int, ScopedAtomicFactory<int, Disposable>>>();
+            inner.SetupGet(c => c.Events).Returns(Optional<ICacheEvents<int, ScopedAtomicFactory<int, Disposable>>>.None());
+
+            var cache = new AtomicFactoryScopedCache<int, Disposable>(inner.Object);
+
+            cache.Events.HasValue.Should().BeFalse();
         }
     }
 }

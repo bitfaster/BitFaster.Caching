@@ -8,6 +8,7 @@ using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
 using Xunit;
+using Moq;
 
 namespace BitFaster.Caching.UnitTests.Atomic
 {
@@ -29,7 +30,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         [Fact]
         public void WhenCreatedCapacityPropertyWrapsInnerCache()
         {
-            this.cache.Policy.Eviction.Capacity.Should().Be(capacity);
+            this.cache.Policy.Eviction.Value.Capacity.Should().Be(capacity);
         }
 
         [Fact]
@@ -48,19 +49,30 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.cache.AddOrUpdate(1, 1);
             this.cache.GetOrAdd(1, k => k);
 
-            this.cache.Metrics.Misses.Should().Be(0);
-            this.cache.Metrics.Hits.Should().Be(1);
+            this.cache.Metrics.Value.Misses.Should().Be(0);
+            this.cache.Metrics.Value.Hits.Should().Be(1);
         }
 
         [Fact]
         public void WhenEventHandlerIsRegisteredItIsFired()
         {
-            this.cache.Events.ItemRemoved += OnItemRemoved;
+            this.cache.Events.Value.ItemRemoved += OnItemRemoved;
 
             this.cache.AddOrUpdate(1, 1);
             this.cache.TryRemove(1);
 
             this.removedItems.First().Key.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenNoInnerEventsNoOuterEvents()
+        {
+            var inner = new Mock<ICache<int, AtomicFactory<int, int>>>();
+            inner.SetupGet(c => c.Events).Returns(Optional<ICacheEvents<int, AtomicFactory<int, int>>>.None);
+
+            var cache = new AtomicFactoryCache<int, int>(inner.Object);
+
+            cache.Events.HasValue.Should().BeFalse();
         }
 
         [Fact]
@@ -114,7 +126,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.cache.AddOrUpdate(1, 1);
             this.cache.AddOrUpdate(2, 2);
 
-            this.cache.Policy.Eviction.Trim(1);
+            this.cache.Policy.Eviction.Value.Trim(1);
 
             this.cache.TryGet(0, out var value).Should().BeFalse();
         }

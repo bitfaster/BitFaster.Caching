@@ -17,8 +17,6 @@ namespace BitFaster.Caching
             this.events = events;
         }
 
-        public bool IsEnabled => this.events.IsEnabled;
-
         public event EventHandler<ItemRemovedEventArgs<K, TOuter>> ItemRemoved
         {
             add { this.Register(value); }

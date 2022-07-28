@@ -24,9 +24,9 @@ namespace BitFaster.Caching.HitRateAnalysis.Glimpse
 
         public int CacheSize => this.concurrentLru.Capacity;
 
-        public double ConcurrentLruHitRate => this.concurrentLru.Metrics.HitRatio * 100;
+        public double ConcurrentLruHitRate => this.concurrentLru.Metrics.Value.HitRatio * 100;
 
-        public double ClassicLruHitRate => this.classicLru.Metrics.HitRatio * 100;
+        public double ClassicLruHitRate => this.classicLru.Metrics.Value.HitRatio * 100;
 
         public void TestKey(long key)
         {

@@ -11,7 +11,7 @@ namespace BitFaster.Caching.Atomic
     public sealed class AtomicFactoryScopedAsyncCache<K, V> : IScopedAsyncCache<K, V> where V : IDisposable
     {
         private readonly ICache<K, ScopedAsyncAtomicFactory<K, V>> cache;
-        private readonly EventProxy eventProxy;
+        private readonly Optional<ICacheEvents<K, Scoped<V>>> events;
 
         public AtomicFactoryScopedAsyncCache(ICache<K, ScopedAsyncAtomicFactory<K, V>> cache)
         {
@@ -21,14 +21,21 @@ namespace BitFaster.Caching.Atomic
             }
 
             this.cache = cache;
-            this.eventProxy = new EventProxy(cache.Events);
+            if (cache.Events.HasValue)
+            {
+                this.events = new Optional<ICacheEvents<K, Scoped<V>>>(new EventProxy(cache.Events.Value));
+            }
+            else
+            {
+                this.events = Optional<ICacheEvents<K, Scoped<V>>>.None();
+            }
         }
 
         public int Count => this.cache.Count;
 
-        public ICacheMetrics Metrics => this.cache.Metrics;
+        public Optional<ICacheMetrics> Metrics => this.cache.Metrics;
 
-        public ICacheEvents<K, Scoped<V>> Events => this.eventProxy;
+        public Optional<ICacheEvents<K, Scoped<V>>> Events => this.events;
 
         public CachePolicy Policy => this.cache.Policy;
 

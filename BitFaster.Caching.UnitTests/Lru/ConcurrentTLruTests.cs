@@ -55,13 +55,13 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void CanExpireIsTrue()
         {
-            this.lru.Policy.ExpireAfterWrite.CanExpire.Should().BeTrue();
+            this.lru.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
         }
 
         [Fact]
         public void TimeToLiveIsCtorArg()
         {
-            this.lru.Policy.ExpireAfterWrite.TimeToLive.Should().Be(timeToLive);
+            this.lru.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(timeToLive);
         }
 
         [Fact]
@@ -98,7 +98,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
             var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
-            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
+            lruEvents.Events.Value.ItemRemoved += OnLruItemRemoved;
 
             // First 6 adds
             // hot[6, 5], warm[2, 1], cold[4, 3]
@@ -124,8 +124,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemRemovedEventIsUnregisteredEventIsNotFired()
         {
             var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
-            lruEvents.Events.ItemRemoved += OnLruItemRemoved;
-            lruEvents.Events.ItemRemoved -= OnLruItemRemoved;
+            lruEvents.Events.Value.ItemRemoved += OnLruItemRemoved;
+            lruEvents.Events.Value.ItemRemoved -= OnLruItemRemoved;
 
             for (int i = 0; i < 6; i++)
             {
@@ -155,7 +155,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             await Task.Delay(timeToLive * 2);
 
-            lru.Policy.ExpireAfterWrite.TrimExpired();
+            lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
             lru.Count.Should().Be(0);
         }
@@ -177,7 +177,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(2, valueFactory.Create);
             lru.GetOrAdd(3, valueFactory.Create);
 
-            lru.Policy.ExpireAfterWrite.TrimExpired();
+            lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
             lru.Count.Should().Be(3);
         }

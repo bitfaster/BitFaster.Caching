@@ -42,12 +42,6 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void IsEnabledIsFalse()
-        {
-            counter.IsEnabled.Should().BeFalse();
-        }
-
-        [Fact]
         public void IncrementHitCountIsNoOp()
         {
             counter.Invoking(c => c.IncrementHit()).Should().NotThrow();

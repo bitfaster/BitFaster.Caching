@@ -19,14 +19,14 @@ namespace BitFaster.Caching
         int Count { get; }
 
         /// <summary>
-        /// Gets the cache metrics.
+        /// Gets the cache metrics, if configured.
         /// </summary>
-        ICacheMetrics Metrics { get; }
+        Optional<ICacheMetrics> Metrics { get; }
 
         /// <summary>
-        /// Gets the cache events.
+        /// Gets the cache events, if configured.
         /// </summary>
-        ICacheEvents<K, V> Events { get; }
+        Optional<ICacheEvents<K, V>> Events { get; }
 
         /// <summary>
         /// Gets the cache policy.
