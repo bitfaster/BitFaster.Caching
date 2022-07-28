@@ -5,7 +5,7 @@ using System.Text;
 namespace BitFaster.Caching.Lru
 {
     ///<inheritdoc/>
-    public sealed class FastConcurrentLru<K, V> : TemplateConcurrentLru<K, V, LruItem<K, V>, LruPolicy<K, V>, NoTelemetryPolicy<K, V>>
+    public sealed class FastConcurrentLru<K, V> : ConcurrentLruCore<K, V, LruItem<K, V>, LruPolicy<K, V>, NoTelemetryPolicy<K, V>>
     {
         /// <summary>
         /// Initializes a new instance of the FastConcurrentLru class with the specified capacity that has the default 
