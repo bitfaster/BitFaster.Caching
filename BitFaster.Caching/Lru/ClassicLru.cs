@@ -388,8 +388,6 @@ namespace BitFaster.Caching.Lru
             public long Misses => requestTotalCount - requestHitCount;
 
             public long Evicted => evictedCount;
-
-            public bool IsEnabled => true;
         }
     }
 }

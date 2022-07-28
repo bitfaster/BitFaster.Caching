@@ -67,8 +67,6 @@ namespace BitFaster.Caching.UnitTests
 
         private class TestCacheEvents<K, V> : ICacheEvents<K, AtomicFactory<K, V>>
         {
-            public bool IsEnabled { get; set; }
-
             public event EventHandler<ItemRemovedEventArgs<K, AtomicFactory<K, V>>> ItemRemoved;
 
             public void Fire(K key, AtomicFactory<K, V> value, ItemRemovedReason reason)

@@ -8,8 +8,7 @@ namespace BitFaster.Caching
 {
     /// <summary>
     /// Represents cache metrics collected over the lifetime of the cache.
-    /// If metrics are disabled, the IsEnabled property returns false
-    /// and all other properties return zero.
+    /// If metrics are disabled.
     /// </summary>
     public interface ICacheMetrics
     {

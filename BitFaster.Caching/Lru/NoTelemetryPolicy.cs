@@ -19,8 +19,6 @@ namespace BitFaster.Caching.Lru
 
         public long Evicted => 0;
 
-        public bool IsEnabled => false;
-
         public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
         {
             // no-op, nothing is registered

@@ -27,8 +27,6 @@ namespace BitFaster.Caching.Lru
 
         public long Evicted => this.evictedCount;
 
-        public bool IsEnabled => true;
-
         public void IncrementMiss()
         {
             Interlocked.Increment(ref this.missCount);
