@@ -28,7 +28,7 @@ namespace BitFaster.Caching.Lru
     /// 5. When warm is full, warm tail is moved to warm head or cold depending on WasAccessed.
     /// 6. When cold is full, cold tail is moved to warm head or removed from dictionary on depending on WasAccessed.
     /// </remarks>
-    public class ConcurrentLruCore<K, V, I, P, T> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy, ITimePolicy, IEnumerable<KeyValuePair<K, V>>
+    public class ConcurrentLruCore<K, V, I, P, T> : ICache<K, V>, IAsyncCache<K, V>, IEnumerable<KeyValuePair<K, V>>
         where I : LruItem<K, V>
         where P : struct, IItemPolicy<K, V, I>
         where T : struct, ITelemetryPolicy<K, V>
@@ -86,7 +86,8 @@ namespace BitFaster.Caching.Lru
             this.telemetryPolicy = telemetryPolicy;
             this.telemetryPolicy.SetEventSource(this);
 
-            this.policy = new CachePolicy(this, this);
+            var p = new Proxy(this);
+            this.policy = new CachePolicy(p, p);
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -115,9 +116,9 @@ namespace BitFaster.Caching.Lru
 
         public CachePolicy Policy => this.policy;
 
-        public bool CanExpire => this.itemPolicy.CanDiscard();
+       // public bool CanExpire => this.itemPolicy.CanDiscard();
 
-        public TimeSpan TimeToLive => this.itemPolicy.TimeToLive;
+       // public TimeSpan TimeToLive => this.itemPolicy.TimeToLive;
 
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
         /// <returns>An enumerator for the cache.</returns>
@@ -350,13 +351,6 @@ namespace BitFaster.Caching.Lru
             TrimLiveItems(itemsRemoved, itemCount, capacity);
         }
 
-        public void TrimExpired()
-        {
-            if (this.itemPolicy.CanDiscard())
-            {
-                TrimAllDiscardedItems();
-            }
-        }
 
         protected int TrimAllDiscardedItems()
         {
@@ -638,7 +632,7 @@ namespace BitFaster.Caching.Lru
         // it becomes immutable. However, this object is then somewhere else on the 
         // heap, which slows down the policies with hit counter logic in benchmarks. Likely
         // this approach keeps the structs data members in the same CPU cache line as the LRU.
-        private class Proxy : ICacheMetrics, ICacheEvents<K, V>
+        private class Proxy : ICacheMetrics, ICacheEvents<K, V>, IBoundedPolicy, ITimePolicy
         {
             private readonly ConcurrentLruCore<K, V, I, P, T> lru;
 
@@ -659,10 +653,29 @@ namespace BitFaster.Caching.Lru
 
             public bool IsEnabled => (lru.telemetryPolicy as ICacheMetrics).IsEnabled;
 
+            public int Capacity => lru.Capacity;
+
+            public bool CanExpire => lru.itemPolicy.CanDiscard();
+
+            public TimeSpan TimeToLive => lru.itemPolicy.TimeToLive;
+
             public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
             {
                 add { this.lru.telemetryPolicy.ItemRemoved += value; }
                 remove { this.lru.telemetryPolicy.ItemRemoved -= value; }
+            }
+
+            public void Trim(int itemCount)
+            {
+                lru.Trim(itemCount);
+            }
+
+            public void TrimExpired()
+            {
+                if (lru.itemPolicy.CanDiscard())
+                {
+                    lru.TrimAllDiscardedItems();
+                }
             }
         }
     }
