@@ -160,13 +160,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Events.HasValue.Should().BeFalse();
         }
 
-        [Fact]
-        public void RegisterAndUnregisterIsNoOp()
-        {
-            lru.Events.Value.ItemRemoved += OnItemRemoved;
-            lru.Events.Value.ItemRemoved -= OnItemRemoved;
-        }
-
         private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, string> e)
         {
             throw new NotImplementedException();
