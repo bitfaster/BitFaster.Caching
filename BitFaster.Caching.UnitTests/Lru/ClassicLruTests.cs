@@ -175,7 +175,6 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void ExpireAfterWriteIsDisabled()
         {
-            //lru.Policy.ExpireAfterWrite.Value.Should().Be(NoneTimePolicy.Instance);
             lru.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
         }
 

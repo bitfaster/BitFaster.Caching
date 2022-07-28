@@ -19,12 +19,12 @@ namespace BitFaster.Caching
         int Count { get; }
 
         /// <summary>
-        /// Gets the cache metrics.
+        /// Gets the cache metrics, if configured.
         /// </summary>
         Optional<ICacheMetrics> Metrics { get; }
 
         /// <summary>
-        /// Gets the cache events.
+        /// Gets the cache events, if configured.
         /// </summary>
         /// <remarks>
         /// Events expose the Scoped instance wrapping each value. To keep the value alive (blocking Dispose), try to 
