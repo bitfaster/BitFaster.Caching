@@ -28,7 +28,7 @@ namespace BitFaster.Caching.Lru
     /// 5. When warm is full, warm tail is moved to warm head or cold depending on WasAccessed.
     /// 6. When cold is full, cold tail is moved to warm head or removed from dictionary on depending on WasAccessed.
     /// </remarks>
-    public class TemplateConcurrentLru<K, V, I, P, T> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy, ITimePolicy, IEnumerable<KeyValuePair<K, V>>
+    public class ConcurrentLruCore<K, V, I, P, T> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy, ITimePolicy, IEnumerable<KeyValuePair<K, V>>
         where I : LruItem<K, V>
         where P : struct, IItemPolicy<K, V, I>
         where T : struct, ITelemetryPolicy<K, V>
@@ -55,7 +55,7 @@ namespace BitFaster.Caching.Lru
 
         private readonly CachePolicy policy;
 
-        public TemplateConcurrentLru(
+        public ConcurrentLruCore(
             int concurrencyLevel,
             ICapacityPartition capacity,
             IEqualityComparer<K> comparer,
@@ -628,7 +628,7 @@ namespace BitFaster.Caching.Lru
         /// </remarks>
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return ((TemplateConcurrentLru<K, V, I, P, T>)this).GetEnumerator();
+            return ((ConcurrentLruCore<K, V, I, P, T>)this).GetEnumerator();
         }
 
         // To get JIT optimizations, policies must be structs.
@@ -640,9 +640,9 @@ namespace BitFaster.Caching.Lru
         // this approach keeps the structs data members in the same CPU cache line as the LRU.
         private class Proxy : ICacheMetrics, ICacheEvents<K, V>
         {
-            private readonly TemplateConcurrentLru<K, V, I, P, T> lru;
+            private readonly ConcurrentLruCore<K, V, I, P, T> lru;
 
-            public Proxy(TemplateConcurrentLru<K, V, I, P, T> lru)
+            public Proxy(ConcurrentLruCore<K, V, I, P, T> lru)
             {
                 this.lru = lru;
             }
