@@ -49,7 +49,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             await Task.Delay(ttl * 2);
 
-            lru.TrimExpired();
+            lru.Policy.ExpireAfterWrite.TrimExpired();
 
             lru.Count.Should().Be(0);
         }
