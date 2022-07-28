@@ -28,7 +28,7 @@ namespace BitFaster.Caching.Lru
     /// 5. When warm is full, warm tail is moved to warm head or cold depending on WasAccessed.
     /// 6. When cold is full, cold tail is moved to warm head or removed from dictionary on depending on WasAccessed.
     /// </remarks>
-    public class ConcurrentLruCore<K, V, I, P, T> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy, ITimePolicy, IEnumerable<KeyValuePair<K, V>>
+    public class ConcurrentLruCore<K, V, I, P, T> : ICache<K, V>, IAsyncCache<K, V>, IEnumerable<KeyValuePair<K, V>>
         where I : LruItem<K, V>
         where P : struct, IItemPolicy<K, V, I>
         where T : struct, ITelemetryPolicy<K, V>
@@ -52,8 +52,6 @@ namespace BitFaster.Caching.Lru
         // Since T is a struct, making it readonly will force the runtime to make defensive copies
         // if mutate methods are called. Therefore, field must be mutable to maintain count.
         protected T telemetryPolicy;
-
-        private readonly CachePolicy policy;
 
         public ConcurrentLruCore(
             int concurrencyLevel,
@@ -85,8 +83,6 @@ namespace BitFaster.Caching.Lru
             this.itemPolicy = itemPolicy;
             this.telemetryPolicy = telemetryPolicy;
             this.telemetryPolicy.SetEventSource(this);
-
-            this.policy = new CachePolicy(this, this);
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -102,6 +98,8 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public ICacheEvents<K, V> Events => new Proxy(this);
 
+        public CachePolicy Policy => CreatePolicy(this);
+
         public int HotCount => this.hotCount;
 
         public int WarmCount => this.warmCount;
@@ -112,12 +110,6 @@ namespace BitFaster.Caching.Lru
         /// Gets a collection containing the keys in the cache.
         /// </summary>
         public ICollection<K> Keys => this.dictionary.Keys;
-
-        public CachePolicy Policy => this.policy;
-
-        public bool CanExpire => this.itemPolicy.CanDiscard();
-
-        public TimeSpan TimeToLive => this.itemPolicy.TimeToLive;
 
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
         /// <returns>An enumerator for the cache.</returns>
@@ -350,11 +342,11 @@ namespace BitFaster.Caching.Lru
             TrimLiveItems(itemsRemoved, itemCount, capacity);
         }
 
-        public void TrimExpired()
+        private void TrimExpired()
         {
             if (this.itemPolicy.CanDiscard())
             {
-                TrimAllDiscardedItems();
+                this.TrimAllDiscardedItems();
             }
         }
 
@@ -631,6 +623,12 @@ namespace BitFaster.Caching.Lru
             return ((ConcurrentLruCore<K, V, I, P, T>)this).GetEnumerator();
         }
 
+        private static CachePolicy CreatePolicy(ConcurrentLruCore<K, V, I, P, T> lru)
+        { 
+            var p = new Proxy(lru); 
+            return new CachePolicy(p, p); 
+        }
+
         // To get JIT optimizations, policies must be structs.
         // If the structs are returned directly via properties, they will be copied. Since  
         // telemetryPolicy is a mutable struct, copy is bad. One workaround is to store the 
@@ -638,7 +636,7 @@ namespace BitFaster.Caching.Lru
         // it becomes immutable. However, this object is then somewhere else on the 
         // heap, which slows down the policies with hit counter logic in benchmarks. Likely
         // this approach keeps the structs data members in the same CPU cache line as the LRU.
-        private class Proxy : ICacheMetrics, ICacheEvents<K, V>
+        private class Proxy : ICacheMetrics, ICacheEvents<K, V>, IBoundedPolicy, ITimePolicy
         {
             private readonly ConcurrentLruCore<K, V, I, P, T> lru;
 
@@ -659,10 +657,26 @@ namespace BitFaster.Caching.Lru
 
             public bool IsEnabled => (lru.telemetryPolicy as ICacheMetrics).IsEnabled;
 
+            public int Capacity => lru.Capacity;
+
+            public bool CanExpire => lru.itemPolicy.CanDiscard();
+
+            public TimeSpan TimeToLive => lru.itemPolicy.TimeToLive;
+
             public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
             {
                 add { this.lru.telemetryPolicy.ItemRemoved += value; }
                 remove { this.lru.telemetryPolicy.ItemRemoved -= value; }
+            }
+
+            public void Trim(int itemCount)
+            {
+                lru.Trim(itemCount);
+            }
+
+            public void TrimExpired()
+            {
+                lru.TrimExpired();
             }
         }
     }
