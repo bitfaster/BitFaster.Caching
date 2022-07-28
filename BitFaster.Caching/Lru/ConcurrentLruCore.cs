@@ -53,7 +53,8 @@ namespace BitFaster.Caching.Lru
         // if mutate methods are called. Therefore, field must be mutable to maintain count.
         protected T telemetryPolicy;
 
-        private readonly CachePolicy policy;
+        //private readonly CachePolicy policy;
+        //private readonly Proxy proxy;
 
         public ConcurrentLruCore(
             int concurrencyLevel,
@@ -86,8 +87,8 @@ namespace BitFaster.Caching.Lru
             this.telemetryPolicy = telemetryPolicy;
             this.telemetryPolicy.SetEventSource(this);
 
-            var p = new Proxy(this);
-            this.policy = new CachePolicy(p, p);
+            //this.proxy = new Proxy(this);
+            //this.policy = new CachePolicy(this.proxy, this.proxy);
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -103,6 +104,11 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public ICacheEvents<K, V> Events => new Proxy(this);
 
+        public CachePolicy Policy => CreatePolicy(this);
+
+    private static CachePolicy CreatePolicy(ConcurrentLruCore<K, V, I, P, T> lru)
+        { var p = new Proxy(lru); return new CachePolicy(p, p); }
+
         public int HotCount => this.hotCount;
 
         public int WarmCount => this.warmCount;
@@ -113,12 +119,6 @@ namespace BitFaster.Caching.Lru
         /// Gets a collection containing the keys in the cache.
         /// </summary>
         public ICollection<K> Keys => this.dictionary.Keys;
-
-        public CachePolicy Policy => this.policy;
-
-       // public bool CanExpire => this.itemPolicy.CanDiscard();
-
-       // public TimeSpan TimeToLive => this.itemPolicy.TimeToLive;
 
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
         /// <returns>An enumerator for the cache.</returns>
