@@ -21,10 +21,20 @@ namespace BitFaster.Caching
             this.hasValue = true;
         }
 
+        /// <summary>
+        /// Gets the value of the current Optional<T> object if it has been assigned a valid underlying value.
+        /// </summary>
         public T Value => this.value;
 
+        /// <summary>
+        /// Gets a value indicating whether the current Optional<T> object has a valid value of its underlying type.
+        /// </summary>
         public bool HasValue => this.hasValue;
 
+        /// <summary>
+        /// Creates an empty Optional<T>.
+        /// </summary>
+        /// <returns>An empty Optional<T>.</returns>
         public static Optional<T> None()
         {
             return new Optional<T>();

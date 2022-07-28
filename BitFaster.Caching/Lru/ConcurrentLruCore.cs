@@ -626,7 +626,7 @@ namespace BitFaster.Caching.Lru
         private static CachePolicy CreatePolicy(ConcurrentLruCore<K, V, I, P, T> lru)
         { 
             var p = new Proxy(lru); 
-            return new CachePolicy(new Optional<IBoundedPolicy>(p), p.CanExpire ? new Optional<ITimePolicy>(p) : Optional<ITimePolicy>.None()); 
+            return new CachePolicy(new Optional<IBoundedPolicy>(p), lru.itemPolicy.CanDiscard() ? new Optional<ITimePolicy>(p) : Optional<ITimePolicy>.None()); 
         }
 
         // To get JIT optimizations, policies must be structs.
@@ -656,8 +656,6 @@ namespace BitFaster.Caching.Lru
             public long Evicted => lru.telemetryPolicy.Evicted;
 
             public int Capacity => lru.Capacity;
-
-            public bool CanExpire => lru.itemPolicy.CanDiscard();
 
             public TimeSpan TimeToLive => lru.itemPolicy.TimeToLive;
 
