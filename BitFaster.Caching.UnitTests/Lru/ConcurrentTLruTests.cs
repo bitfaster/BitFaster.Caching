@@ -55,13 +55,13 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void CanExpireIsTrue()
         {
-            this.lru.Policy.ExpireAfterWrite.CanExpire.Should().BeTrue();
+            this.lru.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
         }
 
         [Fact]
         public void TimeToLiveIsCtorArg()
         {
-            this.lru.Policy.ExpireAfterWrite.TimeToLive.Should().Be(timeToLive);
+            this.lru.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(timeToLive);
         }
 
         [Fact]
@@ -155,7 +155,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             await Task.Delay(timeToLive * 2);
 
-            lru.Policy.ExpireAfterWrite.TrimExpired();
+            lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
             lru.Count.Should().Be(0);
         }
@@ -177,7 +177,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(2, valueFactory.Create);
             lru.GetOrAdd(3, valueFactory.Create);
 
-            lru.Policy.ExpireAfterWrite.TrimExpired();
+            lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
             lru.Count.Should().Be(3);
         }

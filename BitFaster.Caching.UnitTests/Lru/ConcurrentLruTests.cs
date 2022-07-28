@@ -225,15 +225,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void CanExpireIsFalse()
+        public void ExpireAfterWriteHasValueIsFalse()
         {
-            this.lru.Policy.ExpireAfterWrite.CanExpire.Should().BeFalse();
-        }
-
-        [Fact]
-        public void TimeToLiveIsInfinite()
-        {
-            this.lru.Policy.TimeToLive.Value.Should().Be(NoneTimePolicy.Infinite);
+            this.lru.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
         }
 
         [Fact]
