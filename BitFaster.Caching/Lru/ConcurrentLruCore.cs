@@ -53,9 +53,6 @@ namespace BitFaster.Caching.Lru
         // if mutate methods are called. Therefore, field must be mutable to maintain count.
         protected T telemetryPolicy;
 
-        //private readonly CachePolicy policy;
-        //private readonly Proxy proxy;
-
         public ConcurrentLruCore(
             int concurrencyLevel,
             ICapacityPartition capacity,
@@ -86,9 +83,6 @@ namespace BitFaster.Caching.Lru
             this.itemPolicy = itemPolicy;
             this.telemetryPolicy = telemetryPolicy;
             this.telemetryPolicy.SetEventSource(this);
-
-            //this.proxy = new Proxy(this);
-            //this.policy = new CachePolicy(this.proxy, this.proxy);
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -105,9 +99,6 @@ namespace BitFaster.Caching.Lru
         public ICacheEvents<K, V> Events => new Proxy(this);
 
         public CachePolicy Policy => CreatePolicy(this);
-
-    private static CachePolicy CreatePolicy(ConcurrentLruCore<K, V, I, P, T> lru)
-        { var p = new Proxy(lru); return new CachePolicy(p, p); }
 
         public int HotCount => this.hotCount;
 
@@ -623,6 +614,12 @@ namespace BitFaster.Caching.Lru
         IEnumerator IEnumerable.GetEnumerator()
         {
             return ((ConcurrentLruCore<K, V, I, P, T>)this).GetEnumerator();
+        }
+
+        private static CachePolicy CreatePolicy(ConcurrentLruCore<K, V, I, P, T> lru)
+        { 
+            var p = new Proxy(lru); 
+            return new CachePolicy(p, p); 
         }
 
         // To get JIT optimizations, policies must be structs.
