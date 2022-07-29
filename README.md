@@ -104,7 +104,9 @@ using (var lifetime = urlLocks.Acquire(url))
 
 MemoryCache has these limitations (see [here](https://github.com/bitfaster/BitFaster.Caching/wiki) for more detail):
 
-- Lookups require heap allocations when the native key type is not type string.
+- No support for atomic adds, which can lead to the (cache stampede)[https://en.wikipedia.org/wiki/Cache_stampede] failure.
+- It's not generic, and therefore boxes value types for both keys and values. 
+- System.Runtime.Caching uses string keys, therefore lookups require heap allocations when the native key type is not type string.
 - Is not 'scan' resistant: fetching all keys will try to load everything into memory, which is bad.
 - Non-optimal eviction policy. MemoryCache uses an heuristic to estimate memory used, and evicts items using a timer based background thread. The 'trim' process may remove useful items, and if the timer does not fire fast enough the resulting memory pressure can be problematic (e.g. thrashing, out of memory, increased GC).
 - Does not scale well with concurrent writes.
