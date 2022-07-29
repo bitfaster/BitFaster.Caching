@@ -10,10 +10,14 @@ namespace BitFaster.Caching
     /// <summary>
     /// Represents an optional value.
     /// </summary>
-    public readonly struct Optional<T> 
+    public class Optional<T> 
     {
         private readonly T value;
         private readonly bool hasValue;
+
+        public Optional()
+        {
+        }
 
         public Optional(T value)
         {
