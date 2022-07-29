@@ -41,7 +41,7 @@ ConcurrentDictionary GetOrAdd is not performed atomically. In other words, concu
 ConcurrentLru can be configured to use atomic GetOrAdd using the ConcurrentLruBuilder:
 
 ```csharp
-var lru = new ConcurrentLruBuilder<int, Disposable>()
+var lru = new ConcurrentLruBuilder<int, SomeItem>()
     .WithCapacity(666)
     .WithAtomicGetOrAdd()
     .Build();
