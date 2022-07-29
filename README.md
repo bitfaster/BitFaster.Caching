@@ -34,23 +34,40 @@ var value = lru.GetOrAdd(1, (k) => new SomeItem(k));
 var value = await lru.GetOrAddAsync(0, (k) => Task.FromResult(new SomeItem(k)));
 ```
 
+## Atomic GetOrAdd
+
+ConcurrentDictionary GetOrAdd is not performed atomically. In other words, concurrent requests for the same key can invoke the valueFactory delegate multiple times, and the last write wins. 
+
+ConcurrentLru can be configured to use atomic GetOrAdd using the ConcurrentLruBuilder:
+
+```csharp
+var lru = new ConcurrentLruBuilder<int, Disposable>()
+    .WithCapacity(666)
+    .WithAtomicGetOrAdd()
+    .Build();
+
+var value = lru.GetOrAdd(1, (k) => new SomeItem(k));
+```
 
 ## Caching IDisposable objects
 
-All cache classes in BitFaster.Caching own the lifetime of cached values, and will automatically dispose values when they are evicted. 
+It can be useful to combine object pooling and caching to reduce allocations, using IDisposable to return objects to the pool. All cache classes in BitFaster.Caching own the lifetime of cached values, and will automatically dispose values when they are evicted. 
 
-To avoid races using objects after they have been disposed by the cache, wrap them with `Scoped`. The call to `CreateLifetime` creates a `Lifetime` that guarantees the scoped object will not be disposed until the lifetime is disposed. `Scoped` is thread safe, and guarantees correct disposal for concurrent lifetimes. 
+To avoid races using objects after they have been disposed by the cache, use `IScopedCache which` wraps values in `Scoped<T>`. The call to `ScopedGetOrAdd` creates a `Lifetime` that guarantees the scoped object will not be disposed until the lifetime is disposed. Scoped cache is thread safe, and guarantees correct disposal for concurrent lifetimes. 
 
 ```csharp
-int capacity = 666;
-var lru = new ConcurrentLru<int, Scoped<SomeDisposable>>(capacity);
+var lru = new ConcurrentLruBuilder<int, Disposable>()
+    .WithCapacity(666)
+    .AsScopedCache()
+    .Build();
 var valueFactory = new SomeDisposableValueFactory();
 
-using (var lifetime = lru.GetOrAdd(1, valueFactory.Create).CreateLifetime())
+using (var lifetime = lru.ScopedGetOrAdd(1, valueFactory.Create))
 {
     // lifetime.Value is guaranteed to be alive until the lifetime is disposed
 }
-
+```
+```csharp
 class SomeDisposableValueFactory
 {
    public Scoped<SomeDisposable>> Create(int key)
