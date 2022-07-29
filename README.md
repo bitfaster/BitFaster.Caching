@@ -104,7 +104,7 @@ using (var lifetime = urlLocks.Acquire(url))
 
 MemoryCache has these limitations (see [here](https://github.com/bitfaster/BitFaster.Caching/wiki) for more detail):
 
-- No support for atomic adds, which can lead to the (cache stampede)[https://en.wikipedia.org/wiki/Cache_stampede] failure.
+- No support for atomic adds, which can lead to the [cache stampede](https://en.wikipedia.org/wiki/Cache_stampede) failure.
 - It's not generic, and therefore boxes value types for both keys and values. 
 - System.Runtime.Caching uses string keys, therefore lookups require heap allocations when the native key type is not type string.
 - Is not 'scan' resistant: fetching all keys will try to load everything into memory, which is bad.
