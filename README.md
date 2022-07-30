@@ -13,7 +13,7 @@ Please refer to the [wiki](https://github.com/bitfaster/BitFaster.Caching/wiki) 
     
 ## ConcurrentLru
 
-`ConcurrentLru` is intended as a light weight drop in replacement for `ConcurrentDictionary`, and a faster alternative to the `System.Runtime.Caching.MemoryCache` family of classes (e.g. `HttpRuntime.Cache`, `System.Web.Caching` etc). 
+`ConcurrentLru` is a light weight drop in replacement for `ConcurrentDictionary`, but with bounded size enforced by a pseudo LRU eviction policy. There are no background threads, no lock contention, lookups are fast and hit rate outperforms a pure LRU in all tested scenarios.
 
 Choose a capacity and use just like ConcurrentDictionary, but with bounded size:
 
@@ -42,7 +42,7 @@ var value = lru.GetOrAdd(1, (k) => new SomeItem(k));
 
 ## Time based eviction
 
-`ConcurrentTLru` functions the same as `ConcurrentLru`, but entries also expire after a fixed duration since an entry's creation or most recent replacement. This can be used to remove stale items. If the values generated for each key can change over time, `ConcurrentTLru` is eventually consistent where the inconsistency window = time to live (TTL).
+`ConcurrentTLru` functions the same as `ConcurrentLru`, but entries also expire after a fixed duration since creation or most recent replacement. This can be used to remove stale items. If the values generated for each key can change over time, `ConcurrentTLru` is eventually consistent where the inconsistency window = time to live (TTL).
 
 ```csharp
 var lru = new ConcurrentLruBuilder<int, SomeItem>()
