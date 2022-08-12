@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -263,18 +264,20 @@ namespace BitFaster.Caching.Lfu
         {
             this.cmSketch.Increment(node.Value.Key);
 
+            // Node is added to read buffer while it is removed by maintenance, or it is read before it has been added.
+            if (node.List == null)
+            {
+                return;
+            }
+
             switch (node.Value.Position)
             {
                 case Position.Window:
-                    // First time round write queue is not drained, and it is not yet in queue. In that case just wait
-                    // for write drain to add it
-                    if (node.List != null)
-                    {
-                        this.windowLru.MoveToEnd(node); 
-                    }
+                    this.windowLru.MoveToEnd(node); 
                     break;
                 case Position.Probation:
-                    ReorderProbation(node);
+                    // ReorderProbation(node);
+                    PromoteProbation(node); 
                     break;
                 case Position.Protected:
                     this.protectedLru.MoveToEnd(node);
@@ -284,13 +287,13 @@ namespace BitFaster.Caching.Lfu
             this.metrics.requestHitCount++;
         }
 
-        private void ReorderProbation(LinkedListNode<LfuNode<K, V>> node)
-        {
-            // promote on read
-            this.probationLru.Remove(node);
-            this.protectedLru.AddLast(node);
-            node.Value.Position = Position.Protected;
-        }
+        //private void ReorderProbation(LinkedListNode<LfuNode<K, V>> node)
+        //{
+        //    // promote on read
+        //    this.probationLru.Remove(node);
+        //    this.protectedLru.AddLast(node);
+        //    node.Value.Position = Position.Protected;
+        //}
 
         private void OnWrite(LinkedListNode<LfuNode<K, V>> node)
         {
@@ -345,7 +348,7 @@ namespace BitFaster.Caching.Lfu
                     var c = this.cmSketch.EstimateFrequency(candidate.Value.Key);
                     var p = this.cmSketch.EstimateFrequency(this.probationLru.First.Value.Key);
 
-                    // TODO: see  boolean admit(K candidateKey, K victimKey), has random factor to block attack
+                    // TODO: random factor?
                     var victim = (c > p) ? this.probationLru.First : candidate;
 
                     this.dictionary.TryRemove(victim.Value.Key, out var _);
@@ -373,6 +376,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         // TODO: false sharing etc.
+        [DebuggerDisplay("{Format()}")]
         private class DrainStatus
         {
             public const int Idle = 0;
@@ -411,6 +415,23 @@ namespace BitFaster.Caching.Lfu
             public int Status()
             {
                 return this.drainStatus;
+            }
+
+            public string Format()
+            {
+                switch (this.drainStatus)
+                {
+                    case Idle:
+                        return "Idle";
+                    case Required:
+                        return "Required";
+                    case ProcessingToIdle:
+                        return "ProcessingToIdle";
+                    case ProcessingToRequired:
+                        return "ProcessingToRequired"; ;
+                }
+
+                return "Invalid state";
             }
         }
 
