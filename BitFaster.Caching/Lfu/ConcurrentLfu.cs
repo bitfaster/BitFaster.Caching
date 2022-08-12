@@ -82,7 +82,7 @@ namespace BitFaster.Caching.Lfu
 
         public void Clear()
         {
-            // TODO: implement this and also Trim
+            // TODO: implement this and also Trim - much like  void evictFromMain(int candidates)
             // stop threads
             // clear stuff
             throw new NotImplementedException();
@@ -320,6 +320,14 @@ namespace BitFaster.Caching.Lfu
                 var candidate = this.windowLru.First;
                 this.windowLru.RemoveFirst();
 
+                // initial state is empty protected, allow it to fill up before using probation
+                if (this.protectedLru.Count < protectedMax)
+                {
+                    this.protectedLru.AddLast(candidate);
+                    candidate.Value.Position = Position.Protected;
+                    return;
+                }
+
                 this.probationLru.AddLast(candidate);
                 candidate.Value.Position = Position.Probation;
 
@@ -329,6 +337,7 @@ namespace BitFaster.Caching.Lfu
                     var c = this.cmSketch.EstimateFrequency(candidate.Value.Key);
                     var p = this.cmSketch.EstimateFrequency(this.probationLru.First.Value.Key);
 
+                    // TODO: see  boolean admit(K candidateKey, K victimKey), has random factor to block attack
                     var victim = (c > p) ? this.probationLru.First : candidate;
 
                     this.dictionary.TryRemove(victim.Value.Key, out var _);

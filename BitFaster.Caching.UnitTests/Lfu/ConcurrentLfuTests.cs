@@ -21,14 +21,16 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.GetOrAdd(2, k => k);
             cache.GetOrAdd(2, k => k);
 
-            for (int i = 0; i < 20; i++)
+            for (int i = 0; i < 25; i++)
             {
                 cache.GetOrAdd(i, k => k);
             }
 
             await Task.Delay(TimeSpan.FromSeconds(1));
 
-            cache.Count.Should().Be(1);
+            // this is correct in the debugger, but outside the debugger it seems like maintenance doesn't run
+            // likely there is a concurrency bug
+            cache.Count.Should().Be(20);
         }
     }
 }
