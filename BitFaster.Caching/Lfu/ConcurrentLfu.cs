@@ -21,6 +21,8 @@ namespace BitFaster.Caching.Lfu
         private ConcurrentQueue<LinkedListNode<LfuNode<K, V>>> readBuffer;
         private ConcurrentQueue<LinkedListNode<LfuNode<K, V>>> writeBuffer;
 
+        private readonly CacheMetrics metrics = new CacheMetrics();
+
         private CmSketch<K> cmSketch;
 
         private LinkedList<LfuNode<K, V>> windowLru;
@@ -54,7 +56,7 @@ namespace BitFaster.Caching.Lfu
 
         public int Count => this.dictionary.Count;
 
-        public Optional<ICacheMetrics> Metrics => throw new NotImplementedException();
+        public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(this.metrics);
 
         public Optional<ICacheEvents<K, V>> Events => throw new NotImplementedException();
 
@@ -110,6 +112,7 @@ namespace BitFaster.Caching.Lfu
         public bool TryGet(K key, out V value)
         {
             TryScheduleDrain();
+            Interlocked.Increment(ref this.metrics.requestTotalCount);
 
             // TODO: should this be counted as a read in CMSketch? how to enque with no node?
 
@@ -278,7 +281,7 @@ namespace BitFaster.Caching.Lfu
                     break;
             }
 
-            // TODO: increment hit count
+            this.metrics.requestHitCount++;
         }
 
         private void ReorderProbation(LinkedListNode<LfuNode<K, V>> node)
@@ -347,6 +350,8 @@ namespace BitFaster.Caching.Lfu
 
                     this.dictionary.TryRemove(victim.Value.Key, out var _);
                     victim.List.Remove(victim);
+
+                    this.metrics.evictedCount++;
                 }
             }
         }
@@ -407,6 +412,23 @@ namespace BitFaster.Caching.Lfu
             {
                 return this.drainStatus;
             }
+        }
+
+        private class CacheMetrics : ICacheMetrics
+        {
+            public long requestHitCount;
+            public long requestTotalCount;
+            public long evictedCount;
+
+            public double HitRatio => (double)requestHitCount / (double)requestTotalCount;
+
+            public long Total => requestTotalCount;
+
+            public long Hits => requestHitCount;
+
+            public long Misses => requestTotalCount - requestHitCount;
+
+            public long Evicted => evictedCount;
         }
     }
 }

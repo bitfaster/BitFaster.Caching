@@ -2,6 +2,7 @@
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching;
 using BitFaster.Caching.Benchmarks.Lru;
+using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
 using Microsoft.Extensions.Caching.Memory;
 using System;
@@ -45,6 +46,8 @@ namespace BitFaster.Caching.Benchmarks
         private static readonly FastConcurrentTLru<int, int> fastConcurrentTLru = new FastConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
 
         private static readonly ICache<int, int> atomicFastLru = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithAtomicGetOrAdd().Build();
+
+        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(9);
 
         private static readonly int key = 1;
         private static System.Runtime.Caching.MemoryCache memoryCache = System.Runtime.Caching.MemoryCache.Default;
@@ -99,6 +102,13 @@ namespace BitFaster.Caching.Benchmarks
         {
             Func<int, int> func = x => x;
             concurrentTlru.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void ConcurrentLfu()
+        {
+            Func<int, int> func = x => x;
+            concurrentLfu.GetOrAdd(1, func);
         }
 
         [Benchmark()]
