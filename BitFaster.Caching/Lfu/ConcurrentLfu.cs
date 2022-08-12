@@ -300,6 +300,9 @@ namespace BitFaster.Caching.Lfu
             // TODO: increment miss when queue == window
             this.cmSketch.Increment(node.Value.Key);
 
+            // TODO: eventually need some concept of 'deleted'. Nodes can be removed while they
+            // are in the write buffer, in which case they should not be added back into the LRU.
+
             // node can already be in one of the queues due to update
             switch (node.Value.Position)
             {
