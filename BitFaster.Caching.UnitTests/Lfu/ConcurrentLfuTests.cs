@@ -28,8 +28,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             await Task.Delay(TimeSpan.FromSeconds(1));
 
-            // this is correct in the debugger, but outside the debugger it seems like maintenance doesn't run
-            // likely there is a concurrency bug
             cache.Count.Should().Be(20);
         }
     }

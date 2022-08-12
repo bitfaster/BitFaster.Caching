@@ -263,7 +263,12 @@ namespace BitFaster.Caching.Lfu
             switch (node.Value.Position)
             {
                 case Position.Window:
-                    this.windowLru.MoveToEnd(node);
+                    // First time round write queue is not drained, and it is not yet in queue. In that case just wait
+                    // for write drain to add it
+                    if (node.List != null)
+                    {
+                        this.windowLru.MoveToEnd(node); 
+                    }
                     break;
                 case Position.Probation:
                     ReorderProbation(node);
