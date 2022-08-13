@@ -48,7 +48,7 @@ namespace BitFaster.Caching.Lfu
         {
             int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);
 
-            table = new long[(maximum == 0) ? 1 : Tools.CeilingPowerOfTwo(maximum)];
+            table = new long[(maximum == 0) ? 1 : BitOps.CeilingPowerOfTwo(maximum)];
             tableMask = Math.Max(0, table.Length - 1);
             sampleSize = (maximumSize == 0) ? 10 : (10 * maximum);
 
@@ -114,10 +114,19 @@ namespace BitFaster.Caching.Lfu
             int count = 0;
             for (int i = 0; i < table.Length; i++)
             {
-                count += Tools.BitCount(table[i] & OneMask);
+                count += BitOps.BitCount(table[i] & OneMask);
                 table[i] = (long)((ulong)table[i] >> 1) & ResetMask;
             }
             size = (size - (count >> 2)) >> 1;
+        }
+
+        public void Clear()
+        {
+            for (int i = 0; i < table.Length; i++)
+            {
+                table[i] = 0;
+            }
+            size = 0;
         }
 
         int IndexOf(int item, int i)

@@ -6,6 +6,8 @@ namespace BitFaster.Caching.Lfu
 {
     internal class LfuNode<K, V>
     {
+        private volatile bool wasRemoved;
+
         public LfuNode(K k, V v)
         {
             this.Key = k;
@@ -17,6 +19,12 @@ namespace BitFaster.Caching.Lfu
         public V Value { get; set; }
 
         public Position Position { get; set; }
+
+        public bool WasRemoved
+        {
+            get => this.wasRemoved;
+            set => this.wasRemoved = value;
+        }
     }
 
     public enum Position

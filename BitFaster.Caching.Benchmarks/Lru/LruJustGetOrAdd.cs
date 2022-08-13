@@ -1,4 +1,5 @@
 ﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching;
 using BitFaster.Caching.Benchmarks.Lru;
@@ -31,10 +32,12 @@ namespace BitFaster.Caching.Benchmarks
     //|               ClassicLru |  49.041 ns | 0.8575 ns | 0.8021 ns |  6.23 |    0.11 |   3,013 B |      - |         - |
     //|    RuntimeMemoryCacheGet | 107.769 ns | 1.1901 ns | 0.9938 ns | 13.69 |    0.15 |      49 B | 0.0074 |      32 B |
     //| ExtensionsMemoryCacheGet |  93.188 ns | 0.2321 ns | 0.2171 ns | 11.85 |    0.07 |      78 B | 0.0055 |      24 B |
-    [SimpleJob(RuntimeMoniker.Net48)]
-    [SimpleJob(RuntimeMoniker.Net60)]
+    //[SimpleJob(RuntimeMoniker.Net48, 2, 10, 15)]
+    [SimpleJob(RuntimeMoniker.Net60, 2, 10, 15)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
+    [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // https://adamsitnik.com/Hardware-Counters-Diagnoser/
+    [ThreadingDiagnoser]
     public class LruJustGetOrAdd
     {
         private static readonly ConcurrentDictionary<int, int> dictionary = new ConcurrentDictionary<int, int>(8, 9, EqualityComparer<int>.Default);
@@ -69,40 +72,40 @@ namespace BitFaster.Caching.Benchmarks
             dictionary.GetOrAdd(1, func);
         }
 
-        [Benchmark()]
-        public void FastConcurrentLru()
-        {
-            Func<int, int> func = x => x;
-            fastConcurrentLru.GetOrAdd(1, func);
-        }
+        //[Benchmark()]
+        //public void FastConcurrentLru()
+        //{
+        //    Func<int, int> func = x => x;
+        //    fastConcurrentLru.GetOrAdd(1, func);
+        //}
 
-        [Benchmark()]
-        public void ConcurrentLru()
-        {
-            Func<int, int> func = x => x;
-            concurrentLru.GetOrAdd(1, func);
-        }
+        //[Benchmark()]
+        //public void ConcurrentLru()
+        //{
+        //    Func<int, int> func = x => x;
+        //    concurrentLru.GetOrAdd(1, func);
+        //}
 
-        [Benchmark()]
-        public void AtomicFastLru()
-        {
-            Func<int, int> func = x => x;
-            atomicFastLru.GetOrAdd(1, func);
-        }
+        //[Benchmark()]
+        //public void AtomicFastLru()
+        //{
+        //    Func<int, int> func = x => x;
+        //    atomicFastLru.GetOrAdd(1, func);
+        //}
 
-        [Benchmark()]
-        public void FastConcurrentTLru()
-        {
-            Func<int, int> func = x => x;
-            fastConcurrentTLru.GetOrAdd(1, func);
-        }
+        //[Benchmark()]
+        //public void FastConcurrentTLru()
+        //{
+        //    Func<int, int> func = x => x;
+        //    fastConcurrentTLru.GetOrAdd(1, func);
+        //}
 
-        [Benchmark()]
-        public void ConcurrentTLru()
-        {
-            Func<int, int> func = x => x;
-            concurrentTlru.GetOrAdd(1, func);
-        }
+        //[Benchmark()]
+        //public void ConcurrentTLru()
+        //{
+        //    Func<int, int> func = x => x;
+        //    concurrentTlru.GetOrAdd(1, func);
+        //}
 
         [Benchmark()]
         public void ConcurrentLfu()
@@ -111,24 +114,24 @@ namespace BitFaster.Caching.Benchmarks
             concurrentLfu.GetOrAdd(1, func);
         }
 
-        [Benchmark()]
-        public void ClassicLru()
-        {
-            Func<int, int> func = x => x;
-            classicLru.GetOrAdd(1, func);
-        }
+        //[Benchmark()]
+        //public void ClassicLru()
+        //{
+        //    Func<int, int> func = x => x;
+        //    classicLru.GetOrAdd(1, func);
+        //}
 
-        [Benchmark()]
-        public void RuntimeMemoryCacheGet()
-        {
-            memoryCache.Get("1");
-        }
+        //[Benchmark()]
+        //public void RuntimeMemoryCacheGet()
+        //{
+        //    memoryCache.Get("1");
+        //}
 
-        [Benchmark()]
-        public void ExtensionsMemoryCacheGet()
-        {
-            exMemoryCache.Get(1);
-        }
+        //[Benchmark()]
+        //public void ExtensionsMemoryCacheGet()
+        //{
+        //    exMemoryCache.Get(1);
+        //}
 
         public class MemoryCacheOptionsAccessor
             : Microsoft.Extensions.Options.IOptions<MemoryCacheOptions>

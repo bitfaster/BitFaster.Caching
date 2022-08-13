@@ -5,8 +5,7 @@ using System.Text;
 
 namespace BitFaster.Caching.Lfu
 {
-    // TODO: .NET Core only
-    public class Tools
+    public class BitOps
     {
         public static int CeilingPowerOfTwo(int x)
         {
@@ -16,7 +15,20 @@ namespace BitFaster.Caching.Lfu
         public static int CeilingPowerOfTwo(uint x)
         {
 #if NETSTANDARD2_0
-            return 0;
+            //int result = 2;
+            //while (result < x)
+            //{
+            //    result <<= 1;
+            //}
+
+            //return result;
+            --x;
+            x |= x >> 1;
+            x |= x >> 2;
+            x |= x >> 4;
+            x |= x >> 8;
+            x |= x >> 16;
+            return (int)x + 1;
 #else
             return 1 << -BitOperations.LeadingZeroCount(x - 1);
 #endif
@@ -31,7 +43,14 @@ namespace BitFaster.Caching.Lfu
         public static int BitCount(uint x)
         {
 #if NETSTANDARD2_0
-            return 0;
+            int count = 0;
+            while (x != 0)
+            {
+                count++;
+                x &= (x - 1); //walking through all the bits which are set to one
+            }
+
+            return count;
 #else
             return BitOperations.PopCount(x);
 #endif
@@ -45,7 +64,14 @@ namespace BitFaster.Caching.Lfu
         public static int BitCount(ulong x)
         {
 #if NETSTANDARD2_0
-            return 0;
+            int count = 0;
+            while (x != 0)
+            {
+                count++;
+                x &= (x - 1); //walking through all the bits which are set to one
+            }
+
+            return count;
 #else
             return BitOperations.PopCount(x);
 #endif
