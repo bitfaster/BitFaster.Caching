@@ -13,6 +13,14 @@ namespace BitFaster.Caching.UnitTests
         private readonly BoundedBuffer<int> buffer = new BoundedBuffer<int>(10);
 
         [Fact]
+        public void WhenSizeIsLessThan1CtorThrows()
+        {
+            Action constructor = () => { var x = new BoundedBuffer<int>(-1); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
         public void SizeIsPowerOfTwo()
         {
             buffer.Capacity.Should().Be(16);

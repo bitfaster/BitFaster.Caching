@@ -19,6 +19,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -319,6 +320,9 @@ namespace BitFaster.Caching.Lfu
         {
             this.cmSketch.Increment(node.Value.Key);
 
+            // there was a cache hit even if the item was removed or is not yet added.
+            this.metrics.requestHitCount++;
+
             // Node is added to read buffer while it is removed by maintenance, or it is read before it has been added.
             if (node.List == null)
             {
@@ -337,8 +341,6 @@ namespace BitFaster.Caching.Lfu
                     this.protectedLru.MoveToEnd(node);
                     break;
             }
-
-            this.metrics.requestHitCount++;
         }
 
         private void OnWrite(LinkedListNode<LfuNode<K, V>> node)
@@ -378,8 +380,6 @@ namespace BitFaster.Caching.Lfu
                     this.protectedLru.MoveToEnd(node);
                     break;
             }
-
-            this.metrics.requestMissCount++;
         }
 
         private void TryEvict()
@@ -497,7 +497,8 @@ namespace BitFaster.Caching.Lfu
                 return this.drainStatus.Value;
             }
 
-            public string Format()
+            [ExcludeFromCodeCoverage]
+            private string Format()
             {
                 switch (this.drainStatus.Value)
                 {

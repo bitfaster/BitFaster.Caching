@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
@@ -33,6 +34,70 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.TryGet(1, out var value1).Should().BeTrue();
             cache.TryGet(2, out var value2).Should().BeTrue();
             cache.Count.Should().Be(20);
+        }
+
+        [Fact]
+        public async Task Probation()
+        {
+            cache.GetOrAdd(1, k => k);
+            cache.GetOrAdd(1, k => k);
+            cache.GetOrAdd(2, k => k);
+            cache.GetOrAdd(2, k => k);
+
+            for (int i = 0; i < 25; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
+            cache.GetOrAdd(16, k => k);
+
+            for (int i = 25; i < 50; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+                cache.GetOrAdd(i, k => k);
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
+            // TODO: it is promoted, but the verification here is not correct (it is present even when not promoted)
+            cache.TryGet(16, out var value1).Should().BeTrue();
+        }
+
+        [Fact]
+        public void MetricsAreEnabled()
+        {
+            cache.Metrics.HasValue.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task WhenItemIsAddedThenRetrievedMetricHitRatioIsHalf()
+        {
+            cache.GetOrAdd(1, k => k);
+            bool result = cache.TryGet(1, out var value);
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
+            cache.Metrics.Value.HitRatio.Should().Be(0.5);
+        }
+
+        [Fact]
+        public async Task WhenItemIsEvictedMetricRecordsCount()
+        {
+            cache.GetOrAdd(1, k => k);
+            cache.GetOrAdd(1, k => k);
+            cache.GetOrAdd(2, k => k);
+            cache.GetOrAdd(2, k => k);
+
+            for (int i = 0; i < 25; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
+            cache.Metrics.Value.Evicted.Should().Be(5);
         }
 
         [Fact]
