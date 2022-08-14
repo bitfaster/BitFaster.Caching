@@ -26,8 +26,8 @@ namespace BitFaster.Caching.Lfu
     // https://github.com/ben-manes/caffeine/blob/master/caffeine/src/test/java/com/github/benmanes/caffeine/cache/FrequencySketchTest.java
     public class CmSketch<T>
     {
-        private static ulong[] Seed = { // A mixture of seeds from FNV-1a, CityHash, and Murmur3
-            0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L};
+        // A mixture of seeds from FNV-1a, CityHash, and Murmur3
+        private static ulong[] Seed = { 0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L};
         private static long ResetMask = 0x7777777777777777L;
         private static long OneMask = 0x1111111111111111L;
 
@@ -44,6 +44,8 @@ namespace BitFaster.Caching.Lfu
             this.comparer = comparer;
         }
 
+        public int ResetSampleSize => this.sampleSize;
+
         public int Size => this.size;
 
         public void EnsureCapacity(long maximumSize)
@@ -54,10 +56,6 @@ namespace BitFaster.Caching.Lfu
             tableMask = Math.Max(0, table.Length - 1);
             sampleSize = (maximumSize == 0) ? 10 : (10 * maximum);
 
-            if (sampleSize <= 0)
-            {
-                sampleSize = int.MaxValue;
-            }
             size = 0;
         }
 

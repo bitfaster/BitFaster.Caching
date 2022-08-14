@@ -66,6 +66,24 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void EvictionPolicyReturnsCapacity()
+        {
+            cache.Policy.Eviction.Value.Capacity.Should().Be(20);
+        }
+
+        [Fact]
+        public void ExpireAfterWriteIsDisabled()
+        {
+            cache.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EventsAreDisabled()
+        {
+            cache.Events.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
         public void MetricsAreEnabled()
         {
             cache.Metrics.HasValue.Should().BeTrue();
@@ -80,6 +98,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             await Task.Delay(TimeSpan.FromSeconds(1));
 
             cache.Metrics.Value.HitRatio.Should().Be(0.5);
+            cache.Metrics.Value.Hits.Should().Be(1);
+            cache.Metrics.Value.Misses.Should().Be(1);
         }
 
         [Fact]
@@ -164,6 +184,24 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.TryRemove(1).Should().BeFalse();
         }
 
+        // OnWrite handles the case where a node is removed while the write buffer contains the node
+        [Fact]
+        public async Task WhenRemovedInWriteBuffer()
+        {
+            cache.GetOrAdd(1, k => k);
+
+            // wait for the maintenance thread to run, this will attach he new node to the LRU list
+            await Task.Delay(1000);
+
+            // pending write in the buffer
+            cache.TryUpdate(1, 2);
+
+            // immediately remove
+            cache.TryRemove(1).Should().BeTrue();
+
+            // TODO: how to verify maintenance completed ok?
+        }
+
         [Fact]
         public void WhenItemDoesNotExistTryUpdateIsFalse()
         {
@@ -180,6 +218,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.Count.Should().Be(0);
             cache.TryGet(1, out var _).Should().BeFalse();
+        }
+
+        [Fact]
+        public void TrimThrows()
+        {
+            Action constructor = () => { cache.Trim(1); };
+
+            constructor.Should().Throw<NotImplementedException>();
         }
 
         [Fact]

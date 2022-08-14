@@ -34,7 +34,7 @@ namespace BitFaster.Caching.Lfu
     /// Based on Caffeine BoundedLocalCache:
     /// https://github.com/ben-manes/caffeine/blob/master/caffeine/src/main/java/com/github/benmanes/caffeine/cache/BoundedLocalCache.java
     /// </remarks>
-    public class ConcurrentLfu<K, V> : ICache<K, V>
+    public class ConcurrentLfu<K, V> : ICache<K, V>, IBoundedPolicy
     {
         private const int MaxWriteBufferRetries = 100;
 
@@ -79,11 +79,13 @@ namespace BitFaster.Caching.Lfu
 
         public int Count => this.dictionary.Count;
 
+        public int Capacity => this.windowMax + this.protectedMax + this.probationMax;
+
         public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(this.metrics);
 
         public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
 
-        public CachePolicy Policy => throw new NotImplementedException();
+        public CachePolicy Policy => new CachePolicy(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
         public ICollection<K> Keys => this.dictionary.Keys;
 
@@ -120,6 +122,11 @@ namespace BitFaster.Caching.Lfu
                 this.cmSketch.Clear();
                 this.dictionary.Clear();
             }
+        }
+
+        public void Trim(int itemCount)
+        {
+            throw new NotImplementedException();
         }
 
         public V GetOrAdd(K key, Func<K, V> valueFactory)

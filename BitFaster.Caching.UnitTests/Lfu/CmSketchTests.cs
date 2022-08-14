@@ -14,6 +14,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private CmSketch<int> sketch = new CmSketch<int>(512, EqualityComparer<int>.Default);
 
         [Fact]
+        public void WhenCapacityIsZeroDefaultsSelected()
+        {
+            sketch.EnsureCapacity(0);
+
+            sketch.ResetSampleSize.Should().Be(10);
+        }
+
+        [Fact]
         public void WhenIncrementedOnceCountIsOne()
         {
             sketch.Increment(1);

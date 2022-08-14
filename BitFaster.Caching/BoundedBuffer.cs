@@ -19,14 +19,8 @@ namespace BitFaster.Caching
     public class BoundedBuffer<T>
     {
         private readonly Slot[] slots;
-
         private readonly int slotsMask;
-
         private PaddedHeadAndTail headAndTail;
-
-        internal bool preservedForObservation;
-
-        //bool _frozenForEnqueues;
 
         public BoundedBuffer(int boundedLength)
         {
@@ -130,14 +124,10 @@ namespace BitFaster.Caching
                         // Successfully reserved the slot.  Note that after the above CompareExchange, other threads
                         // trying to dequeue from this slot will end up spinning until we do the subsequent Write.
                         item = slots[slotsIndex].Item;
-                        if (!Volatile.Read(ref preservedForObservation))
-                        {
-                            // If we're preserving, though, we don't zero out the slot, as we need it for
-                            // enumerations, peeking, ToArray, etc.  And we don't update the sequence number,
-                            // so that an enqueuer will see it as full and be forced to move to a new segment.
-                            slots[slotsIndex].Item = default;
-                            Volatile.Write(ref slots[slotsIndex].SequenceNumber, currentHead + slots.Length);
-                        }
+
+                        slots[slotsIndex].Item = default;
+                        Volatile.Write(ref slots[slotsIndex].SequenceNumber, currentHead + slots.Length);
+
                         return true;
                     }
                 }
