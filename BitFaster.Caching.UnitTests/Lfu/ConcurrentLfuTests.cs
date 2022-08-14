@@ -18,6 +18,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new BackgroundScheduler());
 
         [Fact]
+        public void DefaultSchedulerIsBackground()
+        {
+            var cache = new ConcurrentLfu<int, int>(20);
+            cache.Scheduler.Should().BeOfType<BackgroundScheduler>();
+        }
+
+        [Fact]
         public async Task Scenario()
         {
             cache.GetOrAdd(1, k => k);
