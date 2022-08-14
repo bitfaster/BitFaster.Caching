@@ -3,16 +3,16 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
 
-namespace BitFaster.Caching.Lfu
+namespace BitFaster.Caching
 {
     public class BitOps
     {
         public static int CeilingPowerOfTwo(int x)
         {
-            return CeilingPowerOfTwo((uint)x);
+            return (int)CeilingPowerOfTwo((uint)x);
         }
 
-        public static int CeilingPowerOfTwo(uint x)
+        public static uint CeilingPowerOfTwo(uint x)
         {
 #if NETSTANDARD2_0
             //int result = 2;
@@ -28,9 +28,9 @@ namespace BitFaster.Caching.Lfu
             x |= x >> 4;
             x |= x >> 8;
             x |= x >> 16;
-            return (int)x + 1;
+            return x + 1;
 #else
-            return 1 << -BitOperations.LeadingZeroCount(x - 1);
+            return 1u << -BitOperations.LeadingZeroCount(x - 1);
 #endif
 
         }
@@ -43,11 +43,11 @@ namespace BitFaster.Caching.Lfu
         public static int BitCount(uint x)
         {
 #if NETSTANDARD2_0
-            int count = 0;
+            var count = 0;
             while (x != 0)
             {
                 count++;
-                x &= (x - 1); //walking through all the bits which are set to one
+                x &= x - 1; //walking through all the bits which are set to one
             }
 
             return count;
@@ -64,11 +64,11 @@ namespace BitFaster.Caching.Lfu
         public static int BitCount(ulong x)
         {
 #if NETSTANDARD2_0
-            int count = 0;
+            var count = 0;
             while (x != 0)
             {
                 count++;
-                x &= (x - 1); //walking through all the bits which are set to one
+                x &= x - 1; //walking through all the bits which are set to one
             }
 
             return count;

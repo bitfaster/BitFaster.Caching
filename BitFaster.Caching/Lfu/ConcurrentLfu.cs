@@ -19,9 +19,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
@@ -37,10 +35,12 @@ namespace BitFaster.Caching.Lfu
     /// </remarks>
     public class ConcurrentLfu<K, V> : ICache<K, V>
     {
+        private const int MaxWriteBufferRetries = 100;
+
         private readonly ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>> dictionary;
 
-        private readonly ConcurrentQueue<LinkedListNode<LfuNode<K, V>>> readBuffer;
-        private readonly ConcurrentQueue<LinkedListNode<LfuNode<K, V>>> writeBuffer;
+        private readonly BoundedBuffer<LinkedListNode<LfuNode<K, V>>> readBuffer;
+        private readonly BoundedBuffer<LinkedListNode<LfuNode<K, V>>> writeBuffer;
 
         private readonly CacheMetrics metrics = new CacheMetrics();
 
@@ -61,8 +61,8 @@ namespace BitFaster.Caching.Lfu
         {
             var comparer = EqualityComparer<K>.Default;
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>>(Defaults.ConcurrencyLevel, capacity, comparer);
-            this.readBuffer = new ConcurrentQueue<LinkedListNode<LfuNode<K, V>>>();
-            this.writeBuffer = new ConcurrentQueue<LinkedListNode<LfuNode<K, V>>>();
+            this.readBuffer = new BoundedBuffer<LinkedListNode<LfuNode<K, V>>>(128);
+            this.writeBuffer = new BoundedBuffer<LinkedListNode<LfuNode<K, V>>>(128);
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
             this.windowLru = new LinkedList<LfuNode<K, V>>();
@@ -98,7 +98,7 @@ namespace BitFaster.Caching.Lfu
                 var node = new LinkedListNode<LfuNode<K, V>>(new LfuNode<K, V>(key, value));
                 if (this.dictionary.TryAdd(key, node))
                 {
-                    this.writeBuffer.Enqueue(node);
+                    this.writeBuffer.TryAdd(node);
                     return;
                 }
             }
@@ -109,19 +109,8 @@ namespace BitFaster.Caching.Lfu
             lock (maintenanceLock)
             {
                 // TODO: is this correct? and also Trim - much like Caffeine void evictFromMain(int candidates)
-
-#if NETSTANDARD2_0
-                while (this.readBuffer.TryDequeue(out var _))
-                {
-                }
-
-                while (this.writeBuffer.TryDequeue(out var _))
-                {
-                }
-#else
                 this.readBuffer.Clear();
                 this.writeBuffer.Clear();
-#endif
 
                 this.windowLru.Clear();
                 this.probationLru.Clear();
@@ -144,8 +133,8 @@ namespace BitFaster.Caching.Lfu
                 var node = new LinkedListNode<LfuNode<K, V>>(new LfuNode<K, V>(key, valueFactory(key)));
                 if (this.dictionary.TryAdd(key, node))
                 {
-                    this.writeBuffer.Enqueue(node);
-                    AfterWrite();
+                    this.writeBuffer.TryAdd(node);
+                    AfterWrite(node);
                     return node.Value.Value;
                 }
             }
@@ -153,12 +142,13 @@ namespace BitFaster.Caching.Lfu
 
         public bool TryGet(K key, out V value)
         {
-            // TODO: should this be counted as a read in CMSketch? how to enque with no node?
-
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                this.readBuffer.Enqueue(node);
-                TryScheduleDrain();
+                bool delayable = this.readBuffer.TryAdd(node);
+                if (this.drainStatus.ShouldDrain(delayable))
+                { 
+                    TryScheduleDrain(); 
+                }
                 value = node.Value.Value;               
                 return true;
             }
@@ -174,7 +164,7 @@ namespace BitFaster.Caching.Lfu
             if (this.dictionary.TryRemove(key, out var node))
             {
                 node.Value.WasRemoved = true;
-                this.writeBuffer.Enqueue(node);
+                this.writeBuffer.TryAdd(node);
                 TryScheduleDrain();
                 return true;
             }
@@ -187,7 +177,10 @@ namespace BitFaster.Caching.Lfu
             if (this.dictionary.TryGetValue(key, out var node))
             {
                 node.Value.Value = value;
-                this.writeBuffer.Enqueue(node);
+
+                // TODO: AfterWrite? It's ok for this to be lossy, since the node is already tracked
+                // and we will just lose ordering/hit count, but not orphan the node.
+                this.writeBuffer.TryAdd(node);
                 TryScheduleDrain();
                 return true;
             }
@@ -203,7 +196,26 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private void AfterWrite()
+        private void AfterWrite(LinkedListNode<LfuNode<K, V>> node)
+        {
+            for (int i = 0; i < MaxWriteBufferRetries; i++)
+            {
+                if (writeBuffer.TryAdd(node))
+                {
+                    ScheduleAfterWrite();
+                    return;
+                }
+
+                TryScheduleDrain();
+            }
+
+            lock (this.maintenanceLock)
+            {
+                Maintenance();
+            }
+        }
+
+        private void ScheduleAfterWrite()
         {
             while (true)
             {
@@ -284,18 +296,12 @@ namespace BitFaster.Caching.Lfu
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
 
-            // It's possible to get stuck here forever if incoming rate is high
-            // In a tight loop (like the benchmark) we will currently accumulate tens of thousands of items
-            // in the read buffer. In this case probably better to discard new reads rather than
-            // accumulating a massive buffer that cannot drain.
-            // This would mean that dictionary contains nodes that are not in the LRU list, however, which is bad.
-            // https://github.com/dotnet/runtime/issues/23700
-            while (this.readBuffer.TryDequeue(out var node))
+            while (this.readBuffer.TryTake(out var node))
             {
                 OnAccess(node);
             }
 
-            while (this.writeBuffer.TryDequeue(out var node))
+            while (this.writeBuffer.TryTake(out var node))
             {
                 OnWrite(node);
             }
@@ -372,6 +378,8 @@ namespace BitFaster.Caching.Lfu
                     this.protectedLru.MoveToEnd(node);
                     break;
             }
+
+            this.metrics.requestMissCount++;
         }
 
         private void TryEvict()
@@ -526,9 +534,9 @@ namespace BitFaster.Caching.Lfu
     }
 
     // Explicit layout cannot be a generic class member
-    [StructLayout(LayoutKind.Explicit, Size = 256)]
+    [StructLayout(LayoutKind.Explicit, Size = 2 * Padding.CACHE_LINE_SIZE)]
     internal struct PaddedInt
     {
-        [FieldOffset(128)] public volatile int Value;
+        [FieldOffset(1 * Padding.CACHE_LINE_SIZE)] public volatile int Value;
     }
 }

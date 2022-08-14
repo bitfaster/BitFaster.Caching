@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
+using BitFaster.Caching.UnitTests.Lru;
 using FluentAssertions;
 using Xunit;
 
@@ -12,11 +13,11 @@ namespace BitFaster.Caching.UnitTests.Lfu
 {
     public class ConcurrentLfuTests
     {
+        private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20);
+
         [Fact]
         public async Task Scenario()
         {
-            var cache = new ConcurrentLfu<int, int>(20);
-
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(2, k => k);
@@ -35,11 +36,48 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void WhenItemsAddedKeysContainsTheKeys()
+        {
+            cache.Count.Should().Be(0);
+            cache.GetOrAdd(1, k => k);
+            cache.GetOrAdd(2, k => k);
+            cache.Keys.Should().BeEquivalentTo(new[] { 1, 2 });
+        }
+
+        [Fact]
+        public void WhenItemsAddedGenericEnumerateContainsKvps()
+        {
+            cache.Count.Should().Be(0);
+            cache.GetOrAdd(1, k => k + 1);
+            cache.GetOrAdd(2, k => k + 1);
+
+            cache.Should().BeEquivalentTo(new[] { new KeyValuePair<int, int>(1, 2), new KeyValuePair<int, int>(2, 3) });
+        }
+
+        [Fact]
+        public void WhenItemsAddedEnumerateContainsKvps()
+        {
+            cache.Count.Should().Be(0);
+            cache.GetOrAdd(1, k => k + 1);
+            cache.GetOrAdd(2, k => k + 1);
+
+            var enumerable = (IEnumerable)cache;
+            enumerable.Should().BeEquivalentTo(new[] { new KeyValuePair<int, int>(1, 2), new KeyValuePair<int, int>(2, 3) });
+        }
+
+        [Fact]
         public void WhenItemIsUpdatedItIsUpdated()
         {
-            var cache = new ConcurrentLfu<int, int>(20);
-
             cache.GetOrAdd(1, k => k);
+            cache.AddOrUpdate(1, 2);
+
+            cache.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be(2);
+        }
+
+        [Fact]
+        public void WhenItemDoesNotExistUpdatedAddsItem()
+        {
             cache.AddOrUpdate(1, 2);
 
             cache.TryGet(1, out var value).Should().BeTrue();
@@ -49,8 +87,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WhenItemIsRemovedItIsRemoved()
         {
-            var cache = new ConcurrentLfu<int, int>(20);
-
             cache.GetOrAdd(1, k => k);
 
             cache.TryRemove(1).Should().BeTrue();
@@ -58,9 +94,32 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void BenchSim()
+        public void WhenItemDoesNotExistTryRemoveIsFalse()
         {
-            var cache = new ConcurrentLfu<int, int>(9);
+            cache.TryRemove(1).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenItemDoesNotExistTryUpdateIsFalse()
+        {
+            cache.TryUpdate(1, 2).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenClearedCacheIsEmpty()
+        {
+            cache.GetOrAdd(1, k => k);
+            cache.GetOrAdd(2, k => k);
+
+            cache.Clear();
+
+            cache.Count.Should().Be(0);
+            cache.TryGet(1, out var _).Should().BeFalse();
+        }
+
+        [Fact]
+        public void DebugBench()
+        {
             Func<int, int> func = x => x;
 
             for (int i = 0; i < 1000000; i++)

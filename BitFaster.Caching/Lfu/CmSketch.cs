@@ -26,23 +26,25 @@ namespace BitFaster.Caching.Lfu
     // https://github.com/ben-manes/caffeine/blob/master/caffeine/src/test/java/com/github/benmanes/caffeine/cache/FrequencySketchTest.java
     public class CmSketch<T>
     {
-        static ulong[] Seed = { // A mixture of seeds from FNV-1a, CityHash, and Murmur3
+        private static ulong[] Seed = { // A mixture of seeds from FNV-1a, CityHash, and Murmur3
             0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L};
-        static long ResetMask = 0x7777777777777777L;
-        static long OneMask = 0x1111111111111111L;
+        private static long ResetMask = 0x7777777777777777L;
+        private static long OneMask = 0x1111111111111111L;
 
-        int sampleSize;
-        int tableMask;
-        long[] table;
-        int size;
+        private int sampleSize;
+        private int tableMask;
+        private long[] table;
+        private int size;
 
-        IEqualityComparer<T> comparer;
+        private readonly IEqualityComparer<T> comparer;
 
         public CmSketch(long maximumSize, IEqualityComparer<T> comparer)
         {
             EnsureCapacity(maximumSize);
             this.comparer = comparer;
         }
+
+        public int Size => this.size;
 
         public void EnsureCapacity(long maximumSize)
         {
