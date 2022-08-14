@@ -122,10 +122,7 @@ namespace BitFaster.Caching.Lfu
 
         public void Clear()
         {
-            for (int i = 0; i < table.Length; i++)
-            {
-                table[i] = 0;
-            }
+            table = new long[table.Length];
             size = 0;
         }
 

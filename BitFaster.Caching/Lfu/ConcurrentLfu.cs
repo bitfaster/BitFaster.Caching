@@ -121,24 +121,34 @@ namespace BitFaster.Caching.Lfu
 
         public void Clear()
         {
+            this.Trim(this.Count);
+
             lock (maintenanceLock)
             {
-                // TODO: is this correct? and also Trim - much like Caffeine void evictFromMain(int candidates)
+                this.cmSketch.Clear();
                 this.readBuffer.Clear();
                 this.writeBuffer.Clear();
-
-                this.windowLru.Clear();
-                this.probationLru.Clear();
-                this.protectedLru.Clear();
-
-                this.cmSketch.Clear();
-                this.dictionary.Clear();
             }
         }
 
         public void Trim(int itemCount)
         {
-            throw new NotImplementedException();
+            itemCount = Math.Min(itemCount, this.Count);
+            var candidates = new List<LinkedListNode<LfuNode<K, V>>>(itemCount);
+
+            // TODO: this is LRU order eviction, Caffeine void evictFromMain(int candidates) is based on frequency
+            lock (maintenanceLock)
+            {
+                // walk in lru order, get itemCount keys to evict
+                TakeCandidatesInLruOrder(this.probationLru, candidates, itemCount);
+                TakeCandidatesInLruOrder(this.protectedLru, candidates, itemCount);
+                TakeCandidatesInLruOrder(this.windowLru, candidates, itemCount);
+            }
+
+            foreach (var candidate in candidates)
+            {
+                this.TryRemove(candidate.Value.Key);
+            }
         }
 
         public V GetOrAdd(K key, Func<K, V> valueFactory)
@@ -213,6 +223,17 @@ namespace BitFaster.Caching.Lfu
             foreach (var kvp in this.dictionary)
             {
                 yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.Value.Value);
+            }
+        }
+
+        private static void TakeCandidatesInLruOrder(LinkedList<LfuNode<K, V>> lru, List<LinkedListNode<LfuNode<K, V>>> candidates, int itemCount)
+        {
+            var curr = lru.First;
+
+            while (candidates.Count < itemCount && curr != null)
+            {
+                candidates.Add(curr);
+                curr = curr.Next;
             }
         }
 

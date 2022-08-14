@@ -217,23 +217,48 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void WhenClearedCacheIsEmpty()
+        public async Task WhenClearedCacheIsEmpty()
         {
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(2, k => k);
+            await cache.Scheduler.Next;
 
             cache.Clear();
+            await cache.Scheduler.Next;
 
             cache.Count.Should().Be(0);
             cache.TryGet(1, out var _).Should().BeFalse();
         }
 
         [Fact]
-        public void TrimThrows()
+        public async Task TrimRemovesNItems()
         {
-            Action constructor = () => { cache.Trim(1); };
+            for (int i = 0; i < 25; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+            await cache.Scheduler.Next;
 
-            constructor.Should().Throw<NotImplementedException>();
+            cache.Count.Should().Be(20);
+
+            cache.Trim(5);
+            await cache.Scheduler.Next;
+
+            cache.Count.Should().Be(15);
+        }
+
+        [Fact]
+        public async Task TrimWhileItemsInWriteBufferRemovesNItems()
+        {
+            for (int i = 0; i < 25; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            cache.Trim(5);
+            await cache.Scheduler.Next;
+
+            cache.Count.Should().Be(15);
         }
 
         [Fact]
