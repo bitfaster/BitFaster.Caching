@@ -5,6 +5,7 @@ using BitFaster.Caching;
 using BitFaster.Caching.Benchmarks.Lru;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.Scheduler;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Concurrent;
@@ -50,7 +51,7 @@ namespace BitFaster.Caching.Benchmarks
 
         private static readonly ICache<int, int> atomicFastLru = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithAtomicGetOrAdd().Build();
 
-        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(9);
+        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(9, new NullScheduler());
 
         private static readonly int key = 1;
         private static System.Runtime.Caching.MemoryCache memoryCache = System.Runtime.Caching.MemoryCache.Default;

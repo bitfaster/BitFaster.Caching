@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
+using BitFaster.Caching.Scheduler;
 using BitFaster.Caching.UnitTests.Lru;
 using FluentAssertions;
 using Xunit;
@@ -14,7 +15,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 {
     public class ConcurrentLfuTests
     {
-        private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20);
+        private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new BackgroundScheduler());
 
         [Fact]
         public async Task Scenario()
@@ -29,7 +30,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(1));
+            await cache.Scheduler.Next;
 
             cache.TryGet(1, out var value1).Should().BeTrue();
             cache.TryGet(2, out var value2).Should().BeTrue();
@@ -49,7 +50,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(1));
+            await cache.Scheduler.Next;
 
             cache.GetOrAdd(16, k => k);
 
@@ -59,7 +60,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(1));
+            await cache.Scheduler.Next;
 
             // TODO: it is promoted, but the verification here is not correct (it is present even when not promoted)
             cache.TryGet(16, out var value1).Should().BeTrue();
@@ -95,7 +96,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.GetOrAdd(1, k => k);
             bool result = cache.TryGet(1, out var value);
 
-            await Task.Delay(TimeSpan.FromSeconds(1));
+            await cache.Scheduler.Next;
 
             cache.Metrics.Value.HitRatio.Should().Be(0.5);
             cache.Metrics.Value.Hits.Should().Be(1);
@@ -115,7 +116,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(1));
+            await cache.Scheduler.Next;
 
             cache.Metrics.Value.Evicted.Should().Be(5);
         }
@@ -191,7 +192,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.GetOrAdd(1, k => k);
 
             // wait for the maintenance thread to run, this will attach he new node to the LRU list
-            await Task.Delay(1000);
+            await cache.Scheduler.Next;
 
             // pending write in the buffer
             cache.TryUpdate(1, 2);

@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.Scheduler;
 using ConsoleTables;
 using CsvHelper;
 
@@ -22,14 +23,14 @@ namespace BitFaster.Caching.HitRateAnalysis.Glimpse
         {
             this.concurrentLru = new ConcurrentLru<long, int>(1, cacheSize, EqualityComparer<long>.Default);
             this.classicLru = new ClassicLru<long, int>(1, cacheSize, EqualityComparer<long>.Default);
-            concurrentLfu = new ConcurrentLfu<long, int>(cacheSize);
+            concurrentLfu = new ConcurrentLfu<long, int>(cacheSize, new ForegroundScheduler());
         }
 
         public int CacheSize => this.concurrentLru.Capacity;
 
-        public double ConcurrentLruHitRate => this.concurrentLru.Metrics.Value.HitRatio * 100;
-
         public double ClassicLruHitRate => this.classicLru.Metrics.Value.HitRatio * 100;
+
+        public double ConcurrentLruHitRate => this.concurrentLru.Metrics.Value.HitRatio * 100;
 
         public double ConcurrentLfuHitRate => concurrentLfu.Metrics.Value.HitRatio * 100;
 

@@ -24,6 +24,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.Scheduler;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -58,7 +59,15 @@ namespace BitFaster.Caching.Lfu
         private readonly DrainStatus drainStatus = new DrainStatus();
         private readonly object maintenanceLock = new object();
 
+        private readonly IScheduler scheduler;
+
         public ConcurrentLfu(int capacity)
+            : this(capacity, new BackgroundScheduler())
+        { 
+        
+        }
+
+        public ConcurrentLfu(int capacity, IScheduler scheduler)
         {
             var comparer = EqualityComparer<K>.Default;
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>>(Defaults.ConcurrencyLevel, capacity, comparer);
@@ -75,6 +84,7 @@ namespace BitFaster.Caching.Lfu
             this.windowMax = partition.Hot;
             this.protectedMax = partition.Warm;
             this.probationMax = partition.Cold;
+            this.scheduler = scheduler;
         }
 
         public int Count => this.dictionary.Count;
@@ -88,6 +98,8 @@ namespace BitFaster.Caching.Lfu
         public CachePolicy Policy => new CachePolicy(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
         public ICollection<K> Keys => this.dictionary.Keys;
+
+        public IScheduler Scheduler => scheduler;
 
         public void AddOrUpdate(K key, V value)
         {
@@ -275,7 +287,7 @@ namespace BitFaster.Caching.Lfu
                     }
 
                     this.drainStatus.Set(DrainStatus.ProcessingToIdle);
-                    Task.Run(() => DrainBuffers());
+                    scheduler.Run(() => DrainBuffers());
                 }
             }
             finally
