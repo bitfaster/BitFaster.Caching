@@ -4,28 +4,40 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using BitFaster.Caching.UnitTests.Lru;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace BitFaster.Caching.UnitTests.Lfu
 {
     public class ConcurrentLfuTests
     {
-        private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new BackgroundScheduler());
+        private readonly ITestOutputHelper output;
+
+        private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new BackgroundThreadScheduler());
+        // private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new ThreadPoolScheduler());
+        // private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new ThreadPoolSchedulerContinuations());
+        // private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new ThreadPoolFactoryScheduler());
+
+        public ConcurrentLfuTests(ITestOutputHelper output)
+        {
+            this.output = output;
+        }
 
         [Fact]
         public void DefaultSchedulerIsBackground()
         {
             var cache = new ConcurrentLfu<int, int>(20);
-            cache.Scheduler.Should().BeOfType<BackgroundScheduler>();
+            cache.Scheduler.Should().BeOfType<ThreadPoolScheduler>();
         }
 
         [Fact]
-        public async Task Scenario()
+        public void Scenario()
         {
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(1, k => k);
@@ -37,7 +49,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            await cache.Scheduler.Next;
+            cache.PendingMaintenance();
 
             cache.TryGet(1, out var value1).Should().BeTrue();
             cache.TryGet(2, out var value2).Should().BeTrue();
@@ -45,7 +57,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public async Task Probation()
+        public void Probation()
         {
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(1, k => k);
@@ -57,7 +69,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            await cache.Scheduler.Next;
+            cache.PendingMaintenance();
 
             cache.GetOrAdd(16, k => k);
 
@@ -67,7 +79,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            await cache.Scheduler.Next;
+            cache.PendingMaintenance();
 
             // TODO: it is promoted, but the verification here is not correct (it is present even when not promoted)
             cache.TryGet(16, out var value1).Should().BeTrue();
@@ -98,12 +110,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public async Task WhenItemIsAddedThenRetrievedMetricHitRatioIsHalf()
+        public void WhenItemIsAddedThenRetrievedMetricHitRatioIsHalf()
         {
             cache.GetOrAdd(1, k => k);
             bool result = cache.TryGet(1, out var value);
 
-            await cache.Scheduler.Next;
+            cache.PendingMaintenance();
 
             cache.Metrics.Value.HitRatio.Should().Be(0.5);
             cache.Metrics.Value.Hits.Should().Be(1);
@@ -111,7 +123,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public async Task WhenItemIsEvictedMetricRecordsCount()
+        public void WhenItemIsEvictedMetricRecordsCount()
         {
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(1, k => k);
@@ -123,7 +135,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            await cache.Scheduler.Next;
+            cache.PendingMaintenance();
 
             cache.Metrics.Value.Evicted.Should().Be(5);
         }
@@ -194,12 +206,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         // OnWrite handles the case where a node is removed while the write buffer contains the node
         [Fact]
-        public async Task WhenRemovedInWriteBuffer()
+        public void WhenRemovedInWriteBuffer()
         {
             cache.GetOrAdd(1, k => k);
 
             // wait for the maintenance thread to run, this will attach he new node to the LRU list
-            await cache.Scheduler.Next;
+            cache.PendingMaintenance();
 
             // pending write in the buffer
             cache.TryUpdate(1, 2);
@@ -208,6 +220,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.TryRemove(1).Should().BeTrue();
 
             // TODO: how to verify maintenance completed ok?
+            cache.PendingMaintenance();
+
+            cache.TryGet(1, out var _).Should().BeFalse();
         }
 
         [Fact]
@@ -217,38 +232,38 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public async Task WhenClearedCacheIsEmpty()
+        public void WhenClearedCacheIsEmpty()
         {
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(2, k => k);
-            await cache.Scheduler.Next;
+            cache.PendingMaintenance();
 
             cache.Clear();
-            await cache.Scheduler.Next;
+            cache.PendingMaintenance();
 
             cache.Count.Should().Be(0);
             cache.TryGet(1, out var _).Should().BeFalse();
         }
 
         [Fact]
-        public async Task TrimRemovesNItems()
+        public void TrimRemovesNItems()
         {
             for (int i = 0; i < 25; i++)
             {
                 cache.GetOrAdd(i, k => k);
             }
-            await cache.Scheduler.Next;
+            cache.PendingMaintenance();
 
             cache.Count.Should().Be(20);
 
             cache.Trim(5);
-            await cache.Scheduler.Next;
+            cache.PendingMaintenance();
 
             cache.Count.Should().Be(15);
         }
 
         [Fact]
-        public async Task TrimWhileItemsInWriteBufferRemovesNItems()
+        public void TrimWhileItemsInWriteBufferRemovesNItems()
         {
             for (int i = 0; i < 25; i++)
             {
@@ -256,22 +271,63 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             cache.Trim(5);
-            await cache.Scheduler.Next;
 
-            cache.Count.Should().Be(15);
+            cache.PendingMaintenance();
+
+            // TODO: How does this happen?
+            // The trim takes effect before the writes have been replayed by the maintenance thread.
+            cache.Metrics.Value.Evicted.Should().Be(5);
+            cache.Count.Should().BeLessThanOrEqualTo(20);
+
+            this.output.WriteLine($"Count {cache.Count}");
+            this.output.WriteLine($"Keys {string.Join(",", cache.Keys.Select(k => k.ToString()))}");
         }
 
+        // BackgroundThreadScheduler has higher throughput/takes fewer samples.
+
+        // BackgroundThreadScheduler ~410 ms (Release)
+        // Cache hits 1,161,870
+        // Maintenance ops 31
+
+        // BackgroundThreadScheduler, 1024 buffer read ~277 ms (Release)
+        // Cache hits 8,431 (0.08431%) - this is mega low sample count but very high throughput
+        // Maintenance ops 38
+
+        // ThreadPoolScheduler ~1.3 sec (Release)
+        // Cache hits 6,166,814
+        // Maintenance ops 173
+
+        // ThreadPoolScheduler without continuations ~449ms (Release)
+        // Cache hits 1,882,570
+        // Maintenance 30
+
+        // ThreadPoolScheduler without continuations, 1024 buffer read ~680ms (Release)
+        // Cache hits 4,580,553
+        // Maintenance 16,954
         [Fact]
         public void DebugBench()
         {
             Func<int, int> func = x => x;
 
-            for (int i = 0; i < 1000000; i++)
+            for (int i = 0; i < 10000000; i++)
             {
                 cache.GetOrAdd(1, func);
             }
 
-            cache.GetOrAdd(1, func);
+            this.output.WriteLine($"Cache hits {this.cache.Metrics.Value.Hits}");
+            this.output.WriteLine($"Maintenance ops {this.cache.Scheduler.RunCount}");
+
+            if (this.cache.Scheduler.LastException.HasValue)
+            {
+                this.output.WriteLine($"Error: {this.cache.Scheduler.LastException.Value}");
+            }
+
+            // verify this doesn't block or throw - why does it hang in benchmarkdotnet?
+            var b = cache.Scheduler as BackgroundThreadScheduler;
+            if (b is not null)
+            {
+                b.Dispose();
+            }
         }
     }
 }

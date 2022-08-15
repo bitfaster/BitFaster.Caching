@@ -22,11 +22,6 @@ namespace BitFaster.Caching.Scheduler
         void Run(Action action);
 
         /// <summary>
-        /// Gets the next scheduled Task. Enables callers to await the next work item.
-        /// </summary>
-        Task Next { get; }
-
-        /// <summary>
         /// Gets the last exception, if any.
         /// </summary>
         Optional<Exception> LastException { get; }

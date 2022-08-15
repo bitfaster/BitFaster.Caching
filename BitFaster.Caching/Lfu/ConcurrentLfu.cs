@@ -15,6 +15,11 @@
  */
 
 using System;
+
+#if NETSTANDARD2_0
+#else
+using System.Buffers;
+#endif
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -23,6 +28,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 
@@ -62,9 +68,8 @@ namespace BitFaster.Caching.Lfu
         private readonly IScheduler scheduler;
 
         public ConcurrentLfu(int capacity)
-            : this(capacity, new BackgroundScheduler())
-        { 
-        
+            : this(capacity, new ThreadPoolScheduler())
+        {        
         }
 
         public ConcurrentLfu(int capacity, IScheduler scheduler)
@@ -218,6 +223,11 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
+        public void PendingMaintenance()
+        {
+            DrainBuffers();
+        }
+
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
         {
             foreach (var kvp in this.dictionary)
@@ -320,28 +330,68 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        private int concurrent;
+        private int max;
+
         private void DrainBuffers()
         {
-            lock (maintenanceLock)
+            while (true)
             {
-                Maintenance();
-            }
+                int c = Interlocked.Increment(ref concurrent);
 
-            if (this.drainStatus.Status() >= DrainStatus.Required)
-            {
-                DrainBuffers();
+                if (c > max)
+                {
+                    max = c;
+                }
+
+                lock (maintenanceLock)
+                {
+                    Maintenance();
+                }
+
+                Interlocked.Decrement(ref concurrent);
+
+                if (this.drainStatus.Status() < DrainStatus.Required)
+                {
+                    break;
+                }
             }
         }
 
+        const int takeBufferSize = 1024;
+
+#if NETSTANDARD2_0
+        private readonly LinkedListNode<LfuNode<K, V>>[] localReadBuffer = new LinkedListNode<LfuNode<K, V>>[takeBufferSize];
+#endif
         private void Maintenance()
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
 
-            while (this.readBuffer.TryTake(out var node))
+            
+#if !NETSTANDARD2_0
+            var localReadBuffer = ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Rent(takeBufferSize);
+#endif
+            int maxSweeps = 4;
+
+            for (int s = 0; s < maxSweeps; s++)
             {
-                OnAccess(node);
+                int count = 0;
+
+                // extract to a buffer before doing book keeping work, ~2x faster
+                while (this.readBuffer.TryTake(out var node) && count < takeBufferSize)
+                {
+                    localReadBuffer[count++] = node;
+                }
+
+                for (int i = 0; i < count; i++)
+                {
+                    OnAccess(localReadBuffer[i]);
+                }
             }
 
+#if !NETSTANDARD2_0
+            ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Return(localReadBuffer);
+#endif
             while (this.writeBuffer.TryTake(out var node))
             {
                 OnWrite(node);
@@ -474,30 +524,8 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        // padding is about 50% faster in getoradd bench
-        //private class PadDrainStatus
-        //{
-        //    byte p000, p001, p002, p003, p004, p005, p006, p007;
-        //    byte p008, p009, p010, p011, p012, p013, p014, p015;
-        //    byte p016, p017, p018, p019, p020, p021, p022, p023;
-        //    byte p024, p025, p026, p027, p028, p029, p030, p031;
-        //    byte p032, p033, p034, p035, p036, p037, p038, p039;
-        //    byte p040, p041, p042, p043, p044, p045, p046, p047;
-        //    byte p048, p049, p050, p051, p052, p053, p054, p055;
-        //    byte p056, p057, p058, p059, p060, p061, p062, p063;
-        //    byte p064, p065, p066, p067, p068, p069, p070, p071;
-        //    byte p072, p073, p074, p075, p076, p077, p078, p079;
-        //    byte p080, p081, p082, p083, p084, p085, p086, p087;
-        //    byte p088, p089, p090, p091, p092, p093, p094, p095;
-        //    byte p096, p097, p098, p099, p100, p101, p102, p103;
-        //    byte p104, p105, p106, p107, p108, p109, p110, p111;
-        //    byte p112, p113, p114, p115, p116, p117, p118, p119;
-        //}
-
-        // TODO: investigate false sharing in detail. See PaddedHeadAndTail
-        // https://github.com/dotnet/corefx/blob/9c468a08151402a68732c784b0502437b808df9f/src/System.Collections.Concurrent/src/System/Collections/Concurrent/ConcurrentQueue.cs
         [DebuggerDisplay("{Format()}")]
-        private class DrainStatus //: PadDrainStatus
+        private class DrainStatus
         {
             public const int Idle = 0;
             public const int Required = 1;
@@ -508,7 +536,8 @@ namespace BitFaster.Caching.Lfu
 
             public bool ShouldDrain(bool delayable)
             {
-                switch (this.drainStatus.Value)
+                int status = Volatile.Read(ref this.drainStatus.Value);
+                switch (status)
                 {
                     case Idle:
                         return !delayable;
@@ -524,7 +553,7 @@ namespace BitFaster.Caching.Lfu
 
             public void Set(int newStatus)
             { 
-                this.drainStatus.Value = newStatus; 
+                Volatile.Write(ref this.drainStatus.Value, newStatus);
             }
 
             public int Cas(int oldStatus, int newStatus)
@@ -534,7 +563,7 @@ namespace BitFaster.Caching.Lfu
 
             public int Status()
             {
-                return this.drainStatus.Value;
+                return Volatile.Read(ref this.drainStatus.Value);
             }
 
             [ExcludeFromCodeCoverage]
@@ -578,6 +607,6 @@ namespace BitFaster.Caching.Lfu
     [StructLayout(LayoutKind.Explicit, Size = 2 * Padding.CACHE_LINE_SIZE)]
     internal struct PaddedInt
     {
-        [FieldOffset(1 * Padding.CACHE_LINE_SIZE)] public volatile int Value;
+        [FieldOffset(1 * Padding.CACHE_LINE_SIZE)] public int Value;
     }
 }

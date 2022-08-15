@@ -14,8 +14,6 @@ namespace BitFaster.Caching.Scheduler
 
         public long RunCount => count;
 
-        public Task Next => Task.CompletedTask;
-
         public Optional<Exception> LastException => Optional<Exception>.None();
 
         public void Run(Action action)

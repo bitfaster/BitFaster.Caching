@@ -51,7 +51,8 @@ namespace BitFaster.Caching.Benchmarks
 
         private static readonly ICache<int, int> atomicFastLru = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithAtomicGetOrAdd().Build();
 
-        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(9, new NullScheduler());
+        private static readonly BackgroundThreadScheduler background = new BackgroundThreadScheduler();
+        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(9, background);
 
         private static readonly int key = 1;
         private static System.Runtime.Caching.MemoryCache memoryCache = System.Runtime.Caching.MemoryCache.Default;
@@ -66,6 +67,12 @@ namespace BitFaster.Caching.Benchmarks
             exMemoryCache.Set(key, "test");
         }
 
+        [GlobalCleanup]
+        public void GlobalCleanup()
+        {
+          //  background.Dispose();
+        }
+
         [Benchmark(Baseline = true)]
         public void ConcurrentDictionary()
         {
@@ -73,40 +80,40 @@ namespace BitFaster.Caching.Benchmarks
             dictionary.GetOrAdd(1, func);
         }
 
-        [Benchmark()]
-        public void FastConcurrentLru()
-        {
-            Func<int, int> func = x => x;
-            fastConcurrentLru.GetOrAdd(1, func);
-        }
+        //[Benchmark()]
+        //public void FastConcurrentLru()
+        //{
+        //    Func<int, int> func = x => x;
+        //    fastConcurrentLru.GetOrAdd(1, func);
+        //}
 
-        [Benchmark()]
-        public void ConcurrentLru()
-        {
-            Func<int, int> func = x => x;
-            concurrentLru.GetOrAdd(1, func);
-        }
+        //[Benchmark()]
+        //public void ConcurrentLru()
+        //{
+        //    Func<int, int> func = x => x;
+        //    concurrentLru.GetOrAdd(1, func);
+        //}
 
-        [Benchmark()]
-        public void AtomicFastLru()
-        {
-            Func<int, int> func = x => x;
-            atomicFastLru.GetOrAdd(1, func);
-        }
+        //[Benchmark()]
+        //public void AtomicFastLru()
+        //{
+        //    Func<int, int> func = x => x;
+        //    atomicFastLru.GetOrAdd(1, func);
+        //}
 
-        [Benchmark()]
-        public void FastConcurrentTLru()
-        {
-            Func<int, int> func = x => x;
-            fastConcurrentTLru.GetOrAdd(1, func);
-        }
+        //[Benchmark()]
+        //public void FastConcurrentTLru()
+        //{
+        //    Func<int, int> func = x => x;
+        //    fastConcurrentTLru.GetOrAdd(1, func);
+        //}
 
-        [Benchmark()]
-        public void ConcurrentTLru()
-        {
-            Func<int, int> func = x => x;
-            concurrentTlru.GetOrAdd(1, func);
-        }
+        //[Benchmark()]
+        //public void ConcurrentTLru()
+        //{
+        //    Func<int, int> func = x => x;
+        //    concurrentTlru.GetOrAdd(1, func);
+        //}
 
         [Benchmark()]
         public void ConcurrentLfu()
@@ -115,24 +122,24 @@ namespace BitFaster.Caching.Benchmarks
             concurrentLfu.GetOrAdd(1, func);
         }
 
-        [Benchmark()]
-        public void ClassicLru()
-        {
-            Func<int, int> func = x => x;
-            classicLru.GetOrAdd(1, func);
-        }
+        //[Benchmark()]
+        //public void ClassicLru()
+        //{
+        //    Func<int, int> func = x => x;
+        //    classicLru.GetOrAdd(1, func);
+        //}
 
-        [Benchmark()]
-        public void RuntimeMemoryCacheGet()
-        {
-            memoryCache.Get("1");
-        }
+        //[Benchmark()]
+        //public void RuntimeMemoryCacheGet()
+        //{
+        //    memoryCache.Get("1");
+        //}
 
-        [Benchmark()]
-        public void ExtensionsMemoryCacheGet()
-        {
-            exMemoryCache.Get(1);
-        }
+        //[Benchmark()]
+        //public void ExtensionsMemoryCacheGet()
+        //{
+        //    exMemoryCache.Get(1);
+        //}
 
         public class MemoryCacheOptionsAccessor
             : Microsoft.Extensions.Options.IOptions<MemoryCacheOptions>
