@@ -70,7 +70,7 @@ namespace BitFaster.Caching.Benchmarks
         [GlobalCleanup]
         public void GlobalCleanup()
         {
-          //  background.Dispose();
+           background.Dispose();
         }
 
         [Benchmark(Baseline = true)]

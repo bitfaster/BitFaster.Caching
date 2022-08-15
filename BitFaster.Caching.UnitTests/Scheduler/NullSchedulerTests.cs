@@ -13,17 +13,6 @@ namespace BitFaster.Caching.UnitTests.Scheduler
     {
         private NullScheduler scheduler = new NullScheduler();
 
-        //[Fact]
-        //public async Task AwaitNextIsCompleted()
-        //{
-        //    var task = scheduler.Next;
-
-        //    if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(2))) != task)
-        //    {
-        //        throw new Exception("waiting for Task to complete timed out");
-        //    }
-        //}
-
         [Fact]
         public void WhenWorkIsScheduledCountIsIncremented()
         {

@@ -96,7 +96,8 @@ namespace BitFaster.Caching.Scheduler
 
         public void Dispose()
         {
-            this.cts.Cancel();
+            // prevent hang when cancel runs on the same thread
+            this.cts.CancelAfter(TimeSpan.FromMilliseconds(1));
         }
     }
 }
