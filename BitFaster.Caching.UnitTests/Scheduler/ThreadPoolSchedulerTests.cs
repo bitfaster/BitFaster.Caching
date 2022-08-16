@@ -30,19 +30,23 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         {
             bool run = false;
 
-            scheduler.Run(() => { run = true; });
-            await Task.Yield();
+            TaskCompletionSource tcs = new TaskCompletionSource();
+            scheduler.Run(() => { Volatile.Write(ref run, true); tcs.SetResult(); });
 
-            run.Should().BeTrue();
+            await tcs.Task;
+
+            Volatile.Read(ref run).Should().BeTrue();
         }
 
         [Fact]
         public async Task WhenWorkDoesNotThrowLastExceptionIsEmpty()
         {
+            TaskCompletionSource tcs = new TaskCompletionSource();
             scheduler.RunCount.Should().Be(0);
 
-            scheduler.Run(() => { });
-            await Task.Yield();
+            scheduler.Run(() => { tcs.SetResult(); });
+
+            await tcs.Task;
 
             scheduler.LastException.HasValue.Should().BeFalse();
         }
@@ -50,9 +54,17 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         [Fact]
         public async Task WhenWorkThrowsLastExceptionIsPopulated()
         {
+            TaskCompletionSource tcs = new TaskCompletionSource();
             scheduler.Run(() => { throw new InvalidCastException(); });
+            scheduler.Run(() => { tcs.SetResult(); });
 
-            await Task.Yield();
+            await tcs.Task;
+
+            // TOOD: really bad
+            while (!scheduler.LastException.HasValue)
+            {
+                await Task.Delay(1);
+            }
 
             scheduler.LastException.HasValue.Should().BeTrue();
             scheduler.LastException.Value.Should().BeOfType<InvalidCastException>();

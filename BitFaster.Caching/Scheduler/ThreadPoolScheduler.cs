@@ -23,8 +23,8 @@ namespace BitFaster.Caching.Scheduler
         public void Run(Action action)
         {
             count++;
-            var task = Task.Run(action);
-            task.ContinueWith(t => lastException = new Optional<Exception>(t.Exception.Flatten().InnerException), TaskContinuationOptions.OnlyOnFaulted);
+            Task.Run(action)
+                .ContinueWith(t => lastException = new Optional<Exception>(t.Exception.Flatten().InnerException), TaskContinuationOptions.OnlyOnFaulted);
         }
     }
 }
