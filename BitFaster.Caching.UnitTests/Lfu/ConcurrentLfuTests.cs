@@ -19,10 +19,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
     {
         private readonly ITestOutputHelper output;
 
-       private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new BackgroundThreadScheduler());
-//         private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new ThreadPoolScheduler());
-        // private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new ThreadPoolSchedulerContinuations());
-    //    private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new ForegroundScheduler());
+        private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new BackgroundThreadScheduler());
 
         public ConcurrentLfuTests(ITestOutputHelper output)
         {
@@ -30,7 +27,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void DefaultSchedulerIsBackground()
+        public void DefaultSchedulerIsThreadPool()
         {
             var cache = new ConcurrentLfu<int, int>(20);
             cache.Scheduler.Should().BeOfType<ThreadPoolScheduler>();
@@ -57,7 +54,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void Probation()
+        public void ReadPromotesProbation()
         {
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(1, k => k);
@@ -83,6 +80,146 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             // TODO: it is promoted, but the verification here is not correct (it is present even when not promoted)
             cache.TryGet(16, out var value1).Should().BeTrue();
+        }
+
+        // when probation item is written it is moved to protected
+        [Fact]
+        public void WritePromotesProbation()
+        {
+            cache.GetOrAdd(1, k => k);
+            cache.GetOrAdd(1, k => k);
+            cache.GetOrAdd(2, k => k);
+            cache.GetOrAdd(2, k => k);
+
+            for (int i = 0; i < 25; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            cache.PendingMaintenance();
+
+            cache.TryUpdate(16, -16).Should().BeTrue();
+
+            for (int i = 25; i < 50; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+                cache.GetOrAdd(i, k => k);
+            }
+
+            cache.PendingMaintenance();
+
+            // TODO: it is promoted, but the verification here is not correct (it is present even when not promoted)
+            cache.TryGet(16, out var value1).Should().BeTrue();
+        }
+
+        // TODO: when protected item is written it is moved to LRU back
+        [Fact]
+        public void WriteUpdateProtectedLruOrder()
+        {
+            for (int i = 0; i < 20; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            cache.PendingMaintenance();
+
+            // W [18, 19], Protected [0..15], Probation [16, 17]
+
+            cache.TryUpdate(9, -9).Should().BeTrue();
+            cache.PendingMaintenance();
+
+            // element 9 now moved to back of LRU, but how to verify?
+        }
+
+        [Fact]
+        public void ReadSchedulesMaintenanceWhenBufferIsFull()
+        {
+            var scheduler = new TestScheduler();
+            cache = new ConcurrentLfu<int, int>(20, scheduler);
+
+            cache.GetOrAdd(1, k => k);
+            scheduler.RunCount.Should().Be(1);
+            cache.PendingMaintenance();
+
+            for (int i = 0; i < ConcurrentLfu<int, int>.BufferSize; i++)
+            {
+                scheduler.RunCount.Should().Be(1);
+                cache.GetOrAdd(1, k => k);
+            }
+
+            // read buffer is now full, next read triggers maintenance
+            cache.GetOrAdd(1, k => k);
+            scheduler.RunCount.Should().Be(2);
+        }
+
+        [Fact]
+        public void WhenReadBufferIsFullReadsAreDropped()
+        {
+            int bufferSize = ConcurrentLfu<int, int>.BufferSize;
+            var scheduler = new TestScheduler();
+            cache = new ConcurrentLfu<int, int>(20, scheduler);
+
+            cache.GetOrAdd(1, k => k);
+            scheduler.RunCount.Should().Be(1);
+            cache.PendingMaintenance();
+
+            for (int i = 0; i < bufferSize * 2; i++)
+            {
+                cache.GetOrAdd(1, k => k);
+            }
+
+            cache.PendingMaintenance();
+
+            cache.Metrics.Value.Hits.Should().Be(bufferSize);
+        }
+
+        [Fact]
+        public void WhenWriteBufferIsFullAddDoesMaintenance()
+        {
+            var scheduler = new TestScheduler();
+            cache = new ConcurrentLfu<int, int>(ConcurrentLfu<int, int>.BufferSize * 2, scheduler);
+
+            // add an item, flush write buffer
+            cache.GetOrAdd(-1, k => k);
+            scheduler.RunCount.Should().Be(1);
+            cache.PendingMaintenance();
+
+            // remove the item but don't flush, it is now in the write buffer and maintenance is scheduled
+            cache.TryRemove(-1).Should().BeTrue();
+            scheduler.RunCount.Should().Be(2);
+
+            // add buffer size items, last iteration will invoke maintenance on the foreground since write
+            // buffer is full and test scheduler did not do any work
+            for (int i = 0; i < ConcurrentLfu<int, int>.BufferSize; i++)
+            {
+                scheduler.RunCount.Should().Be(2);
+                cache.GetOrAdd(i, k => k);
+            }
+
+            // pending write (to remove -1) should be flushed by the 128th write calling maintenance
+            // directly within AfterWrite
+            cache.TryGet(-1, out var _).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenWriteBufferIsFullUpdatesAreDropped()
+        {
+            int bufferSize = ConcurrentLfu<int, int>.BufferSize;
+            var scheduler = new TestScheduler();
+            cache = new ConcurrentLfu<int, int>(20, scheduler);
+
+            cache.GetOrAdd(-1, k => k);
+            scheduler.RunCount.Should().Be(1);
+            cache.PendingMaintenance();
+
+            for (int i = 0; i < bufferSize * 2; i++)
+            {
+                cache.TryUpdate(1, i);
+            }
+
+            cache.PendingMaintenance();
+            
+            // TODO: how to verify this? There is no counter for updates.
         }
 
         [Fact]

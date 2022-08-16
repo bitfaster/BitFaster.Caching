@@ -45,6 +45,7 @@ namespace BitFaster.Caching.Lfu
     public class ConcurrentLfu<K, V> : ICache<K, V>, IBoundedPolicy
     {
         private const int MaxWriteBufferRetries = 100;
+        public const int BufferSize = 128;
 
         private readonly ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>> dictionary;
 
@@ -77,8 +78,8 @@ namespace BitFaster.Caching.Lfu
         {
             var comparer = EqualityComparer<K>.Default;
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>>(Defaults.ConcurrencyLevel, capacity, comparer);
-            this.readBuffer = new BoundedBuffer<LinkedListNode<LfuNode<K, V>>>(128);
-            this.writeBuffer = new BoundedBuffer<LinkedListNode<LfuNode<K, V>>>(128);
+            this.readBuffer = new BoundedBuffer<LinkedListNode<LfuNode<K, V>>>(BufferSize);
+            this.writeBuffer = new BoundedBuffer<LinkedListNode<LfuNode<K, V>>>(BufferSize);
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
             this.windowLru = new LinkedList<LfuNode<K, V>>();
@@ -169,7 +170,6 @@ namespace BitFaster.Caching.Lfu
                 var node = new LinkedListNode<LfuNode<K, V>>(new LfuNode<K, V>(key, valueFactory(key)));
                 if (this.dictionary.TryAdd(key, node))
                 {
-                    this.writeBuffer.TryAdd(node);
                     AfterWrite(node);
                     return node.Value.Value;
                 }
@@ -250,6 +250,8 @@ namespace BitFaster.Caching.Lfu
 
         private void AfterWrite(LinkedListNode<LfuNode<K, V>> node)
         {
+            var spinner = new SpinWait();
+
             for (int i = 0; i < MaxWriteBufferRetries; i++)
             {
                 if (writeBuffer.TryAdd(node))
@@ -259,6 +261,8 @@ namespace BitFaster.Caching.Lfu
                 }
 
                 TryScheduleDrain();
+
+                spinner.SpinOnce();
             }
 
             lock (this.maintenanceLock)
@@ -342,6 +346,7 @@ namespace BitFaster.Caching.Lfu
                     done = Maintenance();
                 }
 
+                // don't run continuous foreground maintenance
                 if (!scheduler.IsBackground)
                 {
                     done = true;
