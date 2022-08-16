@@ -35,8 +35,24 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void WhenBufferHasOneItemCountIsOne()
         {
+            // head < tail
             buffer.TryAdd(1);
             buffer.Count.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenBufferHas15ItemCountIs15()
+        {
+            buffer.TryAdd(0).Should().BeTrue();
+            buffer.TryTake(out var _).Should().BeTrue();
+
+            for (int i = 0; i < 15; i++)
+            {
+                buffer.TryAdd(0).Should().BeTrue();
+            }
+
+            // head = 1, tail = 0 : head > tail
+            buffer.Count.Should().Be(15);
         }
 
         [Fact]

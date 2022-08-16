@@ -42,11 +42,15 @@ namespace BitFaster.Caching.Scheduler
 
         private Optional<Exception> lastException = Optional<Exception>.None();
 
+        TaskCompletionSource<bool> completion = new TaskCompletionSource<bool>();
+
         public BackgroundThreadScheduler()
         {
             // dedicated thread
             Task.Factory.StartNew(() => Background(), TaskCreationOptions.LongRunning);
         }
+
+        public Task Completion => completion.Task;
 
         public bool IsBackground => true;
 
@@ -77,15 +81,14 @@ namespace BitFaster.Caching.Scheduler
                 {
                     await semaphore.WaitAsync(cts.Token);
 
-                    if (cts.IsCancellationRequested)
-                    {
-                        break;
-                    }
-
                     if (work.TryTake(out var action))
                     {
                         action();
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
                 }
                 catch (Exception ex)
                 {
@@ -94,12 +97,14 @@ namespace BitFaster.Caching.Scheduler
 
                 spinner.SpinOnce();
             }
+
+            completion.SetResult(true);
         }
 
         public void Dispose()
         {
             // prevent hang when cancel runs on the same thread
-            this.cts.CancelAfter(TimeSpan.FromMilliseconds(1));
+            this.cts.CancelAfter(TimeSpan.Zero);
         }
     }
 }

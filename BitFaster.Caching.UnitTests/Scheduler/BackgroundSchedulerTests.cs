@@ -10,7 +10,7 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Scheduler
 {
-    public class BackgroundSchedulerTests
+    public class BackgroundSchedulerTests : IDisposable
     {
         private BackgroundThreadScheduler scheduler = new BackgroundThreadScheduler();
 
@@ -66,6 +66,41 @@ namespace BitFaster.Caching.UnitTests.Scheduler
 
             scheduler.LastException.HasValue.Should().BeTrue();
             scheduler.LastException.Value.Should().BeOfType<InvalidCastException>();
+        }
+
+        [Fact]
+        public void WhenBacklogExceededThrows()
+        {
+            TaskCompletionSource tcs = new TaskCompletionSource();
+
+            Action start = () => 
+            {
+                for (int i = 0; i < 17; i++)
+                {
+                    scheduler.Run(() => { tcs.Task.Wait(); });
+                }
+            };
+
+            start.Should().Throw<InvalidOperationException>();
+            tcs.SetResult();
+        }
+
+        [Fact]
+        public async Task WhenDisposedRunsToCompletion()
+        {
+            this.scheduler.Dispose();
+
+            var completion = scheduler.Completion;
+
+            if (await Task.WhenAny(completion, Task.Delay(TimeSpan.FromSeconds(1))) != completion)
+            {
+                throw new Exception("Failed to stop");
+            }
+        }
+
+        public void Dispose()
+        {
+            this?.scheduler.Dispose();
         }
     }
 }
