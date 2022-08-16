@@ -54,6 +54,10 @@ namespace BitFaster.Caching.Benchmarks
         private static readonly BackgroundThreadScheduler background = new BackgroundThreadScheduler();
         private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(9, background);
 
+        private static readonly ConcurrentLfu<int, int> concurrentLfuFore = new ConcurrentLfu<int, int>(9, new ForegroundScheduler());
+        private static readonly ConcurrentLfu<int, int> concurrentLfuTp = new ConcurrentLfu<int, int>(9, new ThreadPoolScheduler());
+
+
         private static readonly int key = 1;
         private static System.Runtime.Caching.MemoryCache memoryCache = System.Runtime.Caching.MemoryCache.Default;
 
@@ -116,10 +120,24 @@ namespace BitFaster.Caching.Benchmarks
         //}
 
         [Benchmark()]
-        public void ConcurrentLfu()
+        public void ConcurrentLfuBackground()
         {
             Func<int, int> func = x => x;
             concurrentLfu.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void ConcurrentLfuForeround()
+        {
+            Func<int, int> func = x => x;
+            concurrentLfuFore.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void ConcurrentLfuThreadPool()
+        {
+            Func<int, int> func = x => x;
+            concurrentLfuTp.GetOrAdd(1, func);
         }
 
         //[Benchmark()]

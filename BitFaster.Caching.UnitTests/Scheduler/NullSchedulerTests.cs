@@ -14,6 +14,12 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         private NullScheduler scheduler = new NullScheduler();
 
         [Fact]
+        public void IsNotBackground()
+        {
+            scheduler.IsBackground.Should().BeFalse();
+        }
+
+        [Fact]
         public void WhenWorkIsScheduledCountIsIncremented()
         {
             scheduler.RunCount.Should().Be(0);

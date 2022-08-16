@@ -19,10 +19,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
     {
         private readonly ITestOutputHelper output;
 
-        private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new BackgroundThreadScheduler());
-        // private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new ThreadPoolScheduler());
+       private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new BackgroundThreadScheduler());
+//         private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new ThreadPoolScheduler());
         // private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new ThreadPoolSchedulerContinuations());
-        // private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new ThreadPoolFactoryScheduler());
+    //    private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new ForegroundScheduler());
 
         public ConcurrentLfuTests(ITestOutputHelper output)
         {
@@ -275,7 +275,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.PendingMaintenance();
 
             // TODO: How does this happen?
-            // The trim takes effect before the writes have been replayed by the maintenance thread.
+            // The trim takes effect before all the writes are replayed by the maintenance thread.
             cache.Metrics.Value.Evicted.Should().Be(5);
             cache.Count.Should().BeLessThanOrEqualTo(20);
 
@@ -283,29 +283,37 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.output.WriteLine($"Keys {string.Join(",", cache.Keys.Select(k => k.ToString()))}");
         }
 
-        // BackgroundThreadScheduler has higher throughput/takes fewer samples.
-
-        // BackgroundThreadScheduler ~410 ms (Release)
-        // Cache hits 1,161,870
-        // Maintenance ops 31
-
-        // BackgroundThreadScheduler, 1024 buffer read ~277 ms (Release)
-        // Cache hits 8,431 (0.08431%) - this is mega low sample count but very high throughput
-        // Maintenance ops 38
-
-        // ThreadPoolScheduler ~1.3 sec (Release)
-        // Cache hits 6,166,814
-        // Maintenance ops 173
-
-        // ThreadPoolScheduler without continuations ~449ms (Release)
-        // Cache hits 1,882,570
-        // Maintenance 30
-
-        // ThreadPoolScheduler without continuations, 1024 buffer read ~680ms (Release)
-        // Cache hits 4,580,553
-        // Maintenance 16,954
+        // ~453 ms (Release)
+        // Cache hits 1,943,550 (20%)
+        // Maintenance ops 27
         [Fact]
-        public void DebugBench()
+        public void BenchBackground()
+        {
+            DebugBench();
+        }
+
+        // 494 ms (Release)
+        // Cache hits 3,462,597 (35%)
+        // Maintenance ops 15
+        [Fact]
+        public void BenchThreadPool()
+        {
+            cache = new ConcurrentLfu<int, int>(20, new ThreadPoolScheduler());
+            DebugBench();
+        }
+
+        // 766 ms (Release)
+        // Cache hits 9,922,432 (99%)
+        // Maintenance ops 77,520
+        [Fact]
+        public void BenchForeground()
+        {
+            cache = new ConcurrentLfu<int, int>(20, new ForegroundScheduler());
+            DebugBench();
+        }
+
+
+        private void DebugBench()
         {
             Func<int, int> func = x => x;
 
@@ -322,7 +330,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 this.output.WriteLine($"Error: {this.cache.Scheduler.LastException.Value}");
             }
 
-            // verify this doesn't block or throw - why does it hang in benchmarkdotnet?
+            // verify this doesn't block or throw
             var b = cache.Scheduler as BackgroundThreadScheduler;
             if (b is not null)
             {

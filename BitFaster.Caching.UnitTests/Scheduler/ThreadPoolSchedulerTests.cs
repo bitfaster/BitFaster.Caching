@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Scheduler;
 using FluentAssertions;
@@ -9,52 +10,52 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Scheduler
 {
-    public class ForegroundSchedulerTests
+    public class ThreadPoolSchedulerTests
     {
-        private ForegroundScheduler scheduler = new ForegroundScheduler();
+        private ThreadPoolScheduler scheduler = new ThreadPoolScheduler();
 
         [Fact]
-        public void IsNotBackground()
-        {
-            scheduler.IsBackground.Should().BeFalse();
-        }
-
-        [Fact]
-        public void WhenWorkIsScheduledCountIsIncremented()
+        public async Task WhenWorkIsScheduledCountIsIncremented()
         {
             scheduler.RunCount.Should().Be(0);
 
             scheduler.Run(() => { });
+            await Task.Yield();
 
             scheduler.RunCount.Should().Be(1);
         }
 
         [Fact]
-        public void WhenWorkIsScheduledItIsRun()
+        public async Task WhenWorkIsScheduledItIsRun()
         {
             bool run = false;
 
             scheduler.Run(() => { run = true; });
+            await Task.Yield();
 
             run.Should().BeTrue();
         }
 
         [Fact]
-        public void WhenWorkDoesNotThrowLastExceptionIsEmpty()
+        public async Task WhenWorkDoesNotThrowLastExceptionIsEmpty()
         {
             scheduler.RunCount.Should().Be(0);
 
             scheduler.Run(() => { });
+            await Task.Yield();
 
             scheduler.LastException.HasValue.Should().BeFalse();
         }
 
         [Fact]
-        public void WhenWorkThrowsExceptionIsSynchronous()
+        public async Task WhenWorkThrowsLastExceptionIsPopulated()
         {
-            Action work = () => { scheduler.Run(() => { throw new InvalidCastException(); }); };
+            scheduler.Run(() => { throw new InvalidCastException(); });
 
-            work.Should().Throw<InvalidCastException>();
+            await Task.Yield();
+
+            scheduler.LastException.HasValue.Should().BeTrue();
+            scheduler.LastException.Value.Should().BeOfType<InvalidCastException>();
         }
     }
 }

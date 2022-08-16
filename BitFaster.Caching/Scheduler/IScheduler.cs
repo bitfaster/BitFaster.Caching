@@ -10,6 +10,8 @@ namespace BitFaster.Caching.Scheduler
     /// </summary>
     public interface IScheduler
     {
+        bool IsBackground { get; }
+
         /// <summary>
         /// Gets the count of scheduled work items.
         /// </summary>

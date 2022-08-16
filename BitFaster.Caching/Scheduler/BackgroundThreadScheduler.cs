@@ -48,12 +48,15 @@ namespace BitFaster.Caching.Scheduler
             Task.Factory.StartNew(() => Background(), TaskCreationOptions.LongRunning);
         }
 
+        public bool IsBackground => true;
+
         public long RunCount => count;
 
         public Optional<Exception> LastException => lastException;
 
         public void Run(Action action)
         {
+            count++;
             if (work.TryAdd(action))
             {
                 semaphore.Release();
@@ -89,7 +92,6 @@ namespace BitFaster.Caching.Scheduler
                     this.lastException = new Optional<Exception>(ex);
                 }
 
-                count++;
                 spinner.SpinOnce();
             }
         }

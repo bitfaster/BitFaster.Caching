@@ -14,22 +14,7 @@ namespace BitFaster.Caching.Scheduler
         private long count;
         private Optional<Exception> lastException = Optional<Exception>.None();
 
-        public long RunCount => count;
-
-        public Optional<Exception> LastException => lastException;
-
-        public void Run(Action action)
-        {
-            count++;
-
-            Task.Run(action);
-        }
-    }
-
-    public class ThreadPoolFactoryScheduler : IScheduler
-    {
-        private long count;
-        private Optional<Exception> lastException = Optional<Exception>.None();
+        public bool IsBackground => true;
 
         public long RunCount => count;
 
@@ -38,11 +23,8 @@ namespace BitFaster.Caching.Scheduler
         public void Run(Action action)
         {
             count++;
-
-            Task.Factory.StartNew(action);
-
-            // Same perf as Task.Run
-            //ThreadPool.QueueUserWorkItem(delegate { action(); });
+            var task = Task.Run(action);
+            task.ContinueWith(t => lastException = new Optional<Exception>(t.Exception.Flatten().InnerException), TaskContinuationOptions.OnlyOnFaulted);
         }
     }
 }

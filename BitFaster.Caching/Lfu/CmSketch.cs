@@ -22,6 +22,7 @@ namespace BitFaster.Caching.Lfu
 {
     // https://en.wikipedia.org/wiki/Count%E2%80%93min_sketch#:~:text=In%20computing%2C%20the%20count%E2%80%93min,some%20events%20due%20to%20collisions.
     // Parallel count min: https://www.atlantis-press.com/proceedings/mmebc-16/25859036
+    // SIMD: https://thlujy.github.io/papers/Lujianyuan-tpds-ufbf.pdf
     // https://github.com/ben-manes/caffeine/blob/master/caffeine/src/main/java/com/github/benmanes/caffeine/cache/FrequencySketch.java
     // https://github.com/ben-manes/caffeine/blob/master/caffeine/src/test/java/com/github/benmanes/caffeine/cache/FrequencySketchTest.java
     public class CmSketch<T>

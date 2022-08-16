@@ -23,6 +23,7 @@ using System.Buffers;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
@@ -280,7 +281,7 @@ namespace BitFaster.Caching.Lfu
                         TryScheduleDrain();
                         return;
                     case DrainStatus.ProcessingToIdle:
-                        if (this.drainStatus.Cas(DrainStatus.ProcessingToIdle, DrainStatus.ProcessingToRequired) == DrainStatus.ProcessingToIdle)
+                        if (this.drainStatus.Cas(DrainStatus.ProcessingToIdle, DrainStatus.ProcessingToRequired))
                         {
                             return;
                         }
@@ -330,31 +331,26 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private int concurrent;
-        private int max;
-
         private void DrainBuffers()
         {
-            while (true)
+            bool done = false;
+
+            while (!done)
             {
-                int c = Interlocked.Increment(ref concurrent);
-
-                if (c > max)
-                {
-                    max = c;
-                }
-
                 lock (maintenanceLock)
                 {
-                    Maintenance();
+                    done = Maintenance();
                 }
 
-                Interlocked.Decrement(ref concurrent);
-
-                if (this.drainStatus.Status() < DrainStatus.Required)
+                if (!scheduler.IsBackground)
                 {
-                    break;
+                    done = true;
                 }
+            }
+
+            if (this.drainStatus.Status() == DrainStatus.Required)
+            {
+                TryScheduleDrain();
             }
         }
 
@@ -363,15 +359,16 @@ namespace BitFaster.Caching.Lfu
 #if NETSTANDARD2_0
         private readonly LinkedListNode<LfuNode<K, V>>[] localReadBuffer = new LinkedListNode<LfuNode<K, V>>[takeBufferSize];
 #endif
-        private void Maintenance()
+        private bool Maintenance()
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
 
+            bool wasDrained = false;
             
 #if !NETSTANDARD2_0
             var localReadBuffer = ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Rent(takeBufferSize);
 #endif
-            int maxSweeps = 4;
+            int maxSweeps = 1;
 
             for (int s = 0; s < maxSweeps; s++)
             {
@@ -385,8 +382,15 @@ namespace BitFaster.Caching.Lfu
 
                 for (int i = 0; i < count; i++)
                 {
+                    this.cmSketch.Increment(localReadBuffer[i].Value.Key);
+                }
+
+                for (int i = 0; i < count; i++)
+                {
                     OnAccess(localReadBuffer[i]);
                 }
+
+                wasDrained = count == 0; 
             }
 
 #if !NETSTANDARD2_0
@@ -400,16 +404,21 @@ namespace BitFaster.Caching.Lfu
             // TODO: evict entries?
             // TODO: climb
 
-            if (this.drainStatus.Cas(DrainStatus.ProcessingToIdle, DrainStatus.Idle) != DrainStatus.ProcessingToIdle)
+            // Reset to idle if either
+            // 1. We drained both input buffers (all work done)
+            // 2. or scheduler is foreground (since don't run continuously on the foreground)
+            if ((wasDrained || !scheduler.IsBackground) &&
+                (this.drainStatus.Status() != DrainStatus.ProcessingToIdle ||
+                !this.drainStatus.Cas(DrainStatus.ProcessingToIdle, DrainStatus.Idle)))
             {
                 this.drainStatus.Set(DrainStatus.Required);
             }
+
+            return wasDrained;
         }
 
         private void OnAccess(LinkedListNode<LfuNode<K, V>> node)
         {
-            this.cmSketch.Increment(node.Value.Key);
-
             // there was a cache hit even if the item was removed or is not yet added.
             this.metrics.requestHitCount++;
 
@@ -556,9 +565,9 @@ namespace BitFaster.Caching.Lfu
                 Volatile.Write(ref this.drainStatus.Value, newStatus);
             }
 
-            public int Cas(int oldStatus, int newStatus)
+            public bool Cas(int oldStatus, int newStatus)
             { 
-                return Interlocked.CompareExchange(ref this.drainStatus.Value, newStatus, oldStatus);
+                return Interlocked.CompareExchange(ref this.drainStatus.Value, newStatus, oldStatus) == oldStatus;
             }
 
             public int Status()

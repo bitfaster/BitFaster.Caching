@@ -12,6 +12,8 @@ namespace BitFaster.Caching.Scheduler
     {
         private long count;
 
+        public bool IsBackground => false;
+
         public long RunCount => count;
 
         public Optional<Exception> LastException => Optional<Exception>.None();
