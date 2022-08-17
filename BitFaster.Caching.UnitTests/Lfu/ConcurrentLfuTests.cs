@@ -35,7 +35,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void Scenario()
+        public void WhenItemsAddedExceedsCapacityItemsAreDiscarded()
         {
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(1, k => k);

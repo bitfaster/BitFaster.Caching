@@ -8,8 +8,8 @@ using System.Threading;
 namespace BitFaster.Caching
 {
     /// <summary>
-    /// Provides a multi-producer, multi-consumer thread-safe bounded buffer.  When the buffer is full,
-    /// adds fail and return false.  When the queue is empty, takes fail and return null.
+    /// Provides a multi-producer, multi-consumer thread-safe ring buffer. When the buffer is full,
+    /// TryAdd fails and returns false. When the buffer is empty, TryTake fails and returns false.
     /// </summary>
     /// <remarks>
     /// Based on the Segment internal class from ConcurrentQueue
@@ -78,7 +78,7 @@ namespace BitFaster.Caching
 
         private int GetCount(int head, int tail)
         {
-            if (head != tail && head != tail - FreezeOffset)
+            if (head != tail)
             {
                 head &= slotsMask;
                 tail &= slotsMask;
@@ -89,8 +89,6 @@ namespace BitFaster.Caching
         }
 
         public int Capacity => slots.Length;
-
-        private int FreezeOffset => slots.Length * 2;
 
         public bool TryTake(out T item)
         {
@@ -139,17 +137,12 @@ namespace BitFaster.Caching
                     // this one that are available, but we need to dequeue in order.  So before declaring
                     // failure and that the segment is empty, we check the tail to see if we're actually
                     // empty or if we're just waiting for items in flight or after this one to become available.
-                    //bool frozen = _frozenForEnqueues;
                     var currentTail = Volatile.Read(ref headAndTail.Tail);
-                    if (currentTail - currentHead <= 0 || currentTail - FreezeOffset - currentHead <= 0)
+                    if (currentTail - currentHead <= 0)
                     {
                         item = default;
                         return false;
                     }
-
-                    // It's possible it could have become frozen after we checked _frozenForEnqueues
-                    // and before reading the tail.  That's ok: in that rare race condition, we just
-                    // loop around again.
                 }
 
                 // Lost a race. Spin a bit, then try again.
