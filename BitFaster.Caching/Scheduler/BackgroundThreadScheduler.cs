@@ -34,7 +34,7 @@ namespace BitFaster.Caching.Scheduler
     /// 3. Is faster than Task.Run/TaskFactory.StartNew
     public sealed class BackgroundThreadScheduler : IScheduler, IDisposable
     {
-        private const int MaxBacklog = 16;
+        public const int MaxBacklog = 16;
         private int count;
         private readonly CancellationTokenSource cts = new CancellationTokenSource();
         private readonly SemaphoreSlim semaphore = new SemaphoreSlim(0, MaxBacklog);

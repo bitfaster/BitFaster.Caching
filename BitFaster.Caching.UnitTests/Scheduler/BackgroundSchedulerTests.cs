@@ -75,7 +75,10 @@ namespace BitFaster.Caching.UnitTests.Scheduler
 
             Action start = () => 
             {
-                for (int i = 0; i < 17; i++)
+                // Add 2 because 1 thread *may* be released, start running and then block before we attempt to schedule all tasks.
+                // this leaves BackgroundThreadScheduler.MaxBacklog slots available. So we need + 2 to guarantee all slots are
+                // used.
+                for (int i = 0; i < BackgroundThreadScheduler.MaxBacklog + 2; i++)
                 {
                     scheduler.Run(() => { tcs.Task.Wait(); });
                 }
