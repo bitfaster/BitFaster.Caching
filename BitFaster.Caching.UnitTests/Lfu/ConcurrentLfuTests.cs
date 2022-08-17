@@ -449,7 +449,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void VerifyHitsWithBackgroundScheduler()
         {
             // when running all tests in parallel, sample count drops significantly: set low bar for stability.
-            VerifyHits(iterations: 10000000, minSamples: 500000);
+            VerifyHits(iterations: 10000000, minSamples: 250000);
         }
 
         //Elapsed 590.8154ms - 0.0005908154ns/op
@@ -460,7 +460,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             // when running all tests in parallel, sample count drops significantly: set low bar for stability.
             cache = new ConcurrentLfu<int, int>(20, new ThreadPoolScheduler());
-            VerifyHits(iterations: 10000000, minSamples: 1000000);
+            VerifyHits(iterations: 10000000, minSamples: 500000);
         }
 
         //Elapsed 273.0148ms - 0.0002730148ns/op

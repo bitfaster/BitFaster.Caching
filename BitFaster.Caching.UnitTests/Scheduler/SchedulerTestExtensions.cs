@@ -22,6 +22,17 @@ namespace BitFaster.Caching.UnitTests.Scheduler
                     break;
                 }
             }
+
+            attempts = 80;
+            while (!scheduler.LastException.HasValue)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(1));
+
+                if (attempts++ > 100)
+                {
+                    break;
+                }
+            }
         }
     }
 }
