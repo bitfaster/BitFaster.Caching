@@ -442,39 +442,43 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.output.WriteLine($"Keys {string.Join(",", cache.Keys.Select(k => k.ToString()))}");
         }
 
-        // ~453 ms (Release) - approx 60% slower than no background thread
-        // Cache hits 1,943,550 (20%)
-        // Maintenance ops 27
+        //Elapsed 411.6918ms - 0.0004116918ns/op
+        //Cache hits 1689839 (sampled 16.89839%)
+        //Maintenance ops 31
         [Fact]
-        public void BenchBackground()
+        public void VerifyHitsWithBackgroundScheduler()
         {
             // when running all tests in parallel, sample count drops significantly: set low bar for stability.
-            DebugBench(iterations: 10000000, minSamples: 500000);
+            VerifyHits(iterations: 10000000, minSamples: 500000);
         }
 
-        // 494 ms (Release)
-        // Cache hits 3,462,597 (35%)
-        // Maintenance ops 15
+        //Elapsed 590.8154ms - 0.0005908154ns/op
+        //Cache hits 3441470 (sampled 34.414699999999996%)
+        //Maintenance ops 20
         [Fact]
-        public void BenchThreadPool()
+        public void VerifyHitsWithThreadPoolScheduler()
         {
+            // when running all tests in parallel, sample count drops significantly: set low bar for stability.
             cache = new ConcurrentLfu<int, int>(20, new ThreadPoolScheduler());
-            DebugBench(iterations: 10000000, minSamples: 3000000);
+            VerifyHits(iterations: 10000000, minSamples: 1000000);
         }
 
-        // 284 ms
+        //Elapsed 273.0148ms - 0.0002730148ns/op
+        //Cache hits 0 (sampled 0%)
+        //Maintenance ops 1
         [Fact]
-        public void BenchNull()
+        public void VerifyHitsWithNullScheduler()
         {
             cache = new ConcurrentLfu<int, int>(20, new NullScheduler());
-            DebugBench(iterations: 10000000, minSamples: -1);
+            VerifyHits(iterations: 10000000, minSamples: -1);
         }
 
-        // 849 ms (Release)
-        // Cache hits 9,922,432 (99%)
-        // Maintenance ops 77,520
+        //Will drop 78125 reads.
+        //Elapsed 847.5331ms - 0.0008475331ns/op
+        //Cache hits 10000000 (sampled 99.2248062015504%)
+        //Maintenance ops 78126
         [Fact]
-        public void BenchForeground()
+        public void VerifyHitsWithForegroundScheduler()
         {
             cache = new ConcurrentLfu<int, int>(20, new ForegroundScheduler());
 
@@ -485,10 +489,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             this.output.WriteLine($"Will drop {dropped} reads.");
 
-            DebugBench(iterations: iterations + dropped, minSamples: iterations);
+            VerifyHits(iterations: iterations + dropped, minSamples: iterations);
         }
 
-        private void DebugBench(int iterations, int minSamples)
+        private void VerifyHits(int iterations, int minSamples)
         {
             Func<int, int> func = x => x;
             cache.GetOrAdd(1, func);
@@ -507,9 +511,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var timeNs = timeMs / 1000000;
 
             var timePerOp = timeMs / (double)iterations;
+            var samplePercent = this.cache.Metrics.Value.Hits / (double)iterations * 100;
 
             this.output.WriteLine($"Elapsed {timeMs}ms - {timeNs}ns/op");
-            this.output.WriteLine($"Cache hits {this.cache.Metrics.Value.Hits}");
+            this.output.WriteLine($"Cache hits {this.cache.Metrics.Value.Hits} (sampled {samplePercent}%)");
             this.output.WriteLine($"Maintenance ops {this.cache.Scheduler.RunCount}");
 
             if (this.cache.Scheduler.LastException.HasValue)
