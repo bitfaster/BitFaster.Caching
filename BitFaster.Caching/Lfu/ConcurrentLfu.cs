@@ -351,7 +351,7 @@ namespace BitFaster.Caching.Lfu
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
 
 #if !NETSTANDARD2_0
-            var localReadBuffer = ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Rent(TakeBufferSize);
+            var localDrainBuffer = ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Rent(TakeBufferSize);
 #endif
             bool wasDrained = false;
             int count = 0;
@@ -380,7 +380,7 @@ namespace BitFaster.Caching.Lfu
             }
 
 #if !NETSTANDARD2_0
-            ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Return(localReadBuffer);
+            ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Return(localDrainBuffer);
 #endif
 
             // TODO: hill climb
