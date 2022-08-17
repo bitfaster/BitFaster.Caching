@@ -60,7 +60,7 @@ namespace BitFaster.Caching.UnitTests.Scheduler
 
             await tcs.Task;
 
-            // TOOD: really bad
+            // TODO: really bad
             while (!scheduler.LastException.HasValue)
             {
                 await Task.Delay(1);
