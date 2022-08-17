@@ -107,7 +107,7 @@ namespace BitFaster.Caching.Lfu
                 var node = new LinkedListNode<LfuNode<K, V>>(new LfuNode<K, V>(key, value));
                 if (this.dictionary.TryAdd(key, node))
                 {
-                    this.writeBuffer.TryAdd(node);
+                    AfterWrite(node);
                     return;
                 }
             }
@@ -187,8 +187,7 @@ namespace BitFaster.Caching.Lfu
             if (this.dictionary.TryRemove(key, out var node))
             {
                 node.Value.WasRemoved = true;
-                this.writeBuffer.TryAdd(node);
-                TryScheduleDrain();
+                AfterWrite(node);
                 return true;
             }
 
