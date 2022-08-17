@@ -18,7 +18,7 @@ namespace BitFaster.Caching
     /// </remarks>
     public class BoundedBuffer<T>
     {
-        private readonly Slot[] slots;
+        private Slot[] slots;
         private readonly int slotsMask;
         private PaddedHeadAndTail headAndTail;
 
@@ -208,16 +208,11 @@ namespace BitFaster.Caching
             }
         }
 
+        // Not thread safe
         public void Clear()
         {
-            // TODO: re-allocate the slot buffer
-            for (var i = 0; i < slots.Length; i++)
-            {
-                if (!TryTake(out var _))
-                {
-                    break;
-                }
-            }
+            slots = new Slot[slots.Length];
+            headAndTail = new PaddedHeadAndTail();
         }
 
         [StructLayout(LayoutKind.Auto)]

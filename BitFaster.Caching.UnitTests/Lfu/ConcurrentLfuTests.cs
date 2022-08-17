@@ -66,7 +66,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
+            // W [24] Protected [1,2,0,3,4,5,6,7,8,9,10,11,12,13,14] Probation [15,16,17,18]
             cache.PendingMaintenance();
+            LogLru();
 
             cache.GetOrAdd(16, k => k);
 
@@ -76,9 +78,16 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
+            // W [49] Protected [2,0,3,4,5,6,7,8,9,10,11,12,13,14,16] Probation [1,25,26,27]
             cache.PendingMaintenance();
+            LogLru();
 
-            // TODO: it is promoted, but the verification here is not correct (it is present even when not promoted)
+            cache.Trim(5);
+
+            // W [49] Protected [0,3,4,5,6,7,8,9,10,11,12,13,14,16] Probation []
+            cache.PendingMaintenance();
+            LogLru();
+
             cache.TryGet(16, out var value1).Should().BeTrue();
         }
 
@@ -96,7 +105,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
+            // W [24] Protected [1,2,0,3,4,5,6,7,8,9,10,11,12,13,14] Probation [15,16,17,18]
             cache.PendingMaintenance();
+            LogLru();
 
             cache.TryUpdate(16, -16).Should().BeTrue();
 
@@ -106,16 +117,23 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
+            // W [49] Protected [2,0,3,4,5,6,7,8,9,10,11,12,13,14,16] Probation [1,25,26,27]
             cache.PendingMaintenance();
+            LogLru();
 
-            // TODO: it is promoted, but the verification here is not correct (it is present even when not promoted)
+            cache.Trim(5);
+
+            // W [49] Protected [0,3,4,5,6,7,8,9,10,11,12,13,14,16] Probation []
+            cache.PendingMaintenance();
+            LogLru();
+
             cache.TryGet(16, out var value1).Should().BeTrue();
         }
 
-        // TODO: when protected item is written it is moved to LRU back
         [Fact]
         public void WriteUpdateProtectedLruOrder()
         {
+            // W [19], Protected [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], Probation [15, 16, 17, 18]
             for (int i = 0; i < 20; i++)
             {
                 cache.GetOrAdd(i, k => k);
@@ -123,12 +141,17 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.PendingMaintenance();
 
-            // W [18, 19], Protected [0..15], Probation [16, 17]
-
-            cache.TryUpdate(9, -9).Should().BeTrue();
+            // W [19], Protected [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 7], Probation [15, 16, 17, 18]
+            // element 7 now moved to back of LRU
+            cache.TryUpdate(7, -7).Should().BeTrue();
             cache.PendingMaintenance();
 
-            // element 9 now moved to back of LRU, but how to verify?
+            // Trim is LRU order
+            // W [19], Protected [9, 10, 11, 12, 14, 7], Probation []
+            cache.Trim(12);
+            cache.PendingMaintenance();
+
+            cache.TryGet(7, out var _).Should().BeTrue();
         }
 
         [Fact]
@@ -347,7 +370,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache.GetOrAdd(1, k => k);
 
-            // wait for the maintenance thread to run, this will attach he new node to the LRU list
+            // wait for the maintenance thread to run, this will attach the new node to the LRU list
             cache.PendingMaintenance();
 
             // pending write in the buffer
@@ -356,7 +379,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
             // immediately remove
             cache.TryRemove(1).Should().BeTrue();
 
-            // TODO: how to verify maintenance completed ok?
             cache.PendingMaintenance();
 
             cache.TryGet(1, out var _).Should().BeFalse();
@@ -411,7 +433,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.PendingMaintenance();
 
-            // TODO: How does this happen?
             // The trim takes effect before all the writes are replayed by the maintenance thread.
             cache.Metrics.Value.Evicted.Should().Be(5);
             cache.Count.Should().BeLessThanOrEqualTo(20);
@@ -420,7 +441,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.output.WriteLine($"Keys {string.Join(",", cache.Keys.Select(k => k.ToString()))}");
         }
 
-        // ~453 ms (Release)
+        // ~453 ms (Release) - approx 60% slower than no background thread
         // Cache hits 1,943,550 (20%)
         // Maintenance ops 27
         [Fact]
@@ -436,6 +457,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void BenchThreadPool()
         {
             cache = new ConcurrentLfu<int, int>(20, new ThreadPoolScheduler());
+            DebugBench();
+        }
+
+        // 284 ms
+        [Fact]
+        public void BenchNull()
+        {
+            cache = new ConcurrentLfu<int, int>(20, new NullScheduler());
             DebugBench();
         }
 
@@ -473,6 +502,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
             {
                 b.Dispose();
             }
+        }
+
+        private void LogLru()
+        {
+#if DEBUG
+            this.output.WriteLine(cache.FormatLruString());
+#endif        
         }
     }
 }
