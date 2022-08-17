@@ -62,12 +62,7 @@ namespace BitFaster.Caching.UnitTests.Scheduler
             scheduler.Run(() => { tcs.SetResult();  throw new InvalidCastException(); });
 
             await tcs.Task;
-
-            // TODO: really bad
-            while (!scheduler.LastException.HasValue)
-            {
-                await Task.Delay(1);
-            }
+            await scheduler.WaitForExceptionAsync();
 
             scheduler.LastException.HasValue.Should().BeTrue();
             scheduler.LastException.Value.Should().BeOfType<InvalidCastException>();

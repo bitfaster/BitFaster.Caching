@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -447,7 +448,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void BenchBackground()
         {
-            DebugBench();
+            // when running all tests in parallel, sample count drops significantly: set low bar for stability.
+            DebugBench(iterations: 10000000, minSamples: 500000);
         }
 
         // 494 ms (Release)
@@ -457,7 +459,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void BenchThreadPool()
         {
             cache = new ConcurrentLfu<int, int>(20, new ThreadPoolScheduler());
-            DebugBench();
+            DebugBench(iterations: 10000000, minSamples: 3000000);
         }
 
         // 284 ms
@@ -465,29 +467,48 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void BenchNull()
         {
             cache = new ConcurrentLfu<int, int>(20, new NullScheduler());
-            DebugBench();
+            DebugBench(iterations: 10000000, minSamples: -1);
         }
 
-        // 766 ms (Release)
+        // 849 ms (Release)
         // Cache hits 9,922,432 (99%)
         // Maintenance ops 77,520
         [Fact]
         public void BenchForeground()
         {
             cache = new ConcurrentLfu<int, int>(20, new ForegroundScheduler());
-            DebugBench();
+
+            // Note: TryAdd will drop 1 read per full read buffer, since TryAdd will return false
+            // before TryScheduleDrain is called. This serves as sanity check.
+            int iterations = 10000000;
+            int dropped = iterations / ConcurrentLfu<int, int>.BufferSize;
+
+            this.output.WriteLine($"Will drop {dropped} reads.");
+
+            DebugBench(iterations: iterations + dropped, minSamples: iterations);
         }
 
-
-        private void DebugBench()
+        private void DebugBench(int iterations, int minSamples)
         {
             Func<int, int> func = x => x;
+            cache.GetOrAdd(1, func);
 
-            for (int i = 0; i < 10000000; i++)
+            var start = Stopwatch.GetTimestamp();
+
+            for (int i = 0; i < iterations; i++)
             {
                 cache.GetOrAdd(1, func);
             }
 
+            var end = Stopwatch.GetTimestamp();
+
+            var totalTicks = end - start;
+            var timeMs = ((double)totalTicks / Stopwatch.Frequency) * 1000.0;
+            var timeNs = timeMs / 1000000;
+
+            var timePerOp = timeMs / (double)iterations;
+
+            this.output.WriteLine($"Elapsed {timeMs}ms - {timeNs}ns/op");
             this.output.WriteLine($"Cache hits {this.cache.Metrics.Value.Hits}");
             this.output.WriteLine($"Maintenance ops {this.cache.Scheduler.RunCount}");
 
@@ -495,6 +516,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             {
                 this.output.WriteLine($"Error: {this.cache.Scheduler.LastException.Value}");
             }
+
+            cache.Metrics.Value.Hits.Should().BeGreaterThanOrEqualTo(minSamples);
 
             // verify this doesn't block or throw
             var b = cache.Scheduler as BackgroundThreadScheduler;

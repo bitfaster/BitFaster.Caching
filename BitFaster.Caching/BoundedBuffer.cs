@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -20,7 +19,7 @@ namespace BitFaster.Caching
     {
         private Slot[] slots;
         private readonly int slotsMask;
-        private PaddedHeadAndTail headAndTail;
+        private PaddedHeadAndTail headAndTail; // mutable struct, don't mark readonly
 
         public BoundedBuffer(int boundedLength)
         {
