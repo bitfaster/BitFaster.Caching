@@ -93,119 +93,126 @@ namespace BitFaster.Caching
 
         private int FreezeOffset => slots.Length * 2;
 
-        public bool TryTake(out T item)
+        public Status TryTake(out T item)
         {
             // Loop in case of contention...
-            var spinner = new SpinWait();
-            while (true)
+            //var spinner = new SpinWait();
+            //while (true)
+            //{
+            // Get the head at which to try to dequeue.
+            var currentHead = Volatile.Read(ref headAndTail.Head);
+            var slotsIndex = currentHead & slotsMask;
+
+            // Read the sequence number for the head position.
+            var sequenceNumber = Volatile.Read(ref slots[slotsIndex].SequenceNumber);
+
+            // We can dequeue from this slot if it's been filled by an enqueuer, which
+            // would have left the sequence number at pos+1.
+            var diff = sequenceNumber - (currentHead + 1);
+            if (diff == 0)
             {
-                // Get the head at which to try to dequeue.
-                var currentHead = Volatile.Read(ref headAndTail.Head);
-                var slotsIndex = currentHead & slotsMask;
-
-                // Read the sequence number for the head position.
-                var sequenceNumber = Volatile.Read(ref slots[slotsIndex].SequenceNumber);
-
-                // We can dequeue from this slot if it's been filled by an enqueuer, which
-                // would have left the sequence number at pos+1.
-                var diff = sequenceNumber - (currentHead + 1);
-                if (diff == 0)
+                // We may be racing with other dequeuers.  Try to reserve the slot by incrementing
+                // the head.  Once we've done that, no one else will be able to read from this slot,
+                // and no enqueuer will be able to read from this slot until we've written the new
+                // sequence number. WARNING: The next few lines are not reliable on a runtime that
+                // supports thread aborts. If a thread abort were to sneak in after the CompareExchange
+                // but before the Volatile.Write, enqueuers trying to enqueue into this slot would
+                // spin indefinitely.  If this implementation is ever used on such a platform, this
+                // if block should be wrapped in a finally / prepared region.
+                if (Interlocked.CompareExchange(ref headAndTail.Head, currentHead + 1, currentHead) == currentHead)
                 {
-                    // We may be racing with other dequeuers.  Try to reserve the slot by incrementing
-                    // the head.  Once we've done that, no one else will be able to read from this slot,
-                    // and no enqueuer will be able to read from this slot until we've written the new
-                    // sequence number. WARNING: The next few lines are not reliable on a runtime that
-                    // supports thread aborts. If a thread abort were to sneak in after the CompareExchange
-                    // but before the Volatile.Write, enqueuers trying to enqueue into this slot would
-                    // spin indefinitely.  If this implementation is ever used on such a platform, this
-                    // if block should be wrapped in a finally / prepared region.
-                    if (Interlocked.CompareExchange(ref headAndTail.Head, currentHead + 1, currentHead) == currentHead)
-                    {
-                        // Successfully reserved the slot.  Note that after the above CompareExchange, other threads
-                        // trying to dequeue from this slot will end up spinning until we do the subsequent Write.
-                        item = slots[slotsIndex].Item;
+                    // Successfully reserved the slot.  Note that after the above CompareExchange, other threads
+                    // trying to dequeue from this slot will end up spinning until we do the subsequent Write.
+                    item = slots[slotsIndex].Item;
 
-                        slots[slotsIndex].Item = default;
-                        Volatile.Write(ref slots[slotsIndex].SequenceNumber, currentHead + slots.Length);
+                    slots[slotsIndex].Item = default;
+                    Volatile.Write(ref slots[slotsIndex].SequenceNumber, currentHead + slots.Length);
 
-                        return true;
-                    }
+                    //return true;
+                    return Status.Success;
                 }
-                else if (diff < 0)
-                {
-                    // The sequence number was less than what we needed, which means this slot doesn't
-                    // yet contain a value we can dequeue, i.e. the segment is empty.  Technically it's
-                    // possible that multiple enqueuers could have written concurrently, with those
-                    // getting later slots actually finishing first, so there could be elements after
-                    // this one that are available, but we need to dequeue in order.  So before declaring
-                    // failure and that the segment is empty, we check the tail to see if we're actually
-                    // empty or if we're just waiting for items in flight or after this one to become available.
-                    //bool frozen = _frozenForEnqueues;
-                    var currentTail = Volatile.Read(ref headAndTail.Tail);
-                    if (currentTail - currentHead <= 0 || currentTail - FreezeOffset - currentHead <= 0)
-                    {
-                        item = default;
-                        return false;
-                    }
-
-                    // It's possible it could have become frozen after we checked _frozenForEnqueues
-                    // and before reading the tail.  That's ok: in that rare race condition, we just
-                    // loop around again.
-                }
-
-                // Lost a race. Spin a bit, then try again.
-                spinner.SpinOnce();
             }
+            else if (diff < 0)
+            {
+                // The sequence number was less than what we needed, which means this slot doesn't
+                // yet contain a value we can dequeue, i.e. the segment is empty.  Technically it's
+                // possible that multiple enqueuers could have written concurrently, with those
+                // getting later slots actually finishing first, so there could be elements after
+                // this one that are available, but we need to dequeue in order.  So before declaring
+                // failure and that the segment is empty, we check the tail to see if we're actually
+                // empty or if we're just waiting for items in flight or after this one to become available.
+                //bool frozen = _frozenForEnqueues;
+                var currentTail = Volatile.Read(ref headAndTail.Tail);
+                if (currentTail - currentHead <= 0 || currentTail - FreezeOffset - currentHead <= 0)
+                {
+                    item = default;
+                    //return false;
+                    return Status.Empty;
+                }
+
+                // It's possible it could have become frozen after we checked _frozenForEnqueues
+                // and before reading the tail.  That's ok: in that rare race condition, we just
+                // loop around again.
+            }
+
+            item = default;
+            return Status.Contended;
+                // Lost a race. Spin a bit, then try again.
+            //    spinner.SpinOnce();
+            //}
         }
 
-        public bool TryAdd(T item)
+        public Status TryAdd(T item)
         {
             // Loop in case of contention...
-            var spinner = new SpinWait();
-            while (true)
+            //var spinner = new SpinWait();
+            //while (true)
+            //{
+            // Get the tail at which to try to return.
+            var currentTail = Volatile.Read(ref headAndTail.Tail);
+            var slotsIndex = currentTail & slotsMask;
+
+            // Read the sequence number for the tail position.
+            var sequenceNumber = Volatile.Read(ref slots[slotsIndex].SequenceNumber);
+
+            // The slot is empty and ready for us to enqueue into it if its sequence
+            // number matches the slot.
+            var diff = sequenceNumber - currentTail;
+            if (diff == 0)
             {
-                // Get the tail at which to try to return.
-                var currentTail = Volatile.Read(ref headAndTail.Tail);
-                var slotsIndex = currentTail & slotsMask;
-
-                // Read the sequence number for the tail position.
-                var sequenceNumber = Volatile.Read(ref slots[slotsIndex].SequenceNumber);
-
-                // The slot is empty and ready for us to enqueue into it if its sequence
-                // number matches the slot.
-                var diff = sequenceNumber - currentTail;
-                if (diff == 0)
+                // We may be racing with other enqueuers.  Try to reserve the slot by incrementing
+                // the tail.  Once we've done that, no one else will be able to write to this slot,
+                // and no dequeuer will be able to read from this slot until we've written the new
+                // sequence number. WARNING: The next few lines are not reliable on a runtime that
+                // supports thread aborts. If a thread abort were to sneak in after the CompareExchange
+                // but before the Volatile.Write, other threads will spin trying to access this slot.
+                // If this implementation is ever used on such a platform, this if block should be
+                // wrapped in a finally / prepared region.
+                if (Interlocked.CompareExchange(ref headAndTail.Tail, currentTail + 1, currentTail) == currentTail)
                 {
-                    // We may be racing with other enqueuers.  Try to reserve the slot by incrementing
-                    // the tail.  Once we've done that, no one else will be able to write to this slot,
-                    // and no dequeuer will be able to read from this slot until we've written the new
-                    // sequence number. WARNING: The next few lines are not reliable on a runtime that
-                    // supports thread aborts. If a thread abort were to sneak in after the CompareExchange
-                    // but before the Volatile.Write, other threads will spin trying to access this slot.
-                    // If this implementation is ever used on such a platform, this if block should be
-                    // wrapped in a finally / prepared region.
-                    if (Interlocked.CompareExchange(ref headAndTail.Tail, currentTail + 1, currentTail) == currentTail)
-                    {
-                        // Successfully reserved the slot.  Note that after the above CompareExchange, other threads
-                        // trying to return will end up spinning until we do the subsequent Write.
-                        slots[slotsIndex].Item = item;
-                        Volatile.Write(ref slots[slotsIndex].SequenceNumber, currentTail + 1);
-                        return true;
-                    }
+                    // Successfully reserved the slot.  Note that after the above CompareExchange, other threads
+                    // trying to return will end up spinning until we do the subsequent Write.
+                    slots[slotsIndex].Item = item;
+                    Volatile.Write(ref slots[slotsIndex].SequenceNumber, currentTail + 1);
+                    //return true;
+                    return Status.Success;
                 }
-                else if (diff < 0)
-                {
-                    // The sequence number was less than what we needed, which means this slot still
-                    // contains a value, i.e. the segment is full.  Technically it's possible that multiple
-                    // dequeuers could have read concurrently, with those getting later slots actually
-                    // finishing first, so there could be spaces after this one that are available, but
-                    // we need to enqueue in order.
-                    return false;
-                }
-
-                // Lost a race. Spin a bit, then try again.
-                spinner.SpinOnce();
             }
+            else if (diff < 0)
+            {
+                // The sequence number was less than what we needed, which means this slot still
+                // contains a value, i.e. the segment is full.  Technically it's possible that multiple
+                // dequeuers could have read concurrently, with those getting later slots actually
+                // finishing first, so there could be spaces after this one that are available, but
+                // we need to enqueue in order.
+                //return false;
+                return Status.Full;
+            }
+
+            return Status.Contended;
+                // Lost a race. Spin a bit, then try again.
+            //    spinner.SpinOnce();
+            //}
         }
 
         public void Clear()
@@ -213,12 +220,14 @@ namespace BitFaster.Caching
             // TODO: re-allocate the slot buffer
             for (var i = 0; i < slots.Length; i++)
             {
-                if (!TryTake(out var _))
+                if (TryTake(out var _) == Status.Empty)
                 {
                     break;
                 }
             }
         }
+
+
 
         [StructLayout(LayoutKind.Auto)]
         [DebuggerDisplay("Item = {Item}, SequenceNumber = {SequenceNumber}")]

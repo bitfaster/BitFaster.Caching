@@ -49,8 +49,8 @@ namespace BitFaster.Caching.Lfu
 
         private readonly ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>> dictionary;
 
-        private readonly BoundedBuffer<LinkedListNode<LfuNode<K, V>>> readBuffer;
-        private readonly BoundedBuffer<LinkedListNode<LfuNode<K, V>>> writeBuffer;
+        private readonly StripedBuffer<LinkedListNode<LfuNode<K, V>>> readBuffer;
+        private readonly StripedBuffer<LinkedListNode<LfuNode<K, V>>> writeBuffer;
 
         private readonly CacheMetrics metrics = new CacheMetrics();
 
@@ -78,8 +78,12 @@ namespace BitFaster.Caching.Lfu
         {
             var comparer = EqualityComparer<K>.Default;
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>>(Defaults.ConcurrencyLevel, capacity, comparer);
-            this.readBuffer = new BoundedBuffer<LinkedListNode<LfuNode<K, V>>>(BufferSize);
-            this.writeBuffer = new BoundedBuffer<LinkedListNode<LfuNode<K, V>>>(BufferSize);
+
+            var stripeSize = 32;// Math.Min(Padding.CACHE_LINE_SIZE, BufferSize / Defaults.ConcurrencyLevel);
+
+            this.readBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(stripeSize, 1);
+            this.writeBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(stripeSize, 4);
+
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
             this.windowLru = new LinkedList<LfuNode<K, V>>();
@@ -180,7 +184,7 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                bool delayable = this.readBuffer.TryAdd(node);
+                bool delayable = this.readBuffer.TryAdd(node) != Status.Full;
                 if (this.drainStatus.ShouldDrain(delayable))
                 { 
                     TryScheduleDrain(); 
@@ -254,7 +258,7 @@ namespace BitFaster.Caching.Lfu
 
             for (int i = 0; i < MaxWriteBufferRetries; i++)
             {
-                if (writeBuffer.TryAdd(node))
+                if (writeBuffer.TryAdd(node) == Status.Success)
                 {
                     ScheduleAfterWrite();
                     return;
@@ -374,16 +378,19 @@ namespace BitFaster.Caching.Lfu
             var localReadBuffer = ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Rent(takeBufferSize);
 #endif
             int maxSweeps = 1;
+            int count = 0;
 
             for (int s = 0; s < maxSweeps; s++)
             {
-                int count = 0;
+                count = 0;
 
                 // extract to a buffer before doing book keeping work, ~2x faster
-                while (this.readBuffer.TryTake(out var node) && count < takeBufferSize)
-                {
-                    localReadBuffer[count++] = node;
-                }
+                //while (this.readBuffer.TryTake(out var node) && count < takeBufferSize)
+                //{
+                //    localReadBuffer[count++] = node;
+                //}
+
+                count = this.readBuffer.DrainTo(localReadBuffer);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -398,13 +405,22 @@ namespace BitFaster.Caching.Lfu
                 wasDrained = count == 0; 
             }
 
+            //while (this.writeBuffer.TryTake(out var node))
+            //{
+            //    OnWrite(node);
+            //}
+
+            count = this.writeBuffer.DrainTo(localReadBuffer);
+
+            for (int i = 0; i < count; i++)
+            {
+                OnWrite(localReadBuffer[i]);
+            }
+
 #if !NETSTANDARD2_0
             ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Return(localReadBuffer);
 #endif
-            while (this.writeBuffer.TryTake(out var node))
-            {
-                OnWrite(node);
-            }
+
 
             // TODO: evict entries?
             // TODO: climb

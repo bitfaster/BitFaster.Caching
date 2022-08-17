@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Scheduler
 {
-
     // GetOrAdd bench: this is about 2x slower than no background work (acceptable perf), but Dispose hangs benchmarkdotnet.
     //
     //|               Method |            Runtime |      Mean |     Error |     StdDev | Ratio | Code Size | Allocated |
@@ -61,7 +60,15 @@ namespace BitFaster.Caching.Scheduler
         public void Run(Action action)
         {
             count++;
-            if (work.TryAdd(action))
+            Status s;
+
+            do
+            {
+                s = work.TryAdd(action);
+            }
+            while (s == Status.Contended);
+
+            if (s == Status.Success)
             {
                 semaphore.Release();
             }
@@ -81,10 +88,22 @@ namespace BitFaster.Caching.Scheduler
                 {
                     await semaphore.WaitAsync(cts.Token);
 
-                    if (work.TryTake(out var action))
+                    Status s;
+                    do
                     {
-                        action();
+                        s = work.TryTake(out var action);
+
+                        if (s == Status.Success)
+                        {
+                            action();
+                        }
                     }
+                    while (s != Status.Empty);
+
+                    //if (work.TryTake(out var action))
+                    //{
+                    //    action();
+                    //}
                 }
                 catch (OperationCanceledException)
                 {

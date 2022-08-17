@@ -112,10 +112,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.TryGet(16, out var value1).Should().BeTrue();
         }
 
-        // TODO: when protected item is written it is moved to LRU back
         [Fact]
         public void WriteUpdateProtectedLruOrder()
         {
+            // W [18, 19], Protected [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], Probation [16, 17]
             for (int i = 0; i < 20; i++)
             {
                 cache.GetOrAdd(i, k => k);
@@ -123,12 +123,17 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.PendingMaintenance();
 
-            // W [18, 19], Protected [0..15], Probation [16, 17]
-
+            // W [18, 19], Protected [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 9], Probation [16, 17]
+            // element 9 now moved to back of LRU
             cache.TryUpdate(9, -9).Should().BeTrue();
             cache.PendingMaintenance();
 
-            // element 9 now moved to back of LRU, but how to verify?
+            // Trim is LRU order
+            // W [18, 19], Protected [11, 12, 13, 14, 15, 9], Probation []
+            cache.Trim(12);
+            cache.PendingMaintenance();
+
+            cache.TryGet(9, out var _).Should().BeTrue();
         }
 
         [Fact]
@@ -429,6 +434,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
             DebugBench();
         }
 
+        [Fact]
+        public void BenchNull()
+        {
+            cache = new ConcurrentLfu<int, int>(20, new NullScheduler());
+            DebugBench();
+        }
+
         // 494 ms (Release)
         // Cache hits 3,462,597 (35%)
         // Maintenance ops 15
@@ -448,7 +460,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache = new ConcurrentLfu<int, int>(20, new ForegroundScheduler());
             DebugBench();
         }
-
 
         private void DebugBench()
         {
@@ -473,6 +484,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             {
                 b.Dispose();
             }
+            this.output.WriteLine($"Thread: {Environment.CurrentManagedThreadId}");
+            
         }
     }
 }
