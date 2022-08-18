@@ -54,9 +54,6 @@ namespace BitFaster.Caching.Benchmarks
         private static readonly BackgroundThreadScheduler background = new BackgroundThreadScheduler();
         private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(9, background);
 
-        private static readonly ConcurrentLfu<int, int> concurrentLfuFore = new ConcurrentLfu<int, int>(9, new ForegroundScheduler());
-        private static readonly ConcurrentLfu<int, int> concurrentLfuTp = new ConcurrentLfu<int, int>(9, new ThreadPoolScheduler());
-
 
         private static readonly int key = 1;
         private static System.Runtime.Caching.MemoryCache memoryCache = System.Runtime.Caching.MemoryCache.Default;
@@ -84,80 +81,66 @@ namespace BitFaster.Caching.Benchmarks
             dictionary.GetOrAdd(1, func);
         }
 
-        //[Benchmark()]
-        //public void FastConcurrentLru()
-        //{
-        //    Func<int, int> func = x => x;
-        //    fastConcurrentLru.GetOrAdd(1, func);
-        //}
-
-        //[Benchmark()]
-        //public void ConcurrentLru()
-        //{
-        //    Func<int, int> func = x => x;
-        //    concurrentLru.GetOrAdd(1, func);
-        //}
-
-        //[Benchmark()]
-        //public void AtomicFastLru()
-        //{
-        //    Func<int, int> func = x => x;
-        //    atomicFastLru.GetOrAdd(1, func);
-        //}
-
-        //[Benchmark()]
-        //public void FastConcurrentTLru()
-        //{
-        //    Func<int, int> func = x => x;
-        //    fastConcurrentTLru.GetOrAdd(1, func);
-        //}
-
-        //[Benchmark()]
-        //public void ConcurrentTLru()
-        //{
-        //    Func<int, int> func = x => x;
-        //    concurrentTlru.GetOrAdd(1, func);
-        //}
+        [Benchmark()]
+        public void FastConcurrentLru()
+        {
+            Func<int, int> func = x => x;
+            fastConcurrentLru.GetOrAdd(1, func);
+        }
 
         [Benchmark()]
-        public void ConcurrentLfuBackground()
+        public void ConcurrentLru()
+        {
+            Func<int, int> func = x => x;
+            concurrentLru.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void AtomicFastLru()
+        {
+            Func<int, int> func = x => x;
+            atomicFastLru.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void FastConcurrentTLru()
+        {
+            Func<int, int> func = x => x;
+            fastConcurrentTLru.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void ConcurrentTLru()
+        {
+            Func<int, int> func = x => x;
+            concurrentTlru.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void ConcurrentLfu()
         {
             Func<int, int> func = x => x;
             concurrentLfu.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentLfuForeround()
+        public void ClassicLru()
         {
             Func<int, int> func = x => x;
-            concurrentLfuFore.GetOrAdd(1, func);
+            classicLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentLfuThreadPool()
+        public void RuntimeMemoryCacheGet()
         {
-            Func<int, int> func = x => x;
-            concurrentLfuTp.GetOrAdd(1, func);
+            memoryCache.Get("1");
         }
 
-        //[Benchmark()]
-        //public void ClassicLru()
-        //{
-        //    Func<int, int> func = x => x;
-        //    classicLru.GetOrAdd(1, func);
-        //}
-
-        //[Benchmark()]
-        //public void RuntimeMemoryCacheGet()
-        //{
-        //    memoryCache.Get("1");
-        //}
-
-        //[Benchmark()]
-        //public void ExtensionsMemoryCacheGet()
-        //{
-        //    exMemoryCache.Get(1);
-        //}
+        [Benchmark()]
+        public void ExtensionsMemoryCacheGet()
+        {
+            exMemoryCache.Get(1);
+        }
 
         public class MemoryCacheOptionsAccessor
             : Microsoft.Extensions.Options.IOptions<MemoryCacheOptions>

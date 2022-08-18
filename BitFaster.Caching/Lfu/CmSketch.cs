@@ -98,7 +98,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        bool IncrementAt(int i, int j)
+        private bool IncrementAt(int i, int j)
         {
             int offset = j << 2;
             long mask = (0xfL << offset);
@@ -110,7 +110,7 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        void Reset()
+        private void Reset()
         {
             int count = 0;
             for (int i = 0; i < table.Length; i++)
@@ -127,7 +127,7 @@ namespace BitFaster.Caching.Lfu
             size = 0;
         }
 
-        int IndexOf(int item, int i)
+        private int IndexOf(int item, int i)
         {
             ulong hash = ((ulong)item + Seed[i]) * Seed[i];
             hash += (hash >> 32);

@@ -11,6 +11,7 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -168,9 +169,10 @@ namespace BitFaster.Caching.Lfu
             if (this.dictionary.TryGetValue(key, out var node))
             {
                 bool delayable = this.readBuffer.TryAdd(node);
+
                 if (this.drainStatus.ShouldDrain(delayable))
                 { 
-                    TryScheduleDrain(); 
+                    TryScheduleDrain();
                 }
                 value = node.Value.Value;               
                 return true;
@@ -400,7 +402,7 @@ namespace BitFaster.Caching.Lfu
         private void OnAccess(LinkedListNode<LfuNode<K, V>> node)
         {
             // there was a cache hit even if the item was removed or is not yet added.
-            this.metrics.requestHitCount++;
+            Interlocked.Increment(ref this.metrics.requestHitCount);
 
             // Node is added to read buffer while it is removed by maintenance, or it is read before it has been added.
             if (node.List == null)
