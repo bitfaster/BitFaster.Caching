@@ -7,16 +7,10 @@ using System.Buffers;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 
@@ -402,7 +396,7 @@ namespace BitFaster.Caching.Lfu
         private void OnAccess(LinkedListNode<LfuNode<K, V>> node)
         {
             // there was a cache hit even if the item was removed or is not yet added.
-            Interlocked.Increment(ref this.metrics.requestHitCount);
+            this.metrics.requestHitCount++;
 
             // Node is added to read buffer while it is removed by maintenance, or it is read before it has been added.
             if (node.List == null)
