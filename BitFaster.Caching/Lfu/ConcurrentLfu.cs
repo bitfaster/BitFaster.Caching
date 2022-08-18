@@ -356,9 +356,6 @@ namespace BitFaster.Caching.Lfu
 
         const int takeBufferSize = 1024;
 
-#if NETSTANDARD2_0
-        private readonly LinkedListNode<LfuNode<K, V>>[] localDrainBuffer = new LinkedListNode<LfuNode<K, V>>[TakeBufferSize];
-#endif
         private bool Maintenance()
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
@@ -385,12 +382,12 @@ namespace BitFaster.Caching.Lfu
 
                 for (int i = 0; i < count; i++)
                 {
-                    this.cmSketch.Increment(localReadBuffer[i].Value.Key);
+                    this.cmSketch.Increment(localDrainBuffer[i].Value.Key);
                 }
 
                 for (int i = 0; i < count; i++)
                 {
-                    OnAccess(localReadBuffer[i]);
+                    OnAccess(localDrainBuffer[i]);
                 }
 
                 wasDrained = count == 0; 
@@ -405,7 +402,7 @@ namespace BitFaster.Caching.Lfu
 
             for (int i = 0; i < count; i++)
             {
-                OnWrite(localReadBuffer[i]);
+                OnWrite(localDrainBuffer[i]);
             }
 
 #if !NETSTANDARD2_0
