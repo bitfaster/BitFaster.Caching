@@ -9,8 +9,8 @@ using System.Threading;
 namespace BitFaster.Caching
 {
     /// <summary>
-    /// Provides a multi-producer, multi-consumer thread-safe bounded buffer.  When the buffer is full,
-    /// adds fail and return false.  When the queue is empty, takes fail and return null.
+    /// Provides a multi-producer, multi-consumer thread-safe ring buffer. When the buffer is full,
+    /// TryAdd fails and returns false. When the buffer is empty, TryTake fails and returns false.
     /// </summary>
     /// <remarks>
     /// Based on the Segment internal class from ConcurrentQueue
@@ -18,9 +18,9 @@ namespace BitFaster.Caching
     /// </remarks>
     public class BoundedBuffer<T>
     {
-        private readonly Slot[] slots;
+        private Slot[] slots;
         private readonly int slotsMask;
-        private PaddedHeadAndTail headAndTail;
+        private PaddedHeadAndTail headAndTail; // mutable struct, don't mark readonly
 
         public BoundedBuffer(int boundedLength)
         {
@@ -79,7 +79,7 @@ namespace BitFaster.Caching
 
         private int GetCount(int head, int tail)
         {
-            if (head != tail && head != tail - FreezeOffset)
+            if (head != tail)
             {
                 head &= slotsMask;
                 tail &= slotsMask;
@@ -91,7 +91,6 @@ namespace BitFaster.Caching
 
         public int Capacity => slots.Length;
 
-        private int FreezeOffset => slots.Length * 2;
 
         public Status TryTake(out T item)
         {
@@ -143,7 +142,7 @@ namespace BitFaster.Caching
                 // empty or if we're just waiting for items in flight or after this one to become available.
                 //bool frozen = _frozenForEnqueues;
                 var currentTail = Volatile.Read(ref headAndTail.Tail);
-                if (currentTail - currentHead <= 0 || currentTail - FreezeOffset - currentHead <= 0)
+                if (currentTail - currentHead <= 0)
                 {
                     item = default;
                     //return false;
@@ -215,19 +214,12 @@ namespace BitFaster.Caching
             //}
         }
 
+        // Not thread safe
         public void Clear()
         {
-            // TODO: re-allocate the slot buffer
-            for (var i = 0; i < slots.Length; i++)
-            {
-                if (TryTake(out var _) == Status.Empty)
-                {
-                    break;
-                }
-            }
+            slots = new Slot[slots.Length];
+            headAndTail = new PaddedHeadAndTail();
         }
-
-
 
         [StructLayout(LayoutKind.Auto)]
         [DebuggerDisplay("Item = {Item}, SequenceNumber = {SequenceNumber}")]

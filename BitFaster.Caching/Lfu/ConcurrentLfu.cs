@@ -1,25 +1,15 @@
-﻿/*
- * Copyright 2015 Ben Manes. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-using System;
+﻿using System;
 
 #if NETSTANDARD2_0
 #else
 using System.Buffers;
 #endif
+
+#if DEBUG
+using System.Linq;
+using System.Text;
+#endif
+
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -39,12 +29,14 @@ namespace BitFaster.Caching.Lfu
     /// An LFU cache with a W-TinyLfu eviction policy.
     /// </summary>
     /// <remarks>
-    /// Based on Caffeine BoundedLocalCache:
-    /// https://github.com/ben-manes/caffeine/blob/master/caffeine/src/main/java/com/github/benmanes/caffeine/cache/BoundedLocalCache.java
+    /// Based on Caffeine written by Ben Manes.
+    /// https://www.apache.org/licenses/LICENSE-2.0
     /// </remarks>
     public class ConcurrentLfu<K, V> : ICache<K, V>, IBoundedPolicy
     {
         private const int MaxWriteBufferRetries = 100;
+        private const int TakeBufferSize = 1024;
+
         public const int BufferSize = 128;
 
         private readonly ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>> dictionary;
@@ -60,14 +52,16 @@ namespace BitFaster.Caching.Lfu
         private readonly LinkedList<LfuNode<K, V>> probationLru;
         private readonly LinkedList<LfuNode<K, V>> protectedLru;
 
-        private int windowMax;
-        private int protectedMax;
-        private int probationMax;
+        private readonly LfuCapacityPartition capacity;
 
         private readonly DrainStatus drainStatus = new DrainStatus();
         private readonly object maintenanceLock = new object();
 
         private readonly IScheduler scheduler;
+
+#if NETSTANDARD2_0
+        private readonly LinkedListNode<LfuNode<K, V>>[] localDrainBuffer = new LinkedListNode<LfuNode<K, V>>[TakeBufferSize];
+#endif
 
         public ConcurrentLfu(int capacity)
             : this(capacity, new ThreadPoolScheduler())
@@ -90,17 +84,14 @@ namespace BitFaster.Caching.Lfu
             this.probationLru = new LinkedList<LfuNode<K, V>>();
             this.protectedLru = new LinkedList<LfuNode<K, V>>();
 
-            // this is not correct but easy way to get started:
-            var partition = new FavorWarmPartition(capacity);
-            this.windowMax = partition.Hot;
-            this.protectedMax = partition.Warm;
-            this.probationMax = partition.Cold;
+            this.capacity = new LfuCapacityPartition(capacity);
+
             this.scheduler = scheduler;
         }
 
         public int Count => this.dictionary.Count;
 
-        public int Capacity => this.windowMax + this.protectedMax + this.probationMax;
+        public int Capacity => this.capacity.Capacity;
 
         public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(this.metrics);
 
@@ -124,7 +115,7 @@ namespace BitFaster.Caching.Lfu
                 var node = new LinkedListNode<LfuNode<K, V>>(new LfuNode<K, V>(key, value));
                 if (this.dictionary.TryAdd(key, node))
                 {
-                    this.writeBuffer.TryAdd(node);
+                    AfterWrite(node);
                     return;
                 }
             }
@@ -185,6 +176,7 @@ namespace BitFaster.Caching.Lfu
             if (this.dictionary.TryGetValue(key, out var node))
             {
                 bool delayable = this.readBuffer.TryAdd(node) != Status.Full;
+
                 if (this.drainStatus.ShouldDrain(delayable))
                 { 
                     TryScheduleDrain(); 
@@ -204,8 +196,7 @@ namespace BitFaster.Caching.Lfu
             if (this.dictionary.TryRemove(key, out var node))
             {
                 node.Value.WasRemoved = true;
-                this.writeBuffer.TryAdd(node);
-                TryScheduleDrain();
+                AfterWrite(node);
                 return true;
             }
 
@@ -218,7 +209,7 @@ namespace BitFaster.Caching.Lfu
             {
                 node.Value.Value = value;
 
-                // TODO: AfterWrite? It's ok for this to be lossy, since the node is already tracked
+                // It's ok for this to be lossy, since the node is already tracked
                 // and we will just lose ordering/hit count, but not orphan the node.
                 this.writeBuffer.TryAdd(node);
                 TryScheduleDrain();
@@ -366,7 +357,7 @@ namespace BitFaster.Caching.Lfu
         const int takeBufferSize = 1024;
 
 #if NETSTANDARD2_0
-        private readonly LinkedListNode<LfuNode<K, V>>[] localReadBuffer = new LinkedListNode<LfuNode<K, V>>[takeBufferSize];
+        private readonly LinkedListNode<LfuNode<K, V>>[] localDrainBuffer = new LinkedListNode<LfuNode<K, V>>[TakeBufferSize];
 #endif
         private bool Maintenance()
         {
@@ -375,7 +366,7 @@ namespace BitFaster.Caching.Lfu
             bool wasDrained = false;
             
 #if !NETSTANDARD2_0
-            var localReadBuffer = ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Rent(takeBufferSize);
+            var localDrainBuffer = ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Rent(TakeBufferSize);
 #endif
             int maxSweeps = 1;
             int count = 0;
@@ -390,7 +381,7 @@ namespace BitFaster.Caching.Lfu
                 //    localReadBuffer[count++] = node;
                 //}
 
-                count = this.readBuffer.DrainTo(localReadBuffer);
+                count = this.readBuffer.DrainTo(localDrainBuffer);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -410,7 +401,7 @@ namespace BitFaster.Caching.Lfu
             //    OnWrite(node);
             //}
 
-            count = this.writeBuffer.DrainTo(localReadBuffer);
+            count = this.writeBuffer.DrainTo(localDrainBuffer);
 
             for (int i = 0; i < count; i++)
             {
@@ -418,12 +409,10 @@ namespace BitFaster.Caching.Lfu
             }
 
 #if !NETSTANDARD2_0
-            ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Return(localReadBuffer);
+            ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Return(localDrainBuffer);
 #endif
 
-
-            // TODO: evict entries?
-            // TODO: climb
+            // TODO: hill climb
 
             // Reset to idle if either
             // 1. We drained both input buffers (all work done)
@@ -504,14 +493,14 @@ namespace BitFaster.Caching.Lfu
 
         private void TryEvict()
         {
-            if (windowLru.Count > windowMax)
+            if (windowLru.Count > capacity.Window)
             {
                 // move from window to probation
                 var candidate = this.windowLru.First;
                 this.windowLru.RemoveFirst();
 
                 // initial state is empty protected, allow it to fill up before using probation
-                if (this.protectedLru.Count < protectedMax)
+                if (this.protectedLru.Count < capacity.Protected)
                 {
                     this.protectedLru.AddLast(candidate);
                     candidate.Value.Position = Position.Protected;
@@ -522,7 +511,7 @@ namespace BitFaster.Caching.Lfu
                 candidate.Value.Position = Position.Probation;
 
                 // remove either candidate or probation.first
-                if (this.probationLru.Count > probationMax)
+                if (this.probationLru.Count > capacity.Probation)
                 {
                     var c = this.cmSketch.EstimateFrequency(candidate.Value.Key);
                     var p = this.cmSketch.EstimateFrequency(this.probationLru.First.Value.Key);
@@ -544,7 +533,7 @@ namespace BitFaster.Caching.Lfu
             this.protectedLru.AddLast(node);
             node.Value.Position = Position.Protected;
 
-            if (this.protectedLru.Count > protectedMax)
+            if (this.protectedLru.Count > capacity.Protected)
             {
                 var demoted = this.protectedLru.First;
                 this.protectedLru.RemoveFirst();
@@ -631,6 +620,23 @@ namespace BitFaster.Caching.Lfu
 
             public long Evicted => evictedCount;
         }
+
+#if DEBUG
+        public string FormatLruString()
+        {
+            var sb = new StringBuilder();
+
+            sb.Append("W [");
+            sb.Append(string.Join(",", this.windowLru.Select(n => n.Key.ToString())));
+            sb.Append("] Protected [");
+            sb.Append(string.Join(",", this.protectedLru.Select(n => n.Key.ToString())));
+            sb.Append("] Probation [");
+            sb.Append(string.Join(",", this.probationLru.Select(n => n.Key.ToString())));
+            sb.Append("]");
+
+            return sb.ToString();
+        }
+#endif
     }
 
     // Explicit layout cannot be a generic class member

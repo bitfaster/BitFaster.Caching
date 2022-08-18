@@ -15,13 +15,7 @@ namespace BitFaster.Caching
         public static uint CeilingPowerOfTwo(uint x)
         {
 #if NETSTANDARD2_0
-            //int result = 2;
-            //while (result < x)
-            //{
-            //    result <<= 1;
-            //}
-
-            //return result;
+            // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
             --x;
             x |= x >> 1;
             x |= x >> 2;

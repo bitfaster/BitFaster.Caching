@@ -62,7 +62,7 @@ namespace BitFaster.Caching.UnitTests.Scheduler
             scheduler.Run(() => { tcs.SetResult();  throw new InvalidCastException(); });
 
             await tcs.Task;
-            await Task.Yield();
+            await scheduler.WaitForExceptionAsync();
 
             scheduler.LastException.HasValue.Should().BeTrue();
             scheduler.LastException.Value.Should().BeOfType<InvalidCastException>();
@@ -75,7 +75,10 @@ namespace BitFaster.Caching.UnitTests.Scheduler
 
             Action start = () => 
             {
-                for (int i = 0; i < 17; i++)
+                // Add 2 because 1 thread *may* be released, start running and then block before we attempt to schedule all tasks.
+                // this leaves BackgroundThreadScheduler.MaxBacklog slots available. So we need + 2 to guarantee all slots are
+                // used.
+                for (int i = 0; i < BackgroundThreadScheduler.MaxBacklog + 2; i++)
                 {
                     scheduler.Run(() => { tcs.Task.Wait(); });
                 }

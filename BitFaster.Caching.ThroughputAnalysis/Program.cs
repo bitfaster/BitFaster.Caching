@@ -9,7 +9,10 @@ using System.Linq;
 using System.Reflection.Metadata.Ecma335;
 using System.Threading;
 using System.Threading.Tasks;
+using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.Scheduler;
+using ConsoleTables;
 using CsvHelper;
 using MathNet.Numerics.Distributions;
 
@@ -48,10 +51,14 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 resultTable.Columns.Add(tc.ToString());
             }
 
-            DataRow concurrentLru = resultTable.NewRow();
+            
             DataRow classicLru = resultTable.NewRow();
-            concurrentLru["Class"] = "concurrentLru";
+            DataRow concurrentLru = resultTable.NewRow();
+            DataRow concurrentLfu = resultTable.NewRow();
+
             classicLru["Class"] = "classicLru";
+            concurrentLru["Class"] = "concurrentLru";
+            concurrentLfu["Class"] = "concurrentLfu";
 
             foreach (int tc in threadCount)
             {
@@ -61,25 +68,41 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
                 for (int i = 0; i < warmup + runs; i++)
                 {
-                    results[i] = MeasureThroughput(new ConcurrentLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
+                    results[i] = MeasureThroughput(new ClassicLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
                 }
                 double avg = AverageLast(results, runs) / 1000000;
+                Console.WriteLine($"ClassicLru ({tc}) {avg} million ops/sec");
+                classicLru[tc.ToString()] = avg.ToString();
+
+                for (int i = 0; i < warmup + runs; i++)
+                {
+                    results[i] = MeasureThroughput(new ConcurrentLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
+                }
+                avg = AverageLast(results, runs) / 1000000;
                 Console.WriteLine($"ConcurrLru ({tc}) {avg} million ops/sec");
                 concurrentLru[tc.ToString()] = avg.ToString();
 
                 for (int i = 0; i < warmup + runs; i++)
                 {
-                    results[i] = MeasureThroughput(new ClassicLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
+                    var scheduler = new BackgroundThreadScheduler();
+                    results[i] = MeasureThroughput(new ConcurrentLfu<int, int>(capacity, scheduler), tc);
+                    scheduler.Dispose();
                 }
                 avg = AverageLast(results, runs) / 1000000;
-                Console.WriteLine($"ClassicLru ({tc}) {avg} million ops/sec");
-                classicLru[tc.ToString()] = avg.ToString();
+                Console.WriteLine($"ConcurrLfu ({tc}) {avg} million ops/sec");
+                concurrentLfu[tc.ToString()] = avg.ToString();
             }
 
-            resultTable.Rows.Add(concurrentLru);
             resultTable.Rows.Add(classicLru);
+            resultTable.Rows.Add(concurrentLru);
+            resultTable.Rows.Add(concurrentLfu);
 
             ExportCsv(resultTable);
+
+            //ConsoleTable
+            //    .From(resultTable)
+            //    .Configure(o => o.NumberAlignment = Alignment.Right)
+            //    .Write(Format.MarkDown);
 
             Console.WriteLine("Done.");
         }
