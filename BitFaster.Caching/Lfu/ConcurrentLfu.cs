@@ -32,7 +32,7 @@ namespace BitFaster.Caching.Lfu
     public class ConcurrentLfu<K, V> : ICache<K, V>, IBoundedPolicy
     {
         private const int MaxWriteBufferRetries = 100;
-        private const int TakeBufferSize = 256;
+        private const int TakeBufferSize = 1024;
 
         public const int BufferSize = 128;
 
