@@ -4,6 +4,12 @@
 #else
 using System.Buffers;
 #endif
+
+#if DEBUG
+using System.Linq;
+using System.Text;
+#endif
+
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
