@@ -27,7 +27,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Glimpse
                     a.TestKey(key);
                 }
 
-                if (count++ % 100000 == 0)
+                if (++count % 1000 == 0)
                 {
                     Console.WriteLine($"Processed {count} keys...");
                 }

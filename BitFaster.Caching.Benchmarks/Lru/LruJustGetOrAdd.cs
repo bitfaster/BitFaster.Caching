@@ -1,8 +1,11 @@
 ﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching;
 using BitFaster.Caching.Benchmarks.Lru;
+using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.Scheduler;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Concurrent;
@@ -34,6 +37,8 @@ namespace BitFaster.Caching.Benchmarks
     [SimpleJob(RuntimeMoniker.Net60)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser]
+    // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/
+    // [ThreadingDiagnoser] // Requires .NET Core
     public class LruJustGetOrAdd
     {
         private static readonly ConcurrentDictionary<int, int> dictionary = new ConcurrentDictionary<int, int>(8, 9, EqualityComparer<int>.Default);
@@ -46,6 +51,10 @@ namespace BitFaster.Caching.Benchmarks
 
         private static readonly ICache<int, int> atomicFastLru = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithAtomicGetOrAdd().Build();
 
+        private static readonly BackgroundThreadScheduler background = new BackgroundThreadScheduler();
+        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(9, background);
+
+
         private static readonly int key = 1;
         private static System.Runtime.Caching.MemoryCache memoryCache = System.Runtime.Caching.MemoryCache.Default;
 
@@ -57,6 +66,12 @@ namespace BitFaster.Caching.Benchmarks
         {
             memoryCache.Set(key.ToString(), "test", new System.Runtime.Caching.CacheItemPolicy());
             exMemoryCache.Set(key, "test");
+        }
+
+        [GlobalCleanup]
+        public void GlobalCleanup()
+        {
+           background.Dispose();
         }
 
         [Benchmark(Baseline = true)]
@@ -99,6 +114,13 @@ namespace BitFaster.Caching.Benchmarks
         {
             Func<int, int> func = x => x;
             concurrentTlru.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void ConcurrentLfu()
+        {
+            Func<int, int> func = x => x;
+            concurrentLfu.GetOrAdd(1, func);
         }
 
         [Benchmark()]
