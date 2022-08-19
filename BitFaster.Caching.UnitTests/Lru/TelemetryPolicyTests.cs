@@ -64,7 +64,15 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void WhenItemRemovedIsEvictedIncrementEvictedCount()
+        public void WhenItemUpdatedIncrementUpdatedCount()
+        {
+            telemetryPolicy.OnItemUpdated(1, 2);
+
+            telemetryPolicy.Updated.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenItemRemovedIncrementEvictedCount()
         {
             telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Evicted);
 
@@ -72,7 +80,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void WhenItemRemovedIsRemovedDontIncrementEvictedCount()
+        public void WhenItemRemovedDontIncrementEvictedCount()
         {
             telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Removed);
 

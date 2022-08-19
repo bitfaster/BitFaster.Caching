@@ -36,6 +36,12 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void UpdatedIsZero()
+        {
+            counter.Updated.Should().Be(0);
+        }
+
+        [Fact]
         public void EvictedIsZero()
         {
             counter.Evicted.Should().Be(0);
@@ -51,6 +57,12 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void IncrementTotalCountIsNoOp()
         {
             counter.Invoking(c => c.IncrementMiss()).Should().NotThrow();
+        }
+
+        [Fact]
+        public void OnItemUpdatedIsNoOp()
+        {
+            counter.Invoking(c => c.OnItemUpdated(1, 2)).Should().NotThrow();
         }
 
         [Fact]

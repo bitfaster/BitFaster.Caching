@@ -637,11 +637,31 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenKeyExistsTryUpdateIncrementsUpdateCount()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryUpdate(1, "2").Should().BeTrue();
+
+            lru.Metrics.Value.Updated.Should().Be(1);
+        }
+
+        [Fact]
         public void WhenKeyDoesNotExistTryUpdateReturnsFalse()
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
             lru.TryUpdate(2, "3").Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenKeyDoesNotExistTryUpdateDoesNotIncrementCounter()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryUpdate(2, "3").Should().BeFalse();
+
+            lru.Metrics.Value.Updated.Should().Be(0);
         }
 
         [Fact]
