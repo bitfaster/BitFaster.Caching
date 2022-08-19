@@ -12,7 +12,7 @@ namespace BitFaster.Caching.UnitTests
     {
         const int bufferSize = 16;
         const int stripeCount = 2;
-        private readonly StripedBuffer<int> buffer = new StripedBuffer<int>(bufferSize, stripeCount);
+        private readonly StripedBuffer<int> buffer = new StripedBuffer<int>(stripeCount, bufferSize);
 
         [Fact]
         public void WhenBufferIsFullTryAddReturnsFull()

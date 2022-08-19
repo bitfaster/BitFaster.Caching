@@ -23,7 +23,7 @@ namespace BitFaster.Caching
 
         private BoundedBuffer<T>[] buffers;
 
-        public StripedBuffer(int bufferSize, int stripeCount)
+        public StripedBuffer(int stripeCount, int bufferSize)
         {
             stripeCount = BitOps.CeilingPowerOfTwo(stripeCount);
             this.buffers = new BoundedBuffer<T>[stripeCount];

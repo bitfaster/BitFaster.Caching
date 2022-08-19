@@ -72,8 +72,8 @@ namespace BitFaster.Caching.Lfu
 
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>>(concurrencyLevel, capacity, comparer);
 
-            this.readBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(BufferSize, concurrencyLevel);
-            this.writeBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(BufferSize, concurrencyLevel);
+            this.readBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(concurrencyLevel, BufferSize);
+            this.writeBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(concurrencyLevel, BufferSize);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
