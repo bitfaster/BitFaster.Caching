@@ -36,5 +36,10 @@ namespace BitFaster.Caching
         /// Gets the total number of evicted items.
         /// </summary>
         long Evicted { get; }
+
+        /// <summary>
+        /// Gets the total number of updated items.
+        /// </summary>
+        long Updated { get; }
     }
 }

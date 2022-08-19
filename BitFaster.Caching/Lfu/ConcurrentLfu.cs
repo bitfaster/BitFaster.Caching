@@ -464,13 +464,16 @@ namespace BitFaster.Caching.Lfu
                     else
                     {
                         this.windowLru.MoveToEnd(node);
+                        this.metrics.updatedCount++;
                     }
                     break;
                 case Position.Probation:
                     PromoteProbation(node);
+                    this.metrics.updatedCount++;
                     break;
                 case Position.Protected:
                     this.protectedLru.MoveToEnd(node);
+                    this.metrics.updatedCount++;
                     break;
             }
         }
@@ -592,6 +595,7 @@ namespace BitFaster.Caching.Lfu
         {
             public long requestHitCount;
             public long requestMissCount;
+            public long updatedCount;
             public long evictedCount;
 
             public double HitRatio => (double)requestHitCount / (double)Total;
@@ -601,6 +605,8 @@ namespace BitFaster.Caching.Lfu
             public long Hits => requestHitCount;
 
             public long Misses => requestMissCount;
+
+            public long Updated => updatedCount;
 
             public long Evicted => evictedCount;
         }

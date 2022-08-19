@@ -224,6 +224,7 @@ namespace BitFaster.Caching.Lru
             if (this.dictionary.TryGetValue(key, out var node))
             {
                 node.Value.Value = value;
+                Interlocked.Increment(ref this.metrics.updatedCount);
                 return true;
             }
 
@@ -238,6 +239,7 @@ namespace BitFaster.Caching.Lru
             if (this.dictionary.TryGetValue(key, out var existingNode))
             {
                 existingNode.Value.Value = value;
+                Interlocked.Increment(ref this.metrics.updatedCount);
                 return;
             }
 
@@ -377,6 +379,7 @@ namespace BitFaster.Caching.Lru
         {
             public long requestHitCount;
             public long requestTotalCount;
+            public long updatedCount;
             public long evictedCount;
 
             public double HitRatio => (double)requestHitCount / (double)requestTotalCount;
@@ -388,6 +391,8 @@ namespace BitFaster.Caching.Lru
             public long Misses => requestTotalCount - requestHitCount;
 
             public long Evicted => evictedCount;
+
+            public long Updated => updatedCount;
         }
     }
 }

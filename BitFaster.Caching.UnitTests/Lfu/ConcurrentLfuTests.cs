@@ -233,7 +233,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var scheduler = new TestScheduler();
             cache = new ConcurrentLfu<int, int>(1, 20, scheduler);
 
-            cache.GetOrAdd(-1, k => k);
+            cache.GetOrAdd(1, k => k);
             scheduler.RunCount.Should().Be(1);
             cache.PendingMaintenance();
 
@@ -244,7 +244,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.PendingMaintenance();
 
-            // TODO: how to verify this? There is no counter for updates.
+            cache.Metrics.Value.Updated.Should().Be(bufferSize);
         }
 
         [Fact]

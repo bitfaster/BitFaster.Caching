@@ -17,6 +17,8 @@ namespace BitFaster.Caching.Lru
 
         public long Misses => 0;
 
+        public long Updated => 0;
+
         public long Evicted => 0;
 
         public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
@@ -38,6 +40,11 @@ namespace BitFaster.Caching.Lru
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void OnItemRemoved(K key, V value, ItemRemovedReason reason)
+        {
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void OnItemUpdated(K key, V value)
         {
         }
 

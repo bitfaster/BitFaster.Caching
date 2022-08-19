@@ -263,6 +263,7 @@ namespace BitFaster.Caching.Lru
                         V oldValue = existing.Value;
                         existing.Value = value;
                         this.itemPolicy.Update(existing);
+                        this.telemetryPolicy.OnItemUpdated(existing.Key, existing.Value);
                         Disposer<V>.Dispose(oldValue);
 
                         return true;
@@ -654,6 +655,8 @@ namespace BitFaster.Caching.Lru
             public long Misses => lru.telemetryPolicy.Misses;
 
             public long Evicted => lru.telemetryPolicy.Evicted;
+
+            public long Updated => lru.telemetryPolicy.Updated;
 
             public int Capacity => lru.Capacity;
 
