@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace BitFaster.Caching
 {
-    public enum Status
+    public enum Status : byte
     {
         Full,
         Empty,

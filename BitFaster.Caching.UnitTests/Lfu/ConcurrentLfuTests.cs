@@ -202,7 +202,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void WhenWriteBufferIsFullAddDoesMaintenance()
         {
             var scheduler = new TestScheduler();
-            cache = new ConcurrentLfu<int, int>(ConcurrentLfu<int, int>.BufferSize * 2, scheduler);
+            cache = new ConcurrentLfu<int, int>(ConcurrentLfu<int, int>.BufferSize * 2, scheduler, 1);
 
             // add an item, flush write buffer
             cache.GetOrAdd(-1, k => k);
@@ -231,7 +231,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             int bufferSize = ConcurrentLfu<int, int>.BufferSize;
             var scheduler = new TestScheduler();
-            cache = new ConcurrentLfu<int, int>(20, scheduler);
+            cache = new ConcurrentLfu<int, int>(20, scheduler, 1);
 
             cache.GetOrAdd(-1, k => k);
             scheduler.RunCount.Should().Be(1);
