@@ -21,7 +21,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
     {
         private readonly ITestOutputHelper output;
 
-        private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(20, new BackgroundThreadScheduler());
+        private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler());
 
         public ConcurrentLfuTests(ITestOutputHelper output)
         {
@@ -160,7 +160,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void ReadSchedulesMaintenanceWhenBufferIsFull()
         {
             var scheduler = new TestScheduler();
-            cache = new ConcurrentLfu<int, int>(20, scheduler);
+            cache = new ConcurrentLfu<int, int>(1, 20, scheduler);
 
             cache.GetOrAdd(1, k => k);
             scheduler.RunCount.Should().Be(1);
@@ -182,7 +182,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             int bufferSize = ConcurrentLfu<int, int>.BufferSize;
             var scheduler = new TestScheduler();
-            cache = new ConcurrentLfu<int, int>(20, scheduler);
+            cache = new ConcurrentLfu<int, int>(1, 20, scheduler);
 
             cache.GetOrAdd(1, k => k);
             scheduler.RunCount.Should().Be(1);
@@ -202,7 +202,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void WhenWriteBufferIsFullAddDoesMaintenance()
         {
             var scheduler = new TestScheduler();
-            cache = new ConcurrentLfu<int, int>(ConcurrentLfu<int, int>.BufferSize * 2, scheduler);
+            cache = new ConcurrentLfu<int, int>(1, ConcurrentLfu<int, int>.BufferSize * 2, scheduler);
 
             // add an item, flush write buffer
             cache.GetOrAdd(-1, k => k);
@@ -231,7 +231,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             int bufferSize = ConcurrentLfu<int, int>.BufferSize;
             var scheduler = new TestScheduler();
-            cache = new ConcurrentLfu<int, int>(20, scheduler);
+            cache = new ConcurrentLfu<int, int>(1, 20, scheduler);
 
             cache.GetOrAdd(-1, k => k);
             scheduler.RunCount.Should().Be(1);
@@ -243,7 +243,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             cache.PendingMaintenance();
-            
+
             // TODO: how to verify this? There is no counter for updates.
         }
 
@@ -460,7 +460,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void VerifyHitsWithThreadPoolScheduler()
         {
             // when running all tests in parallel, sample count drops significantly: set low bar for stability.
-            cache = new ConcurrentLfu<int, int>(20, new ThreadPoolScheduler());
+            cache = new ConcurrentLfu<int, int>(1, 20, new ThreadPoolScheduler());
             VerifyHits(iterations: 10000000, minSamples: 500000);
         }
 
@@ -470,7 +470,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void VerifyHitsWithNullScheduler()
         {
-            cache = new ConcurrentLfu<int, int>(20, new NullScheduler());
+            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler());
             VerifyHits(iterations: 10000000, minSamples: -1);
         }
 
@@ -481,7 +481,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void VerifyHitsWithForegroundScheduler()
         {
-            cache = new ConcurrentLfu<int, int>(20, new ForegroundScheduler());
+            cache = new ConcurrentLfu<int, int>(1, 20, new ForegroundScheduler());
 
             // Note: TryAdd will drop 1 read per full read buffer, since TryAdd will return false
             // before TryScheduleDrain is called. This serves as sanity check.

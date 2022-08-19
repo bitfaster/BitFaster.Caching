@@ -17,6 +17,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 
@@ -38,8 +39,8 @@ namespace BitFaster.Caching.Lfu
 
         private readonly ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>> dictionary;
 
-        private readonly BoundedBuffer<LinkedListNode<LfuNode<K, V>>> readBuffer;
-        private readonly BoundedBuffer<LinkedListNode<LfuNode<K, V>>> writeBuffer;
+        private readonly StripedBuffer<LinkedListNode<LfuNode<K, V>>> readBuffer;
+        private readonly StripedBuffer<LinkedListNode<LfuNode<K, V>>> writeBuffer;
 
         private readonly CacheMetrics metrics = new CacheMetrics();
 
@@ -61,16 +62,19 @@ namespace BitFaster.Caching.Lfu
 #endif
 
         public ConcurrentLfu(int capacity)
-            : this(capacity, new ThreadPoolScheduler())
+            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler())
         {        
         }
 
-        public ConcurrentLfu(int capacity, IScheduler scheduler)
+        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler)
         {
             var comparer = EqualityComparer<K>.Default;
-            this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>>(Defaults.ConcurrencyLevel, capacity, comparer);
-            this.readBuffer = new BoundedBuffer<LinkedListNode<LfuNode<K, V>>>(BufferSize);
-            this.writeBuffer = new BoundedBuffer<LinkedListNode<LfuNode<K, V>>>(BufferSize);
+
+            this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>>(concurrencyLevel, capacity, comparer);
+
+            this.readBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(concurrencyLevel, BufferSize);
+            this.writeBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(concurrencyLevel, BufferSize);
+
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
             this.windowLru = new LinkedList<LfuNode<K, V>>();
@@ -168,11 +172,11 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                bool delayable = this.readBuffer.TryAdd(node);
+                bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
 
                 if (this.drainStatus.ShouldDrain(delayable))
                 { 
-                    TryScheduleDrain();
+                    TryScheduleDrain(); 
                 }
                 value = node.Value.Value;               
                 return true;
@@ -242,7 +246,7 @@ namespace BitFaster.Caching.Lfu
 
             for (int i = 0; i < MaxWriteBufferRetries; i++)
             {
-                if (writeBuffer.TryAdd(node))
+                if (writeBuffer.TryAdd(node) == BufferStatus.Success)
                 {
                     ScheduleAfterWrite();
                     return;
@@ -347,37 +351,45 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        const int takeBufferSize = 1024;
+
         private bool Maintenance()
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
 
+            bool wasDrained = false;
+            
 #if !NETSTANDARD2_0
             var localDrainBuffer = ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Rent(TakeBufferSize);
 #endif
-            bool wasDrained = false;
+            int maxSweeps = 1;
             int count = 0;
 
-            // extract to a buffer before doing book keeping work, ~2x faster
-            while (this.readBuffer.TryTake(out var node) && count < TakeBufferSize)
+            for (int s = 0; s < maxSweeps; s++)
             {
-                localDrainBuffer[count++] = node;
+                count = 0;
+
+                // extract to a buffer before doing book keeping work, ~2x faster
+                count = this.readBuffer.DrainTo(localDrainBuffer);
+
+                for (int i = 0; i < count; i++)
+                {
+                    this.cmSketch.Increment(localDrainBuffer[i].Value.Key);
+                }
+
+                for (int i = 0; i < count; i++)
+                {
+                    OnAccess(localDrainBuffer[i]);
+                }
+
+                wasDrained = count == 0; 
             }
+
+            count = this.writeBuffer.DrainTo(localDrainBuffer);
 
             for (int i = 0; i < count; i++)
             {
-                this.cmSketch.Increment(localDrainBuffer[i].Value.Key);
-            }
-
-            for (int i = 0; i < count; i++)
-            {
-                OnAccess(localDrainBuffer[i]);
-            }
-
-            wasDrained = count == 0;
-
-            while (this.writeBuffer.TryTake(out var node))
-            {
-                OnWrite(node);
+                OnWrite(localDrainBuffer[i]);
             }
 
 #if !NETSTANDARD2_0

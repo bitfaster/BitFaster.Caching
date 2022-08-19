@@ -23,7 +23,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Glimpse
         {
             this.concurrentLru = new ConcurrentLru<long, int>(1, cacheSize, EqualityComparer<long>.Default);
             this.classicLru = new ClassicLru<long, int>(1, cacheSize, EqualityComparer<long>.Default);
-            concurrentLfu = new ConcurrentLfu<long, int>(cacheSize, new ForegroundScheduler());
+            concurrentLfu = new ConcurrentLfu<long, int>(1, cacheSize, new ForegroundScheduler());
         }
 
         public int CacheSize => this.concurrentLru.Capacity;

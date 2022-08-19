@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,10 +44,19 @@ namespace BitFaster.Caching.Scheduler
 
         public void Run(Action action)
         {
-            count++;
-            if (work.TryAdd(action))
+            BufferStatus s;
+
+            //do
             {
+                s = work.TryAdd(action);
+            }
+            //while (s == Status.Contended);
+
+            if (s == BufferStatus.Success)
+            {
+
                 semaphore.Release();
+                count++;
             }
             else
             {
@@ -64,10 +74,21 @@ namespace BitFaster.Caching.Scheduler
                 {
                     await semaphore.WaitAsync(cts.Token);
 
-                    if (work.TryTake(out var action))
+                    BufferStatus s;
+                    do
                     {
-                        action();
+                        s = work.TryTake(out var action);
+
+                        if (s == BufferStatus.Success)
+                        {
+                            action();
+                        }
+                        else 
+                        {
+                            spinner.SpinOnce();
+                        }
                     }
+                    while (s == BufferStatus.Contended);
                 }
                 catch (OperationCanceledException)
                 {
