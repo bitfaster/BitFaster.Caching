@@ -14,6 +14,8 @@ namespace BitFaster.Caching.Lru
 
         void OnItemRemoved(K key, V value, ItemRemovedReason reason);
 
+        void OnItemUpdated(K key, V value);
+
         void SetEventSource(object source);
     }
 }
