@@ -1,12 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Runtime.InteropServices;
+#if !NETSTANDARD2_0
+using System.Runtime.Intrinsics.X86;
+#endif
 using System.Text;
 using System.Threading;
+using BitFaster.Caching.Lfu;
 
 namespace BitFaster.Caching
 {
-    public enum Status : byte
+    public enum Status
     {
         Full,
         Empty,
@@ -60,9 +65,31 @@ namespace BitFaster.Caching
 
         public Status TryAdd(T item)
         {
+            // Is using Sse42.Crc32 faster?
+            //#if NETSTANDARD2_0
+            //            ulong z = Mix64((ulong)Environment.CurrentManagedThreadId);
+            //            int inc = (int)(z >> 32) | 1;
+            //            int h = (int)z;
+            //#else
+            //            int inc, h;
+
+            //            // https://rigtorp.se/notes/hashing/
+            //            if (Sse42.IsSupported)
+            //            {
+            //                h = inc = (int)Sse42.Crc32(486187739, (uint)Environment.CurrentManagedThreadId);
+            //            }
+            //            else
+            //            {
+            //                ulong z = Mix64((ulong)Environment.CurrentManagedThreadId);
+            //                inc = (int)(z >> 32) | 1;
+            //                h = (int)z;
+            //            }
+            //#endif
+
             ulong z = Mix64((ulong)Environment.CurrentManagedThreadId);
             int inc = (int)(z >> 32) | 1;
             int h = (int)z;
+
             int mask = buffers.Length - 1;
 
             Status result = Status.Empty;

@@ -379,11 +379,6 @@ namespace BitFaster.Caching.Lfu
                 count = 0;
 
                 // extract to a buffer before doing book keeping work, ~2x faster
-                //while (this.readBuffer.TryTake(out var node) && count < takeBufferSize)
-                //{
-                //    localReadBuffer[count++] = node;
-                //}
-
                 count = this.readBuffer.DrainTo(localDrainBuffer);
 
                 for (int i = 0; i < count; i++)
@@ -398,11 +393,6 @@ namespace BitFaster.Caching.Lfu
 
                 wasDrained = count == 0; 
             }
-
-            //while (this.writeBuffer.TryTake(out var node))
-            //{
-            //    OnWrite(node);
-            //}
 
             count = this.writeBuffer.DrainTo(localDrainBuffer);
 
