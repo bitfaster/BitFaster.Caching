@@ -44,18 +44,19 @@ namespace BitFaster.Caching.Scheduler
 
         public void Run(Action action)
         {
-            count++;
             Status s;
 
-            do
+            //do
             {
                 s = work.TryAdd(action);
             }
-            while (s == Status.Contended);
+            //while (s == Status.Contended);
 
             if (s == Status.Success)
             {
+
                 semaphore.Release();
+                count++;
             }
             else
             {
@@ -82,13 +83,12 @@ namespace BitFaster.Caching.Scheduler
                         {
                             action();
                         }
+                        else 
+                        {
+                            spinner.SpinOnce();
+                        }
                     }
-                    while (s != Status.Empty);
-
-                    //if (work.TryTake(out var action))
-                    //{
-                    //    action();
-                    //}
+                    while (s == Status.Contended);
                 }
                 catch (OperationCanceledException)
                 {

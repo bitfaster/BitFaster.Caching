@@ -26,12 +26,13 @@ namespace BitFaster.Caching.Benchmarks
     {
         private static readonly ConcurrentDictionary<int, int> dictionary = new ConcurrentDictionary<int, int>(8, 9, EqualityComparer<int>.Default);
 
+        const int stripes = 2;
         private static readonly BackgroundThreadScheduler background = new BackgroundThreadScheduler();
-        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(9, background);
+        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(9, background, stripes);
 
-        private static readonly ConcurrentLfu<int, int> concurrentLfuFore = new ConcurrentLfu<int, int>(9, new ForegroundScheduler());
-        private static readonly ConcurrentLfu<int, int> concurrentLfuTp = new ConcurrentLfu<int, int>(9, new ThreadPoolScheduler());
-        private static readonly ConcurrentLfu<int, int> concurrentLfuNull = new ConcurrentLfu<int, int>(9, new NullScheduler());
+        private static readonly ConcurrentLfu<int, int> concurrentLfuFore = new ConcurrentLfu<int, int>(9, new ForegroundScheduler(), stripes);
+        private static readonly ConcurrentLfu<int, int> concurrentLfuTp = new ConcurrentLfu<int, int>(9, new ThreadPoolScheduler(), stripes);
+        private static readonly ConcurrentLfu<int, int> concurrentLfuNull = new ConcurrentLfu<int, int>(9, new NullScheduler(), stripes);
 
         [GlobalSetup]
         public void GlobalSetup()

@@ -68,15 +68,21 @@ namespace BitFaster.Caching.Lfu
         {        
         }
 
-        public ConcurrentLfu(int capacity, IScheduler scheduler)
+        public ConcurrentLfu(int capacity, IScheduler scheduler, int concurrencyLevel = -1)
         {
             var comparer = EqualityComparer<K>.Default;
-            this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>>(Defaults.ConcurrencyLevel, capacity, comparer);
 
-            var stripeSize = 32;// Math.Min(Padding.CACHE_LINE_SIZE, BufferSize / Defaults.ConcurrencyLevel);
+            if (concurrencyLevel == -1)
+            {
+                concurrencyLevel = Defaults.ConcurrencyLevel;
+            }
 
-            this.readBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(stripeSize, 1);
-            this.writeBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(stripeSize, 4);
+            this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>>(concurrencyLevel, capacity, comparer);
+
+            var stripeSize = 128;// Math.Min(Padding.CACHE_LINE_SIZE, BufferSize / Defaults.ConcurrencyLevel);
+
+            this.readBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(stripeSize, concurrencyLevel);
+            this.writeBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(stripeSize, concurrencyLevel);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);

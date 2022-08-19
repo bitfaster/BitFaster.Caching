@@ -14,56 +14,56 @@ namespace BitFaster.Caching
         Contended,
     }
 
+    /// <summary>
+    /// Provides a striped bounded buffer. Add operations use thread ID to index into
+    /// the underlying array of buffers, and if TryAdd is contended the thread ID is 
+    /// rehashed to select a different buffer to retry up to 3 times. Using this approach
+    /// writes scale linearly with number of concurrent threads.
+    /// </summary>
     public class StripedBuffer<T>
     {
         const int MaxAttempts = 3;
 
         private BoundedBuffer<T>[] buffers;
 
-        public StripedBuffer(int bufferSize, int concurrencyLevel)
+        public StripedBuffer(int bufferSize, int stripeCount)
         {
-            this.buffers = new BoundedBuffer<T>[concurrencyLevel];
+            this.buffers = new BoundedBuffer<T>[stripeCount];
 
-            for (int i = 0; i < concurrencyLevel; i++)
+            for (int i = 0; i < stripeCount; i++)
             {
                 this.buffers[i] = new BoundedBuffer<T>(bufferSize);
             }
         }
 
-        public int DrainTo(T[] buffer)
+        public int DrainTo(T[] outputBuffer)
         {
             int count = 0;
-            int bufferIndex = 0;
 
-            do
+            for (int i = 0; i < buffers.Length; i++)
             {
-                var s = buffers[bufferIndex].TryTake(out T item);
+                Status status = Status.Full;
 
-                switch (s)
+                while (count < outputBuffer.Length & status != Status.Empty)
                 {
-                    case Status.Empty:
-                        bufferIndex++;
-                        break;
-                    case Status.Success:
-                        buffer[count++] = item;
-                        break;
-                    case Status.Contended:
-                        // retry
-                        break;
+                    status = buffers[i].TryTake(out T item);
+
+                    if (status == Status.Success)
+                    {
+                        outputBuffer[count++] = item;
+                    }
                 }
             }
-            while (count < buffer.Length && bufferIndex < this.buffers.Length);
 
             return count;
         }
 
         public Status TryAdd(T item)
         {
-            //ulong z = Mix64((ulong)Environment.CurrentManagedThreadId);
-            //int inc = (int)(z >> 32) | 1;
-            //int h = (int)z;
+            ulong z = Mix64((ulong)Environment.CurrentManagedThreadId);
+            int inc = (int)(z >> 32) | 1;
+            int h = (int)z;
             int mask = buffers.Length - 1;
-            int h = Environment.CurrentManagedThreadId;
 
             Status result = Status.Empty;
 
@@ -76,8 +76,6 @@ namespace BitFaster.Caching
                     break;
                 }
 
-                ulong z = Mix64((ulong)h);
-                int inc = (int)(z >> 32) | 1;
                 h += inc;
             }
 

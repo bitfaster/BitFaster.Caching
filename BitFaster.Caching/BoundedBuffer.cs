@@ -29,6 +29,7 @@ namespace BitFaster.Caching
                 throw new ArgumentOutOfRangeException(nameof(boundedLength));
             }
 
+            // must be power of 2 to use & slotsMask instead of %
             boundedLength = BitOps.CeilingPowerOfTwo(boundedLength);
 
             // Initialize the slots and the mask.  The mask is used as a way of quickly doing "% _slots.Length",
@@ -91,13 +92,8 @@ namespace BitFaster.Caching
 
         public int Capacity => slots.Length;
 
-
         public Status TryTake(out T item)
         {
-            // Loop in case of contention...
-            //var spinner = new SpinWait();
-            //while (true)
-            //{
             // Get the head at which to try to dequeue.
             var currentHead = Volatile.Read(ref headAndTail.Head);
             var slotsIndex = currentHead & slotsMask;
@@ -127,7 +123,6 @@ namespace BitFaster.Caching
                     slots[slotsIndex].Item = default;
                     Volatile.Write(ref slots[slotsIndex].SequenceNumber, currentHead + slots.Length);
 
-                    //return true;
                     return Status.Success;
                 }
             }
@@ -145,28 +140,16 @@ namespace BitFaster.Caching
                 if (currentTail - currentHead <= 0)
                 {
                     item = default;
-                    //return false;
                     return Status.Empty;
                 }
-
-                // It's possible it could have become frozen after we checked _frozenForEnqueues
-                // and before reading the tail.  That's ok: in that rare race condition, we just
-                // loop around again.
             }
 
             item = default;
             return Status.Contended;
-                // Lost a race. Spin a bit, then try again.
-            //    spinner.SpinOnce();
-            //}
         }
 
         public Status TryAdd(T item)
         {
-            // Loop in case of contention...
-            //var spinner = new SpinWait();
-            //while (true)
-            //{
             // Get the tail at which to try to return.
             var currentTail = Volatile.Read(ref headAndTail.Tail);
             var slotsIndex = currentTail & slotsMask;
@@ -193,7 +176,6 @@ namespace BitFaster.Caching
                     // trying to return will end up spinning until we do the subsequent Write.
                     slots[slotsIndex].Item = item;
                     Volatile.Write(ref slots[slotsIndex].SequenceNumber, currentTail + 1);
-                    //return true;
                     return Status.Success;
                 }
             }
@@ -204,14 +186,10 @@ namespace BitFaster.Caching
                 // dequeuers could have read concurrently, with those getting later slots actually
                 // finishing first, so there could be spaces after this one that are available, but
                 // we need to enqueue in order.
-                //return false;
                 return Status.Full;
             }
 
             return Status.Contended;
-                // Lost a race. Spin a bit, then try again.
-            //    spinner.SpinOnce();
-            //}
         }
 
         // Not thread safe
