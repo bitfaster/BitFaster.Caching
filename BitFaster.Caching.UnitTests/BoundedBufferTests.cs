@@ -44,12 +44,12 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void WhenBufferHas15ItemCountIs15()
         {
-            buffer.TryAdd(0).Should().Be(Status.Success);
-            buffer.TryTake(out var _).Should().Be(Status.Success);
+            buffer.TryAdd(0).Should().Be(BufferStatus.Success);
+            buffer.TryTake(out var _).Should().Be(BufferStatus.Success);
 
             for (int i = 0; i < 15; i++)
             {
-                buffer.TryAdd(0).Should().Be(Status.Success);
+                buffer.TryAdd(0).Should().Be(BufferStatus.Success);
             }
 
             // head = 1, tail = 0 : head > tail
@@ -61,23 +61,23 @@ namespace BitFaster.Caching.UnitTests
         {
             for (int i = 0; i < 16; i++)
             {
-                buffer.TryAdd(i).Should().Be(Status.Success);
+                buffer.TryAdd(i).Should().Be(BufferStatus.Success);
             }
 
-            buffer.TryAdd(666).Should().Be(Status.Full);
+            buffer.TryAdd(666).Should().Be(BufferStatus.Full);
         }
 
         [Fact]
         public void WhenBufferIsEmptyTryTakeIsFalse()
         {
-            buffer.TryTake(out var _).Should().Be(Status.Empty);
+            buffer.TryTake(out var _).Should().Be(BufferStatus.Empty);
         }
 
         [Fact]
         public void WhenItemAddedItCanBeTaken()
         {
-            buffer.TryAdd(123).Should().Be(Status.Success);
-            buffer.TryTake(out var item).Should().Be(Status.Success);
+            buffer.TryAdd(123).Should().Be(BufferStatus.Success);
+            buffer.TryTake(out var item).Should().Be(BufferStatus.Success);
             item.Should().Be(123);
         }
 
@@ -92,7 +92,7 @@ namespace BitFaster.Caching.UnitTests
             buffer.Clear();
 
             buffer.Count.Should().Be(0);
-            buffer.TryTake(out var _).Should().Be(Status.Empty);
+            buffer.TryTake(out var _).Should().Be(BufferStatus.Empty);
         }
     }
 }

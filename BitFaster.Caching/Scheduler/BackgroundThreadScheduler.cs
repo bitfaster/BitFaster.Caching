@@ -44,7 +44,7 @@ namespace BitFaster.Caching.Scheduler
 
         public void Run(Action action)
         {
-            Status s;
+            BufferStatus s;
 
             //do
             {
@@ -52,7 +52,7 @@ namespace BitFaster.Caching.Scheduler
             }
             //while (s == Status.Contended);
 
-            if (s == Status.Success)
+            if (s == BufferStatus.Success)
             {
 
                 semaphore.Release();
@@ -74,12 +74,12 @@ namespace BitFaster.Caching.Scheduler
                 {
                     await semaphore.WaitAsync(cts.Token);
 
-                    Status s;
+                    BufferStatus s;
                     do
                     {
                         s = work.TryTake(out var action);
 
-                        if (s == Status.Success)
+                        if (s == BufferStatus.Success)
                         {
                             action();
                         }
@@ -88,7 +88,7 @@ namespace BitFaster.Caching.Scheduler
                             spinner.SpinOnce();
                         }
                     }
-                    while (s == Status.Contended);
+                    while (s == BufferStatus.Contended);
                 }
                 catch (OperationCanceledException)
                 {

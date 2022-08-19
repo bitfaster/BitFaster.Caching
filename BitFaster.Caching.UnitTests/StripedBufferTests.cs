@@ -21,11 +21,11 @@ namespace BitFaster.Caching.UnitTests
             {
                 for (int j = 0; j < bufferSize; j++)
                 {
-                    buffer.TryAdd(1).Should().Be(Status.Success);
+                    buffer.TryAdd(1).Should().Be(BufferStatus.Success);
                 }
             }
 
-            buffer.TryAdd(1).Should().Be(Status.Full);
+            buffer.TryAdd(1).Should().Be(BufferStatus.Full);
         }
 
         [Fact]

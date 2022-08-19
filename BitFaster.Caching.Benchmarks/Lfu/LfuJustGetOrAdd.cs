@@ -28,11 +28,11 @@ namespace BitFaster.Caching.Benchmarks
 
         const int stripes = 1;
         private static readonly BackgroundThreadScheduler background = new BackgroundThreadScheduler();
-        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(9, background, stripes);
+        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(stripes, 9, background);
 
-        private static readonly ConcurrentLfu<int, int> concurrentLfuFore = new ConcurrentLfu<int, int>(9, new ForegroundScheduler(), stripes);
-        private static readonly ConcurrentLfu<int, int> concurrentLfuTp = new ConcurrentLfu<int, int>(9, new ThreadPoolScheduler(), stripes);
-        private static readonly ConcurrentLfu<int, int> concurrentLfuNull = new ConcurrentLfu<int, int>(9, new NullScheduler(), stripes);
+        private static readonly ConcurrentLfu<int, int> concurrentLfuFore = new ConcurrentLfu<int, int>(stripes, 9, new ForegroundScheduler());
+        private static readonly ConcurrentLfu<int, int> concurrentLfuTp = new ConcurrentLfu<int, int>(stripes, 9, new ThreadPoolScheduler());
+        private static readonly ConcurrentLfu<int, int> concurrentLfuNull = new ConcurrentLfu<int, int>(stripes, 9, new NullScheduler());
 
         [GlobalSetup]
         public void GlobalSetup()

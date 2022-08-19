@@ -11,14 +11,6 @@ using BitFaster.Caching.Lfu;
 
 namespace BitFaster.Caching
 {
-    public enum Status
-    {
-        Full,
-        Empty,
-        Success,
-        Contended,
-    }
-
     /// <summary>
     /// Provides a striped bounded buffer. Add operations use thread ID to index into
     /// the underlying array of buffers, and if TryAdd is contended the thread ID is 
@@ -33,6 +25,7 @@ namespace BitFaster.Caching
 
         public StripedBuffer(int bufferSize, int stripeCount)
         {
+            stripeCount = BitOps.CeilingPowerOfTwo(stripeCount);
             this.buffers = new BoundedBuffer<T>[stripeCount];
 
             for (int i = 0; i < stripeCount; i++)
@@ -47,13 +40,13 @@ namespace BitFaster.Caching
 
             for (int i = 0; i < buffers.Length; i++)
             {
-                Status status = Status.Full;
+                BufferStatus status = BufferStatus.Full;
 
-                while (count < outputBuffer.Length & status != Status.Empty)
+                while (count < outputBuffer.Length & status != BufferStatus.Empty)
                 {
                     status = buffers[i].TryTake(out T item);
 
-                    if (status == Status.Success)
+                    if (status == BufferStatus.Success)
                     {
                         outputBuffer[count++] = item;
                     }
@@ -63,7 +56,7 @@ namespace BitFaster.Caching
             return count;
         }
 
-        public Status TryAdd(T item)
+        public BufferStatus TryAdd(T item)
         {
             // Is using Sse42.Crc32 faster?
             //#if NETSTANDARD2_0
@@ -92,13 +85,13 @@ namespace BitFaster.Caching
 
             int mask = buffers.Length - 1;
 
-            Status result = Status.Empty;
+            BufferStatus result = BufferStatus.Empty;
 
             for (int i = 0; i < MaxAttempts; i++)
             {
                 result = buffers[h & mask].TryAdd(item);
 
-                if (result == Status.Success)
+                if (result == BufferStatus.Success)
                 {
                     break;
                 }

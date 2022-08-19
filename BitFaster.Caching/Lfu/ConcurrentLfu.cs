@@ -13,13 +13,11 @@ using System.Text;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 
@@ -64,25 +62,18 @@ namespace BitFaster.Caching.Lfu
 #endif
 
         public ConcurrentLfu(int capacity)
-            : this(capacity, new ThreadPoolScheduler())
+            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler())
         {        
         }
 
-        public ConcurrentLfu(int capacity, IScheduler scheduler, int concurrencyLevel = -1)
+        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler)
         {
             var comparer = EqualityComparer<K>.Default;
 
-            if (concurrencyLevel == -1)
-            {
-                concurrencyLevel = Defaults.ConcurrencyLevel;
-            }
-
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>>(concurrencyLevel, capacity, comparer);
 
-            var stripeSize = 128;// Math.Min(Padding.CACHE_LINE_SIZE, BufferSize / Defaults.ConcurrencyLevel);
-
-            this.readBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(stripeSize, concurrencyLevel);
-            this.writeBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(stripeSize, concurrencyLevel);
+            this.readBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(BufferSize, concurrencyLevel);
+            this.writeBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(BufferSize, concurrencyLevel);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
@@ -181,7 +172,7 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                bool delayable = this.readBuffer.TryAdd(node) != Status.Full;
+                bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
 
                 if (this.drainStatus.ShouldDrain(delayable))
                 { 
@@ -255,7 +246,7 @@ namespace BitFaster.Caching.Lfu
 
             for (int i = 0; i < MaxWriteBufferRetries; i++)
             {
-                if (writeBuffer.TryAdd(node) == Status.Success)
+                if (writeBuffer.TryAdd(node) == BufferStatus.Success)
                 {
                     ScheduleAfterWrite();
                     return;

@@ -92,7 +92,7 @@ namespace BitFaster.Caching
 
         public int Capacity => slots.Length;
 
-        public Status TryTake(out T item)
+        public BufferStatus TryTake(out T item)
         {
             // Get the head at which to try to dequeue.
             var currentHead = Volatile.Read(ref headAndTail.Head);
@@ -123,7 +123,7 @@ namespace BitFaster.Caching
                     slots[slotsIndex].Item = default;
                     Volatile.Write(ref slots[slotsIndex].SequenceNumber, currentHead + slots.Length);
 
-                    return Status.Success;
+                    return BufferStatus.Success;
                 }
             }
             else if (diff < 0)
@@ -140,15 +140,15 @@ namespace BitFaster.Caching
                 if (currentTail - currentHead <= 0)
                 {
                     item = default;
-                    return Status.Empty;
+                    return BufferStatus.Empty;
                 }
             }
 
             item = default;
-            return Status.Contended;
+            return BufferStatus.Contended;
         }
 
-        public Status TryAdd(T item)
+        public BufferStatus TryAdd(T item)
         {
             // Get the tail at which to try to return.
             var currentTail = Volatile.Read(ref headAndTail.Tail);
@@ -176,7 +176,7 @@ namespace BitFaster.Caching
                     // trying to return will end up spinning until we do the subsequent Write.
                     slots[slotsIndex].Item = item;
                     Volatile.Write(ref slots[slotsIndex].SequenceNumber, currentTail + 1);
-                    return Status.Success;
+                    return BufferStatus.Success;
                 }
             }
             else if (diff < 0)
@@ -186,10 +186,10 @@ namespace BitFaster.Caching
                 // dequeuers could have read concurrently, with those getting later slots actually
                 // finishing first, so there could be spaces after this one that are available, but
                 // we need to enqueue in order.
-                return Status.Full;
+                return BufferStatus.Full;
             }
 
-            return Status.Contended;
+            return BufferStatus.Contended;
         }
 
         // Not thread safe
