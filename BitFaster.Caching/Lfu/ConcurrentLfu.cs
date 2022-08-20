@@ -15,6 +15,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -136,7 +137,7 @@ namespace BitFaster.Caching.Lfu
             itemCount = Math.Min(itemCount, this.Count);
             var candidates = new List<LfuNode<K, V>>(itemCount);
 
-            // TODO: this is LRU order eviction, Caffeine void evictFromMain(int candidates) is based on frequency
+            // TODO: this is LRU order eviction, Caffeine is based on frequency
             lock (maintenanceLock)
             {
                 // walk in lru order, get itemCount keys to evict
@@ -396,6 +397,7 @@ namespace BitFaster.Caching.Lfu
 #endif
 
             // TODO: hill climb
+            EvictEntries();
 
             // Reset to idle if either
             // 1. We drained both input buffers (all work done)
@@ -458,7 +460,6 @@ namespace BitFaster.Caching.Lfu
                     if (node.list == null)
                     {
                         this.windowLru.AddLast(node);
-                        TryEvict();
                     }
                     else
                     {
@@ -477,49 +478,14 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private void TryEvict()
-        {
-            if (windowLru.Count > capacity.Window)
-            {
-                // move from window to probation
-                var candidate = this.windowLru.First;
-                this.windowLru.RemoveFirst();
-
-                // initial state is empty protected, allow it to fill up before using probation
-                if (this.protectedLru.Count < capacity.Protected)
-                {
-                    this.protectedLru.AddLast(candidate);
-                    candidate.Position = Position.Protected;
-                    return;
-                }
-
-                this.probationLru.AddLast(candidate);
-                candidate.Position = Position.Probation;
-
-                // remove either candidate or probation.first
-                if (this.probationLru.Count > capacity.Probation)
-                {
-                    var c = this.cmSketch.EstimateFrequency(candidate.Key);
-                    var p = this.cmSketch.EstimateFrequency(this.probationLru.First.Key);
-
-                    // TODO: random factor?
-                    var victim = (c > p) ? this.probationLru.First : candidate;
-
-                    this.dictionary.TryRemove(victim.Key, out var _);
-                    victim.list.Remove(victim);
-
-                    this.metrics.evictedCount++;
-                }
-            }
-        }
-
         private void PromoteProbation(LfuNode<K, V> node)
         {
             this.probationLru.Remove(node);
             this.protectedLru.AddLast(node);
             node.Position = Position.Protected;
 
-            if (this.protectedLru.Count > capacity.Protected)
+            // If the protected space exceeds its maximum, the LRU items are demoted to the probation space.
+            if (this.protectedLru.Count > this.capacity.Protected)
             {
                 var demoted = this.protectedLru.First;
                 this.protectedLru.RemoveFirst();
@@ -527,6 +493,122 @@ namespace BitFaster.Caching.Lfu
                 demoted.Position = Position.Probation;
                 this.probationLru.AddLast(demoted);
             }
+        }
+
+        private void EvictEntries()
+        {
+            var candidates = EvictFromWindow();
+            EvictFromMain(candidates);
+        }
+
+        private int EvictFromWindow()
+        {
+            int candidates = 0;
+
+            while (this.windowLru.Count > this.capacity.Window)
+            {
+                var node = this.windowLru.First;
+                this.windowLru.RemoveFirst();
+
+                this.probationLru.AddLast(node);
+                node.Position = Position.Probation;
+
+                candidates++;
+            }
+
+            return candidates;
+        }
+
+        private void EvictFromMain(int candidates)
+        {
+            //var victimQueue = Position.Probation;
+            var victim = this.probationLru.First;
+            var candidate = this.probationLru.Last;
+
+            while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
+            {
+                // TODO: is this logic reachable?
+                // Search the admission window for additional candidates
+                //if (candidates == 0)
+                //{
+                //    candidate = this.windowLru.First;
+                //}
+
+                //// Try evicting from the protected and window queues
+                //if (candidate == null && victim == null)
+                //{
+
+                //    if (victimQueue == Position.Probation)
+                //    {
+                //        victim = this.protectedLru.First;
+                //        victimQueue = Position.Protected;
+                //        continue;
+                //    }
+                //    else if (victimQueue == Position.Protected)
+                //    {
+                //        victim = this.windowLru.First;
+                //        victimQueue = Position.Window;
+                //        continue;
+                //    }
+
+                //    // The pending operations will adjust the size to reflect the correct weight
+                //    break;
+                //}
+
+                //// Evict immediately if only one of the entries is present
+                //if (victim == null)
+                //{
+                //    var previous = candidate.Previous;
+                //    var evictee = candidate;
+                //    candidate = previous;
+
+                //    Evict(evictee);
+
+                //    candidates--;
+                //    continue;
+                //}
+                //else if (candidate == null)
+                //{
+                //    var evictee = victim;
+                //    victim = victim.Previous;
+
+                //    Evict(evictee);
+                //    continue;
+                //}
+
+                // Evict the entry with the lowest frequency
+                candidates--;
+                if (AdmitCandidate(candidate.Key, victim.Key))
+                {
+                    var evictee = victim;
+                    victim = victim.Previous;
+
+                    Evict(evictee);
+                }
+                else
+                {
+                    var evictee = candidate;
+                    candidate = candidate.Previous;
+
+                    Evict(evictee);
+                }
+            }
+        }
+
+        private bool AdmitCandidate(K candidateKey, K victimKey)
+        {
+            int victimFreq = this.cmSketch.EstimateFrequency(victimKey);
+            int candidateFreq = this.cmSketch.EstimateFrequency(candidateKey);
+
+            // TODO: random factor when candidate freq < 5
+            return candidateFreq > victimFreq;
+        }
+
+        private void Evict(LfuNode<K, V> evictee)
+        {
+            this.dictionary.TryRemove(evictee.Key, out var _);
+            evictee.list.Remove(evictee);
+            this.metrics.evictedCount++;
         }
 
         [DebuggerDisplay("{Format()}")]

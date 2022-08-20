@@ -27,6 +27,11 @@ namespace BitFaster.Caching.Lfu
             get { return head; }
         }
 
+        public LfuNode<K, V> Last
+        {
+            get { return head?.prev; }
+        }
+
         public void MoveToEnd(LfuNode<K, V> node)
         {
             this.Remove(node);

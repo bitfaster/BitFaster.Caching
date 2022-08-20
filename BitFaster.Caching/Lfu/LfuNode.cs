@@ -35,6 +35,11 @@ namespace BitFaster.Caching.Lfu
             get { return next == null || next == list.head ? null : next; }
         }
 
+        public LfuNode<K, V> Previous
+        {
+            get { return prev == null || this == list.head ? null : prev; }
+        }
+
         internal void Invalidate()
         {
             list = null;
