@@ -137,7 +137,7 @@ namespace BitFaster.Caching.Lfu
             itemCount = Math.Min(itemCount, this.Count);
             var candidates = new List<LfuNode<K, V>>(itemCount);
 
-            // TODO: this is LRU order eviction, Caffeine void evictFromMain(int candidates) is based on frequency
+            // TODO: this is LRU order eviction, Caffeine is based on frequency
             lock (maintenanceLock)
             {
                 // walk in lru order, get itemCount keys to evict
@@ -527,52 +527,54 @@ namespace BitFaster.Caching.Lfu
 
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
+                // TODO: is this logic reachable?
                 // Search the admission window for additional candidates
-                if (candidates == 0)
-                {
-                    candidate = this.windowLru.First;
-                }
+                //if (candidates == 0)
+                //{
+                //    candidate = this.windowLru.First;
+                //}
 
-                // Try evicting from the protected and window queues
-                if (candidate == null && victim == null)
-                {
-                    if (victimQueue == Position.Probation)
-                    {
-                        victim = this.protectedLru.First;
-                        victimQueue = Position.Protected;
-                        continue;
-                    }
-                    else if (victimQueue == Position.Protected)
-                    {
-                        victim = this.windowLru.First;
-                        victimQueue = Position.Window;
-                        continue;
-                    }
+                //// Try evicting from the protected and window queues
+                //if (candidate == null && victim == null)
+                //{
 
-                    // The pending operations will adjust the size to reflect the correct weight
-                    break;
-                }
+                //    if (victimQueue == Position.Probation)
+                //    {
+                //        victim = this.protectedLru.First;
+                //        victimQueue = Position.Protected;
+                //        continue;
+                //    }
+                //    else if (victimQueue == Position.Protected)
+                //    {
+                //        victim = this.windowLru.First;
+                //        victimQueue = Position.Window;
+                //        continue;
+                //    }
 
-                // Evict immediately if only one of the entries is present
-                if (victim == null)
-                {
-                    var previous = candidate.Previous;
-                    var evictee = candidate;
-                    candidate = previous;
+                //    // The pending operations will adjust the size to reflect the correct weight
+                //    break;
+                //}
 
-                    Evict(evictee);
+                //// Evict immediately if only one of the entries is present
+                //if (victim == null)
+                //{
+                //    var previous = candidate.Previous;
+                //    var evictee = candidate;
+                //    candidate = previous;
 
-                    candidates--;
-                    continue;
-                }
-                else if (candidate == null)
-                {
-                    var evictee = victim;
-                    victim = victim.Previous;
+                //    Evict(evictee);
 
-                    Evict(evictee);
-                    continue;
-                }
+                //    candidates--;
+                //    continue;
+                //}
+                //else if (candidate == null)
+                //{
+                //    var evictee = victim;
+                //    victim = victim.Previous;
+
+                //    Evict(evictee);
+                //    continue;
+                //}
 
                 // Evict the entry with the lowest frequency
                 candidates--;

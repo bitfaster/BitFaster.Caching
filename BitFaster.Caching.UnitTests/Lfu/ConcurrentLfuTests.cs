@@ -117,6 +117,40 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.Count.Should().Be(16);
         }
 
+
+
+        [Fact]
+        public void Blah()
+        {
+            for (int i = 0; i < 20; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            // W [19] Protected [] Probation [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+            cache.PendingMaintenance();
+            LogLru();
+
+            for (int i = 0; i < 15; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            // W [19] Protected [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] Probation [15,16,17,18]
+            cache.PendingMaintenance();
+            LogLru();
+
+            // access all of probation, moving to protected
+            cache.GetOrAdd(15, k => k);
+            cache.GetOrAdd(16, k => k);
+            cache.GetOrAdd(17, k => k);
+            cache.GetOrAdd(18, k => k);
+
+            // W[19] Protected[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] Probation[0, 1, 2, 3]
+            cache.PendingMaintenance();
+            LogLru();
+        }
+
         [Fact]
         public void ReadPromotesProbation()
         {
