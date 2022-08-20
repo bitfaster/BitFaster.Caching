@@ -118,7 +118,7 @@ namespace BitFaster.Caching.Buffers
             {
                 switch (TryAddRaw(item))
                 {
-                    case BufferStatus.Empty:
+                    case BufferStatus.Full:
                         return false;
                     case BufferStatus.Success:
                         return true;
