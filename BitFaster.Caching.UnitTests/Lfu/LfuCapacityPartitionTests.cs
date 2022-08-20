@@ -37,5 +37,40 @@ namespace BitFaster.Caching.UnitTests.Lfu
             partition.Protected.Should().Be(expectedProtected);
             partition.Probation.Should().Be(expectedProbation);
         }
+
+        // Objective: calculate partitions based on hit rate changes. Assume ConcurrentLru will evict things
+        // scenario
+        // 1. start out by always trying to increase window size in iteration 1
+        // 2. if hit rate increases in iteration 2, increase hit window again
+        // 3. if hit rate decreases in teration 2, decrease window
+        // 4. if hit rate continues to increase, apply decay until stable
+        [Fact]
+        public void TestOptimize()
+        {
+            int max = 100;
+            var partition = new LfuCapacityPartition(max);
+            var metrics = new TestMetrics();
+
+            metrics.Hits += 1000;
+            metrics.Misses += 2000;
+
+            partition.Optimize(metrics, 10 * max);
+
+        }
+
+        private class TestMetrics : ICacheMetrics
+        {
+            public double HitRatio => (double)Hits / (double)Total;
+
+            public long Total => Hits + Misses;
+
+            public long Hits { get; set; }
+
+            public long Misses { get; set; }
+
+            public long Evicted { get; set; }
+
+            public long Updated { get; set; }
+        }
     }
 }

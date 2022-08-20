@@ -20,6 +20,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
+using static BitFaster.Caching.Lfu.LfuCapacityPartition;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -73,6 +74,8 @@ namespace BitFaster.Caching.Lfu
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LfuNode<K, V>>>(concurrencyLevel, capacity, comparer);
 
             this.readBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(concurrencyLevel, BufferSize);
+
+            // TODO: how big should this be in total? We shouldn't allow more than some capacity % of writes in the buffer
             this.writeBuffer = new StripedBuffer<LinkedListNode<LfuNode<K, V>>>(concurrencyLevel, BufferSize);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
@@ -396,7 +399,13 @@ namespace BitFaster.Caching.Lfu
             ArrayPool<LinkedListNode<LfuNode<K, V>>>.Shared.Return(localDrainBuffer);
 #endif
 
-            // TODO: hill climb
+            // Caffeine does two phase window then main eviction after draining queues.
+            // see void evictEntries() line 663
+            this.capacity.Optimize(this.metrics, this.cmSketch.ResetSampleSize);
+            
+            // this should be some generalized eviction logic that forces items to fit within
+            // defined queue sizes
+            Rebalance();
 
             // Reset to idle if either
             // 1. We drained both input buffers (all work done)
@@ -528,6 +537,25 @@ namespace BitFaster.Caching.Lfu
                 demoted.Value.Position = Position.Probation;
                 this.probationLru.AddLast(demoted);
             }
+        }
+
+        private void Rebalance()
+        {
+            //if (change == PartitionChange.IncreaseWindow)
+            //{
+            //    // move n items from protected to probation to window
+
+            //    // dequeue from protected
+            //}
+            //else if (change == PartitionChange.DecreaseWindow)
+            //{
+            //    // move n items from window to probation
+
+            //    var candidate = this.windowLru.First;
+            //    this.windowLru.RemoveFirst();
+            //    this.probationLru.AddLast(candidate);
+            //    candidate.Value.Position = Position.Probation;
+            //}
         }
 
         [DebuggerDisplay("{Format()}")]
