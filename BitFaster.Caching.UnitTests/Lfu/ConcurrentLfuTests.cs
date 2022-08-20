@@ -55,6 +55,68 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.Count.Should().Be(20);
         }
 
+        // protected 15
+        // probation 4
+        // window 1
+        [Fact]
+        public void WhenNewItemsAreAddedTheyArePromotedBasedOnFrequency()
+        {
+            for (int i = 0; i < 20; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            // W [19] Protected [] Probation [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+            cache.PendingMaintenance();
+            LogLru();
+
+            for (int i = 0; i < 15; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            // W [19] Protected [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] Probation [15,16,17,18]
+            cache.PendingMaintenance();
+            LogLru();
+
+            for (int k = 0; k < 2; k++)
+            { 
+                for (int j = 0; j < 6; j++)
+                {
+                    for (int i = 0; i < 15; i++)
+                    {
+                        cache.GetOrAdd(j + 20, k => k);
+                    }
+                    cache.PendingMaintenance();
+                    LogLru();
+                }
+            }
+
+            // Values promoted to probation then protected:
+            // W[21] Protected[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] Probation[16, 17, 18, 20]
+            // W[22] Protected[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] Probation[17, 18, 20, 21]
+            // W[23] Protected[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] Probation[18, 20, 21, 22]
+            // W[24] Protected[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] Probation[20, 21, 22, 23]
+            // W[25] Protected[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] Probation[20, 21, 22, 23]
+            // W[25] Protected[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 20] Probation[21, 22, 23, 0]
+            // W[25] Protected[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 20, 21] Probation[22, 23, 0, 1]
+            // W[25] Protected[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 20, 21, 22] Probation[23, 0, 1, 2]
+            // W[25] Protected[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 20, 21, 22, 23] Probation[0, 1, 2, 3]
+            // W[24] Protected[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 20, 21, 22, 23] Probation[1, 2, 3, 25]
+            // W[24] Protected[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 20, 21, 22, 23, 25] Probation[1, 2, 3, 4]
+
+            cache.Count.Should().Be(20);
+
+            // W [24] Protected [5,6,7,8,9,10,11,12,13,14,20,21,22,23,25] Probation []
+            cache.Trim(4);
+            cache.PendingMaintenance();
+            LogLru();
+
+            cache.TryGet(1, out var value1).Should().BeFalse();
+            cache.TryGet(2, out var value2).Should().BeFalse();
+            cache.Count.Should().Be(16);
+        }
+
         [Fact]
         public void ReadPromotesProbation()
         {
@@ -68,7 +130,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            // W [24] Protected [1,2,0,3,4,5,6,7,8,9,10,11,12,13,14] Probation [15,16,17,18]
+            // W [24] Protected [] Probation [1,2,0,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
             cache.PendingMaintenance();
             LogLru();
 
@@ -80,13 +142,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            // W [49] Protected [2,0,3,4,5,6,7,8,9,10,11,12,13,14,16] Probation [1,25,26,27]
+            // W [49] Protected [16] Probation [1,2,0,3,4,5,6,7,8,9,10,11,12,13,14,15,17,18]
             cache.PendingMaintenance();
             LogLru();
 
-            cache.Trim(5);
+            cache.Trim(18);
 
-            // W [49] Protected [0,3,4,5,6,7,8,9,10,11,12,13,14,16] Probation []
+            // W [49] Protected [16] Probation []
             cache.PendingMaintenance();
             LogLru();
 
@@ -107,7 +169,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            // W [24] Protected [1,2,0,3,4,5,6,7,8,9,10,11,12,13,14] Probation [15,16,17,18]
+            //  W [24] Protected [] Probation [1,2,0,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
             cache.PendingMaintenance();
             LogLru();
 
@@ -119,13 +181,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            // W [49] Protected [2,0,3,4,5,6,7,8,9,10,11,12,13,14,16] Probation [1,25,26,27]
+            // [49] Protected [16] Probation [1,2,0,3,4,5,6,7,8,9,10,11,12,13,14,15,17,18]
             cache.PendingMaintenance();
             LogLru();
 
-            cache.Trim(5);
+            cache.Trim(18);
 
-            // W [49] Protected [0,3,4,5,6,7,8,9,10,11,12,13,14,16] Probation []
+            // W [49] Protected [16] Probation []
             cache.PendingMaintenance();
             LogLru();
 
@@ -133,25 +195,71 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void WriteUpdateProtectedLruOrder()
+        public void ReadUpdatesProtectedLruOrder()
         {
-            // W [19], Protected [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], Probation [15, 16, 17, 18]
+            // W [19] Protected [] Probation [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
             for (int i = 0; i < 20; i++)
             {
                 cache.GetOrAdd(i, k => k);
             }
 
             cache.PendingMaintenance();
+            LogLru();
 
-            // W [19], Protected [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 7], Probation [15, 16, 17, 18]
+            cache.GetOrAdd(7, k => k);
+            cache.GetOrAdd(8, k => k);
+            cache.GetOrAdd(9, k => k);
+
+            // W [19] Protected [7,8,9] Probation [0,1,2,3,4,5,6,10,11,12,13,14,15,16,17,18]
+            cache.PendingMaintenance();
+            LogLru();
+
+            // W [19] Protected [8,9,7] Probation [0,1,2,3,4,5,6,10,11,12,13,14,15,16,17,18]
+            // element 7 now moved to back of LRU
+            cache.GetOrAdd(7, k => k);
+            cache.PendingMaintenance();
+            LogLru();
+
+            // Trim is LRU order
+            //W [19] Protected [7] Probation []
+            cache.Trim(18);
+            cache.PendingMaintenance();
+            LogLru();
+
+            cache.TryGet(7, out var _).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WriteUpdatesProtectedLruOrder()
+        {
+            // W [19] Protected [] Probation [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+            for (int i = 0; i < 20; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            cache.PendingMaintenance();
+            LogLru();
+
+            cache.GetOrAdd(7, k => k);
+            cache.GetOrAdd(8, k => k);
+            cache.GetOrAdd(9, k => k);
+
+            // W [19] Protected [7,8,9] Probation [0,1,2,3,4,5,6,10,11,12,13,14,15,16,17,18]
+            cache.PendingMaintenance();
+            LogLru();
+
+            // W [19] Protected [8,9,7] Probation [0,1,2,3,4,5,6,10,11,12,13,14,15,16,17,18]
             // element 7 now moved to back of LRU
             cache.TryUpdate(7, -7).Should().BeTrue();
             cache.PendingMaintenance();
+            LogLru();
 
             // Trim is LRU order
-            // W [19], Protected [9, 10, 11, 12, 14, 7], Probation []
-            cache.Trim(12);
+            //W [19] Protected [7] Probation []
+            cache.Trim(18);
             cache.PendingMaintenance();
+            LogLru();
 
             cache.TryGet(7, out var _).Should().BeTrue();
         }

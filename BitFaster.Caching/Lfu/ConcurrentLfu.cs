@@ -483,6 +483,16 @@ namespace BitFaster.Caching.Lfu
             this.probationLru.Remove(node);
             this.protectedLru.AddLast(node);
             node.Position = Position.Protected;
+
+            // If the protected space exceeds its maximum, the LRU items are demoted to the probation space.
+            if (this.protectedLru.Count > this.capacity.Protected)
+            {
+                var demoted = this.protectedLru.First;
+                this.protectedLru.RemoveFirst();
+
+                demoted.Position = Position.Probation;
+                this.probationLru.AddLast(demoted);
+            }
         }
 
         private void EvictEntries()
