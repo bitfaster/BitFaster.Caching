@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BitFaster.Caching.Buffers;
 using FluentAssertions;
 using Xunit;
 
-namespace BitFaster.Caching.UnitTests
+namespace BitFaster.Caching.UnitTests.Buffers
 {
     public class StripedBufferTests
     {
@@ -17,9 +18,9 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void WhenBufferIsFullTryAddReturnsFull()
         {
-            for (int i = 0; i < stripeCount; i++)
+            for (var i = 0; i < stripeCount; i++)
             {
-                for (int j = 0; j < bufferSize; j++)
+                for (var j = 0; j < bufferSize; j++)
                 {
                     buffer.TryAdd(1).Should().Be(BufferStatus.Success);
                 }
@@ -38,9 +39,9 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void WhenBufferIsFullDrainReturnsItemCount()
         {
-            for (int i = 0; i < stripeCount; i++)
+            for (var i = 0; i < stripeCount; i++)
             {
-                for (int j = 0; j < bufferSize; j++)
+                for (var j = 0; j < bufferSize; j++)
                 {
                     buffer.TryAdd(1);
                 }
@@ -53,9 +54,9 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void WhenDrainBufferIsSmallerThanStripedBufferDrainReturnsBufferItemCount()
         {
-            for (int i = 0; i < stripeCount; i++)
+            for (var i = 0; i < stripeCount; i++)
             {
-                for (int j = 0; j < bufferSize; j++)
+                for (var j = 0; j < bufferSize; j++)
                 {
                     buffer.TryAdd(1);
                 }
@@ -68,7 +69,7 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void WhenBufferIsPartFullDrainReturnsItems()
         {
-            for (int j = 0; j < bufferSize; j++)
+            for (var j = 0; j < bufferSize; j++)
             {
                 buffer.TryAdd(1);
             }
@@ -80,9 +81,9 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void WhenBufferIsClearedDrainReturns0()
         {
-            for (int i = 0; i < stripeCount; i++)
+            for (var i = 0; i < stripeCount; i++)
             {
-                for (int j = 0; j < bufferSize; j++)
+                for (var j = 0; j < bufferSize; j++)
                 {
                     buffer.TryAdd(1);
                 }

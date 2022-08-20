@@ -6,6 +6,10 @@ namespace BitFaster.Caching.Lfu
 {
     internal class LfuNode<K, V>
     {
+        internal LfuNodeList<K, V> list;
+        internal LfuNode<K, V> next;
+        internal LfuNode<K, V> prev;
+
         private volatile bool wasRemoved;
 
         public LfuNode(K k, V v)
@@ -24,6 +28,18 @@ namespace BitFaster.Caching.Lfu
         {
             get => this.wasRemoved;
             set => this.wasRemoved = value;
+        }
+
+        public LfuNode<K, V> Next
+        {
+            get { return next == null || next == list.head ? null : next; }
+        }
+
+        internal void Invalidate()
+        {
+            list = null;
+            next = null;
+            prev = null;
         }
     }
 
