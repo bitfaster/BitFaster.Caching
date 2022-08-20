@@ -546,7 +546,7 @@ namespace BitFaster.Caching.Lfu
                 // Evict immediately if only one of the entries is present
                 if (victim == null)
                 {
-                    var previous = candidate.Next;
+                    var previous = candidate.Previous;
                     var evictee = candidate;
                     candidate = previous;
 
@@ -558,7 +558,7 @@ namespace BitFaster.Caching.Lfu
                 else if (candidate == null)
                 {
                     var evictee = victim;
-                    victim = victim.Next;
+                    victim = victim.Previous;
 
                     Evict(evictee);
                     continue;
@@ -569,14 +569,14 @@ namespace BitFaster.Caching.Lfu
                 if (AdmitCandidate(candidate.Key, victim.Key))
                 {
                     var evictee = victim;
-                    victim = victim.Next;
+                    victim = victim.Previous;
 
                     Evict(evictee);
                 }
                 else
                 {
                     var evictee = candidate;
-                    candidate = candidate.Next;
+                    candidate = candidate.Previous;
 
                     Evict(evictee);
                 }
