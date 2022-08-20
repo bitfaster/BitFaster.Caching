@@ -18,13 +18,6 @@ namespace BitFaster.Caching.Lfu
             this.Value = v;
         }
 
-        public LfuNode(LfuNodeList<K, V> list, K k, V v)
-        {
-            this.list = list;
-            this.Key = k;
-            this.Value = v;
-        }
-
         public readonly K Key;
 
         public V Value { get; set; }

@@ -26,11 +26,6 @@ namespace BitFaster.Caching.Lfu
             get { return head; }
         }
 
-        public LfuNode<K, V> Last
-        {
-            get { return head?.prev; }
-        }
-
         public void MoveToEnd(LfuNode<K, V> node)
         {
             this.Remove(node);
@@ -69,21 +64,6 @@ namespace BitFaster.Caching.Lfu
             if (head == null) { throw new InvalidOperationException("List is empty."); }
 #endif
             InternalRemoveNode(head);
-        }
-
-        public void Clear()
-        {
-            LfuNode<K, V> current = head;
-
-            while (current != null)
-            {
-                LfuNode<K, V> temp = current;
-                current = current.Next;
-                temp.Invalidate();
-            }
-
-            head = null;
-            count = 0;
         }
 
         private void InternalInsertNodeToEmptyList(LfuNode<K, V> newNode)
