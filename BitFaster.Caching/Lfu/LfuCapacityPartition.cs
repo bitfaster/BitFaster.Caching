@@ -96,7 +96,7 @@ namespace BitFaster.Caching.Lfu
             mainRatio += amount;
             (windowCapacity, protectedCapacity, probationCapacity) = ComputeQueueCapacity(max, mainRatio);
 
-            return PartitionChange.None;
+            //return PartitionChange.None;
         }
 
         private void InitializeStepSize(int cacheSize)
