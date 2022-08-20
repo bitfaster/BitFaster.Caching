@@ -38,19 +38,19 @@ namespace BitFaster.Caching.UnitTests.Buffers
         public void WhenBufferHasOneItemCountIsOne()
         {
             // head < tail
-            buffer.TryAdd(1);
+            buffer.TryAddRaw(1);
             buffer.Count.Should().Be(1);
         }
 
         [Fact]
         public void WhenBufferHas15ItemCountIs15()
         {
-            buffer.TryAdd(0).Should().Be(BufferStatus.Success);
-            buffer.TryTake(out var _).Should().Be(BufferStatus.Success);
+            buffer.TryAddRaw(0).Should().Be(BufferStatus.Success);
+            buffer.TryTakeRaw(out var _).Should().Be(BufferStatus.Success);
 
             for (var i = 0; i < 15; i++)
             {
-                buffer.TryAdd(0).Should().Be(BufferStatus.Success);
+                buffer.TryAddRaw(0).Should().Be(BufferStatus.Success);
             }
 
             // head = 1, tail = 0 : head > tail
@@ -62,38 +62,38 @@ namespace BitFaster.Caching.UnitTests.Buffers
         {
             for (var i = 0; i < 16; i++)
             {
-                buffer.TryAdd(i).Should().Be(BufferStatus.Success);
+                buffer.TryAddRaw(i).Should().Be(BufferStatus.Success);
             }
 
-            buffer.TryAdd(666).Should().Be(BufferStatus.Full);
+            buffer.TryAddRaw(666).Should().Be(BufferStatus.Full);
         }
 
         [Fact]
         public void WhenBufferIsEmptyTryTakeIsFalse()
         {
-            buffer.TryTake(out var _).Should().Be(BufferStatus.Empty);
+            buffer.TryTakeRaw(out var _).Should().Be(BufferStatus.Empty);
         }
 
         [Fact]
         public void WhenItemAddedItCanBeTaken()
         {
-            buffer.TryAdd(123).Should().Be(BufferStatus.Success);
-            buffer.TryTake(out var item).Should().Be(BufferStatus.Success);
+            buffer.TryAddRaw(123).Should().Be(BufferStatus.Success);
+            buffer.TryTakeRaw(out var item).Should().Be(BufferStatus.Success);
             item.Should().Be(123);
         }
 
         [Fact]
         public void WhenItemsAreAddedClearRemovesItems()
         {
-            buffer.TryAdd(1);
-            buffer.TryAdd(2);
+            buffer.TryAddRaw(1);
+            buffer.TryAddRaw(2);
 
             buffer.Count.Should().Be(2);
 
             buffer.Clear();
 
             buffer.Count.Should().Be(0);
-            buffer.TryTake(out var _).Should().Be(BufferStatus.Empty);
+            buffer.TryTakeRaw(out var _).Should().Be(BufferStatus.Empty);
         }
     }
 }

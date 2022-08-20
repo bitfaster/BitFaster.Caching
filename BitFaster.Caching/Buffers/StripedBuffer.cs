@@ -44,7 +44,7 @@ namespace BitFaster.Caching.Buffers
 
                 while (count < outputBuffer.Length & status != BufferStatus.Empty)
                 {
-                    status = buffers[i].TryTake(out var item);
+                    status = buffers[i].TryTakeRaw(out var item);
 
                     if (status == BufferStatus.Success)
                     {
@@ -89,7 +89,7 @@ namespace BitFaster.Caching.Buffers
 
             for (var i = 0; i < MaxAttempts; i++)
             {
-                result = buffers[h & mask].TryAdd(item);
+                result = buffers[h & mask].TryAddRaw(item);
 
                 if (result == BufferStatus.Success)
                 {

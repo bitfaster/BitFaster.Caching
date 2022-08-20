@@ -92,7 +92,43 @@ namespace BitFaster.Caching.Buffers
 
         public int Capacity => slots.Length;
 
-        public BufferStatus TryTake(out T item)
+        public bool TryTake(out T item)
+        {
+            var spinner = new SpinWait();
+
+            while (true)
+            {
+                switch (TryTakeRaw(out item))
+                {
+                    case BufferStatus.Empty:
+                        return false;
+                    case BufferStatus.Success:
+                        return true;
+                }
+
+                spinner.SpinOnce();
+            }
+        }
+
+        public bool TryAdd(T item)
+        {
+            var spinner = new SpinWait();
+
+            while (true)
+            {
+                switch (TryAddRaw(item))
+                {
+                    case BufferStatus.Empty:
+                        return false;
+                    case BufferStatus.Success:
+                        return true;
+                }
+
+                spinner.SpinOnce();
+            }
+        }
+
+        public BufferStatus TryTakeRaw(out T item)
         {
             // Get the head at which to try to dequeue.
             var currentHead = Volatile.Read(ref headAndTail.Head);
@@ -148,7 +184,7 @@ namespace BitFaster.Caching.Buffers
             return BufferStatus.Contended;
         }
 
-        public BufferStatus TryAdd(T item)
+        public BufferStatus TryAddRaw(T item)
         {
             // Get the tail at which to try to return.
             var currentTail = Volatile.Read(ref headAndTail.Tail);
