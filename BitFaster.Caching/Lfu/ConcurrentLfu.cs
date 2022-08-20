@@ -521,7 +521,7 @@ namespace BitFaster.Caching.Lfu
 
         private void EvictFromMain(int candidates)
         {
-            var victimQueue = Position.Probation;
+            //var victimQueue = Position.Probation;
             var victim = this.probationLru.First;
             var candidate = this.probationLru.Last;
 
