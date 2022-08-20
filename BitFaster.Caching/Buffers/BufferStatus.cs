@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BitFaster.Caching
+namespace BitFaster.Caching.Buffers
 {
     public enum BufferStatus
     {

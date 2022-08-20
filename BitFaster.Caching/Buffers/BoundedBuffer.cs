@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
-namespace BitFaster.Caching
+namespace BitFaster.Caching.Buffers
 {
     /// <summary>
     /// Provides a multi-producer, multi-consumer thread-safe ring buffer. When the buffer is full,

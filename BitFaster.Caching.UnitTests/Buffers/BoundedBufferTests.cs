@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BitFaster.Caching.Buffers;
 using FluentAssertions;
 using Xunit;
 
-namespace BitFaster.Caching.UnitTests
+namespace BitFaster.Caching.UnitTests.Buffers
 {
     public class BoundedBufferTests
     {
@@ -47,7 +48,7 @@ namespace BitFaster.Caching.UnitTests
             buffer.TryAdd(0).Should().Be(BufferStatus.Success);
             buffer.TryTake(out var _).Should().Be(BufferStatus.Success);
 
-            for (int i = 0; i < 15; i++)
+            for (var i = 0; i < 15; i++)
             {
                 buffer.TryAdd(0).Should().Be(BufferStatus.Success);
             }
@@ -59,7 +60,7 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void WhenBufferIsFullTryAddIsFalse()
         {
-            for (int i = 0; i < 16; i++)
+            for (var i = 0; i < 16; i++)
             {
                 buffer.TryAdd(i).Should().Be(BufferStatus.Success);
             }
