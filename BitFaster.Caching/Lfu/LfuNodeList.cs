@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 using System.Text;
 
@@ -108,12 +109,14 @@ namespace BitFaster.Caching.Lfu
             return new Enumerator(this);
         }
 
+        [ExcludeFromCodeCoverage]
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
 
 #if DEBUG
+        [ExcludeFromCodeCoverage]
         internal static void ValidateNewNode(LfuNode<K, V> node)
         {
             if (node == null)
@@ -127,6 +130,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        [ExcludeFromCodeCoverage]
         internal void ValidateNode(LfuNode<K, V> node)
         {
             if (node == null)
@@ -158,6 +162,7 @@ namespace BitFaster.Caching.Lfu
 
             public LfuNode<K, V> Current => current;
 
+            [ExcludeFromCodeCoverage]
             object IEnumerator.Current
             {
                 get
@@ -191,6 +196,7 @@ namespace BitFaster.Caching.Lfu
                 return true;
             }
 
+            [ExcludeFromCodeCoverage]
             void IEnumerator.Reset()
             {
                 current = default;
