@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using BitFaster.Caching.Lfu;
 
-namespace BitFaster.Caching
+namespace BitFaster.Caching.Buffers
 {
     /// <summary>
     /// Provides a striped bounded buffer. Add operations use thread ID to index into
@@ -26,25 +26,25 @@ namespace BitFaster.Caching
         public StripedBuffer(int stripeCount, int bufferSize)
         {
             stripeCount = BitOps.CeilingPowerOfTwo(stripeCount);
-            this.buffers = new BoundedBuffer<T>[stripeCount];
+            buffers = new BoundedBuffer<T>[stripeCount];
 
-            for (int i = 0; i < stripeCount; i++)
+            for (var i = 0; i < stripeCount; i++)
             {
-                this.buffers[i] = new BoundedBuffer<T>(bufferSize);
+                buffers[i] = new BoundedBuffer<T>(bufferSize);
             }
         }
 
         public int DrainTo(T[] outputBuffer)
         {
-            int count = 0;
+            var count = 0;
 
-            for (int i = 0; i < buffers.Length; i++)
+            for (var i = 0; i < buffers.Length; i++)
             {
-                BufferStatus status = BufferStatus.Full;
+                var status = BufferStatus.Full;
 
                 while (count < outputBuffer.Length & status != BufferStatus.Empty)
                 {
-                    status = buffers[i].TryTake(out T item);
+                    status = buffers[i].TryTake(out var item);
 
                     if (status == BufferStatus.Success)
                     {
@@ -79,15 +79,15 @@ namespace BitFaster.Caching
             //            }
             //#endif
 
-            ulong z = Mix64((ulong)Environment.CurrentManagedThreadId);
-            int inc = (int)(z >> 32) | 1;
-            int h = (int)z;
+            var z = Mix64((ulong)Environment.CurrentManagedThreadId);
+            var inc = (int)(z >> 32) | 1;
+            var h = (int)z;
 
-            int mask = buffers.Length - 1;
+            var mask = buffers.Length - 1;
 
-            BufferStatus result = BufferStatus.Empty;
+            var result = BufferStatus.Empty;
 
-            for (int i = 0; i < MaxAttempts; i++)
+            for (var i = 0; i < MaxAttempts; i++)
             {
                 result = buffers[h & mask].TryAdd(item);
 
@@ -104,9 +104,9 @@ namespace BitFaster.Caching
 
         public void Clear()
         {
-            for (int i = 0; i < this.buffers.Length; i++)
+            for (var i = 0; i < buffers.Length; i++)
             {
-                this.buffers[i].Clear();
+                buffers[i].Clear();
             }
         }
 
@@ -114,9 +114,9 @@ namespace BitFaster.Caching
         // http://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
         private static ulong Mix64(ulong z)
         {
-            z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9L;
-            z = (z ^ (z >> 27)) * 0x94d049bb133111ebL;
-            return z ^ (z >> 31);
+            z = (z ^ z >> 30) * 0xbf58476d1ce4e5b9L;
+            z = (z ^ z >> 27) * 0x94d049bb133111ebL;
+            return z ^ z >> 31;
         }
     }
 }
