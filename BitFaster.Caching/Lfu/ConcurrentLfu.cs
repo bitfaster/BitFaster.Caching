@@ -626,12 +626,6 @@ namespace BitFaster.Caching.Lfu
             while (this.protectedLru.Count > this.capacity.Protected)
             {
                 var demoted = this.protectedLru.First;
-
-                if (demoted == null)
-                {
-                    throw new Exception("demoted == null");
-                }
-
                 this.protectedLru.RemoveFirst();
 
                 demoted.Position = Position.Probation;

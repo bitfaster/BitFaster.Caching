@@ -264,8 +264,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.TryGet(7, out var _).Should().BeTrue();
         }
 
-        // TODO: there is a race condition here: this is sometimes failing with
-        // null ref inside the EvictFromMain method
         [Fact]
         public void Adapt()
         {
