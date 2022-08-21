@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Text;
 
 namespace BitFaster.Caching.Lfu
@@ -20,11 +19,14 @@ namespace BitFaster.Caching.Lfu
         private double mainRatio = DefaultMainPercentage;
         private double stepSize;
 
-        const double HILL_CLIMBER_RESTART_THRESHOLD = 0.05d;
-        const double HILL_CLIMBER_STEP_PERCENT = 0.0625d;
-        const double HILL_CLIMBER_STEP_DECAY_RATE = 0.98d;
+        private const double HillClimberRestartThreshold = 0.05d;
+        private const double HillClimberStepPercent = 0.0625d;
+        private const double HillClimberStepDecayRate = 0.98d;
 
-        const double DefaultMainPercentage = 0.99d;
+        private const double DefaultMainPercentage = 0.99d;
+
+        private const double MaxMainPercentage = 0.999d;
+        private const double MinMainPercentage = 0.2d;
 
         public LfuCapacityPartition(int totalCapacity)
         {
@@ -32,7 +34,7 @@ namespace BitFaster.Caching.Lfu
             (windowCapacity, protectedCapacity, probationCapacity) = ComputeQueueCapacity(totalCapacity, DefaultMainPercentage);
             InitializeStepSize(totalCapacity);
 
-            previousHitRate = 0.5;
+            previousHitRate = 1.0;
         }
 
         public int Window => this.windowCapacity;
@@ -43,14 +45,8 @@ namespace BitFaster.Caching.Lfu
 
         public int Capacity => this.max;
 
-        public enum PartitionChange
-        { 
-            None,
-            IncreaseWindow,
-            DecreaseWindow,
-        }
-
-        public void Optimize(ICacheMetrics metrics, int sampleThreshold)
+        // Apply changes to the ratio of window to main, window = recency-biased, main = frequency-biased.
+        public void OptimizePartitioning2(ICacheMetrics metrics, int sampleThreshold)
         {
             long newHits = metrics.Hits;
             long newMisses = metrics.Misses;
@@ -68,9 +64,9 @@ namespace BitFaster.Caching.Lfu
 
             double hitRateChange = previousHitRate - sampleHitRate;
             double amount = (hitRateChange >= 0) ? stepSize : -stepSize;
-            double nextStepSize = (Math.Abs(hitRateChange) >= HILL_CLIMBER_RESTART_THRESHOLD)
-                ? HILL_CLIMBER_STEP_PERCENT * Capacity * (amount >= 0 ? 1 : -1)
-                : HILL_CLIMBER_STEP_DECAY_RATE * amount;
+            double nextStepSize = (Math.Abs(hitRateChange) >= HillClimberRestartThreshold)
+                ? HillClimberStepPercent * Capacity * (amount >= 0 ? 1 : -1)
+                : HillClimberStepDecayRate * amount;
 
             stepSize = nextStepSize;
 
@@ -78,30 +74,69 @@ namespace BitFaster.Caching.Lfu
             previousMissCount = newMisses;
             previousHitRate = sampleHitRate;
 
-            // Apply changes to the ratio of window to main. Window = recency-biased main = frequency-biased.
-            // Then in concurrentLfu, move items to preserve queue ratio
+            // amount is actually how much to increment/decrement the window, expressed as a fraction of capacity
+            //Adjust(amount);
 
-            // 6.35
-            // 100 - 6.35 = 93.65
-            // / 100      =  0.9365
-            // * .99      =  0.927135
 
-            // =>
+            // 1.0625 = 100 + 6.25 / 100
+            double x = (100 + amount) / 100.0;
 
-            // 0.0635 starting step size
-            // 
+            // 0.0625
 
-            // TODO: this should only adjust sizes of mainprotected and window
+            mainRatio *= x;
+            mainRatio = Clamp(mainRatio, MinMainPercentage, MaxMainPercentage);
 
-            mainRatio += amount;
             (windowCapacity, protectedCapacity, probationCapacity) = ComputeQueueCapacity(max, mainRatio);
+        }
 
-            //return PartitionChange.None;
+        private void InitializeStepSize2(int cacheSize)
+        {
+            stepSize = -HillClimberStepPercent * cacheSize;
+        }
+
+        public void OptimizePartitioning(ICacheMetrics metrics, int sampleThreshold)
+        {
+            long newHits = metrics.Hits;
+            long newMisses = metrics.Misses;
+
+            long sampleHits = newHits - previousHitCount;
+            long sampleMisses = newMisses - previousMissCount;
+            long sampleCount = sampleHits + sampleMisses;
+
+            if (sampleCount < sampleThreshold)
+            {
+                return;
+            }
+
+            double sampleHitRate = (double)sampleHits / sampleCount;
+
+            double hitRateChange = sampleHitRate - previousHitRate;
+            double amount = (hitRateChange >= 0) ? stepSize : -stepSize;
+
+            double nextStepSize = (Math.Abs(hitRateChange) >= HillClimberRestartThreshold)
+                  ? HillClimberStepPercent * (amount >= 0 ? 1 : -1)
+                  : HillClimberStepDecayRate * amount;
+
+            stepSize = nextStepSize;
+
+            previousHitCount = newHits;
+            previousMissCount = newMisses;
+            previousHitRate = sampleHitRate;
+
+            mainRatio -= amount;
+            mainRatio = Clamp(mainRatio, MinMainPercentage, MaxMainPercentage);
+
+            (windowCapacity, protectedCapacity, probationCapacity) = ComputeQueueCapacity(max, mainRatio);
         }
 
         private void InitializeStepSize(int cacheSize)
         {
-            stepSize = -HILL_CLIMBER_STEP_PERCENT * cacheSize;
+            stepSize = HillClimberStepPercent;
+        }
+
+        private double Clamp(double input, double min, double max)
+        {
+            return Math.Max(min, Math.Min(input, max));
         }
 
         private static (int window, int mainProtected, int mainProbation) ComputeQueueCapacity(int capacity, double mainPercentage)

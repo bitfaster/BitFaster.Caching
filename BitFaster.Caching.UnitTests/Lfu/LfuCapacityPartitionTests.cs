@@ -6,11 +6,19 @@ using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace BitFaster.Caching.UnitTests.Lfu
 {
     public class LfuCapacityPartitionTests
     {
+        private readonly ITestOutputHelper output;
+
+        public LfuCapacityPartitionTests(ITestOutputHelper output)
+        {
+            this.output = output;
+        }
+
         [Fact]
         public void WhenCapacityIsLessThan3CtorThrows()
         {
@@ -51,11 +59,56 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var partition = new LfuCapacityPartition(max);
             var metrics = new TestMetrics();
 
-            metrics.Hits += 1000;
-            metrics.Misses += 2000;
+            for (int i = 0; i < 10; i++)
+            {
+                metrics.Hits += 1000;
+                metrics.Misses += 2000;
 
-            partition.Optimize(metrics, 10 * max);
+                partition.OptimizePartitioning(metrics, 10 * max);
 
+                this.output.WriteLine($"W: {partition.Window} P: {partition.Protected}");
+
+            }
+
+
+            for (int i = 0; i < 10; i++)
+            {
+                metrics.Hits += 0001;
+                metrics.Misses += 1000;
+
+                partition.OptimizePartitioning(metrics, 10 * max);
+
+                this.output.WriteLine($"W: {partition.Window} P: {partition.Protected}");
+
+            }
+
+            //metrics.Hits += 1000;
+            //metrics.Misses += 2000;
+
+            //partition.OptimizePartitioning(metrics, 10 * max);
+
+            //partition.Window.Should().Be(8);
+
+            //metrics.Hits += 1000;
+            //metrics.Misses += 2000;
+
+            //partition.OptimizePartitioning(metrics, 10 * max);
+
+            //partition.Window.Should().Be(13);
+
+            //metrics.Hits += 1000;
+            //metrics.Misses += 2000;
+
+            //partition.OptimizePartitioning(metrics, 10 * max);
+
+            //partition.Window.Should().Be(19);
+
+            //metrics.Hits += 1000;
+            //metrics.Misses += 2000;
+
+            //partition.OptimizePartitioning(metrics, 10 * max);
+
+            //partition.Window.Should().Be(24);
         }
 
         private class TestMetrics : ICacheMetrics
