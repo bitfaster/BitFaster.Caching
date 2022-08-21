@@ -46,54 +46,6 @@ namespace BitFaster.Caching.Lfu
         public int Capacity => this.max;
 
         // Apply changes to the ratio of window to main, window = recency-biased, main = frequency-biased.
-        public void OptimizePartitioning2(ICacheMetrics metrics, int sampleThreshold)
-        {
-            long newHits = metrics.Hits;
-            long newMisses = metrics.Misses;
-
-            long sampleHits = newHits - previousHitCount;
-            long sampleMisses = newMisses - previousMissCount;
-            long sampleCount = sampleHits + sampleMisses;
-
-            if (sampleCount < sampleThreshold)
-            {
-                return;
-            }
-
-            double sampleHitRate = (double)sampleHits / sampleCount;
-
-            double hitRateChange = previousHitRate - sampleHitRate;
-            double amount = (hitRateChange >= 0) ? stepSize : -stepSize;
-            double nextStepSize = (Math.Abs(hitRateChange) >= HillClimberRestartThreshold)
-                ? HillClimberStepPercent * Capacity * (amount >= 0 ? 1 : -1)
-                : HillClimberStepDecayRate * amount;
-
-            stepSize = nextStepSize;
-
-            previousHitCount = newHits;
-            previousMissCount = newMisses;
-            previousHitRate = sampleHitRate;
-
-            // amount is actually how much to increment/decrement the window, expressed as a fraction of capacity
-            //Adjust(amount);
-
-
-            // 1.0625 = 100 + 6.25 / 100
-            double x = (100 + amount) / 100.0;
-
-            // 0.0625
-
-            mainRatio *= x;
-            mainRatio = Clamp(mainRatio, MinMainPercentage, MaxMainPercentage);
-
-            (windowCapacity, protectedCapacity, probationCapacity) = ComputeQueueCapacity(max, mainRatio);
-        }
-
-        private void InitializeStepSize2(int cacheSize)
-        {
-            stepSize = -HillClimberStepPercent * cacheSize;
-        }
-
         public void OptimizePartitioning(ICacheMetrics metrics, int sampleThreshold)
         {
             long newHits = metrics.Hits;

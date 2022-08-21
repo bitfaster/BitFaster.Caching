@@ -70,8 +70,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             }
 
+            this.output.WriteLine("Decrease hit rate");
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 2; i++)
             {
                 metrics.Hits += 0001;
                 metrics.Misses += 1000;
@@ -82,33 +83,44 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             }
 
-            //metrics.Hits += 1000;
-            //metrics.Misses += 2000;
+            this.output.WriteLine("Increase hit rate");
 
-            //partition.OptimizePartitioning(metrics, 10 * max);
+            for (int i = 0; i < 1; i++)
+            {
+                metrics.Hits += 1000;
+                metrics.Misses += 2000;
 
-            //partition.Window.Should().Be(8);
+                partition.OptimizePartitioning(metrics, 10 * max);
 
-            //metrics.Hits += 1000;
-            //metrics.Misses += 2000;
+                this.output.WriteLine($"W: {partition.Window} P: {partition.Protected}");
 
-            //partition.OptimizePartitioning(metrics, 10 * max);
+            }
 
-            //partition.Window.Should().Be(13);
+            this.output.WriteLine("Decrease hit rate");
 
-            //metrics.Hits += 1000;
-            //metrics.Misses += 2000;
+            for (int i = 0; i < 1; i++)
+            {
+                metrics.Hits += 0001;
+                metrics.Misses += 1000;
 
-            //partition.OptimizePartitioning(metrics, 10 * max);
+                partition.OptimizePartitioning(metrics, 10 * max);
 
-            //partition.Window.Should().Be(19);
+                this.output.WriteLine($"W: {partition.Window} P: {partition.Protected}");
 
-            //metrics.Hits += 1000;
-            //metrics.Misses += 2000;
+            }
 
-            //partition.OptimizePartitioning(metrics, 10 * max);
+            this.output.WriteLine("Increase hit rate");
 
-            //partition.Window.Should().Be(24);
+            for (int i = 0; i < 5; i++)
+            {
+                metrics.Hits += 1000;
+                metrics.Misses += 2000;
+
+                partition.OptimizePartitioning(metrics, 10 * max);
+
+                this.output.WriteLine($"W: {partition.Window} P: {partition.Protected}");
+
+            }
         }
 
         private class TestMetrics : ICacheMetrics
