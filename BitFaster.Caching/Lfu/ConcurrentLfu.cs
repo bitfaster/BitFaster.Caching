@@ -525,13 +525,13 @@ namespace BitFaster.Caching.Lfu
 
         private void EvictFromMain(int candidates)
         {
-            //var victimQueue = Position.Probation;
+            // var victimQueue = Position.Probation;
             var victim = this.probationLru.First;
             var candidate = this.probationLru.Last;
 
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
-                // TODO: is this logic reachable?
+                // TODO: this logic is only reachable if entries have time expiry, and are removed early.
                 // Search the admission window for additional candidates
                 //if (candidates == 0)
                 //{
@@ -559,7 +559,7 @@ namespace BitFaster.Caching.Lfu
                 //    break;
                 //}
 
-                //// Evict immediately if only one of the entries is present
+                // Evict immediately if only one of the entries is present
                 //if (victim == null)
                 //{
                 //    var previous = candidate.Previous;
@@ -585,13 +585,17 @@ namespace BitFaster.Caching.Lfu
                 if (AdmitCandidate(candidate.Key, victim.Key))
                 {
                     var evictee = victim;
-                    victim = victim.Previous;
+
+                    // victim is initialized to first, and iterates forwards
+                    victim = victim.Next;
 
                     Evict(evictee);
                 }
                 else
                 {
                     var evictee = candidate;
+
+                    // candidate is initialized to last, and iterates backwards
                     candidate = candidate.Previous;
 
                     Evict(evictee);
@@ -622,6 +626,12 @@ namespace BitFaster.Caching.Lfu
             while (this.protectedLru.Count > this.capacity.Protected)
             {
                 var demoted = this.protectedLru.First;
+
+                if (demoted == null)
+                {
+                    throw new Exception("demoted == null");
+                }
+
                 this.protectedLru.RemoveFirst();
 
                 demoted.Position = Position.Probation;

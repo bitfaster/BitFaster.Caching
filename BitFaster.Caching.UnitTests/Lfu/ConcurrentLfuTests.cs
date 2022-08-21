@@ -269,8 +269,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void Adapt()
         {
-            // reset sample size is 200, so do 200 cache hits
+            var scheduler = new TestScheduler();
+            cache = new ConcurrentLfu<int, int>(1, 20, scheduler);
 
+            // First completely fill the cache, push entries into protected
             for (int i = 0; i < 20; i++)
             {
                 cache.GetOrAdd(i, k => k);
@@ -290,7 +292,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             LogLru();
 
 
-
+            // The reset sample size is 200, so do 200 cache hits
+            // W [19] Protected [12,13,14,15,16,17,18,0,1,2,3,4,5,6,7] Probation [8,9,10,11]
             for (int j = 0; j < 10; j++)
                 for (int i = 0; i < 20; i++)
             {
@@ -300,7 +303,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.PendingMaintenance();
             LogLru();
 
-            // then miss
+            // then miss 200 times
+            // W [300] Protected [12,13,14,15,16,17,18,0,1,2,3,4,5,6,7] Probation [9,10,11,227]
             for (int i = 0; i < 201; i++)
             {
                 cache.GetOrAdd(i + 100, k => k);
@@ -309,7 +313,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.PendingMaintenance();
             LogLru();
 
-            // then miss
+            // then miss 200 more times (window adaptation)
+            // W [399,400] Protected [14,15,16,17,18,0,1,2,3,4,5,6,7,227] Probation [9,10,11,12]
             for (int i = 0; i < 201; i++)
             {
                 cache.GetOrAdd(i + 200, k => k);
@@ -318,6 +323,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.PendingMaintenance();
             LogLru();
 
+            // 200 hits, no adaptation
+            // W [399,400] Protected [14,15,16,17,18,0,2,3,4,5,6,7,227,1] Probation [9,10,11,12]
             for (int i = 0; i < 200; i++)
             {
                 cache.GetOrAdd(1, k => k);
