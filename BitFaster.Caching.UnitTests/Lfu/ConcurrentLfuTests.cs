@@ -80,7 +80,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             LogLru();
 
             for (int k = 0; k < 2; k++)
-            { 
+            {
                 for (int j = 0; j < 6; j++)
                 {
                     for (int i = 0; i < 15; i++)
@@ -262,6 +262,71 @@ namespace BitFaster.Caching.UnitTests.Lfu
             LogLru();
 
             cache.TryGet(7, out var _).Should().BeTrue();
+        }
+
+        // TODO: there is a race condition here: this is sometimes failing with
+        // null ref inside the EvictFromMain method
+        [Fact]
+        public void Adapt()
+        {
+            // reset sample size is 200, so do 200 cache hits
+
+            for (int i = 0; i < 20; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            // W [19] Protected [] Probation [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+            cache.PendingMaintenance();
+            LogLru();
+
+            for (int i = 0; i < 15; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            // W [19] Protected [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] Probation [15,16,17,18]
+            cache.PendingMaintenance();
+            LogLru();
+
+
+
+            for (int j = 0; j < 10; j++)
+                for (int i = 0; i < 20; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            cache.PendingMaintenance();
+            LogLru();
+
+            // then miss
+            for (int i = 0; i < 201; i++)
+            {
+                cache.GetOrAdd(i + 100, k => k);
+            }
+
+            cache.PendingMaintenance();
+            LogLru();
+
+            // then miss
+            for (int i = 0; i < 201; i++)
+            {
+                cache.GetOrAdd(i + 200, k => k);
+            }
+
+            cache.PendingMaintenance();
+            LogLru();
+
+            for (int i = 0; i < 200; i++)
+            {
+                cache.GetOrAdd(1, k => k);
+            }
+
+            cache.PendingMaintenance();
+            LogLru();
+
+            // TODO: how to verify this?
         }
 
         [Fact]
