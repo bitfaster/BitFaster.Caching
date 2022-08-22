@@ -265,10 +265,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void Adapt()
+        public void WhenHitRateChangesWindowSizeIsAdapted()
         {
-            var scheduler = new TestScheduler();
-            cache = new ConcurrentLfu<int, int>(1, 20, scheduler);
+            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler());
 
             // First completely fill the cache, push entries into protected
             for (int i = 0; i < 20; i++)
@@ -288,7 +287,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
             // W [19] Protected [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] Probation [15,16,17,18]
             cache.PendingMaintenance();
             LogLru();
-
 
             // The reset sample size is 200, so do 200 cache hits
             // W [19] Protected [12,13,14,15,16,17,18,0,1,2,3,4,5,6,7] Probation [8,9,10,11]
@@ -311,7 +309,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.PendingMaintenance();
             LogLru();
 
-            // then miss 200 more times (window adaptation)
+            // then miss 200 more times (window adaptation +1 window slots)
             // W [399,400] Protected [14,15,16,17,18,0,1,2,3,4,5,6,7,227] Probation [9,10,11,12]
             for (int i = 0; i < 201; i++)
             {
@@ -321,17 +319,17 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.PendingMaintenance();
             LogLru();
 
-            // 200 hits, no adaptation
-            // W [399,400] Protected [14,15,16,17,18,0,2,3,4,5,6,7,227,1] Probation [9,10,11,12]
-            for (int i = 0; i < 200; i++)
-            {
-                cache.GetOrAdd(1, k => k);
-            }
+            // make 2 requests to new keys, if window is size is now 2 both will exist:
+            cache.GetOrAdd(666, k => k);
+            cache.GetOrAdd(667, k => k);
 
             cache.PendingMaintenance();
             LogLru();
 
-            // TODO: how to verify this?
+            cache.TryGet(666, out var _).Should().BeTrue();
+            cache.TryGet(667, out var _).Should().BeTrue();
+
+            this.output.WriteLine($"Scheduler ran {cache.Scheduler.RunCount} times.");
         }
 
         [Fact]

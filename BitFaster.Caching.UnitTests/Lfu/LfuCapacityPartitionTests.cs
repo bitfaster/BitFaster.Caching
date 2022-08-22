@@ -46,80 +46,135 @@ namespace BitFaster.Caching.UnitTests.Lfu
             partition.Probation.Should().Be(expectedProbation);
         }
 
-        // Objective: calculate partitions based on hit rate changes. Assume ConcurrentLru will evict things
-        // scenario
-        // 1. start out by always trying to increase window size in iteration 1
-        // 2. if hit rate increases in iteration 2, increase hit window again
-        // 3. if hit rate decreases in teration 2, decrease window
-        // 4. if hit rate continues to increase, apply decay until stable
         [Fact]
-        public void TestOptimize()
+        public void WhenHitRateKeepsDecreasingWindowIsCappedAt80Percent()
         {
             int max = 100;
             var partition = new LfuCapacityPartition(max);
             var metrics = new TestMetrics();
 
-            for (int i = 0; i < 10; i++)
+            SetHitRate(partition, metrics, max, 0.9);
+
+            for (int i = 0; i < 20; i++)
             {
-                metrics.Hits += 1000;
-                metrics.Misses += 2000;
-
-                partition.OptimizePartitioning(metrics, 10 * max);
-
-                this.output.WriteLine($"W: {partition.Window} P: {partition.Protected}");
-
+                SetHitRate(partition, metrics, max, 0.1);
             }
 
-            this.output.WriteLine("Decrease hit rate");
+            partition.Window.Should().Be(80);
+            partition.Protected.Should().Be(16);
+        }
 
-            for (int i = 0; i < 2; i++)
-            {
-                metrics.Hits += 0001;
-                metrics.Misses += 1000;
 
-                partition.OptimizePartitioning(metrics, 10 * max);
+        [Fact]
+        public void WhenHitRateIsStableWindowConverges()
+        {
+            int max = 100;
+            var partition = new LfuCapacityPartition(max);
+            var metrics = new TestMetrics();
 
-                this.output.WriteLine($"W: {partition.Window} P: {partition.Protected}");
-
-            }
-
-            this.output.WriteLine("Increase hit rate");
-
-            for (int i = 0; i < 1; i++)
-            {
-                metrics.Hits += 1000;
-                metrics.Misses += 2000;
-
-                partition.OptimizePartitioning(metrics, 10 * max);
-
-                this.output.WriteLine($"W: {partition.Window} P: {partition.Protected}");
-
-            }
-
-            this.output.WriteLine("Decrease hit rate");
-
-            for (int i = 0; i < 1; i++)
-            {
-                metrics.Hits += 0001;
-                metrics.Misses += 1000;
-
-                partition.OptimizePartitioning(metrics, 10 * max);
-
-                this.output.WriteLine($"W: {partition.Window} P: {partition.Protected}");
-
-            }
-
-            this.output.WriteLine("Increase hit rate");
+            // start by causing some adaptation in window so that steady state is not window = 1
+            SetHitRate(partition, metrics, max, 0.9);
 
             for (int i = 0; i < 5; i++)
             {
-                metrics.Hits += 1000;
-                metrics.Misses += 2000;
+                SetHitRate(partition, metrics, max, 0.1);
+            }
 
-                partition.OptimizePartitioning(metrics, 10 * max);
+            this.output.WriteLine("Decrease hit rate");
+            SetHitRate(partition, metrics, max, 0.0);
+            // window is now larger
 
-                this.output.WriteLine($"W: {partition.Window} P: {partition.Protected}");
+            // go into steady state with small up and down fluctuation in hit rate
+            List<int> windowSizes = new List<int>(200);
+            this.output.WriteLine("Stable hit rate");
 
+            double inc = 0.01;
+            for (int i = 0; i < 200; i++)
+            {
+                double c = i % 2 == 0 ? inc : -inc;
+                SetHitRate(partition, metrics, max, 0.9 + c);
+
+                windowSizes.Add(partition.Window);
+            }
+
+            // verify that hit rate has converged, last 50 samples have low variance
+            var last50 = windowSizes.Skip(150).Take(50).ToArray();
+
+            var minWindow = last50.Min();
+            var maxWindow = last50.Max();
+
+            (maxWindow - minWindow).Should().BeLessThanOrEqualTo(1);
+        }
+
+        [Fact]
+        public void WhenHitRateFluctuatesWindowIsAdapted()
+        {
+            int max = 100;
+            var partition = new LfuCapacityPartition(max);
+            var metrics = new TestMetrics();
+
+            var snapshot = new WindowSnapshot();
+
+            // steady state, window stays at 1 initially
+            SetHitRate(partition, metrics, max, 0.9);
+            SetHitRate(partition, metrics, max, 0.9);
+            snapshot.Capture(partition);
+
+            // Decrease hit rate, verify window increases each time
+            this.output.WriteLine("1. Decrease hit rate");
+            SetHitRate(partition, metrics, max, 0.1);
+            snapshot.AssertWindowIncreased(partition);
+            SetHitRate(partition, metrics, max, 0.1);
+            snapshot.AssertWindowIncreased(partition);
+
+            // Increase hit rate, verify window continues to increase
+            this.output.WriteLine("2. Increase hit rate");
+            SetHitRate(partition, metrics, max, 0.9);
+            snapshot.AssertWindowIncreased(partition);
+
+            // Decrease hit rate, verify window decreases
+            this.output.WriteLine("3. Decrease hit rate");
+            SetHitRate(partition, metrics, max, 0.1);
+            snapshot.AssertWindowDecreased(partition);
+
+            // Increase hit rate, verify window continues to decrease
+            this.output.WriteLine("4. Increase hit rate");
+            SetHitRate(partition, metrics, max, 0.9);
+            snapshot.AssertWindowDecreased(partition);
+            SetHitRate(partition, metrics, max, 0.9);
+            snapshot.AssertWindowDecreased(partition);
+        }
+
+        private void SetHitRate(LfuCapacityPartition p, TestMetrics m, int max, double hitRate)
+        {
+            int total = max * 10;
+            m.Hits += (long)(total * hitRate);
+            m.Misses += total - (long)(total * hitRate);
+
+            p.OptimizePartitioning(m, total);
+
+            this.output.WriteLine($"W: {p.Window} P: {p.Protected}");
+        }
+
+        private class WindowSnapshot
+        {
+            private int prev;
+
+            public void Capture(LfuCapacityPartition p)
+            {
+                prev = p.Window;
+            }
+
+            public void AssertWindowIncreased(LfuCapacityPartition p)
+            {
+                p.Window.Should().BeGreaterThan(prev);
+                prev = p.Window;
+            }
+
+            public void AssertWindowDecreased(LfuCapacityPartition p)
+            {
+                p.Window.Should().BeLessThan(prev);
+                prev = p.Window;
             }
         }
 
