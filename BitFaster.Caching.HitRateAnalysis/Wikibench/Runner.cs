@@ -14,7 +14,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
         public static async Task Run()
         {
             int[] cacheSizes = { 25, 50, 75, 100, 125, 150, 175, 200 };
-            var analysis = cacheSizes.Select(s => new Analysis(s)).ToList();
+            var analysis = cacheSizes.Select(s => new Analysis<Uri>(s)).ToList();
 
             string[] wikiUris =
                 {
@@ -35,7 +35,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
             {
                 foreach (var a in analysis)
                 {
-                    a.TestUri(url);
+                    a.TestKey(url);
                 }
 
                 if (count++ % 100000 == 0)
@@ -46,7 +46,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
 
             Console.WriteLine($"Tested {count} URIs in {sw.Elapsed}");
             analysis.WriteToConsole();
-            Analysis.WriteToFile("results.wikibench.csv", analysis);
+            Analysis<Uri>.WriteToFile("results.wikibench.csv", analysis);
         }
     }
 }

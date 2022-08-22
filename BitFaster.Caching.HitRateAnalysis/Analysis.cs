@@ -8,22 +8,21 @@ using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
-using ConsoleTables;
 using CsvHelper;
 
-namespace BitFaster.Caching.HitRateAnalysis.Arc
+namespace BitFaster.Caching.HitRateAnalysis
 {
-    public class Analysis
+    public class Analysis<K>
     {
-        private readonly ConcurrentLru<long, int> concurrentLru;
-        private readonly ClassicLru<long, int> classicLru;
-        private readonly ConcurrentLfu<long, int> concurrentLfu;
+        private readonly ConcurrentLru<K, int> concurrentLru;
+        private readonly ClassicLru<K, int> classicLru;
+        private readonly ConcurrentLfu<K, int> concurrentLfu;
 
         public Analysis(int cacheSize)
         {
-            concurrentLru = new ConcurrentLru<long, int>(1, cacheSize, EqualityComparer<long>.Default);
-            classicLru = new ClassicLru<long, int>(1, cacheSize, EqualityComparer<long>.Default);
-            concurrentLfu = new ConcurrentLfu<long, int>(1, cacheSize, new ForegroundScheduler());
+            concurrentLru = new ConcurrentLru<K, int>(1, cacheSize, EqualityComparer<K>.Default);
+            classicLru = new ClassicLru<K, int>(1, cacheSize, EqualityComparer<K>.Default);
+            concurrentLfu = new ConcurrentLfu<K, int>(1, cacheSize, new ForegroundScheduler());
         }
 
         public int CacheSize => concurrentLru.Capacity;
@@ -34,14 +33,14 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
 
         public double ConcurrentLfuHitRate => concurrentLfu.Metrics.Value.HitRatio * 100;
 
-        public void TestKey(long key)
+        public void TestKey(K key)
         {
             concurrentLru.GetOrAdd(key, u => 1);
             classicLru.GetOrAdd(key, u => 1);
             concurrentLfu.GetOrAdd(key, u => 1);
         }
 
-        public static void WriteToFile(string path, IEnumerable<Analysis> results)
+        public static void WriteToFile(string path, IEnumerable<Analysis<K>> results)
         {
             using (var writer = new StreamWriter(path))
             using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
