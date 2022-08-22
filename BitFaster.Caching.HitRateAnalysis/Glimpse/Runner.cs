@@ -12,7 +12,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Glimpse
         public static async Task Run()
         {
             int[] cacheSizes = { 250, 500, 750, 1000, 1250, 1500, 1750, 2000 };
-            var analysis = cacheSizes.Select(s => new Analysis(s)).ToList();
+            var analysis = cacheSizes.Select(s => new Analysis<long>(s)).ToList();
 
             await DataFile.DownloadIfNotExistsAsync();
 
@@ -35,7 +35,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Glimpse
 
             Console.WriteLine($"Tested {count} keys in {sw.Elapsed}");
             analysis.WriteToConsole();
-            Analysis.WriteToFile("results.glimpse.csv", analysis);
+            Analysis<long>.WriteToFile("results.glimpse.csv", analysis);
         }
     }
 }

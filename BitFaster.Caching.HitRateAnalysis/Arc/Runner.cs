@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -41,7 +40,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
             Console.WriteLine($"Tested {count} keys in {sw.Elapsed}");
 
             this.config.Analysis.WriteToConsole();
-            Analysis.WriteToFile(this.config.Name, this.config.Analysis);
+            Analysis<long>.WriteToFile(this.config.Name, this.config.Analysis);
         }
     }
 }

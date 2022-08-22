@@ -9,19 +9,19 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
     public class RunnerConfig
     {
         private readonly string name;
-        private readonly List<Analysis> analysis;
+        private readonly List<Analysis<long>> analysis;
         private readonly ArcDataFile file;
 
         public RunnerConfig(string name, int[] cacheSizes, Uri dataUri)
         {
             this.name = name;
-            this.analysis = cacheSizes.Select(s => new Analysis(s)).ToList();
+            this.analysis = cacheSizes.Select(s => new Analysis<long>(s)).ToList();
             this.file = new ArcDataFile(dataUri);
         }
 
         public string Name => this.name;
 
-        public IEnumerable<Analysis> Analysis => this.analysis;
+        public IEnumerable<Analysis<long>> Analysis => this.analysis;
 
         public ArcDataFile File => this.file;
 
