@@ -3,14 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
-using BitFaster.Caching.UnitTests.Lru;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
@@ -22,6 +19,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private readonly ITestOutputHelper output;
 
         private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler());
+        private ValueFactory valueFactory = new ValueFactory();
 
         public ConcurrentLfuTests(ITestOutputHelper output)
         {
@@ -33,6 +31,26 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var cache = new ConcurrentLfu<int, int>(20);
             cache.Scheduler.Should().BeOfType<ThreadPoolScheduler>();
+        }
+
+        [Fact]
+        public void WhenKeyIsRequestedItIsCreatedAndCached()
+        {
+            var result1 = cache.GetOrAdd(1, valueFactory.Create);
+            var result2 = cache.GetOrAdd(1, valueFactory.Create);
+
+            valueFactory.timesCalled.Should().Be(1);
+            result1.Should().Be(result2);
+        }
+
+        [Fact]
+        public async Task WhenKeyIsRequesteItIsCreatedAndCachedAsync()
+        {
+            var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+            var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+
+            valueFactory.timesCalled.Should().Be(1);
+            result1.Should().Be(result2);
         }
 
         [Fact]
@@ -714,6 +732,23 @@ namespace BitFaster.Caching.UnitTests.Lfu
 #if DEBUG
             this.output.WriteLine(cache.FormatLruString());
 #endif        
+        }
+
+        public class ValueFactory
+        {
+            public int timesCalled;
+
+            public int Create(int key)
+            {
+                timesCalled++;
+                return key;
+            }
+
+            public Task<int> CreateAsync(int key)
+            {
+                timesCalled++;
+                return Task.FromResult(key);
+            }
         }
     }
 }

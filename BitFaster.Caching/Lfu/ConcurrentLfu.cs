@@ -33,7 +33,7 @@ namespace BitFaster.Caching.Lfu
     /// Based on Caffeine written by Ben Manes.
     /// https://www.apache.org/licenses/LICENSE-2.0
     /// </remarks>
-    public class ConcurrentLfu<K, V> : ICache<K, V>, IBoundedPolicy
+    public class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
         private const int MaxWriteBufferRetries = 100;
         private const int TakeBufferSize = 1024;
@@ -165,6 +165,24 @@ namespace BitFaster.Caching.Lfu
                 }
 
                 var node = new LfuNode<K, V>(key, valueFactory(key));
+                if (this.dictionary.TryAdd(key, node))
+                {
+                    AfterWrite(node);
+                    return node.Value;
+                }
+            }
+        }
+
+        public async ValueTask<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
+        {
+            while (true)
+            {
+                if (this.TryGet(key, out V value))
+                {
+                    return value;
+                }
+
+                var node = new LfuNode<K, V>(key, await valueFactory(key).ConfigureAwait(false));
                 if (this.dictionary.TryAdd(key, node))
                 {
                     AfterWrite(node);
