@@ -80,7 +80,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             LogLru();
 
             for (int k = 0; k < 2; k++)
-            { 
+            {
                 for (int j = 0; j < 6; j++)
                 {
                     for (int i = 0; i < 15; i++)
@@ -262,6 +262,74 @@ namespace BitFaster.Caching.UnitTests.Lfu
             LogLru();
 
             cache.TryGet(7, out var _).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenHitRateChangesWindowSizeIsAdapted()
+        {
+            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler());
+
+            // First completely fill the cache, push entries into protected
+            for (int i = 0; i < 20; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            // W [19] Protected [] Probation [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+            cache.PendingMaintenance();
+            LogLru();
+
+            for (int i = 0; i < 15; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            // W [19] Protected [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] Probation [15,16,17,18]
+            cache.PendingMaintenance();
+            LogLru();
+
+            // The reset sample size is 200, so do 200 cache hits
+            // W [19] Protected [12,13,14,15,16,17,18,0,1,2,3,4,5,6,7] Probation [8,9,10,11]
+            for (int j = 0; j < 10; j++)
+                for (int i = 0; i < 20; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+            }
+
+            cache.PendingMaintenance();
+            LogLru();
+
+            // then miss 200 times
+            // W [300] Protected [12,13,14,15,16,17,18,0,1,2,3,4,5,6,7] Probation [9,10,11,227]
+            for (int i = 0; i < 201; i++)
+            {
+                cache.GetOrAdd(i + 100, k => k);
+            }
+
+            cache.PendingMaintenance();
+            LogLru();
+
+            // then miss 200 more times (window adaptation +1 window slots)
+            // W [399,400] Protected [14,15,16,17,18,0,1,2,3,4,5,6,7,227] Probation [9,10,11,12]
+            for (int i = 0; i < 201; i++)
+            {
+                cache.GetOrAdd(i + 200, k => k);
+            }
+
+            cache.PendingMaintenance();
+            LogLru();
+
+            // make 2 requests to new keys, if window is size is now 2 both will exist:
+            cache.GetOrAdd(666, k => k);
+            cache.GetOrAdd(667, k => k);
+
+            cache.PendingMaintenance();
+            LogLru();
+
+            cache.TryGet(666, out var _).Should().BeTrue();
+            cache.TryGet(667, out var _).Should().BeTrue();
+
+            this.output.WriteLine($"Scheduler ran {cache.Scheduler.RunCount} times.");
         }
 
         [Fact]

@@ -22,6 +22,7 @@ using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
+using static BitFaster.Caching.Lfu.LfuCapacityPartition;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -75,6 +76,8 @@ namespace BitFaster.Caching.Lfu
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
             this.readBuffer = new StripedBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
+
+            // TODO: how big should this be in total? We shouldn't allow more than some capacity % of writes in the buffer
             this.writeBuffer = new StripedBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
@@ -396,8 +399,9 @@ namespace BitFaster.Caching.Lfu
             ArrayPool<LfuNode<K, V>>.Shared.Return(localDrainBuffer);
 #endif
 
-            // TODO: hill climb
             EvictEntries();
+            this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
+            ReFitProtected();
 
             // Reset to idle if either
             // 1. We drained both input buffers (all work done)
@@ -521,13 +525,13 @@ namespace BitFaster.Caching.Lfu
 
         private void EvictFromMain(int candidates)
         {
-            //var victimQueue = Position.Probation;
+            // var victimQueue = Position.Probation;
             var victim = this.probationLru.First;
             var candidate = this.probationLru.Last;
 
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
-                // TODO: is this logic reachable?
+                // TODO: this logic is only reachable if entries have time expiry, and are removed early.
                 // Search the admission window for additional candidates
                 //if (candidates == 0)
                 //{
@@ -555,7 +559,7 @@ namespace BitFaster.Caching.Lfu
                 //    break;
                 //}
 
-                //// Evict immediately if only one of the entries is present
+                // Evict immediately if only one of the entries is present
                 //if (victim == null)
                 //{
                 //    var previous = candidate.Previous;
@@ -581,13 +585,17 @@ namespace BitFaster.Caching.Lfu
                 if (AdmitCandidate(candidate.Key, victim.Key))
                 {
                     var evictee = victim;
-                    victim = victim.Previous;
+
+                    // victim is initialized to first, and iterates forwards
+                    victim = victim.Next;
 
                     Evict(evictee);
                 }
                 else
                 {
                     var evictee = candidate;
+
+                    // candidate is initialized to last, and iterates backwards
                     candidate = candidate.Previous;
 
                     Evict(evictee);
@@ -609,6 +617,20 @@ namespace BitFaster.Caching.Lfu
             this.dictionary.TryRemove(evictee.Key, out var _);
             evictee.list.Remove(evictee);
             this.metrics.evictedCount++;
+        }
+
+        private void ReFitProtected()
+        {
+            // If hill climbing decreased protected, there may be too many items
+            // - demote overflow to probation.
+            while (this.protectedLru.Count > this.capacity.Protected)
+            {
+                var demoted = this.protectedLru.First;
+                this.protectedLru.RemoveFirst();
+
+                demoted.Position = Position.Probation;
+                this.probationLru.AddLast(demoted);
+            }
         }
 
         [DebuggerDisplay("{Format()}")]
