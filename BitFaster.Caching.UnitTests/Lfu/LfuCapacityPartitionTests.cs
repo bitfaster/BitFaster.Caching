@@ -64,7 +64,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
             partition.Protected.Should().Be(16);
         }
 
-
         [Fact]
         public void WhenHitRateIsStableWindowConverges()
         {
