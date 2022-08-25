@@ -68,8 +68,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.PendingMaintenance();
 
-            cache.TryGet(1, out var value1).Should().BeTrue();
-            cache.TryGet(2, out var value2).Should().BeTrue();
+            // MRU values are present
+            cache.TryGet(23, out var value1).Should().BeTrue();
+            cache.TryGet(24, out var value2).Should().BeTrue();
             cache.Count.Should().Be(20);
         }
 
@@ -327,6 +328,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.PendingMaintenance();
             LogLru();
 
+            // increase frequency
+
+
             // then miss 200 more times (window adaptation +1 window slots)
             // W [399,400] Protected [14,15,16,17,18,0,1,2,3,4,5,6,7,227] Probation [9,10,11,12]
             for (int i = 0; i < 201; i++)
@@ -337,9 +341,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.PendingMaintenance();
             LogLru();
 
-            // make 2 requests to new keys, if window is size is now 2 both will exist:
-            cache.GetOrAdd(666, k => k);
-            cache.GetOrAdd(667, k => k);
+            // make 2 requests to new keys, if window is size is now 2 both will exist
+            // frequency must be greater than 3 to evict victims from probation
+            for (int i = 0; i < 4; i++)
+            {
+                cache.GetOrAdd(666, k => k);
+                cache.GetOrAdd(667, k => k);
+            }
 
             cache.PendingMaintenance();
             LogLru();
