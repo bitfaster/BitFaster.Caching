@@ -519,36 +519,45 @@ namespace BitFaster.Caching.Lfu
 
         private void EvictEntries()
         {
-            var candidates = EvictFromWindow();
-            EvictFromMain(candidates);
+            var candidate = EvictFromWindow();
+            EvictFromMain(candidate);
         }
 
-        private int EvictFromWindow()
+        private LfuNode<K, V> EvictFromWindow()
         {
-            int candidates = 0;
+            LfuNode<K, V> first = null;
 
             while (this.windowLru.Count > this.capacity.Window)
             {
                 var node = this.windowLru.First;
                 this.windowLru.RemoveFirst();
 
+                if (first == null)
+                {
+                    first = node;
+                }
+
                 this.probationLru.AddLast(node);
                 node.Position = Position.Probation;
-
-                candidates++;
             }
 
-            return candidates;
+            return first;
         }
 
-        private void EvictFromMain(int candidates)
+        private void EvictFromMain(LfuNode<K, V> candidate)
         {
             // var victimQueue = Position.Probation;
             var victim = this.probationLru.First; // victims are LRU position in probation
-            var candidate = this.probationLru.Last; // candidates are MRU position, promoted from window
+            //var candidate = this.probationLru.Last; // candidates are MRU position, promoted from window
 
+            // first pass: admin candidates
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
+                if (candidate == null)
+                {
+                    break;
+                }
+
                 {
                     // TODO: this logic is only reachable if entries have time expiry, and are removed early.
                     // Search the admission window for additional candidates
@@ -599,15 +608,15 @@ namespace BitFaster.Caching.Lfu
                     //    continue;
                     //}
                 }
+
                 // Evict the entry with the lowest frequency
-                candidates--;
                 if (AdmitCandidate(candidate.Key, victim.Key))
                 {
                     var evictee = victim;
 
                     // victim is initialized to first, and iterates forwards
                     victim = victim.Next;
-                    candidate = candidate.Previous;
+                    candidate = candidate.Next;
 
                     Evict(evictee);
                 }
@@ -616,9 +625,25 @@ namespace BitFaster.Caching.Lfu
                     var evictee = candidate;
 
                     // candidate is initialized to last, and iterates backwards
-                    candidate = candidate.Previous;
+                    candidate = candidate.Next;
 
                     Evict(evictee);
+                }
+            }
+
+            // 2nd pass: remove probation items in LRU order, remove lowest frequency
+            while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
+            {
+                victim = this.probationLru.First;
+                var victim2 = victim.Next;
+
+                if (AdmitCandidate(victim.Key, victim2.Key))
+                {
+                    Evict(victim2);
+                }
+                else
+                {
+                    Evict(victim);
                 }
             }
         }
