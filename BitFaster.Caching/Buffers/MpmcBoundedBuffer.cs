@@ -8,6 +8,7 @@ using System.Threading;
 
 namespace BitFaster.Caching.Buffers
 {
+#pragma warning disable CS0420 // A reference to a volatile field will not be treated as volatile
     /// <summary>
     /// Provides a multi-producer, multi-consumer thread-safe ring buffer. When the buffer is full,
     /// TryAdd fails and returns false. When the buffer is empty, TryTake fails and returns false.
@@ -65,6 +66,7 @@ namespace BitFaster.Caching.Buffers
                 while (true)
                 {
                     var headNow = Volatile.Read(ref headAndTail.Head);
+
                     var tailNow = Volatile.Read(ref headAndTail.Tail);
 
                     if (headNow == Volatile.Read(ref headAndTail.Head) &&
@@ -209,4 +211,5 @@ namespace BitFaster.Caching.Buffers
             public int SequenceNumber;
         }
     }
+#pragma warning restore CS0420 // A reference to a volatile field will not be treated as volatile
 }
