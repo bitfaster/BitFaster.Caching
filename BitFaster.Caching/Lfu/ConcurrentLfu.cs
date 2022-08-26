@@ -546,69 +546,18 @@ namespace BitFaster.Caching.Lfu
 
         private void EvictFromMain(LfuNode<K, V> candidate)
         {
-            // var victimQueue = Position.Probation;
             var victim = this.probationLru.First; // victims are LRU position in probation
-            //var candidate = this.probationLru.Last; // candidates are MRU position, promoted from window
 
+            // first pass: admit candidates
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
-                if (candidate == null || victim == null || candidate == victim)
+                // bail when we run out of options
+                if (candidate == null || victim == null || victim == candidate)
                 {
                     break;
                 }
 
-                {
-                    // TODO: this logic is only reachable if entries have time expiry, and are removed early.
-                    // Search the admission window for additional candidates
-                    //if (candidates == 0)
-                    //{
-                    //    candidate = this.windowLru.First;
-                    //}
-
-                    //// Try evicting from the protected and window queues
-                    //if (candidate == null && victim == null)
-                    //{
-
-                    //    if (victimQueue == Position.Probation)
-                    //    {
-                    //        victim = this.protectedLru.First;
-                    //        victimQueue = Position.Protected;
-                    //        continue;
-                    //    }
-                    //    else if (victimQueue == Position.Protected)
-                    //    {
-                    //        victim = this.windowLru.First;
-                    //        victimQueue = Position.Window;
-                    //        continue;
-                    //    }
-
-                    //    // The pending operations will adjust the size to reflect the correct weight
-                    //    break;
-                    //}
-
-                    // Evict immediately if only one of the entries is present
-                    //if (victim == null)
-                    //{
-                    //    var previous = candidate.Previous;
-                    //    var evictee = candidate;
-                    //    candidate = previous;
-
-                    //    Evict(evictee);
-
-                    //    candidates--;
-                    //    continue;
-                    //}
-                    //else if (candidate == null)
-                    //{
-                    //    var evictee = victim;
-                    //    victim = victim.Previous;
-
-                    //    Evict(evictee);
-                    //    continue;
-                    //}
-                }
                 // Evict the entry with the lowest frequency
-                //candidates--;
                 if (AdmitCandidate(candidate.Key, victim.Key))
                 {
                     var evictee = victim;
@@ -616,13 +565,6 @@ namespace BitFaster.Caching.Lfu
                     // victim is initialized to first, and iterates forwards
                     victim = victim.Next;
                     candidate = candidate.Next;
-
-                    // evictee.list is null - how could this happen? no list, no prev, no next
-                    // in this workload, there is no TryRemove
-                    if (victim == null)
-                    {
-                        break;
-                    }
 
                     Evict(evictee);
                 }
@@ -637,6 +579,7 @@ namespace BitFaster.Caching.Lfu
                 }
             }
 
+            // 2nd pass: remove probation items in LRU order, evict lowest frequency
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
                 victim = this.probationLru.First;
