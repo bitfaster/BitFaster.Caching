@@ -640,15 +640,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            // since trim does not flush, with background scheduler it is possible that Trim runs before maintenance.
-            // in this case, the LRU lists are all empty and trim will have no effect
-
-            cache.Trim(10);
+            // Trim implicitly performs maintenance
+            cache.Trim(5);
 
             cache.PendingMaintenance();
 
             // The trim takes effect before all the writes are replayed by the maintenance thread.
-            cache.Metrics.Value.Evicted.Should().Be(5);
+            cache.Metrics.Value.Evicted.Should().Be(10);
             cache.Count.Should().Be(15);
 
             this.output.WriteLine($"Count {cache.Count}");
