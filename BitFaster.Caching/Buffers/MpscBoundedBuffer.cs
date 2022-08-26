@@ -7,8 +7,13 @@ using System.Threading.Tasks;
 namespace BitFaster.Caching.Buffers
 {
     /// <summary>
-    /// A multiple producer single consumer buffer.
+    /// Provides a multi-producer, single-consumer thread-safe ring buffer. When the buffer is full,
+    /// TryAdd fails and returns false. When the buffer is empty, TryTake fails and returns false.
     /// </summary>
+    /// <remarks>
+    /// Based on BoundedBuffer by Ben Manes.
+    /// https://github.com/ben-manes/caffeine/blob/master/caffeine/src/main/java/com/github/benmanes/caffeine/cache/BoundedBuffer.java
+    /// </remarks>
     public class MpscBoundedBuffer<T> where T : class
     {
         private T[] buffer;
@@ -87,7 +92,7 @@ namespace BitFaster.Caching.Buffers
             return BufferStatus.Contended;
         }
 
-        // thread safe for try take + multiple try add
+        // thread safe for single try take/drain + multiple try add
         public BufferStatus TryTake(out T item)
         {
             int head = this.headAndTail.Head;
@@ -115,7 +120,7 @@ namespace BitFaster.Caching.Buffers
             return BufferStatus.Success;
         }
 
-        // thread safe for single drain + multiple try add
+        // thread safe for single try take/drain + multiple try add
         public int DrainTo(ArraySegment<T> output)
         {
             int head = this.headAndTail.Head;
