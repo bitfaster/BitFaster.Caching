@@ -1,0 +1,83 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using BitFaster.Caching.Buffers;
+using FluentAssertions;
+using Xunit;
+
+namespace BitFaster.Caching.UnitTests.Buffers
+{
+    public class MpscBoundedBufferTests
+    {
+        private readonly MpscBoundedBuffer<string> buffer = new MpscBoundedBuffer<string>(10);
+
+        [Fact]
+        public void Test()
+        {
+            buffer.TryAdd("1");
+            buffer.TryAdd("2");
+            buffer.TryAdd("3");
+
+            var outputBuffer = new string[16];
+            var output = new ArraySegment<string>(outputBuffer);
+
+            buffer.DrainTo(output).Should().Be(3);
+        }
+
+        [Fact]
+        public void WhenSizeIsLessThan1CtorThrows()
+        {
+            Action constructor = () => { var x = new MpmcBoundedBuffer<int>(-1); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void SizeIsPowerOfTwo()
+        {
+            buffer.Capacity.Should().Be(16);
+        }
+
+        [Fact]
+        public void WhenBufferIsEmptyCountIsZero()
+        {
+            buffer.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenBufferHasOneItemCountIsOne()
+        {
+            // head < tail
+            buffer.TryAdd("1");
+            buffer.Count.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenBufferHas15ItemCountIs15()
+        {
+            buffer.TryAdd("1").Should().Be(BufferStatus.Success);
+            buffer.DrainTo(new ArraySegment<string>(new string[1])).Should().Be(1);
+
+            for (var i = 0; i < 15; i++)
+            {
+                buffer.TryAdd("0").Should().Be(BufferStatus.Success);
+            }
+
+            // head = 1, tail = 0 : head > tail
+            buffer.Count.Should().Be(15);
+        }
+
+        [Fact]
+        public void WhenBufferIsFullTryAddIsFalse()
+        {
+            for (var i = 0; i < 16; i++)
+            {
+                buffer.TryAdd(i.ToString()).Should().Be(BufferStatus.Success);
+            }
+
+            buffer.TryAdd("666").Should().Be(BufferStatus.Full);
+        }
+    }
+}

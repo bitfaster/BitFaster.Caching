@@ -16,13 +16,13 @@ namespace BitFaster.Caching.Buffers
     /// Based on the Segment internal class from ConcurrentQueue
     /// https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Collections/Concurrent/ConcurrentQueueSegment.cs
     /// </remarks>
-    public class BoundedBuffer<T>
+    public class MpmcBoundedBuffer<T>
     {
         private Slot[] slots;
         private readonly int slotsMask;
         private PaddedHeadAndTail headAndTail; // mutable struct, don't mark readonly
 
-        public BoundedBuffer(int boundedLength)
+        public MpmcBoundedBuffer(int boundedLength)
         {
             if (boundedLength < 0)
             {
@@ -208,13 +208,5 @@ namespace BitFaster.Caching.Buffers
             /// <summary>The sequence number for this slot, used to synchronize between enqueuers and dequeuers.</summary>
             public int SequenceNumber;
         }
-    }
-
-    [DebuggerDisplay("Head = {Head}, Tail = {Tail}")]
-    [StructLayout(LayoutKind.Explicit, Size = 3 * Padding.CACHE_LINE_SIZE)] // padding before/between/after fields
-    internal struct PaddedHeadAndTail
-    {
-        [FieldOffset(1 * Padding.CACHE_LINE_SIZE)] public int Head;
-        [FieldOffset(2 * Padding.CACHE_LINE_SIZE)] public int Tail;
     }
 }

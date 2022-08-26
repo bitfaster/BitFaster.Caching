@@ -23,7 +23,7 @@ namespace BitFaster.Caching.Scheduler
         private int count;
         private readonly CancellationTokenSource cts = new CancellationTokenSource();
         private readonly SemaphoreSlim semaphore = new SemaphoreSlim(0, MaxBacklog);
-        private readonly BoundedBuffer<Action> work = new BoundedBuffer<Action>(MaxBacklog);
+        private readonly MpmcBoundedBuffer<Action> work = new MpmcBoundedBuffer<Action>(MaxBacklog);
 
         private Optional<Exception> lastException = Optional<Exception>.None();
 

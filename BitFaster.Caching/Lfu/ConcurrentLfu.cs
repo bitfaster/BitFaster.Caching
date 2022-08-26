@@ -42,8 +42,8 @@ namespace BitFaster.Caching.Lfu
 
         private readonly ConcurrentDictionary<K, LfuNode<K, V>> dictionary;
 
-        private readonly StripedBuffer<LfuNode<K, V>> readBuffer;
-        private readonly StripedBuffer<LfuNode<K, V>> writeBuffer;
+        private readonly StripedMpscBuffer<LfuNode<K, V>> readBuffer;
+        private readonly StripedMpscBuffer<LfuNode<K, V>> writeBuffer;
 
         private readonly CacheMetrics metrics = new CacheMetrics();
 
@@ -75,10 +75,10 @@ namespace BitFaster.Caching.Lfu
 
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
-            this.readBuffer = new StripedBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
+            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
 
             // TODO: how big should this be in total? We shouldn't allow more than some capacity % of writes in the buffer
-            this.writeBuffer = new StripedBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
+            this.writeBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
@@ -519,36 +519,44 @@ namespace BitFaster.Caching.Lfu
 
         private void EvictEntries()
         {
-            var candidates = EvictFromWindow();
-            EvictFromMain(candidates);
+            var candidate = EvictFromWindow();
+            EvictFromMain(candidate);
         }
 
-        private int EvictFromWindow()
+        private LfuNode<K, V> EvictFromWindow()
         {
-            int candidates = 0;
+            LfuNode<K, V> first = null;
 
             while (this.windowLru.Count > this.capacity.Window)
             {
                 var node = this.windowLru.First;
                 this.windowLru.RemoveFirst();
 
+                if (first == null)
+                {
+                    first = node;
+                }
+
                 this.probationLru.AddLast(node);
                 node.Position = Position.Probation;
-
-                candidates++;
             }
 
-            return candidates;
+            return first;
         }
 
-        private void EvictFromMain(int candidates)
+        private void EvictFromMain(LfuNode<K, V> candidate)
         {
             // var victimQueue = Position.Probation;
             var victim = this.probationLru.First; // victims are LRU position in probation
-            var candidate = this.probationLru.Last; // candidates are MRU position, promoted from window
+            //var candidate = this.probationLru.Last; // candidates are MRU position, promoted from window
 
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
+                if (candidate == null || victim == null || candidate == victim)
+                {
+                    break;
+                }
+
                 {
                     // TODO: this logic is only reachable if entries have time expiry, and are removed early.
                     // Search the admission window for additional candidates
@@ -600,14 +608,21 @@ namespace BitFaster.Caching.Lfu
                     //}
                 }
                 // Evict the entry with the lowest frequency
-                candidates--;
+                //candidates--;
                 if (AdmitCandidate(candidate.Key, victim.Key))
                 {
                     var evictee = victim;
 
                     // victim is initialized to first, and iterates forwards
                     victim = victim.Next;
-                    candidate = candidate.Previous;
+                    candidate = candidate.Next;
+
+                    // evictee.list is null - how could this happen? no list, no prev, no next
+                    // in this workload, there is no TryRemove
+                    if (victim == null)
+                    {
+                        break;
+                    }
 
                     Evict(evictee);
                 }
@@ -616,9 +631,24 @@ namespace BitFaster.Caching.Lfu
                     var evictee = candidate;
 
                     // candidate is initialized to last, and iterates backwards
-                    candidate = candidate.Previous;
+                    candidate = candidate.Next;
 
                     Evict(evictee);
+                }
+            }
+
+            while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
+            {
+                victim = this.probationLru.First;
+                var victim2 = victim.Next;
+
+                if (AdmitCandidate(victim.Key, victim2.Key))
+                {
+                    Evict(victim2);
+                }
+                else
+                {
+                    Evict(victim);
                 }
             }
         }
