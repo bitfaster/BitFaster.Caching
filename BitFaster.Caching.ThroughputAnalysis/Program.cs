@@ -22,7 +22,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
     {
         const double s = 0.86;
         const int n = 500;
-        const int capacity = 50;
+        static int capacity = 500;
         const int maxThreads = 52;
         const int sampleCount = 2000;
         const int repeatCount = 400;
@@ -32,6 +32,12 @@ namespace BitFaster.Caching.ThroughputAnalysis
         static void Main(string[] args)
         {
             ThreadPool.SetMaxThreads(maxThreads, maxThreads);
+
+            var menu = new EasyConsole.Menu()
+                .Add("Read", () => capacity = n)
+                .Add("Read + Write", () => capacity = n / 10);
+
+            menu.Display();
 
             Console.WriteLine("Generating input distribution...");
             samples = new int[sampleCount];
@@ -112,12 +118,11 @@ namespace BitFaster.Caching.ThroughputAnalysis
             double result = 0;
             for (int i = results.Length - count; i < results.Length; i++)
             {
-                result = results[i];
+                result += results[i];
             }
 
             return result / count;
         }
-
 
         private static double MeasureThroughput(ICache<int, int> cache, int threadCount)
         {
