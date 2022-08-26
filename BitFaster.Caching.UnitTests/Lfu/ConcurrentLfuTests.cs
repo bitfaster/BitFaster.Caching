@@ -555,6 +555,18 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void WhenItemIsRemovedEvictionCountIsIncremented()
+        {
+            cache.GetOrAdd(1, k => k);
+
+            cache.TryRemove(1).Should().BeTrue();
+            cache.PendingMaintenance();
+
+            // TODO: currently we count twice
+            cache.Metrics.Value.Evicted.Should().BeGreaterThan(1);
+        }
+
+        [Fact]
         public void WhenItemDoesNotExistTryRemoveIsFalse()
         {
             cache.TryRemove(1).Should().BeFalse();
@@ -620,21 +632,28 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void TrimWhileItemsInWriteBufferRemovesNItems()
         {
+            // null scheduler == no maintenance, all writes fit in buffer
+            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler());
+
             for (int i = 0; i < 25; i++)
             {
                 cache.GetOrAdd(i, k => k);
             }
 
-            cache.Trim(5);
+            // since trim does not flush, with background scheduler it is possible that Trim runs before maintenance.
+            // in this case, the LRU lists are all empty and trim will have no effect
+
+            cache.Trim(10);
 
             cache.PendingMaintenance();
 
             // The trim takes effect before all the writes are replayed by the maintenance thread.
             cache.Metrics.Value.Evicted.Should().Be(5);
-            cache.Count.Should().BeLessThanOrEqualTo(20);
+            cache.Count.Should().Be(15);
 
             this.output.WriteLine($"Count {cache.Count}");
             this.output.WriteLine($"Keys {string.Join(",", cache.Keys.Select(k => k.ToString()))}");
+            
         }
 
         //Elapsed 411.6918ms - 0.0004116918ns/op
