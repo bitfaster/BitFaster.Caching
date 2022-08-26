@@ -25,7 +25,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
         const int capacity = 50;
         const int maxThreads = 52;
         const int sampleCount = 2000;
-        const int repeatCount = 200;
+        const int repeatCount = 400;
 
         private static int[] samples = new int[sampleCount];
 
@@ -85,7 +85,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 for (int i = 0; i < warmup + runs; i++)
                 {
                     var scheduler = new BackgroundThreadScheduler();
-                    results[i] = MeasureThroughput(new ConcurrentLfu<int, int>(concurrencyLevel: tc, capacity: capacity, scheduler: scheduler), tc);
+                    results[i] = MeasureThroughput(new ConcurrentLfu<int, int>(concurrencyLevel: BitOps.CeilingPowerOfTwo(tc), capacity: capacity, scheduler: scheduler), tc);
                     scheduler.Dispose();
                 }
                 avg = AverageLast(results, runs) / 1000000;
@@ -122,12 +122,15 @@ namespace BitFaster.Caching.ThroughputAnalysis
         private static double MeasureThroughput(ICache<int, int> cache, int threadCount)
         {
             var tasks = new Task[threadCount];
-            var sw = Stopwatch.StartNew();
+            ManualResetEvent mre = new ManualResetEvent(false);
 
             for (int i = 0; i < threadCount; i++)
             {
-                tasks[i] = Task.Run(() => Test(cache));
+                tasks[i] = Task.Run(() => Test(mre, cache));
             }
+
+            var sw = Stopwatch.StartNew();
+            mre.Set();
 
             Task.WaitAll(tasks);
 
@@ -137,12 +140,14 @@ namespace BitFaster.Caching.ThroughputAnalysis
             return (threadCount * sampleCount * repeatCount) / sw.Elapsed.TotalSeconds;
         }
 
-        private static void Test(ICache<int, int> cache)
+        private static void Test(ManualResetEvent mre, ICache<int, int> cache)
         {
             // cache has 50 capacity
             // make zipf for 500 total items, 2000 samples
             // each thread will lookup all samples 5 times in a row, for a total of 10k GetOrAdds per thread
             Func<int, int> func = x => x;
+
+            mre.WaitOne();
 
             for (int j = 0; j < repeatCount; j++)
             {
