@@ -555,6 +555,18 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void WhenItemIsRemovedEvictionCountIsIncremented()
+        {
+            cache.GetOrAdd(1, k => k);
+
+            cache.TryRemove(1).Should().BeTrue();
+            cache.PendingMaintenance();
+
+            // TODO: currently we count twice
+            cache.Metrics.Value.Evicted.Should().BeGreaterThan(1);
+        }
+
+        [Fact]
         public void WhenItemDoesNotExistTryRemoveIsFalse()
         {
             cache.TryRemove(1).Should().BeFalse();
@@ -620,18 +632,22 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void TrimWhileItemsInWriteBufferRemovesNItems()
         {
+            // null scheduler == no maintenance, all writes fit in buffer
+            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler());
+
             for (int i = 0; i < 25; i++)
             {
                 cache.GetOrAdd(i, k => k);
             }
 
+            // Trim implicitly performs maintenance
             cache.Trim(5);
 
             cache.PendingMaintenance();
 
             // The trim takes effect before all the writes are replayed by the maintenance thread.
-            cache.Metrics.Value.Evicted.Should().Be(5);
-            cache.Count.Should().BeLessThanOrEqualTo(20);
+            cache.Metrics.Value.Evicted.Should().Be(10);
+            cache.Count.Should().Be(15);
 
             this.output.WriteLine($"Count {cache.Count}");
             this.output.WriteLine($"Keys {string.Join(",", cache.Keys.Select(k => k.ToString()))}");
