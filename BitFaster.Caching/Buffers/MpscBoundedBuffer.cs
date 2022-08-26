@@ -43,11 +43,11 @@ namespace BitFaster.Caching.Buffers
                 var spinner = new SpinWait();
                 while (true)
                 {
-                    var headNow = Volatile.Read(ref headAndTail.Head);
-                    var tailNow = Volatile.Read(ref headAndTail.Tail);
+                    var headNow = headAndTail.Head;
+                    var tailNow = headAndTail.Tail;
 
-                    if (headNow == Volatile.Read(ref headAndTail.Head) &&
-                        tailNow == Volatile.Read(ref headAndTail.Tail))
+                    if (headNow == headAndTail.Head &&
+                        tailNow == headAndTail.Tail)
                     {
                         return GetCount(headNow, tailNow);
                     }
@@ -73,7 +73,7 @@ namespace BitFaster.Caching.Buffers
         public BufferStatus TryAdd(T item)
         {
             int head = this.headAndTail.Head;
-            int tail = Volatile.Read(ref this.headAndTail.Tail);
+            int tail = this.headAndTail.Tail;
             int size = tail - head;
 
             if (size >= buffer.Length)
@@ -96,7 +96,7 @@ namespace BitFaster.Caching.Buffers
         public BufferStatus TryTake(out T item)
         {
             int head = this.headAndTail.Head;
-            int tail = Volatile.Read(ref this.headAndTail.Tail);
+            int tail = this.headAndTail.Tail;
             int size = tail - head;
 
             if (size == 0)
@@ -116,7 +116,7 @@ namespace BitFaster.Caching.Buffers
             }
 
             Volatile.Write(ref buffer[index], null);
-            Volatile.Write(ref this.headAndTail.Head, head + 1);
+            this.headAndTail.Head++;
             return BufferStatus.Success;
         }
 
@@ -124,7 +124,7 @@ namespace BitFaster.Caching.Buffers
         public int DrainTo(ArraySegment<T> output)
         {
             int head = this.headAndTail.Head;
-            int tail = Volatile.Read(ref this.headAndTail.Tail);
+            int tail = this.headAndTail.Tail;
             int size = tail - head;
 
             if (size == 0)
@@ -152,7 +152,7 @@ namespace BitFaster.Caching.Buffers
             }
             while (head != tail && outCount < output.Count);
 
-            Volatile.Write(ref this.headAndTail.Head, head);
+            this.headAndTail.Head = head;
 
             return outCount;
         }
