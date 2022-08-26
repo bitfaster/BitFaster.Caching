@@ -72,21 +72,21 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 const int runs = 6;
                 double[] results = new double[warmup + runs];
 
-                //for (int i = 0; i < warmup + runs; i++)
-                //{
-                //    results[i] = MeasureThroughput(new ClassicLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
-                //}
-                //double avg = AverageLast(results, runs) / 1000000;
-                //Console.WriteLine($"ClassicLru ({tc}) {avg} million ops/sec");
-                //classicLru[tc.ToString()] = avg.ToString();
+                for (int i = 0; i < warmup + runs; i++)
+                {
+                    results[i] = MeasureThroughput(new ClassicLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
+                }
+                double avg = AverageLast(results, runs) / 1000000;
+                Console.WriteLine($"ClassicLru ({tc}) {avg} million ops/sec");
+                classicLru[tc.ToString()] = avg.ToString();
 
-                //for (int i = 0; i < warmup + runs; i++)
-                //{
-                //    results[i] = MeasureThroughput(new ConcurrentLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
-                //}
-                //avg = AverageLast(results, runs) / 1000000;
-                //Console.WriteLine($"ConcurrLru ({tc}) {avg} million ops/sec");
-                //concurrentLru[tc.ToString()] = avg.ToString();
+                for (int i = 0; i < warmup + runs; i++)
+                {
+                    results[i] = MeasureThroughput(new ConcurrentLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
+                }
+                avg = AverageLast(results, runs) / 1000000;
+                Console.WriteLine($"ConcurrLru ({tc}) {avg} million ops/sec");
+                concurrentLru[tc.ToString()] = avg.ToString();
 
                 for (int i = 0; i < warmup + runs; i++)
                 {
@@ -94,7 +94,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                     results[i] = MeasureThroughput(new ConcurrentLfu<int, int>(concurrencyLevel: tc, capacity: capacity, scheduler: scheduler), tc);
                     scheduler.Dispose();
                 }
-                var avg = AverageLast(results, runs) / 1000000;
+                avg = AverageLast(results, runs) / 1000000;
                 Console.WriteLine($"ConcurrLfu ({tc}) {avg} million ops/sec");
                 concurrentLfu[tc.ToString()] = avg.ToString();
             }
