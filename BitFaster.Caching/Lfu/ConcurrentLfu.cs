@@ -519,95 +519,52 @@ namespace BitFaster.Caching.Lfu
 
         private void EvictEntries()
         {
-            var candidates = EvictFromWindow();
-            EvictFromMain(candidates);
+            var candidate = EvictFromWindow();
+            EvictFromMain(candidate);
         }
 
-        private int EvictFromWindow()
+        private LfuNode<K, V> EvictFromWindow()
         {
-            int candidates = 0;
+            LfuNode<K, V> first = null;
 
             while (this.windowLru.Count > this.capacity.Window)
             {
                 var node = this.windowLru.First;
                 this.windowLru.RemoveFirst();
 
+                if (first == null)
+                {
+                    first = node;
+                }
+
                 this.probationLru.AddLast(node);
                 node.Position = Position.Probation;
-
-                candidates++;
             }
 
-            return candidates;
+            return first;
         }
 
-        private void EvictFromMain(int candidates)
+        private void EvictFromMain(LfuNode<K, V> candidate)
         {
-            // var victimQueue = Position.Probation;
             var victim = this.probationLru.First; // victims are LRU position in probation
-            var candidate = this.probationLru.Last; // candidates are MRU position, promoted from window
 
+            // first pass: admit candidates
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
+                // bail when we run out of options
+                if (candidate == null || victim == null || victim == candidate)
                 {
-                    // TODO: this logic is only reachable if entries have time expiry, and are removed early.
-                    // Search the admission window for additional candidates
-                    //if (candidates == 0)
-                    //{
-                    //    candidate = this.windowLru.First;
-                    //}
-
-                    //// Try evicting from the protected and window queues
-                    //if (candidate == null && victim == null)
-                    //{
-
-                    //    if (victimQueue == Position.Probation)
-                    //    {
-                    //        victim = this.protectedLru.First;
-                    //        victimQueue = Position.Protected;
-                    //        continue;
-                    //    }
-                    //    else if (victimQueue == Position.Protected)
-                    //    {
-                    //        victim = this.windowLru.First;
-                    //        victimQueue = Position.Window;
-                    //        continue;
-                    //    }
-
-                    //    // The pending operations will adjust the size to reflect the correct weight
-                    //    break;
-                    //}
-
-                    // Evict immediately if only one of the entries is present
-                    //if (victim == null)
-                    //{
-                    //    var previous = candidate.Previous;
-                    //    var evictee = candidate;
-                    //    candidate = previous;
-
-                    //    Evict(evictee);
-
-                    //    candidates--;
-                    //    continue;
-                    //}
-                    //else if (candidate == null)
-                    //{
-                    //    var evictee = victim;
-                    //    victim = victim.Previous;
-
-                    //    Evict(evictee);
-                    //    continue;
-                    //}
+                    break;
                 }
+
                 // Evict the entry with the lowest frequency
-                candidates--;
                 if (AdmitCandidate(candidate.Key, victim.Key))
                 {
                     var evictee = victim;
 
                     // victim is initialized to first, and iterates forwards
                     victim = victim.Next;
-                    candidate = candidate.Previous;
+                    candidate = candidate.Next;
 
                     Evict(evictee);
                 }
@@ -616,9 +573,25 @@ namespace BitFaster.Caching.Lfu
                     var evictee = candidate;
 
                     // candidate is initialized to last, and iterates backwards
-                    candidate = candidate.Previous;
+                    candidate = candidate.Next;
 
                     Evict(evictee);
+                }
+            }
+
+            // 2nd pass: remove probation items in LRU order, evict lowest frequency
+            while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
+            {
+                victim = this.probationLru.First;
+                var victim2 = victim.Next;
+
+                if (AdmitCandidate(victim.Key, victim2.Key))
+                {
+                    Evict(victim2);
+                }
+                else
+                {
+                    Evict(victim);
                 }
             }
         }
