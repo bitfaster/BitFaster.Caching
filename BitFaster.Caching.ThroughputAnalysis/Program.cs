@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection.Metadata.Ecma335;
 using System.Threading;
 using System.Threading.Tasks;
+using BenchmarkDotNet.Environments;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
@@ -32,6 +33,8 @@ namespace BitFaster.Caching.ThroughputAnalysis
         static void Main(string[] args)
         {
             ThreadPool.SetMaxThreads(maxThreads, maxThreads);
+
+            PrintHostInfo();
 
             var menu = new EasyConsole.Menu()
                 .Add("Read", () => capacity = n)
@@ -57,7 +60,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 resultTable.Columns.Add(tc.ToString());
             }
 
-            
+
             DataRow classicLru = resultTable.NewRow();
             DataRow concurrentLru = resultTable.NewRow();
             DataRow concurrentLfu = resultTable.NewRow();
@@ -111,6 +114,26 @@ namespace BitFaster.Caching.ThroughputAnalysis
             //    .Write(Format.MarkDown);
 
             Console.WriteLine("Done.");
+        }
+
+        private static void PrintHostInfo()
+        {
+            var hostinfo = HostEnvironmentInfo.GetCurrent();
+
+            foreach (var segment in hostinfo.ToFormattedString())
+            {
+                string toPrint = segment;
+
+                // remove benchmark dot net
+                if (toPrint.StartsWith("Ben"))
+                {
+                    toPrint = segment.Substring(segment.IndexOf(',') + 2, segment.Length - segment.IndexOf(',') - 2);
+                }
+
+                Console.WriteLine(toPrint);
+            }
+
+            Console.WriteLine();
         }
 
         private static double AverageLast(double[] results, int count)
