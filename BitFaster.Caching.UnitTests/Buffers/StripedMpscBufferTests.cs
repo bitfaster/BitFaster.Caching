@@ -16,6 +16,12 @@ namespace BitFaster.Caching.UnitTests.Buffers
         private readonly StripedMpscBuffer<string> buffer = new StripedMpscBuffer<string>(stripeCount, bufferSize);
 
         [Fact]
+        public void CapacityReturnsCapacity()
+        {
+            buffer.Capacity.Should().Be(32);
+        }
+
+        [Fact]
         public void WhenBufferIsFullTryAddReturnsFull()
         {
             for (var i = 0; i < stripeCount; i++)
