@@ -67,9 +67,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             cache.PendingMaintenance();
+            LogLru();
 
-            cache.TryGet(1, out var value1).Should().BeTrue();
-            cache.TryGet(2, out var value2).Should().BeTrue();
             cache.Count.Should().Be(20);
         }
 
