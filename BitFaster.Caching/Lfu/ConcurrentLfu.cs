@@ -141,6 +141,9 @@ namespace BitFaster.Caching.Lfu
             // TODO: this is LRU order eviction, Caffeine is based on frequency
             lock (maintenanceLock)
             {
+                // flush all buffers
+                Maintenance();
+
                 // walk in lru order, get itemCount keys to evict
                 TakeCandidatesInLruOrder(this.probationLru, candidates, itemCount);
                 TakeCandidatesInLruOrder(this.protectedLru, candidates, itemCount);
@@ -468,6 +471,9 @@ namespace BitFaster.Caching.Lfu
                     node.list.Remove(node);
                 }
 
+                // if the write is in the buffer and is removed, it will come here twice
+                // once for the write and once for the removal. We cannot distinguish between these states
+                this.metrics.evictedCount++;
                 return;
             }
 
