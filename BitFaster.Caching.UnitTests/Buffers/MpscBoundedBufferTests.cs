@@ -155,7 +155,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
             });
         }
 
-        [Fact]
+        [Fact(Timeout = 5000)]
         public async Task WhileBufferIsFilledItemsCanBeTaken()
         {
             var buffer = new MpscBoundedBuffer<string>(1024);
@@ -174,30 +174,18 @@ namespace BitFaster.Caching.UnitTests.Buffers
 
             int taken = 0;
 
-            int takeCalls = 0;
-            int maxTakes = 2048;
-
-            var spinner = new SpinWait();
-
             while (taken < 1024)
             {
                 if (buffer.TryTake(out var _) == BufferStatus.Success) 
                 {
                     taken++;
                 }
-
-                if (taken == 0)
-                {
-                    spinner.SpinOnce();
-                }
-
-                takeCalls++.Should().BeLessThan(maxTakes);
             }
 
             await fill;
         }
 
-        [Fact]
+        [Fact(Timeout = 5000)]
         public async Task WhileBufferIsFilledBufferCanBeDrained()
         {
             var buffer = new MpscBoundedBuffer<string>(1024);
@@ -217,21 +205,9 @@ namespace BitFaster.Caching.UnitTests.Buffers
             int drained = 0;
             var drainBuffer = new ArraySegment<string>(new string[1024]);
 
-            int drainCalls = 0;
-            int maxDrains = 2048;
-
-            var spinner = new SpinWait();
-
             while (drained < 1024)
             {
                 drained += buffer.DrainTo(drainBuffer);
-
-                if (drained == 0)
-                {
-                    spinner.SpinOnce();
-                }
-
-                drainCalls++.Should().BeLessThan(maxDrains);
             }
 
             await fill;
