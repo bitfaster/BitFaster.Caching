@@ -82,7 +82,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
                 for (int i = 0; i < warmup + runs; i++)
                 {
-                    results[i] = MeasureThroughput(new ConcurrentLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
+                    results[i] = MeasureThroughput(new FastConcurrentLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
                 }
                 avg = AverageLast(results, runs) / 1000000;
                 Console.WriteLine($"ConcurrLru ({tc}) {avg} million ops/sec");
