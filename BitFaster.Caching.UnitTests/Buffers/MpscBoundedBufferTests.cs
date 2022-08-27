@@ -177,9 +177,16 @@ namespace BitFaster.Caching.UnitTests.Buffers
             int drainCalls = 0;
             int maxDrains = 2048;
 
+            var spinner = new SpinWait();
+
             while (drained < 1024)
             {
                 drained += buffer.DrainTo(drainBuffer);
+
+                if (drained == 0)
+                {
+                    spinner.SpinOnce();
+                }
 
                 drainCalls++.Should().BeLessThan(maxDrains);
             }
