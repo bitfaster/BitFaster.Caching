@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -155,6 +156,48 @@ namespace BitFaster.Caching.UnitTests.Buffers
         }
 
         [Fact]
+        public async Task WhileBufferIsFilledItemsCanBeTaken()
+        {
+            var buffer = new MpscBoundedBuffer<string>(1024);
+
+            var fill = Threaded.Run(4, () =>
+            {
+                int count = 0;
+                while (count < 256)
+                {
+                    if (buffer.TryAdd("hello") == BufferStatus.Success)
+                    {
+                        count++;
+                    }
+                }
+            });
+
+            int taken = 0;
+
+            int takeCalls = 0;
+            int maxTakes = 2048;
+
+            var spinner = new SpinWait();
+
+            while (taken < 1024)
+            {
+                if (buffer.TryTake(out var _) == BufferStatus.Success) 
+                {
+                    taken++;
+                }
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && taken == 0)
+                {
+                    spinner.SpinOnce();
+                }
+
+                takeCalls++.Should().BeLessThan(maxTakes);
+            }
+
+            await fill;
+        }
+
+        [Fact]
         public async Task WhileBufferIsFilledBufferCanBeDrained()
         {
             var buffer = new MpscBoundedBuffer<string>(1024);
@@ -183,7 +226,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
             {
                 drained += buffer.DrainTo(drainBuffer);
 
-                if (drained == 0)
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && drained == 0)
                 {
                     spinner.SpinOnce();
                 }
