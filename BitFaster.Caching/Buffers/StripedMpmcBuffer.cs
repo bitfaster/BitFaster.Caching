@@ -34,6 +34,8 @@ namespace BitFaster.Caching.Buffers
             }
         }
 
+        public int Capacity => buffers.Length * buffers[0].Capacity;
+
         public int DrainTo(T[] outputBuffer)
         {
             var count = 0;

@@ -34,7 +34,6 @@ namespace BitFaster.Caching.Lfu
     public class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
         private const int MaxWriteBufferRetries = 100;
-        private const int TakeBufferSize = 1024;
 
         public const int BufferSize = 128;
 
@@ -59,7 +58,7 @@ namespace BitFaster.Caching.Lfu
         private readonly IScheduler scheduler;
 
 #if NETSTANDARD2_0
-        private readonly LfuNode<K, V>[] localDrainBuffer = new LfuNode<K, V>[TakeBufferSize];
+        private readonly LfuNode<K, V>[] localDrainBuffer;
 #endif
 
         public ConcurrentLfu(int capacity)
@@ -87,6 +86,10 @@ namespace BitFaster.Caching.Lfu
             this.capacity = new LfuCapacityPartition(capacity);
 
             this.scheduler = scheduler;
+
+#if NETSTANDARD2_0
+            this.localDrainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
+#endif
         }
 
         public int Count => this.dictionary.Count;
@@ -382,7 +385,7 @@ namespace BitFaster.Caching.Lfu
             bool wasDrained = false;
             
 #if !NETSTANDARD2_0
-            var localDrainBuffer = ArrayPool<LfuNode<K, V>>.Shared.Rent(TakeBufferSize);
+            var localDrainBuffer = ArrayPool<LfuNode<K, V>>.Shared.Rent(this.readBuffer.Capacity);
 #endif
             int maxSweeps = 1;
             int count = 0;
