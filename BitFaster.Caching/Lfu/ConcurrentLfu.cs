@@ -33,7 +33,7 @@ namespace BitFaster.Caching.Lfu
     /// </remarks>
     public class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
-        private const int MaxWriteBufferRetries = 100;
+        private const int MaxWriteBufferRetries = 16;
         private const int TakeBufferSize = 1024;
 
         public const int BufferSize = 128;
@@ -41,7 +41,7 @@ namespace BitFaster.Caching.Lfu
         private readonly ConcurrentDictionary<K, LfuNode<K, V>> dictionary;
 
         private readonly StripedMpscBuffer<LfuNode<K, V>> readBuffer;
-        private readonly StripedMpscBuffer<LfuNode<K, V>> writeBuffer;
+        private readonly MpscBoundedBuffer<LfuNode<K, V>> writeBuffer;
 
         private readonly CacheMetrics metrics = new CacheMetrics();
 
@@ -76,7 +76,8 @@ namespace BitFaster.Caching.Lfu
             this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
 
             // TODO: how big should this be in total? We shouldn't allow more than some capacity % of writes in the buffer
-            this.writeBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
+            int writeBuffer = Math.Min(capacity / 10, BufferSize);
+            this.writeBuffer = new MpscBoundedBuffer<LfuNode<K, V>>(writeBuffer);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
@@ -407,7 +408,7 @@ namespace BitFaster.Caching.Lfu
                 wasDrained = count == 0; 
             }
 
-            count = this.writeBuffer.DrainTo(localDrainBuffer);
+            count = this.writeBuffer.DrainTo(new ArraySegment<LfuNode<K, V>>(localDrainBuffer));
 
             for (int i = 0; i < count; i++)
             {
