@@ -186,7 +186,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
                     taken++;
                 }
 
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && taken == 0)
+                if (taken == 0)
                 {
                     spinner.SpinOnce();
                 }
@@ -226,7 +226,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
             {
                 drained += buffer.DrainTo(drainBuffer);
 
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && drained == 0)
+                if (drained == 0)
                 {
                     spinner.SpinOnce();
                 }
