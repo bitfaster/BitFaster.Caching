@@ -650,6 +650,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             this.output.WriteLine($"Count {cache.Count}");
             this.output.WriteLine($"Keys {string.Join(",", cache.Keys.Select(k => k.ToString()))}");
+            
         }
 
         //Elapsed 411.6918ms - 0.0004116918ns/op

@@ -17,20 +17,20 @@ namespace BitFaster.Caching.Buffers
     /// rehashed to select a different buffer to retry up to 3 times. Using this approach
     /// writes scale linearly with number of concurrent threads.
     /// </summary>
-    public class StripedBuffer<T>
+    public class StripedMpmcBuffer<T>
     {
         const int MaxAttempts = 3;
 
-        private BoundedBuffer<T>[] buffers;
+        private MpmcBoundedBuffer<T>[] buffers;
 
-        public StripedBuffer(int stripeCount, int bufferSize)
+        public StripedMpmcBuffer(int stripeCount, int bufferSize)
         {
             stripeCount = BitOps.CeilingPowerOfTwo(stripeCount);
-            buffers = new BoundedBuffer<T>[stripeCount];
+            buffers = new MpmcBoundedBuffer<T>[stripeCount];
 
             for (var i = 0; i < stripeCount; i++)
             {
-                buffers[i] = new BoundedBuffer<T>(bufferSize);
+                buffers[i] = new MpmcBoundedBuffer<T>(bufferSize);
             }
         }
 

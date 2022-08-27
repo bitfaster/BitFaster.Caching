@@ -9,11 +9,11 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Buffers
 {
-    public class StripedBufferTests
+    public class StripedMpscBufferTests
     {
         const int bufferSize = 16;
         const int stripeCount = 2;
-        private readonly StripedMpmcBuffer<int> buffer = new StripedMpmcBuffer<int>(stripeCount, bufferSize);
+        private readonly StripedMpscBuffer<string> buffer = new StripedMpscBuffer<string>(stripeCount, bufferSize);
 
         [Fact]
         public void WhenBufferIsFullTryAddReturnsFull()
@@ -22,17 +22,17 @@ namespace BitFaster.Caching.UnitTests.Buffers
             {
                 for (var j = 0; j < bufferSize; j++)
                 {
-                    buffer.TryAdd(1).Should().Be(BufferStatus.Success);
+                    buffer.TryAdd(1.ToString()).Should().Be(BufferStatus.Success);
                 }
             }
 
-            buffer.TryAdd(1).Should().Be(BufferStatus.Full);
+            buffer.TryAdd("1").Should().Be(BufferStatus.Full);
         }
 
         [Fact]
         public void WhenBufferIsEmptyDrainReturnsZero()
         {
-            var array = new int[bufferSize];
+            var array = new string[bufferSize];
             buffer.DrainTo(array).Should().Be(0);
         }
 
@@ -43,11 +43,11 @@ namespace BitFaster.Caching.UnitTests.Buffers
             {
                 for (var j = 0; j < bufferSize; j++)
                 {
-                    buffer.TryAdd(1);
+                    buffer.TryAdd("1");
                 }
             }
 
-            var array = new int[bufferSize * stripeCount];
+            var array = new string[bufferSize * stripeCount];
             buffer.DrainTo(array).Should().Be(stripeCount * bufferSize);
         }
 
@@ -58,12 +58,27 @@ namespace BitFaster.Caching.UnitTests.Buffers
             {
                 for (var j = 0; j < bufferSize; j++)
                 {
-                    buffer.TryAdd(1);
+                    buffer.TryAdd("1");
                 }
             }
 
-            var array = new int[bufferSize];
+            var array = new string[bufferSize];
             buffer.DrainTo(array).Should().Be(bufferSize);
+        }
+
+        [Fact]
+        public void WhenDrainBufferIsSmallerThanStripedBufferDrainReturnsBufferItemCount2()
+        {
+            for (var i = 0; i < stripeCount; i++)
+            {
+                for (var j = 0; j < bufferSize; j++)
+                {
+                    buffer.TryAdd("1");
+                }
+            }
+
+            var array = new string[bufferSize+4];
+            buffer.DrainTo(array).Should().Be(bufferSize+4);
         }
 
         [Fact]
@@ -71,10 +86,10 @@ namespace BitFaster.Caching.UnitTests.Buffers
         {
             for (var j = 0; j < bufferSize; j++)
             {
-                buffer.TryAdd(1);
+                buffer.TryAdd("1");
             }
 
-            var array = new int[bufferSize * stripeCount];
+            var array = new string[bufferSize * stripeCount];
             buffer.DrainTo(array).Should().Be(bufferSize);
         }
 
@@ -85,13 +100,13 @@ namespace BitFaster.Caching.UnitTests.Buffers
             {
                 for (var j = 0; j < bufferSize; j++)
                 {
-                    buffer.TryAdd(1);
+                    buffer.TryAdd("1");
                 }
             }
 
             buffer.Clear();
 
-            var array = new int[bufferSize * stripeCount];
+            var array = new string[bufferSize * stripeCount];
             buffer.DrainTo(array).Should().Be(0);
         }
     }

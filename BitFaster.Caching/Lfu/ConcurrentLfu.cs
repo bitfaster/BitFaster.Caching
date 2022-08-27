@@ -40,8 +40,8 @@ namespace BitFaster.Caching.Lfu
 
         private readonly ConcurrentDictionary<K, LfuNode<K, V>> dictionary;
 
-        private readonly StripedBuffer<LfuNode<K, V>> readBuffer;
-        private readonly StripedBuffer<LfuNode<K, V>> writeBuffer;
+        private readonly StripedMpscBuffer<LfuNode<K, V>> readBuffer;
+        private readonly StripedMpscBuffer<LfuNode<K, V>> writeBuffer;
 
         private readonly CacheMetrics metrics = new CacheMetrics();
 
@@ -73,10 +73,10 @@ namespace BitFaster.Caching.Lfu
 
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
-            this.readBuffer = new StripedBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
+            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
 
             // TODO: how big should this be in total? We shouldn't allow more than some capacity % of writes in the buffer
-            this.writeBuffer = new StripedBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
+            this.writeBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
@@ -613,6 +613,7 @@ namespace BitFaster.Caching.Lfu
         {
             this.dictionary.TryRemove(evictee.Key, out var _);
             evictee.list.Remove(evictee);
+
             this.metrics.evictedCount++;
         }
 

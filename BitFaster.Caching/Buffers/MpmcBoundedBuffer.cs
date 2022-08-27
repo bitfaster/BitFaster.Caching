@@ -8,6 +8,7 @@ using System.Threading;
 
 namespace BitFaster.Caching.Buffers
 {
+#pragma warning disable CS0420 // A reference to a volatile field will not be treated as volatile
     /// <summary>
     /// Provides a multi-producer, multi-consumer thread-safe ring buffer. When the buffer is full,
     /// TryAdd fails and returns false. When the buffer is empty, TryTake fails and returns false.
@@ -16,13 +17,13 @@ namespace BitFaster.Caching.Buffers
     /// Based on the Segment internal class from ConcurrentQueue
     /// https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Collections/Concurrent/ConcurrentQueueSegment.cs
     /// </remarks>
-    public class BoundedBuffer<T>
+    public class MpmcBoundedBuffer<T>
     {
         private Slot[] slots;
         private readonly int slotsMask;
         private PaddedHeadAndTail headAndTail; // mutable struct, don't mark readonly
 
-        public BoundedBuffer(int boundedLength)
+        public MpmcBoundedBuffer(int boundedLength)
         {
             if (boundedLength < 0)
             {
@@ -65,6 +66,7 @@ namespace BitFaster.Caching.Buffers
                 while (true)
                 {
                     var headNow = Volatile.Read(ref headAndTail.Head);
+
                     var tailNow = Volatile.Read(ref headAndTail.Tail);
 
                     if (headNow == Volatile.Read(ref headAndTail.Head) &&
@@ -209,12 +211,5 @@ namespace BitFaster.Caching.Buffers
             public int SequenceNumber;
         }
     }
-
-    [DebuggerDisplay("Head = {Head}, Tail = {Tail}")]
-    [StructLayout(LayoutKind.Explicit, Size = 3 * Padding.CACHE_LINE_SIZE)] // padding before/between/after fields
-    internal struct PaddedHeadAndTail
-    {
-        [FieldOffset(1 * Padding.CACHE_LINE_SIZE)] public int Head;
-        [FieldOffset(2 * Padding.CACHE_LINE_SIZE)] public int Tail;
-    }
+#pragma warning restore CS0420 // A reference to a volatile field will not be treated as volatile
 }

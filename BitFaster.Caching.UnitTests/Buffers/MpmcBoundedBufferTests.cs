@@ -10,14 +10,14 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Buffers
 {
-    public class BoundedBufferTests
+    public class MpmcBoundedBufferTests
     {
-        private readonly BoundedBuffer<int> buffer = new BoundedBuffer<int>(10);
+        private readonly MpmcBoundedBuffer<int> buffer = new MpmcBoundedBuffer<int>(10);
 
         [Fact]
         public void WhenSizeIsLessThan1CtorThrows()
         {
-            Action constructor = () => { var x = new BoundedBuffer<int>(-1); };
+            Action constructor = () => { var x = new MpmcBoundedBuffer<int>(-1); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
