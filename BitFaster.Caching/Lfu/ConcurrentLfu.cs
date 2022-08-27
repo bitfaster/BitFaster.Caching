@@ -75,9 +75,9 @@ namespace BitFaster.Caching.Lfu
 
             this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
 
-            // TODO: how big should this be in total? We shouldn't allow more than some capacity % of writes in the buffer
-            int writeBuffer = Math.Min(capacity / 10, BufferSize);
-            this.writeBuffer = new MpscBoundedBuffer<LfuNode<K, V>>(writeBuffer);
+            // Cap the write buffer to 10% of the cache size, or BufferSize. Whichever is smaller.
+            int writeBufferSize = Math.Min(capacity / 10, BufferSize);
+            this.writeBuffer = new MpscBoundedBuffer<LfuNode<K, V>>(writeBufferSize);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
