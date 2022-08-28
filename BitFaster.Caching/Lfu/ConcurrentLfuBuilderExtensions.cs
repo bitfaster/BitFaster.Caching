@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using BitFaster.Caching.Atomic;
 using BitFaster.Caching.Lfu.Builder;
-using BitFaster.Caching.Lru.Builder;
-using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -30,12 +28,26 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <typeparam name="K">The type of keys in the cache.</typeparam>
         /// <typeparam name="V">The type of values in the cache.</typeparam>
-        /// <param name="builder">The AsyncConcurrentLruBuilder to chain method calls onto.</param>
-        /// <returns>A ScopedAsyncConcurrentLruBuilder.</returns>
+        /// <param name="builder">The AsyncConcurrentLfuBuilder to chain method calls onto.</param>
+        /// <returns>A ScopedAsyncConcurrentLfuBuilder.</returns>
         public static ScopedAsyncConcurrentLfuBuilder<K, V> AsScopedCache<K, V>(this AsyncConcurrentLfuBuilder<K, V> builder) where V : IDisposable
         {
             var convertBuilder = new AsyncConcurrentLfuBuilder<K, Scoped<V>>(builder.info);
             return new ScopedAsyncConcurrentLfuBuilder<K, V>(convertBuilder);
+        }
+
+        /// <summary>
+        /// Build an IScopedAsyncCache. IDisposable values are wrapped in a lifetime scope. Scoped caches return lifetimes that prevent
+        /// values from being disposed until the calling code completes.
+        /// </summary>
+        /// <typeparam name="K">The type of keys in the cache.</typeparam>
+        /// <typeparam name="V">The type of values in the cache.</typeparam>
+        /// <param name="builder">The AtomicAsyncConcurrentLfuBuilder to chain method calls onto.</param>
+        /// <returns>An AtomicScopedAsyncConcurrentLfuBuilder.</returns>
+        public static AtomicScopedAsyncConcurrentLfuBuilder<K, V> AsScopedCache<K, V>(this AtomicAsyncConcurrentLfuBuilder<K, V> builder) where V : IDisposable
+        {
+            var convertBuilder = new AsyncConcurrentLfuBuilder<K, ScopedAsyncAtomicFactory<K, V>>(builder.info);
+            return new AtomicScopedAsyncConcurrentLfuBuilder<K, V>(convertBuilder);
         }
 
         /// <summary>
@@ -74,6 +86,19 @@ namespace BitFaster.Caching.Lfu
         {
             var convertBuilder = new AsyncConcurrentLfuBuilder<K, Scoped<V>>(builder.info);
             return new ScopedAsyncConcurrentLfuBuilder<K, V>(convertBuilder);
+        }
+
+        /// <summary>
+        /// Build an IScopedAsyncCache, the ScopedGetOrAdd method becomes ScopedGetOrAddAsync.
+        /// </summary>
+        /// <typeparam name="K">The type of keys in the cache.</typeparam>
+        /// <typeparam name="V">The type of values in the cache.</typeparam>
+        /// <param name="builder">The AtomicScopedConcurrentLfuBuilder to chain method calls onto.</param>
+        /// <returns>An AtomicScopedAsyncConcurrentLfuBuilder.</returns>
+        public static AtomicScopedAsyncConcurrentLfuBuilder<K, V> AsAsyncCache<K, V>(this AtomicScopedConcurrentLfuBuilder<K, V> builder) where V : IDisposable
+        {
+            var convertBuilder = new AsyncConcurrentLfuBuilder<K, ScopedAsyncAtomicFactory<K, V>>(builder.info);
+            return new AtomicScopedAsyncConcurrentLfuBuilder<K, V>(convertBuilder);
         }
 
         /// <summary>
@@ -120,6 +145,21 @@ namespace BitFaster.Caching.Lfu
         {
             var convertBuilder = new ConcurrentLfuBuilder<K, ScopedAtomicFactory<K, V>>(builder.info);
             return new AtomicScopedConcurrentLfuBuilder<K, V>(convertBuilder);
+        }
+
+        /// <summary>
+        /// Execute the cache's GetOrAdd method atomically, such that it is applied at most once per key. Other threads
+        /// attempting to update the same key will be blocked until value factory completes. Incurs a small performance
+        /// penalty.
+        /// </summary>
+        /// <typeparam name="K">The type of keys in the cache.</typeparam>
+        /// <typeparam name="V">The type of values in the cache.</typeparam>
+        /// <param name="builder">The ScopedAsyncConcurrentLfuBuilder to chain method calls onto.</param>
+        /// <returns>An AtomicScopedAsyncConcurrentLfuBuilder.</returns>
+        public static AtomicScopedAsyncConcurrentLfuBuilder<K, V> WithAtomicGetOrAdd<K, V>(this ScopedAsyncConcurrentLfuBuilder<K, V> builder) where V : IDisposable
+        {
+            var convertBuilder = new AsyncConcurrentLfuBuilder<K, ScopedAsyncAtomicFactory<K, V>>(builder.info);
+            return new AtomicScopedAsyncConcurrentLfuBuilder<K, V>(convertBuilder);
         }
 
         /// <summary>

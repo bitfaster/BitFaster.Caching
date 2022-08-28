@@ -175,5 +175,89 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
         }
+
+        // 10
+        [Fact]
+        public void WithAtomicWithScopedAsAsync()
+        {
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .WithAtomicGetOrAdd()
+                .AsScopedCache()
+                .AsAsyncCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+        }
+
+        // 11
+        [Fact]
+        public void WithAtomicAsAsyncWithScoped()
+        {
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .WithAtomicGetOrAdd()
+                .AsAsyncCache()
+                .AsScopedCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+        }
+
+        // 12
+        [Fact]
+        public void WithScopedWithAtomicAsAsync()
+        {
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .AsScopedCache()
+                .WithAtomicGetOrAdd()
+                .AsAsyncCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+        }
+
+        // 13
+        [Fact]
+        public void WithScopedAsAsyncWithAtomic()
+        {
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .AsScopedCache()
+                .AsAsyncCache()
+                .WithAtomicGetOrAdd()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+        }
+
+        // 14
+        [Fact]
+        public void AsAsyncWithScopedWithAtomic()
+        {
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .AsAsyncCache()
+                .AsScopedCache()
+                .WithAtomicGetOrAdd()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+        }
+
+        // 15
+        [Fact]
+        public void AsAsyncWithAtomicWithScoped()
+        {
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .AsAsyncCache()
+                .WithAtomicGetOrAdd()
+                .AsScopedCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+        }
     }
 }
