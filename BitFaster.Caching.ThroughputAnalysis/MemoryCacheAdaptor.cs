@@ -10,8 +10,17 @@ namespace BitFaster.Caching.ThroughputAnalysis
 {
     public class MemoryCacheAdaptor<K, V> : ICache<K, V>
     {
-        MemoryCache exMemoryCache
-           = new MemoryCache(new MemoryCacheOptionsAccessor());
+        MemoryCacheOptionsAccessor accessor;
+        MemoryCache exMemoryCache;
+
+        public MemoryCacheAdaptor(int capacity)
+        {
+            accessor = new MemoryCacheOptionsAccessor();
+            accessor.Value.SizeLimit = capacity;
+
+            exMemoryCache
+              = new MemoryCache(accessor);
+        }
 
         public int Count => throw new NotImplementedException();
 
@@ -40,15 +49,17 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
-            if (exMemoryCache.TryGetValue(key, out var value))
+
+            if (!exMemoryCache.TryGetValue(key, out object result))
             {
-                return (V)value;
+                using ICacheEntry entry = exMemoryCache.CreateEntry(key);
+
+                result = valueFactory(key);
+                entry.Value = result;
+                entry.SetSize(1);
             }
 
-            var v = valueFactory(key);
-            exMemoryCache.Set(key, v);
-
-            return v;
+            return (V)result;
         }
 
         public bool TryGet(K key, out V value)
@@ -73,7 +84,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
     }
 
     public class MemoryCacheOptionsAccessor
-    : Microsoft.Extensions.Options.IOptions<MemoryCacheOptions>
+        : Microsoft.Extensions.Options.IOptions<MemoryCacheOptions>
     {
         private readonly MemoryCacheOptions options = new MemoryCacheOptions();
 

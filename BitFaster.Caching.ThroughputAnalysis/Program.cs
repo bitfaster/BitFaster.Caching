@@ -75,19 +75,19 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 const int runs = 6;
                 double[] results = new double[warmup + runs];
 
-                //for (int i = 0; i < warmup + runs; i++)
-                //{
-                //    results[i] = MeasureThroughput(new ClassicLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
-                //}
-                //double avg = AverageLast(results, runs) / 1000000;
-                //Console.WriteLine($"ClassicLru ({tc}) {avg} million ops/sec");
-                //classicLru[tc.ToString()] = avg.ToString();
+                for (int i = 0; i < warmup + runs; i++)
+                {
+                    results[i] = MeasureThroughput(new ClassicLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
+                }
+                double avg = AverageLast(results, runs) / 1000000;
+                Console.WriteLine($"ClassicLru ({tc}) {avg} million ops/sec");
+                classicLru[tc.ToString()] = avg.ToString();
 
                 for (int i = 0; i < warmup + runs; i++)
                 {
-                    results[i] = MeasureThroughput(new MemoryCacheAdaptor<int, int>(), tc);
+                    results[i] = MeasureThroughput(new MemoryCacheAdaptor<int, int>(capacity), tc);
                 }
-                var avg = AverageLast(results, runs) / 1000000;
+                avg = AverageLast(results, runs) / 1000000;
                 Console.WriteLine($"memoryCach ({tc}) {avg} million ops/sec");
                 memoryCache[tc.ToString()] = avg.ToString();
 
