@@ -56,6 +56,20 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu.TryGet("A", out var value).Should().BeTrue();
         }
 
+        // 1
+        [Fact]
+        public void WithScopedValues()
+        {
+            IScopedCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .AsScopedCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeOfType<ScopedCache<int, Disposable>>();
+            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+        }
+
+        // 2
         [Fact]
         public void WithAtomicFactory()
         {
@@ -67,6 +81,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lru.Should().BeOfType<AtomicFactoryCache<int, int>>();
         }
 
+        // 3
         [Fact]
         public void AsAsync()
         {
@@ -76,6 +91,63 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 .Build();
 
             lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
+        }
+
+        // 4
+        [Fact]
+        public void WithAtomicWithScope()
+        {
+            IScopedCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .WithAtomicGetOrAdd()
+                .AsScopedCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
+            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+        }
+
+        // 5
+        [Fact]
+        public void WithScopedWithAtomic()
+        {
+            IScopedCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .AsScopedCache()
+                .WithAtomicGetOrAdd()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
+            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+        }
+
+        // 6
+        [Fact]
+        public void AsAsyncWithScoped()
+        {
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .AsAsyncCache()
+                .AsScopedCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+
+            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+        }
+
+        // 7
+        [Fact]
+        public void WithScopedAsAsync()
+        {
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .AsScopedCache()
+                .AsAsyncCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
         }
 
         // 8
