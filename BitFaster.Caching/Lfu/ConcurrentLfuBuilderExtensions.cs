@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using BitFaster.Caching.Atomic;
 using BitFaster.Caching.Lfu.Builder;
-using BitFaster.Caching.Lru.Builder;
-using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -30,8 +28,8 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <typeparam name="K">The type of keys in the cache.</typeparam>
         /// <typeparam name="V">The type of values in the cache.</typeparam>
-        /// <param name="builder">The AsyncConcurrentLruBuilder to chain method calls onto.</param>
-        /// <returns>A ScopedAsyncConcurrentLruBuilder.</returns>
+        /// <param name="builder">The AsyncConcurrentLfuBuilder to chain method calls onto.</param>
+        /// <returns>A ScopedAsyncConcurrentLfuBuilder.</returns>
         public static ScopedAsyncConcurrentLfuBuilder<K, V> AsScopedCache<K, V>(this AsyncConcurrentLfuBuilder<K, V> builder) where V : IDisposable
         {
             var convertBuilder = new AsyncConcurrentLfuBuilder<K, Scoped<V>>(builder.info);
