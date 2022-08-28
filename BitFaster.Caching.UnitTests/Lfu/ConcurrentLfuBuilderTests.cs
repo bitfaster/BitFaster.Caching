@@ -93,6 +93,63 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
         }
 
+        // 4
+        [Fact]
+        public void WithAtomicWithScope()
+        {
+            IScopedCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .WithAtomicGetOrAdd()
+                .AsScopedCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
+            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+        }
+
+        // 5
+        [Fact]
+        public void WithScopedWithAtomic()
+        {
+            IScopedCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .AsScopedCache()
+                .WithAtomicGetOrAdd()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
+            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+        }
+
+        // 6
+        [Fact]
+        public void AsAsyncWithScoped()
+        {
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .AsAsyncCache()
+                .AsScopedCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+
+            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+        }
+
+        // 7
+        [Fact]
+        public void WithScopedAsAsync()
+        {
+            IScopedAsyncCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .AsScopedCache()
+                .AsAsyncCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+        }
+
         // 8
         [Fact]
         public void WithAtomicAsAsync()
