@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using BitFaster.Caching.Lfu.Builder;
+using BitFaster.Caching.Lru.Builder;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -12,6 +13,11 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         public ConcurrentLfuBuilder()
             : base(new LfuInfo<K>())
+        {
+        }
+
+        internal ConcurrentLfuBuilder(LfuInfo<K> info)
+            : base(info)
         {
         }
 

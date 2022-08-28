@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BitFaster.Caching.Atomic;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using FluentAssertions;
@@ -53,6 +54,28 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             lfu.GetOrAdd("a", k => 1);
             lfu.TryGet("A", out var value).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WithAtomicFactory()
+        {
+            ICache<int, int> lru = new ConcurrentLfuBuilder<int, int>()
+                .WithAtomicGetOrAdd()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeOfType<AtomicFactoryCache<int, int>>();
+        }
+
+        [Fact]
+        public void AsAsync()
+        {
+            IAsyncCache<int, int> lru = new ConcurrentLfuBuilder<int, int>()
+                .AsAsyncCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
         }
     }
 }
