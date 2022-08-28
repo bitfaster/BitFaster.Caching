@@ -4,7 +4,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -40,10 +39,7 @@ namespace BitFaster.Caching.Lru
         private readonly ConcurrentQueue<I> coldQueue;
 
         // maintain count outside ConcurrentQueue, since ConcurrentQueue.Count holds a global lock
-        //private int hotCount;
-        //private int warmCount;
-        //private int coldCount;
-        PaddedQueueCount counter;
+        private PaddedQueueCount counter;
 
         private readonly ICapacityPartition capacity;
 
