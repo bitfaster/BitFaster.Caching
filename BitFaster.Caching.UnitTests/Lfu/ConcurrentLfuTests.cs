@@ -161,26 +161,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void LoopIt()
-        {
-            for (int i = 0; i < 10000; i++)
-            {
-                this.output.WriteLine($"iteration {i}");
-                cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler());
-                ReadPromotesProbation();
-            }
-        }
-
-
-
-        //[Fact]
         public void ReadPromotesProbation()
         {
-            //cache.GetOrAdd(1, k => k);
-            //cache.GetOrAdd(1, k => k);
-            //cache.GetOrAdd(2, k => k);
-            //cache.GetOrAdd(2, k => k);
-
             for (int i = 0; i < 20; i++)
             {
                 cache.GetOrAdd(i, k => k);
