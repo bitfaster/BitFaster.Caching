@@ -77,5 +77,31 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
         }
+
+        // 8
+        [Fact]
+        public void WithAtomicAsAsync()
+        {
+            IAsyncCache<int, int> lru = new ConcurrentLfuBuilder<int, int>()
+                .WithAtomicGetOrAdd()
+                .AsAsyncCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
+        }
+
+        // 9
+        [Fact]
+        public void AsAsyncWithAtomic()
+        {
+            IAsyncCache<int, int> lru = new ConcurrentLfuBuilder<int, int>()
+                .AsAsyncCache()
+                .WithAtomicGetOrAdd()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
+        }
     }
 }

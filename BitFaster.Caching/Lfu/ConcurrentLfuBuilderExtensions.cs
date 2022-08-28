@@ -21,6 +21,19 @@ namespace BitFaster.Caching.Lfu
         }
 
         /// <summary>
+        /// Build an IAsyncCache, the GetOrAdd method becomes GetOrAddAsync. 
+        /// </summary>
+        /// <typeparam name="K">The type of keys in the cache.</typeparam>
+        /// <typeparam name="V">The type of values in the cache.</typeparam>
+        /// <param name="builder">The AtomicConcurrentLfuBuilder to chain method calls onto.</param>
+        /// <returns>An AtomicAsyncConcurrentLfuBuilder.</returns>
+        public static AtomicAsyncConcurrentLfuBuilder<K, V> AsAsyncCache<K, V>(this AtomicConcurrentLfuBuilder<K, V> builder)
+        {
+            var convertBuilder = new ConcurrentLfuBuilder<K, AsyncAtomicFactory<K, V>>(builder.info);
+            return new AtomicAsyncConcurrentLfuBuilder<K, V>(convertBuilder);
+        }
+
+        /// <summary>
         /// Execute the cache's GetOrAdd method atomically, such that it is applied at most once per key. Other threads
         /// attempting to update the same key will be blocked until value factory completes. Incurs a small performance
         /// penalty.
@@ -33,6 +46,21 @@ namespace BitFaster.Caching.Lfu
         {
             var convertBuilder = new ConcurrentLfuBuilder<K, AtomicFactory<K, V>>(builder.info);
             return new AtomicConcurrentLfuBuilder<K, V>(convertBuilder);
+        }
+
+        /// <summary>
+        /// Execute the cache's GetOrAdd method atomically, such that it is applied at most once per key. Other threads
+        /// attempting to update the same key will be blocked until value factory completes. Incurs a small performance
+        /// penalty.
+        /// </summary>
+        /// <typeparam name="K">The type of keys in the cache.</typeparam>
+        /// <typeparam name="V">The type of values in the cache.</typeparam>
+        /// <param name="builder">The AsyncConcurrentLruBuilder to chain method calls onto.</param>
+        /// <returns>An AtomicAsyncConcurrentLruBuilder.</returns>
+        public static AtomicAsyncConcurrentLfuBuilder<K, V> WithAtomicGetOrAdd<K, V>(this AsyncConcurrentLfuBuilder<K, V> builder)
+        {
+            var convertBuilder = new ConcurrentLfuBuilder<K, AsyncAtomicFactory<K, V>>(builder.info);
+            return new AtomicAsyncConcurrentLfuBuilder<K, V>(convertBuilder);
         }
     }
 }
