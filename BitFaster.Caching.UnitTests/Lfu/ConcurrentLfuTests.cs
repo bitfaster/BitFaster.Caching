@@ -176,6 +176,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WritePromotesProbation()
         {
+            cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler());
+
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(2, k => k);
@@ -186,11 +188,15 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            //  W [24] Protected [] Probation [1,2,0,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+            //  W [24] Protected [] Probation [2,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
             cache.PendingMaintenance();
             LogLru();
 
-            cache.TryUpdate(16, -16).Should().BeTrue();
+            // W [24] Protected [16] Probation [2,6,7,8,9,10,11,12,13,14,15,17,18,19,20,21,22,23]
+            cache.AddOrUpdate(16, -16);
+            cache.AddOrUpdate(16, -16);
+            cache.PendingMaintenance();
+            LogLru();
 
             for (int i = 25; i < 50; i++)
             {
@@ -198,7 +204,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            // [49] Protected [16] Probation [1,2,0,3,4,5,6,7,8,9,10,11,12,13,14,15,17,18]
+            //  W [49] Protected [16] Probation [2,6,7,8,9,10,11,12,13,14,15,17,18,19,20,21,22,23]
             cache.PendingMaintenance();
             LogLru();
 
