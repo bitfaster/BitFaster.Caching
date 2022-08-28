@@ -40,9 +40,10 @@ namespace BitFaster.Caching.Lru
         private readonly ConcurrentQueue<I> coldQueue;
 
         // maintain count outside ConcurrentQueue, since ConcurrentQueue.Count holds a global lock
-        private int hotCount;
-        private int warmCount;
-        private int coldCount;
+        //private int hotCount;
+        //private int warmCount;
+        //private int coldCount;
+        PaddedQueueCount counter;
 
         private readonly ICapacityPartition capacity;
 
@@ -100,11 +101,11 @@ namespace BitFaster.Caching.Lru
 
         public CachePolicy Policy => CreatePolicy(this);
 
-        public int HotCount => this.hotCount;
+        public int HotCount => this.counter.hot;
 
-        public int WarmCount => this.warmCount;
+        public int WarmCount => this.counter.warm;
 
-        public int ColdCount => this.coldCount;
+        public int ColdCount => this.counter.cold;
 
         /// <summary>
         /// Gets a collection containing the keys in the cache.
@@ -176,7 +177,7 @@ namespace BitFaster.Caching.Lru
                 if (this.dictionary.TryAdd(key, newItem))
                 {
                     this.hotQueue.Enqueue(newItem);
-                    Interlocked.Increment(ref hotCount);
+                    Interlocked.Increment(ref counter.hot);
                     Cycle();
                     return newItem.Value;
                 }
@@ -202,7 +203,7 @@ namespace BitFaster.Caching.Lru
                 if (this.dictionary.TryAdd(key, newItem))
                 {
                     this.hotQueue.Enqueue(newItem);
-                    Interlocked.Increment(ref hotCount);
+                    Interlocked.Increment(ref counter.hot);
                     Cycle();
                     return newItem.Value;
                 }
@@ -292,7 +293,7 @@ namespace BitFaster.Caching.Lru
                 if (this.dictionary.TryAdd(key, newItem))
                 {
                     this.hotQueue.Enqueue(newItem);
-                    Interlocked.Increment(ref hotCount);
+                    Interlocked.Increment(ref counter.hot);
                     Cycle();
                     return;
                 }
@@ -377,9 +378,9 @@ namespace BitFaster.Caching.Lru
                 }
             }
 
-            RemoveDiscardableItems(coldQueue, ref this.coldCount);
-            RemoveDiscardableItems(warmQueue, ref this.warmCount);
-            RemoveDiscardableItems(hotQueue, ref this.hotCount);
+            RemoveDiscardableItems(coldQueue, ref this.counter.cold);
+            RemoveDiscardableItems(warmQueue, ref this.counter.warm);
+            RemoveDiscardableItems(hotQueue, ref this.counter.hot);
 
             return itemsRemoved;
         }
@@ -393,7 +394,7 @@ namespace BitFaster.Caching.Lru
 
             while (itemsRemoved < itemCount && trimWarmAttempts < maxAttempts)
             {
-                if (this.coldCount > 0)
+                if (this.counter.cold > 0)
                 {
                     if (TryRemoveCold(ItemRemovedReason.Trimmed))
                     {
@@ -413,11 +414,11 @@ namespace BitFaster.Caching.Lru
 
         private void TrimWarmOrHot()
         {
-            if (this.warmCount > 0)
+            if (this.counter.warm > 0)
             {
                 CycleWarmUnchecked(ItemRemovedReason.Trimmed);
             }
-            else if (this.hotCount > 0)
+            else if (this.counter.hot > 0)
             {
                 CycleHotUnchecked(ItemRemovedReason.Trimmed);
             }
@@ -452,14 +453,14 @@ namespace BitFaster.Caching.Lru
         private void CycleDuringWarmup()
         {
             // do nothing until hot is full
-            if (this.hotCount > this.capacity.Hot)
+            if (this.counter.hot > this.capacity.Hot)
             {
-                Interlocked.Decrement(ref this.hotCount);
+                Interlocked.Decrement(ref this.counter.hot);
 
                 if (this.hotQueue.TryDequeue(out var item))
                 {
                     // always move to warm until it is full
-                    if (this.warmCount < this.capacity.Warm)
+                    if (this.counter.warm < this.capacity.Warm)
                     {
                         // If there is a race, we will potentially add multiple items to warm. Guard by cycling the queue.
                         this.Move(item, ItemDestination.Warm, ItemRemovedReason.Evicted);
@@ -476,14 +477,14 @@ namespace BitFaster.Caching.Lru
                 }
                 else
                 {
-                    Interlocked.Increment(ref this.hotCount);
+                    Interlocked.Increment(ref this.counter.hot);
                 }
             }
         }
 
         private void CycleHot()
         {
-            if (this.hotCount > this.capacity.Hot)
+            if (this.counter.hot > this.capacity.Hot)
             {
                 CycleHotUnchecked(ItemRemovedReason.Evicted);
             }
@@ -492,7 +493,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CycleHotUnchecked(ItemRemovedReason removedReason)
         {
-            Interlocked.Decrement(ref this.hotCount);
+            Interlocked.Decrement(ref this.counter.hot);
 
             if (this.hotQueue.TryDequeue(out var item))
             {
@@ -501,13 +502,13 @@ namespace BitFaster.Caching.Lru
             }
             else
             {
-                Interlocked.Increment(ref this.hotCount);
+                Interlocked.Increment(ref this.counter.hot);
             }
         }
 
         private void CycleWarm()
         {
-            if (this.warmCount > this.capacity.Warm)
+            if (this.counter.warm > this.capacity.Warm)
             {
                 CycleWarmUnchecked(ItemRemovedReason.Evicted);
             }
@@ -516,7 +517,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CycleWarmUnchecked(ItemRemovedReason removedReason)
         {
-            Interlocked.Decrement(ref this.warmCount);
+            Interlocked.Decrement(ref this.counter.warm);
 
             if (this.warmQueue.TryDequeue(out var item))
             {
@@ -525,7 +526,7 @@ namespace BitFaster.Caching.Lru
                 // When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
                 // This only happens when hit rate is high, in which case we can consider all items relatively equal in
                 // terms of which was least recently used.
-                if (where == ItemDestination.Warm && this.warmCount <= this.capacity.Warm)
+                if (where == ItemDestination.Warm && this.counter.warm <= this.capacity.Warm)
                 {
                     this.Move(item, where, removedReason);
                 }
@@ -536,13 +537,13 @@ namespace BitFaster.Caching.Lru
             }
             else
             {
-                Interlocked.Increment(ref this.warmCount);
+                Interlocked.Increment(ref this.counter.warm);
             }
         }
 
         private void CycleCold()
         {
-            if (this.coldCount > this.capacity.Cold)
+            if (this.counter.cold > this.capacity.Cold)
             {
                 TryRemoveCold(ItemRemovedReason.Evicted);
             }
@@ -551,13 +552,13 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryRemoveCold(ItemRemovedReason removedReason)
         {
-            Interlocked.Decrement(ref this.coldCount);
+            Interlocked.Decrement(ref this.counter.cold);
 
             if (this.coldQueue.TryDequeue(out var item))
             {
                 var where = this.itemPolicy.RouteCold(item);
 
-                if (where == ItemDestination.Warm && this.warmCount <= this.capacity.Warm)
+                if (where == ItemDestination.Warm && this.counter.warm <= this.capacity.Warm)
                 {
                     this.Move(item, where, removedReason);
                     return false;
@@ -570,7 +571,7 @@ namespace BitFaster.Caching.Lru
             }
             else
             {
-                Interlocked.Increment(ref this.coldCount);
+                Interlocked.Increment(ref this.counter.cold);
                 return false;
             }            
         }
@@ -584,11 +585,11 @@ namespace BitFaster.Caching.Lru
             {
                 case ItemDestination.Warm:
                     this.warmQueue.Enqueue(item);
-                    Interlocked.Increment(ref this.warmCount);
+                    Interlocked.Increment(ref this.counter.warm);
                     break;
                 case ItemDestination.Cold:
                     this.coldQueue.Enqueue(item);
-                    Interlocked.Increment(ref this.coldCount);
+                    Interlocked.Increment(ref this.counter.cold);
                     break;
                 case ItemDestination.Remove:
 
