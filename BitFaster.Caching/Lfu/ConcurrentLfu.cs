@@ -286,7 +286,8 @@ namespace BitFaster.Caching.Lfu
 
             lock (this.maintenanceLock)
             {
-                Maintenance();
+                // if the write was dropped from the buffer, explicitly pass it to maintenance
+                Maintenance(node);
             }
         }
 
@@ -378,7 +379,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private bool Maintenance()
+        private bool Maintenance(LfuNode<K, V> droppedWrite = null)
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
 
@@ -415,6 +416,11 @@ namespace BitFaster.Caching.Lfu
             for (int i = 0; i < count; i++)
             {
                 OnWrite(localDrainBuffer[i]);
+            }
+
+            if (droppedWrite != null)
+            {
+                OnWrite(droppedWrite);
             }
 
 #if !NETSTANDARD2_0
@@ -477,6 +483,7 @@ namespace BitFaster.Caching.Lfu
                 // if the write is in the buffer and is removed, it will come here twice
                 // once for the write and once for the removal. We cannot distinguish between these states
                 this.metrics.evictedCount++;
+                Disposer<V>.Dispose(node.Value);
                 return;
             }
 
@@ -616,7 +623,7 @@ namespace BitFaster.Caching.Lfu
         {
             this.dictionary.TryRemove(evictee.Key, out var _);
             evictee.list.Remove(evictee);
-
+            Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
         }
 
