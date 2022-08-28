@@ -4,7 +4,7 @@ using System.Text;
 
 namespace BitFaster.Caching.Lfu
 {
-    internal class LfuNode<K, V>
+    internal sealed class LfuNode<K, V>
     {
         internal LfuNodeList<K, V> list;
         internal LfuNode<K, V> next;

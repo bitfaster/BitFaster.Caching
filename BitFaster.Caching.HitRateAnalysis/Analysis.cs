@@ -22,7 +22,7 @@ namespace BitFaster.Caching.HitRateAnalysis
         {
             concurrentLru = new ConcurrentLru<K, int>(1, cacheSize, EqualityComparer<K>.Default);
             classicLru = new ClassicLru<K, int>(1, cacheSize, EqualityComparer<K>.Default);
-            concurrentLfu = new ConcurrentLfu<K, int>(1, cacheSize, new ForegroundScheduler());
+            concurrentLfu = new ConcurrentLfu<K, int>(1, cacheSize, new ForegroundScheduler(), EqualityComparer<K>.Default);
         }
 
         public int CacheSize => concurrentLru.Capacity;
