@@ -152,6 +152,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
             LogLru();
 
             cache.GetOrAdd(16, k => k);
+            cache.GetOrAdd(16, k => k);
+            cache.GetOrAdd(16, k => k);
+            cache.PendingMaintenance();
 
             for (int i = 25; i < 50; i++)
             {
@@ -176,8 +179,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WritePromotesProbation()
         {
-            cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler());
-
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(2, k => k);
