@@ -18,8 +18,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             accessor = new MemoryCacheOptionsAccessor();
             accessor.Value.SizeLimit = capacity;
 
-            exMemoryCache
-              = new MemoryCache(accessor);
+            exMemoryCache = new MemoryCache(accessor);
         }
 
         public int Count => throw new NotImplementedException();
