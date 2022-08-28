@@ -1,50 +1,42 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Data.Common;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
     public struct TelemetryPolicy<K, V> : ITelemetryPolicy<K, V>
     {
-        private long hitCount;
-        private long missCount;
-        private long evictedCount;
-        private long updatedCount;
+        private PaddedHitCounters counters;
         private object eventSource;
 
         public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
 
         public double HitRatio => Total == 0 ? 0 : (double)Hits / (double)Total;
 
-        public long Total => this.hitCount + this.missCount;
+        public long Total => this.counters.hitCount + this.counters.missCount;
 
-        public long Hits => this.hitCount;
+        public long Hits => this.counters.hitCount;
 
-        public long Misses => this.missCount;
+        public long Misses => this.counters.missCount;
 
-        public long Evicted => this.evictedCount;
+        public long Evicted => this.counters.evictedCount;
 
-        public long Updated => this.updatedCount;
+        public long Updated => this.counters.updatedCount;
 
         public void IncrementMiss()
         {
-            Interlocked.Increment(ref this.missCount);
+            Interlocked.Increment(ref this.counters.missCount);
         }
 
         public void IncrementHit()
         {
-            Interlocked.Increment(ref this.hitCount);
+            Interlocked.Increment(ref this.counters.hitCount);
         }
 
         public void OnItemRemoved(K key, V value, ItemRemovedReason reason)
         {
             if (reason == ItemRemovedReason.Evicted)
             {
-                Interlocked.Increment(ref this.evictedCount);
+                Interlocked.Increment(ref this.counters.evictedCount);
             }
 
             // passing 'this' as source boxes the struct, and is anyway the wrong object
@@ -53,7 +45,7 @@ namespace BitFaster.Caching.Lru
 
         public void OnItemUpdated(K key, V value)
         {
-            Interlocked.Increment(ref this.updatedCount);
+            Interlocked.Increment(ref this.counters.updatedCount);
         }
 
         public void SetEventSource(object source)
