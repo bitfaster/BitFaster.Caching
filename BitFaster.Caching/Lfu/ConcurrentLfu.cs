@@ -477,6 +477,7 @@ namespace BitFaster.Caching.Lfu
                 // if the write is in the buffer and is removed, it will come here twice
                 // once for the write and once for the removal. We cannot distinguish between these states
                 this.metrics.evictedCount++;
+                Disposer<V>.Dispose(node.Value);
                 return;
             }
 
@@ -616,7 +617,7 @@ namespace BitFaster.Caching.Lfu
         {
             this.dictionary.TryRemove(evictee.Key, out var _);
             evictee.list.Remove(evictee);
-
+            Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
         }
 
