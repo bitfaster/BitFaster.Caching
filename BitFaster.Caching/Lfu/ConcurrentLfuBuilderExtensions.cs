@@ -9,6 +9,20 @@ namespace BitFaster.Caching.Lfu
     public static class ConcurrentLfuBuilderExtensions
     {
         /// <summary>
+        /// Build an IScopedCache. IDisposable values are wrapped in a lifetime scope. Scoped caches return lifetimes that prevent
+        /// values from being disposed until the calling code completes.
+        /// </summary>
+        /// <typeparam name="K">The type of keys in the cache.</typeparam>
+        /// <typeparam name="V">The type of values in the cache.</typeparam>
+        /// <param name="builder">The ConcurrentLruBuilder to chain method calls onto.</param>
+        /// <returns>A ScopedConcurrentLruBuilder.</returns>
+        public static ScopedConcurrentLfuBuilder<K, V, Scoped<V>> AsScopedCache<K, V>(this ConcurrentLfuBuilder<K, V> builder) where V : IDisposable
+        {
+            var convertBuilder = new ConcurrentLfuBuilder<K, Scoped<V>>(builder.info);
+            return new ScopedConcurrentLfuBuilder<K, V, Scoped<V>>(convertBuilder);
+        }
+
+        /// <summary>
         /// Build an IAsyncCache, the GetOrAdd method becomes GetOrAddAsync. 
         /// </summary>
         /// <typeparam name="K">The type of keys in the cache.</typeparam>

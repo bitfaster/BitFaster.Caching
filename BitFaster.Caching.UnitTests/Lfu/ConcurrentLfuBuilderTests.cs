@@ -56,6 +56,20 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu.TryGet("A", out var value).Should().BeTrue();
         }
 
+        // 1
+        [Fact]
+        public void WithScopedValues()
+        {
+            IScopedCache<int, Disposable> lru = new ConcurrentLfuBuilder<int, Disposable>()
+                .AsScopedCache()
+                .WithCapacity(3)
+                .Build();
+
+            lru.Should().BeOfType<ScopedCache<int, Disposable>>();
+            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+        }
+
+        // 2
         [Fact]
         public void WithAtomicFactory()
         {
@@ -67,6 +81,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lru.Should().BeOfType<AtomicFactoryCache<int, int>>();
         }
 
+        // 3
         [Fact]
         public void AsAsync()
         {
