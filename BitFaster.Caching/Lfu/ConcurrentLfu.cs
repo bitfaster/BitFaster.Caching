@@ -21,7 +21,6 @@ using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
-using System.Net;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -32,7 +31,7 @@ namespace BitFaster.Caching.Lfu
     /// Based on Caffeine written by Ben Manes.
     /// https://www.apache.org/licenses/LICENSE-2.0
     /// </remarks>
-    public class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
+    public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
         private const int MaxWriteBufferRetries = 100;
 
@@ -63,14 +62,12 @@ namespace BitFaster.Caching.Lfu
 #endif
 
         public ConcurrentLfu(int capacity)
-            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler())
+            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default)
         {        
         }
 
-        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler)
+        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
-            var comparer = EqualityComparer<K>.Default;
-
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
             this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
