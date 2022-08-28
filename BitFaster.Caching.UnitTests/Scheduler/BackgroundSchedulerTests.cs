@@ -95,7 +95,7 @@ namespace BitFaster.Caching.UnitTests.Scheduler
 
             var completion = scheduler.Completion;
 
-            if (await Task.WhenAny(completion, Task.Delay(TimeSpan.FromSeconds(1))) != completion)
+            if (await Task.WhenAny(completion, Task.Delay(TimeSpan.FromSeconds(5))) != completion)
             {
                 throw new Exception("Failed to stop");
             }
