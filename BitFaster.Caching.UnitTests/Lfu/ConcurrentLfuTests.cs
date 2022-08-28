@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
+using BitFaster.Caching.UnitTests.Lru;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
@@ -70,6 +71,31 @@ namespace BitFaster.Caching.UnitTests.Lfu
             LogLru();
 
             cache.Count.Should().Be(20);
+        }
+
+        [Fact]
+        public void WhenItemIsEvictedItIsDisposed()
+        {
+            var dcache = new ConcurrentLfu<int, DisposableItem>(1, 20, new BackgroundThreadScheduler());
+            var disposables = new DisposableItem[25];
+
+            for (int i = 0; i < 25; i++)
+            {
+                disposables[i] = new DisposableItem();
+                dcache.GetOrAdd(i, k => disposables[i]);
+            }
+
+            dcache.PendingMaintenance();
+            LogLru();
+
+            dcache.Count.Should().Be(20);
+
+            for (int i = 0; i < 5; i++)
+            {
+                disposables[i].IsDisposed.Should().BeTrue();
+            }
+
+            disposables[5].IsDisposed.Should().BeFalse();
         }
 
         // protected 15
@@ -551,6 +577,20 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.TryRemove(1).Should().BeTrue();
             cache.TryGet(1, out var value).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenItemIsRemovedItIsDisposed()
+        {
+            var dcache = new ConcurrentLfu<int, DisposableItem>(1, 20, new BackgroundThreadScheduler());
+            var disposable = new DisposableItem();
+
+            dcache.GetOrAdd(1, k => disposable);
+
+            dcache.TryRemove(1).Should().BeTrue();
+            dcache.PendingMaintenance();
+
+            disposable.IsDisposed.Should().BeTrue();
         }
 
         [Fact]
