@@ -286,7 +286,8 @@ namespace BitFaster.Caching.Lfu
 
             lock (this.maintenanceLock)
             {
-                Maintenance();
+                // if the write was dropped from the buffer, explicitly pass it to maintenance
+                Maintenance(node);
             }
         }
 
@@ -378,7 +379,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private bool Maintenance()
+        private bool Maintenance(LfuNode<K, V> droppedWrite = null)
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
 
@@ -415,6 +416,11 @@ namespace BitFaster.Caching.Lfu
             for (int i = 0; i < count; i++)
             {
                 OnWrite(localDrainBuffer[i]);
+            }
+
+            if (droppedWrite != null)
+            {
+                OnWrite(droppedWrite);
             }
 
 #if !NETSTANDARD2_0
