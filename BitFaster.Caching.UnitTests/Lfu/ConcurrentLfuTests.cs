@@ -597,8 +597,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.TryRemove(1).Should().BeTrue();
             cache.PendingMaintenance();
 
-            // TODO: currently we count twice
-            cache.Metrics.Value.Evicted.Should().BeGreaterThan(1);
+            cache.Metrics.Value.Evicted.Should().Be(1);
         }
 
         [Fact]

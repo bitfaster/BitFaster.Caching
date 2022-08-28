@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
+using System.Net;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -480,10 +481,15 @@ namespace BitFaster.Caching.Lfu
                     node.list.Remove(node);
                 }
 
-                // if the write is in the buffer and is removed, it will come here twice
-                // once for the write and once for the removal. We cannot distinguish between these states
-                this.metrics.evictedCount++;
-                Disposer<V>.Dispose(node.Value);
+                if (!node.WasDeleted)
+                {
+                    // if a write is in the buffer and is then removed in the buffer, it will enter OnWrite twice.
+                    // we mark as deleted to avoid double counting/disposing it
+                    this.metrics.evictedCount++;
+                    Disposer<V>.Dispose(node.Value);
+                    node.WasDeleted = true;
+                }
+
                 return;
             }
 
