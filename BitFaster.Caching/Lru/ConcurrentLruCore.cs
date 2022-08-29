@@ -421,32 +421,40 @@ namespace BitFaster.Caching.Lru
         {
             if (isWarm)
             {
-                // There will be races when queue count == queue capacity. Two threads may each dequeue items.
-                // This will prematurely free slots for the next caller. Each thread will still only cycle at most 5 items.
-                // Since TryDequeue is thread safe, only 1 thread can dequeue each item. Thus counts and queue state will always
-                // converge on correct over time.
                 (var dest, var count) = CycleHot(hotCount);
 
-                // Multi-threaded stress tests show that due to races, the warm and cold count can increase beyond capacity when
-                // hit rate is very high. Double cycle results in stable count under all conditions. When contention is low, 
-                // secondary cycles have no effect.
-                if (dest == ItemDestination.Warm)
-                {
-                    (dest, count) = CycleWarm(count);
+                const int maxAttempts = 3;
+                int attempts = 0;
 
+                while (attempts++ < maxAttempts)
+                {
                     if (dest == ItemDestination.Warm)
                     {
                         (dest, count) = CycleWarm(count);
                     }
-                }
-
-                if (dest == ItemDestination.Cold)
-                {
-                    (dest, count) = CycleCold(count);
-
-                    if (dest == ItemDestination.Warm)
+                    else if (dest == ItemDestination.Cold)
                     {
-                        CycleCold(count);
+                        (dest, count) = CycleCold(count);
+                    }
+                    else
+                    {
+                        // If an item was removed, it is possible that the warm and cold queues are still oversize.
+                        // Attempt to recover. It is possible that multiple threads read the same queue count here,
+                        // so this process has races that could reduce cache size below capacity. This manifests
+                        // in 'off by one' which is considered harmless.
+                        (dest, count) = CycleWarm(Volatile.Read(ref counter.warm));
+                        if (dest != ItemDestination.Remove)
+                        {
+                            continue;
+                        }
+
+                        (dest, count) = CycleCold(Volatile.Read(ref counter.cold));
+                        if (dest != ItemDestination.Remove)
+                        {
+                            continue;
+                        }
+
+                        break;
                     }
                 }
             }
