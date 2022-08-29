@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using BitFaster.Caching.Pad;
+﻿using System.Threading.Tasks;
+using BitFaster.Caching.Concurrent;
 using FluentAssertions;
 using Xunit;
 
-namespace BitFaster.Caching.UnitTests.Pad
+namespace BitFaster.Caching.UnitTests.Concurrent
 {
     public class StripedLongAdderTests
     {

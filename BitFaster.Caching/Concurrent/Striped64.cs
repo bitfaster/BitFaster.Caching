@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 /*
@@ -10,7 +11,7 @@ using System.Threading;
  * http://hg.openjdk.java.net/jdk9/jdk9/jdk/file/65464a307408/src/java.base/share/classes/java/util/concurrent/atomic/Striped64.java
  */
 
-namespace BitFaster.Caching.Pad
+namespace BitFaster.Caching.Concurrent
 {
     /*
      * This class maintains a lazily-initialized table of atomically
@@ -74,10 +75,11 @@ namespace BitFaster.Caching.Pad
      * contention levels will recur, so the cells will eventually be
      * needed again; and for short-lived ones, it does not matter.
      */
+    [ExcludeFromCodeCoverage]
     public abstract class Striped64
     {
         // Number of CPUS, to place bound on table size
-        private static readonly int MaxBuckets = Environment.ProcessorCount * 2;
+        private static readonly int MaxBuckets = Environment.ProcessorCount * 4;
 
         protected PaddedLong @base = new PaddedLong();
         protected Cell[] Cells;

@@ -7,7 +7,7 @@
  * http://hg.openjdk.java.net/jdk9/jdk9/jdk/file/65464a307408/src/java.base/share/classes/java/util/concurrent/atomic/LongAdder.java
  */
 
-namespace BitFaster.Caching.Pad
+namespace BitFaster.Caching.Concurrent
 {
     public sealed class LongAdder : Striped64
     {

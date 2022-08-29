@@ -1,8 +1,7 @@
-﻿
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace BitFaster.Caching.Pad
+namespace BitFaster.Caching.Concurrent
 {
     [StructLayout(LayoutKind.Explicit, Size = 2 * Padding.CACHE_LINE_SIZE)] // padding before/between/after fields
     public struct PaddedLong
