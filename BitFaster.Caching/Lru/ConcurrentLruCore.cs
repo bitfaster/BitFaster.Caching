@@ -430,23 +430,37 @@ namespace BitFaster.Caching.Lru
                 // Multi-threaded stress tests show that due to races, the warm and cold count can increase beyond capacity when
                 // hit rate is very high. Double cycle results in stable count under all conditions. When contention is low, 
                 // secondary cycles have no effect.
-                if (dest == ItemDestination.Warm)
-                {
-                    (dest, count) = CycleWarm(count);
 
+                const int maxAttempts = 9;
+                int attempts = 0;
+
+                while (attempts++ < maxAttempts)
+                {
                     if (dest == ItemDestination.Warm)
                     {
                         (dest, count) = CycleWarm(count);
                     }
-                }
-
-                if (dest == ItemDestination.Cold)
-                {
-                    (dest, count) = CycleCold(count);
-
-                    if (dest == ItemDestination.Warm)
+                    else if (dest == ItemDestination.Cold)
                     {
-                        CycleCold(count);
+                        (dest, count) = CycleCold(count);
+                    }
+                    else
+                    {
+                        int warmNow = Volatile.Read(ref counter.warm);
+                        if (warmNow > this.capacity.Warm)
+                        {
+                            (dest, count) = CycleWarm(count);
+                            continue;
+                        }
+
+                        int coldNow = Volatile.Read(ref counter.cold);
+                        if (coldNow > this.capacity.Cold)
+                        {
+                            (dest, count) = CycleCold(count);
+                            continue;
+                        }
+
+                        break;
                     }
                 }
             }
