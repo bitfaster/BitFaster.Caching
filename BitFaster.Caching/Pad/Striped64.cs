@@ -5,6 +5,9 @@ using System.Threading;
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
+ * 
+ * See
+ * http://hg.openjdk.java.net/jdk9/jdk9/jdk/file/65464a307408/src/java.base/share/classes/java/util/concurrent/atomic/Striped64.java
  */
 
 namespace BitFaster.Caching.Pad
@@ -75,18 +78,49 @@ namespace BitFaster.Caching.Pad
     {
         private static readonly int ProcessorCount = Environment.ProcessorCount;
 
-        protected PaddedLong Base = new PaddedLong();
+        protected PaddedLong @base = new PaddedLong();
         protected Cell[] Cells;
         private int cellsBusy;
 
         protected sealed class Cell
         {
-            public PaddedLong Value;
+            public PaddedLong value;
 
             public Cell(long x)
             {
-                this.Value = new PaddedLong() { value = x };
+                this.value = new PaddedLong() { value = x };
             }
+        }
+
+        /**
+         * CASes the cellsBusy field from 0 to 1 to acquire lock.
+         */
+        private bool CasCellsBusy()
+        {
+            return Interlocked.CompareExchange(ref this.cellsBusy, 1, 0) == 0;
+        }
+
+        /**
+         * Returns the probe value for the current thread.
+         * Duplicated from ThreadLocalRandom because of packaging restrictions.
+         */
+        protected static int GetProbe()
+        {
+            // Note: this results in higher throughput than introducing a random.
+            return Environment.CurrentManagedThreadId;
+        }
+
+        /**
+        * Pseudo-randomly advances and records the given probe value for the
+        * given thread.
+        * Duplicated from ThreadLocalRandom because of packaging restrictions.
+        */
+        private static int AdvanceProbe(int probe)
+        {
+            probe ^= probe << 13;   // xorshift
+            probe ^= (int)((uint)probe >> 17);
+            probe ^= probe << 5;
+            return probe;
         }
 
         /**
@@ -97,14 +131,13 @@ namespace BitFaster.Caching.Pad
          * reads.
          *
          * @param x the value
-         * @param hc the hash code holder
          * @param wasUncontended false if CAS failed before call
          */
-        protected void RetryUpdate(long x, bool wasUncontended)
+        protected void LongAccumulate(long x, bool wasUncontended)
         {
             var h = GetProbe();
 
-            var collide = false;                // True if last slot nonempty
+            var collide = false;                    // True if last slot nonempty
             for (; ; )
             {
                 Cell[] @as; Cell a; int n; long v;
@@ -114,12 +147,12 @@ namespace BitFaster.Caching.Pad
                     {
                         if (this.cellsBusy == 0)
                         {       // Try to attach new Cell
-                            var r = new Cell(x);   // Optimistically create
+                            var r = new Cell(x);    // Optimistically create
                             if (this.cellsBusy == 0 && CasCellsBusy())
                             {
                                 var created = false;
                                 try
-                                {               // Recheck under lock
+                                {                   // Recheck under lock
                                     Cell[] rs; int m, j;
                                     if ((rs = this.Cells) != null &&
                                         (m = rs.Length) > 0 &&
@@ -142,9 +175,9 @@ namespace BitFaster.Caching.Pad
                     }
                     else if (!wasUncontended)       // CAS already known to fail
                         wasUncontended = true;      // Continue after rehash
-                    else if (a.Value.CompareAndSwap(v = a.Value.GetValue(), v + x))
+                    else if (a.value.CompareAndSwap(v = a.value.GetValue(), v + x))
                         break;
-                    else if (n >= ProcessorCount || this.Cells != @as)
+                    else if (n >= ProcessorCount * 2 || this.Cells != @as)
                         collide = false;            // At max size or stale
                     else if (!collide)
                         collide = true;
@@ -153,7 +186,7 @@ namespace BitFaster.Caching.Pad
                         try
                         {
                             if (this.Cells == @as)
-                            {      // Expand table unless stale
+                            {                       // Expand table unless stale
                                 var rs = new Cell[n << 1];
                                 for (var i = 0; i < n; ++i)
                                     rs[i] = @as[i];
@@ -173,7 +206,7 @@ namespace BitFaster.Caching.Pad
                 {
                     var init = false;
                     try
-                    {                           // Initialize table
+                    {                               // Initialize table
                         if (this.Cells == @as)
                         {
                             var rs = new Cell[2];
@@ -189,39 +222,10 @@ namespace BitFaster.Caching.Pad
                     if (init)
                         break;
                 }
-                else if (this.Base.CompareAndSwap(v = this.Base.GetValue(), v + x))
-                    break;                          // Fall back on using base
+                // Fall back on using base
+                else if (this.@base.CompareAndSwap(v = this.@base.GetValue(), v + x))
+                    break;                          
             }
-        }
-
-        private bool CasCellsBusy()
-        {
-            return Interlocked.CompareExchange(ref this.cellsBusy, 1, 0) == 0;
-        }
-
-        protected static int GetProbe()
-        {
-            return Environment.CurrentManagedThreadId;
-            //var z = Mix64((ulong)Environment.CurrentManagedThreadId);
-            //return (int)z;
-        }
-
-        // Computes Stafford variant 13 of 64-bit mix function.
-        // http://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
-        private static ulong Mix64(ulong z)
-        {
-            z = (z ^ z >> 30) * 0xbf58476d1ce4e5b9L;
-            z = (z ^ z >> 27) * 0x94d049bb133111ebL;
-            return z ^ z >> 31;
-        }
-
-        private static int AdvanceProbe(int probe)
-        {
-            probe ^= probe << 13;   // xorshift
-            probe ^= (int)((uint)probe >> 17);
-            probe ^= probe << 5;
-           // HashCode.Value.Code = probe;
-            return probe;
         }
     }
 }

@@ -11,8 +11,8 @@ namespace BitFaster.Caching.Lru
 {
     public struct TelemetryPolicy<K, V> : ITelemetryPolicy<K, V>
     {
-        private StripedLongAdder hitCount;
-        private StripedLongAdder missCount;
+        private LongAdder hitCount;
+        private LongAdder missCount;
         private long evictedCount;
         private long updatedCount;
         private object eventSource;
@@ -21,11 +21,11 @@ namespace BitFaster.Caching.Lru
 
         public double HitRatio => Total == 0 ? 0 : (double)Hits / (double)Total;
 
-        public long Total => this.hitCount.GetValue() + this.missCount.GetValue();
+        public long Total => this.hitCount.Sum() + this.missCount.Sum();
 
-        public long Hits => this.hitCount.GetValue();
+        public long Hits => this.hitCount.Sum();
 
-        public long Misses => this.missCount.GetValue();
+        public long Misses => this.missCount.Sum();
 
         public long Evicted => this.evictedCount;
 
@@ -59,8 +59,8 @@ namespace BitFaster.Caching.Lru
 
         public void SetEventSource(object source)
         {
-            this.hitCount = new StripedLongAdder();
-            this.missCount = new StripedLongAdder();
+            this.hitCount = new LongAdder();
+            this.missCount = new LongAdder();
             this.eventSource = source;
         }
     }
