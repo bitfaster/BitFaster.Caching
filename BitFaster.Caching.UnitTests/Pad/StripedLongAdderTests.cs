@@ -34,13 +34,13 @@ namespace BitFaster.Caching.UnitTests.Pad
 
             await Threaded.Run(4, () => 
             {
-                for (int i = 0; i < 10000; i++)
+                for (int i = 0; i < 100000; i++)
                 {
                     adder.Increment();
                 }
             });
 
-            adder.Sum().Should().Be(40000);
+            adder.Sum().Should().Be(400000);
         }
     }
 }

@@ -16,13 +16,13 @@ namespace BitFaster.Caching.Pad
         public long Sum()
         {
             var @as = this.Cells; Cell a;
-            var sum = @base.GetValue();
+            var sum = @base.VolatileRead();
             if (@as != null)
             {
                 for (var i = 0; i < @as.Length; ++i)
                 {
                     if ((a = @as[i]) != null)
-                        sum += a.value.GetValue();
+                        sum += a.value.VolatileRead();
                 }
             }
             return sum;
@@ -39,10 +39,10 @@ namespace BitFaster.Caching.Pad
             long b, v;
             int m;
             Cell a;
-            if ((@as = this.Cells) != null || !@base.CompareAndSwap(b = @base.GetValue(), b + value))
+            if ((@as = this.Cells) != null || !@base.CompareAndSwap(b = @base.VolatileRead(), b + value))
             {
                 var uncontended = true;
-                if (@as == null || (m = @as.Length - 1) < 0 || (a = @as[GetProbe() & m]) == null || !(uncontended = a.value.CompareAndSwap(v = a.value.GetValue(), v + value)))
+                if (@as == null || (m = @as.Length - 1) < 0 || (a = @as[GetProbe() & m]) == null || !(uncontended = a.value.CompareAndSwap(v = a.value.VolatileRead(), v + value)))
                 {
                     LongAccumulate(value, uncontended);
                 }

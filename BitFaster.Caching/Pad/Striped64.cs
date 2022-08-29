@@ -76,7 +76,8 @@ namespace BitFaster.Caching.Pad
      */
     public abstract class Striped64
     {
-        private static readonly int ProcessorCount = Environment.ProcessorCount;
+        // Number of CPUS, to place bound on table size
+        private static readonly int MaxBuckets = Environment.ProcessorCount * 2;
 
         protected PaddedLong @base = new PaddedLong();
         protected Cell[] Cells;
@@ -98,6 +99,11 @@ namespace BitFaster.Caching.Pad
         private bool CasCellsBusy()
         {
             return Interlocked.CompareExchange(ref this.cellsBusy, 1, 0) == 0;
+        }
+
+        private void VolatileWriteNotBusy()
+        {
+            Volatile.Write(ref this.cellsBusy, 0);
         }
 
         /**
@@ -164,7 +170,7 @@ namespace BitFaster.Caching.Pad
                                 }
                                 finally
                                 {
-                                    this.cellsBusy = 0;
+                                    VolatileWriteNotBusy();
                                 }
                                 if (created)
                                     break;
@@ -175,9 +181,9 @@ namespace BitFaster.Caching.Pad
                     }
                     else if (!wasUncontended)       // CAS already known to fail
                         wasUncontended = true;      // Continue after rehash
-                    else if (a.value.CompareAndSwap(v = a.value.GetValue(), v + x))
+                    else if (a.value.CompareAndSwap(v = a.value.VolatileRead(), v + x))
                         break;
-                    else if (n >= ProcessorCount * 2 || this.Cells != @as)
+                    else if (n >= MaxBuckets || this.Cells != @as)
                         collide = false;            // At max size or stale
                     else if (!collide)
                         collide = true;
@@ -195,7 +201,7 @@ namespace BitFaster.Caching.Pad
                         }
                         finally
                         {
-                            this.cellsBusy = 0;
+                            VolatileWriteNotBusy();
                         }
                         collide = false;
                         continue;                   // Retry with expanded table
@@ -217,13 +223,13 @@ namespace BitFaster.Caching.Pad
                     }
                     finally
                     {
-                        this.cellsBusy = 0;
+                        VolatileWriteNotBusy();
                     }
                     if (init)
                         break;
                 }
                 // Fall back on using base
-                else if (this.@base.CompareAndSwap(v = this.@base.GetValue(), v + x))
+                else if (this.@base.CompareAndSwap(v = this.@base.VolatileRead(), v + x))
                     break;                          
             }
         }

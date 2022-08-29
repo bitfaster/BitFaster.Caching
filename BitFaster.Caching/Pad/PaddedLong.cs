@@ -9,29 +9,9 @@ namespace BitFaster.Caching.Pad
     {
         [FieldOffset(Padding.CACHE_LINE_SIZE)] public long value;
 
-        public long GetValue()
+        public long VolatileRead()
         {
             return Volatile.Read(ref this.value);
-        }
-
-        public long NonVolatileGetValue()
-        {
-            return this.value;
-        }
-
-        public void SetValue(long value)
-        {
-            Volatile.Write(ref this.value, value);
-        }
-
-        public void NonVolatileSetValue(long value)
-        {
-            this.value = value;
-        }
-
-        public long Increment()
-        {
-            return Interlocked.Increment(ref this.value);
         }
 
         public bool CompareAndSwap(long expected, long updated)
