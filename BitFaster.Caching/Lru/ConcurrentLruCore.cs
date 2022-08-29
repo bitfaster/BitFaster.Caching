@@ -387,7 +387,7 @@ namespace BitFaster.Caching.Lru
 
             while (itemsRemoved < itemCount && trimWarmAttempts < maxAttempts)
             {
-                if (this.counter.cold > 0)
+                if (Volatile.Read(ref this.counter.cold) > 0)
                 {
                     if (TryRemoveCold(ItemRemovedReason.Trimmed) == (ItemDestination.Remove, 0))
                     {
@@ -468,7 +468,7 @@ namespace BitFaster.Caching.Lru
                 if (this.hotQueue.TryDequeue(out var item))
                 {
                     // always move to warm until it is full
-                    if (this.counter.warm < this.capacity.Warm)
+                    if (Volatile.Read(ref this.counter.warm) < this.capacity.Warm)
                     {
                         // If there is a race, we will potentially add multiple items to warm. Guard by cycling the queue.
                         int warmCount = this.Move(item, ItemDestination.Warm, ItemRemovedReason.Evicted);
@@ -540,7 +540,7 @@ namespace BitFaster.Caching.Lru
                 // When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
                 // This only happens when hit rate is high, in which case we can consider all items relatively equal in
                 // terms of which was least recently used.
-                if (where == ItemDestination.Warm && this.counter.warm <= this.capacity.Warm)
+                if (where == ItemDestination.Warm && Volatile.Read(ref this.counter.warm) <= this.capacity.Warm)
                 {
                     return (ItemDestination.Warm, this.Move(item, where, removedReason));
                 }
@@ -575,7 +575,7 @@ namespace BitFaster.Caching.Lru
             {
                 var where = this.itemPolicy.RouteCold(item);
 
-                if (where == ItemDestination.Warm && this.counter.warm <= this.capacity.Warm)
+                if (where == ItemDestination.Warm && Volatile.Read(ref this.counter.warm) <= this.capacity.Warm)
                 {
                     return (ItemDestination.Warm, this.Move(item, where, removedReason));
                 }
