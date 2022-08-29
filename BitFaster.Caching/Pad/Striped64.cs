@@ -202,6 +202,17 @@ namespace BitFaster.Caching.Pad
         protected static int GetProbe()
         {
             return Environment.CurrentManagedThreadId;
+            //var z = Mix64((ulong)Environment.CurrentManagedThreadId);
+            //return (int)z;
+        }
+
+        // Computes Stafford variant 13 of 64-bit mix function.
+        // http://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
+        private static ulong Mix64(ulong z)
+        {
+            z = (z ^ z >> 30) * 0xbf58476d1ce4e5b9L;
+            z = (z ^ z >> 27) * 0x94d049bb133111ebL;
+            return z ^ z >> 31;
         }
 
         private static int AdvanceProbe(int probe)
