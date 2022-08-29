@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
 using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Environments;
@@ -62,10 +60,12 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
 
             DataRow classicLru = resultTable.NewRow();
+            DataRow memoryCache = resultTable.NewRow();
             DataRow concurrentLru = resultTable.NewRow();
             DataRow concurrentLfu = resultTable.NewRow();
 
             classicLru["Class"] = "classicLru";
+            memoryCache["Class"] = "memoryCach";
             concurrentLru["Class"] = "concurrentLru";
             concurrentLfu["Class"] = "concurrentLfu";
 
@@ -85,6 +85,14 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
                 for (int i = 0; i < warmup + runs; i++)
                 {
+                    results[i] = MeasureThroughput(new MemoryCacheAdaptor<int, int>(capacity), tc);
+                }
+                avg = AverageLast(results, runs) / 1000000;
+                Console.WriteLine($"memoryCach ({tc}) {avg} million ops/sec");
+                memoryCache[tc.ToString()] = avg.ToString();
+
+                for (int i = 0; i < warmup + runs; i++)
+                {
                     results[i] = MeasureThroughput(new FastConcurrentLru<int, int>(tc, capacity, EqualityComparer<int>.Default), tc);
                 }
                 avg = AverageLast(results, runs) / 1000000;
@@ -94,7 +102,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 for (int i = 0; i < warmup + runs; i++)
                 {
                     var scheduler = new BackgroundThreadScheduler();
-                    results[i] = MeasureThroughput(new ConcurrentLfu<int, int>(concurrencyLevel: tc, capacity: capacity, scheduler: scheduler), tc);
+                    results[i] = MeasureThroughput(new ConcurrentLfu<int, int>(concurrencyLevel: tc, capacity: capacity, scheduler: scheduler, EqualityComparer<int>.Default), tc);
                     scheduler.Dispose();
                 }
                 avg = AverageLast(results, runs) / 1000000;
@@ -103,6 +111,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
 
             resultTable.Rows.Add(classicLru);
+            resultTable.Rows.Add(memoryCache);
             resultTable.Rows.Add(concurrentLru);
             resultTable.Rows.Add(concurrentLfu);
 

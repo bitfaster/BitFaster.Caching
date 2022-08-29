@@ -31,10 +31,9 @@ namespace BitFaster.Caching.Lfu
     /// Based on Caffeine written by Ben Manes.
     /// https://www.apache.org/licenses/LICENSE-2.0
     /// </remarks>
-    public class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
+    public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
         private const int MaxWriteBufferRetries = 16;
-        private const int TakeBufferSize = 1024;
 
         public const int BufferSize = 128;
 
@@ -59,18 +58,16 @@ namespace BitFaster.Caching.Lfu
         private readonly IScheduler scheduler;
 
 #if NETSTANDARD2_0
-        private readonly LfuNode<K, V>[] localDrainBuffer = new LfuNode<K, V>[TakeBufferSize];
+        private readonly LfuNode<K, V>[] localDrainBuffer;
 #endif
 
         public ConcurrentLfu(int capacity)
-            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler())
+            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default)
         {        
         }
 
-        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler)
+        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
-            var comparer = EqualityComparer<K>.Default;
-
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
             this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
@@ -88,6 +85,10 @@ namespace BitFaster.Caching.Lfu
             this.capacity = new LfuCapacityPartition(capacity);
 
             this.scheduler = scheduler;
+
+#if NETSTANDARD2_0
+            this.localDrainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
+#endif
         }
 
         public int Count => this.dictionary.Count;
@@ -284,7 +285,8 @@ namespace BitFaster.Caching.Lfu
 
             lock (this.maintenanceLock)
             {
-                Maintenance();
+                // if the write was dropped from the buffer, explicitly pass it to maintenance
+                Maintenance(node);
             }
         }
 
@@ -376,14 +378,14 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private bool Maintenance()
+        private bool Maintenance(LfuNode<K, V> droppedWrite = null)
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
 
             bool wasDrained = false;
             
 #if !NETSTANDARD2_0
-            var localDrainBuffer = ArrayPool<LfuNode<K, V>>.Shared.Rent(TakeBufferSize);
+            var localDrainBuffer = ArrayPool<LfuNode<K, V>>.Shared.Rent(this.readBuffer.Capacity);
 #endif
             int maxSweeps = 1;
             int count = 0;
@@ -413,6 +415,11 @@ namespace BitFaster.Caching.Lfu
             for (int i = 0; i < count; i++)
             {
                 OnWrite(localDrainBuffer[i]);
+            }
+
+            if (droppedWrite != null)
+            {
+                OnWrite(droppedWrite);
             }
 
 #if !NETSTANDARD2_0
@@ -472,9 +479,15 @@ namespace BitFaster.Caching.Lfu
                     node.list.Remove(node);
                 }
 
-                // if the write is in the buffer and is removed, it will come here twice
-                // once for the write and once for the removal. We cannot distinguish between these states
-                this.metrics.evictedCount++;
+                if (!node.WasDeleted)
+                {
+                    // if a write is in the buffer and is then removed in the buffer, it will enter OnWrite twice.
+                    // we mark as deleted to avoid double counting/disposing it
+                    this.metrics.evictedCount++;
+                    Disposer<V>.Dispose(node.Value);
+                    node.WasDeleted = true;
+                }
+
                 return;
             }
 
@@ -614,7 +627,7 @@ namespace BitFaster.Caching.Lfu
         {
             this.dictionary.TryRemove(evictee.Key, out var _);
             evictee.list.Remove(evictee);
-
+            Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
         }
 

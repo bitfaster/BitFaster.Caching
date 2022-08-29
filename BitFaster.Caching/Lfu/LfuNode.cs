@@ -4,13 +4,14 @@ using System.Text;
 
 namespace BitFaster.Caching.Lfu
 {
-    internal class LfuNode<K, V>
+    internal sealed class LfuNode<K, V>
     {
         internal LfuNodeList<K, V> list;
         internal LfuNode<K, V> next;
         internal LfuNode<K, V> prev;
 
         private volatile bool wasRemoved;
+        private volatile bool wasDeleted;
 
         public LfuNode(K k, V v)
         {
@@ -28,6 +29,12 @@ namespace BitFaster.Caching.Lfu
         {
             get => this.wasRemoved;
             set => this.wasRemoved = value;
+        }
+
+        public bool WasDeleted
+        {
+            get => this.wasDeleted;
+            set => this.wasDeleted = value;
         }
 
         public LfuNode<K, V> Next
