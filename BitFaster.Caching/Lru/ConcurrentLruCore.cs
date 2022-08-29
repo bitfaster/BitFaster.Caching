@@ -508,7 +508,6 @@ namespace BitFaster.Caching.Lru
             if (this.hotQueue.TryDequeue(out var item))
             {
                 var where = this.itemPolicy.RouteHot(item);
-                //this.Move(item, where, removedReason);
                 return (where, this.Move(item, where, removedReason));
             }
             else
