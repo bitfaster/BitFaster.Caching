@@ -5,12 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using BitFaster.Caching.Pad;
 
 namespace BitFaster.Caching.Lru
 {
     public struct TelemetryPolicy<K, V> : ITelemetryPolicy<K, V>
     {
-        private long hitCount;
+        private StripedLongAdder hitCount;
         private long missCount;
         private long evictedCount;
         private long updatedCount;
@@ -20,9 +21,9 @@ namespace BitFaster.Caching.Lru
 
         public double HitRatio => Total == 0 ? 0 : (double)Hits / (double)Total;
 
-        public long Total => this.hitCount + this.missCount;
+        public long Total => this.hitCount.GetValue() + this.missCount;
 
-        public long Hits => this.hitCount;
+        public long Hits => this.hitCount.GetValue();
 
         public long Misses => this.missCount;
 
@@ -37,7 +38,7 @@ namespace BitFaster.Caching.Lru
 
         public void IncrementHit()
         {
-            Interlocked.Increment(ref this.hitCount);
+            this.hitCount.Increment();
         }
 
         public void OnItemRemoved(K key, V value, ItemRemovedReason reason)
@@ -58,6 +59,7 @@ namespace BitFaster.Caching.Lru
 
         public void SetEventSource(object source)
         {
+            this.hitCount = new StripedLongAdder();
             this.eventSource = source;
         }
     }
