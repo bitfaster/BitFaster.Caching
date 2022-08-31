@@ -35,7 +35,7 @@ namespace BitFaster.Caching.Lfu
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
-        private const int MaxWriteBufferRetries = 100;
+        private const int MaxWriteBufferRetries = 16;
 
         public const int BufferSize = 128;
 
