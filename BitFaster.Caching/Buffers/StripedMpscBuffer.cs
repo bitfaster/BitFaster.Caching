@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -15,6 +17,7 @@ namespace BitFaster.Caching.Buffers
     /// rehashed to select a different buffer to retry up to 3 times. Using this approach
     /// writes scale linearly with number of concurrent threads.
     /// </summary>
+    [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public class StripedMpscBuffer<T> where T : class
     {
         const int MaxAttempts = 3;
@@ -31,6 +34,8 @@ namespace BitFaster.Caching.Buffers
                 buffers[i] = new MpscBoundedBuffer<T>(bufferSize);
             }
         }
+
+        public int Count => buffers.Sum(b => b.Count);
 
         public int Capacity => buffers.Length * buffers[0].Capacity;
 

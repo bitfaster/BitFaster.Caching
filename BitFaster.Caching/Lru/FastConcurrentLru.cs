@@ -1,10 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace BitFaster.Caching.Lru
 {
     ///<inheritdoc/>
+    [DebuggerTypeProxy(typeof(LruDebugView<,>))]
+    [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class FastConcurrentLru<K, V> : ConcurrentLruCore<K, V, LruItem<K, V>, LruPolicy<K, V>, NoTelemetryPolicy<K, V>>
     {
         /// <summary>

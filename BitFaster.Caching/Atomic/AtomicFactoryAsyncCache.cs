@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Atomic
 {
+    [DebuggerDisplay("Count = {Count}")]
     public sealed class AtomicFactoryAsyncCache<K, V> : IAsyncCache<K, V>
     {
         private readonly ICache<K, AsyncAtomicFactory<K, V>> cache;

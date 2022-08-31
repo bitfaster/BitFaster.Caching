@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
 using BitFaster.Caching.Concurrent;
 
 namespace BitFaster.Caching.Lru
 {
+    [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Upd = {Updated}, Evict = {Evicted}")]
     public struct TelemetryPolicy<K, V> : ITelemetryPolicy<K, V>
     {
         private LongAdder hitCount;

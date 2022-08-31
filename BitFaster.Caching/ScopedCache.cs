@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
@@ -15,6 +13,7 @@ namespace BitFaster.Caching
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
+    [DebuggerDisplay("Count = {Count}")]
     public sealed class ScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
     {
         private readonly ICache<K, Scoped<V>> cache;

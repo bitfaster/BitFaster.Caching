@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Atomic
 {
+    [DebuggerDisplay("Count = {Count}")]
     public sealed class AtomicFactoryScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
     {
         private readonly ICache<K, ScopedAtomicFactory<K, V>> cache;
