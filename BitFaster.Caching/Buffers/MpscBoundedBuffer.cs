@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Buffers
 {
@@ -16,7 +13,7 @@ namespace BitFaster.Caching.Buffers
     /// https://github.com/ben-manes/caffeine/blob/master/caffeine/src/main/java/com/github/benmanes/caffeine/cache/BoundedBuffer.java
     /// </remarks>
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
-    public class MpscBoundedBuffer<T> where T : class
+    public sealed class MpscBoundedBuffer<T> where T : class
     {
         private T[] buffer;
         private readonly int mask;

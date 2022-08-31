@@ -16,7 +16,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -25,7 +24,7 @@ namespace BitFaster.Caching.Lfu
     // SIMD: https://thlujy.github.io/papers/Lujianyuan-tpds-ufbf.pdf
     // https://github.com/ben-manes/caffeine/blob/master/caffeine/src/main/java/com/github/benmanes/caffeine/cache/FrequencySketch.java
     // https://github.com/ben-manes/caffeine/blob/master/caffeine/src/test/java/com/github/benmanes/caffeine/cache/FrequencySketchTest.java
-    public class CmSketch<T>
+    public sealed class CmSketch<T>
     {
         // A mixture of seeds from FNV-1a, CityHash, and Murmur3
         private static ulong[] Seed = { 0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L};

@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 
 namespace BitFaster.Caching.Buffers
@@ -16,7 +13,7 @@ namespace BitFaster.Caching.Buffers
     /// Based on the Segment internal class from ConcurrentQueue
     /// https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Collections/Concurrent/ConcurrentQueueSegment.cs
     /// </remarks>
-    public class MpmcBoundedBuffer<T>
+    public sealed class MpmcBoundedBuffer<T>
     {
         private Slot[] slots;
         private readonly int slotsMask;
