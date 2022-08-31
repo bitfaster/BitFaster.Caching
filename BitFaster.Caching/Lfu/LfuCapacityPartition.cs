@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 
 namespace BitFaster.Caching.Lfu
 {
     [DebuggerDisplay("{Capacity} ({Window}/{Protected}/{Probation})")]
-    public class LfuCapacityPartition
+    public sealed class LfuCapacityPartition
     {
         private readonly int max;
         

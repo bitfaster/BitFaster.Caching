@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading;
 
 #if !NETSTANDARD2_0
 using System.Runtime.Intrinsics.X86;
@@ -18,7 +15,7 @@ namespace BitFaster.Caching.Buffers
     /// writes scale linearly with number of concurrent threads.
     /// </summary>
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
-    public class StripedMpscBuffer<T> where T : class
+    public sealed class StripedMpscBuffer<T> where T : class
     {
         const int MaxAttempts = 3;
 

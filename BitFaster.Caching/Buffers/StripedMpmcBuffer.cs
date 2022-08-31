@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Runtime.InteropServices;
+
 #if !NETSTANDARD2_0
 using System.Runtime.Intrinsics.X86;
 #endif
-using System.Text;
-using System.Threading;
-using BitFaster.Caching.Lfu;
 
 namespace BitFaster.Caching.Buffers
 {
@@ -17,7 +12,7 @@ namespace BitFaster.Caching.Buffers
     /// rehashed to select a different buffer to retry up to 3 times. Using this approach
     /// writes scale linearly with number of concurrent threads.
     /// </summary>
-    public class StripedMpmcBuffer<T>
+    public sealed class StripedMpmcBuffer<T>
     {
         const int MaxAttempts = 3;
 

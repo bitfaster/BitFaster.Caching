@@ -9,7 +9,7 @@ namespace BitFaster.Caching.Scheduler
     /// <summary>
     /// Represents a scheduler that handles queuing tasks to execute in the ThreadPool.
     /// </summary>
-    public class ThreadPoolScheduler : IScheduler
+    public sealed class ThreadPoolScheduler : IScheduler
     {
         private long count;
         private Optional<Exception> lastException = Optional<Exception>.None();

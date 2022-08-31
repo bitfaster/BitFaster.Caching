@@ -8,7 +8,7 @@ namespace BitFaster.Caching.Scheduler
     /// <summary>
     /// Represents a scheduler that does no scheduling. Scheduled Tasks will not be run.
     /// </summary>
-    public class NullScheduler : IScheduler
+    public sealed class NullScheduler : IScheduler
     {
         private long count;
 
