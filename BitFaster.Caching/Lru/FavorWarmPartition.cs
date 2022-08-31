@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace BitFaster.Caching.Lru
 {
@@ -10,6 +7,7 @@ namespace BitFaster.Caching.Lru
     /// A capacity partitioning scheme that favors frequently accessed items by allocating 80% 
     /// capacity to the warm queue.
     /// </summary>
+    [DebuggerDisplay("{Hot}/{Warm}/{Cold}")]
     public class FavorWarmPartition : ICapacityPartition
     {
         private readonly int hotCapacity;

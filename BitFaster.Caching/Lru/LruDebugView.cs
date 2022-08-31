@@ -33,5 +33,7 @@ namespace BitFaster.Caching.Lru
                 return items;
             }
         }
+
+        public ICacheMetrics Metrics => cache.Metrics.Value;
     }
 }
