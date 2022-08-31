@@ -22,6 +22,22 @@ namespace BitFaster.Caching.UnitTests.Buffers
         }
 
         [Fact]
+        public void CountReturnsCount()
+        {
+            buffer.Count.Should().Be(0);
+
+            for (var i = 0; i < stripeCount; i++)
+            {
+                for (var j = 0; j < bufferSize; j++)
+                {
+                    buffer.TryAdd(1.ToString()).Should().Be(BufferStatus.Success);
+                }
+            }
+
+            buffer.Count.Should().Be(buffer.Capacity);
+        }
+
+        [Fact]
         public void WhenBufferIsFullTryAddReturnsFull()
         {
             for (var i = 0; i < stripeCount; i++)

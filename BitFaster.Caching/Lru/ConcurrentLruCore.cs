@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -660,6 +661,7 @@ namespace BitFaster.Caching.Lru
         // it becomes immutable. However, this object is then somewhere else on the 
         // heap, which slows down the policies with hit counter logic in benchmarks. Likely
         // this approach keeps the structs data members in the same CPU cache line as the LRU.
+        [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Upd = {Updated}, Evict = {Evicted}")]
         private class Proxy : ICacheMetrics, ICacheEvents<K, V>, IBoundedPolicy, ITimePolicy
         {
             private readonly ConcurrentLruCore<K, V, I, P, T> lru;

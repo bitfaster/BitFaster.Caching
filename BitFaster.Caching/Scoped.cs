@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
-using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching
 {
@@ -12,6 +11,8 @@ namespace BitFaster.Caching
     /// the wrapped object from being diposed until the calling code completes.
     /// </summary>
     /// <typeparam name="T">The type of scoped value.</typeparam>
+    [DebuggerTypeProxy(typeof(Scoped<>.ScopedDebugView))]
+    [DebuggerDisplay("{FormatDebug(),nq}")]
     public sealed class Scoped<T> : IScoped<T>, IDisposable where T : IDisposable
     {
         private ReferenceCount<T> refCount;
@@ -101,6 +102,37 @@ namespace BitFaster.Caching
                 this.DecrementReferenceCount();
                 this.isDisposed = true;
             }
+        }
+
+        [ExcludeFromCodeCoverage]
+        internal string FormatDebug()
+        {
+            if (IsDisposed)
+            {
+                return "[Disposed Scope]";
+            }
+
+            return this.refCount.Value?.ToString();
+        }
+
+        [ExcludeFromCodeCoverage]
+        internal class ScopedDebugView
+        {
+            private readonly Scoped<T> scoped;
+
+            public ScopedDebugView(Scoped<T> scoped)
+            {
+                if (scoped is null)
+                {
+                    throw new ArgumentNullException(nameof(scoped));
+                }
+
+                this.scoped = scoped;
+            }
+
+            public bool IsDisposed => this.scoped.IsDisposed;
+
+            public T Value => this.scoped.refCount.Value;
         }
     }
 }

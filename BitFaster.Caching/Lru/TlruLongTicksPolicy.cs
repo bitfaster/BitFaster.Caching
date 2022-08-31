@@ -15,6 +15,7 @@ namespace BitFaster.Caching.Lru
     /// <remarks>
     /// This class measures time using stopwatch.
     /// </remarks>
+    [DebuggerDisplay("TTL = {TimeToLive,nq})")]
     public readonly struct TLruLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         // On some platforms (e.g. MacOS), stopwatch and timespan have different resolution

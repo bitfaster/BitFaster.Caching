@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 
 namespace BitFaster.Caching
 {
     /// <summary>
     /// Represents an optional value.
     /// </summary>
+    [DebuggerDisplay("{Value}")]
     public class Optional<T> 
     {
         private readonly T value;

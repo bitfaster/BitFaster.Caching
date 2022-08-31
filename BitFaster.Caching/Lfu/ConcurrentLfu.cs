@@ -31,6 +31,8 @@ namespace BitFaster.Caching.Lfu
     /// Based on Caffeine written by Ben Manes.
     /// https://www.apache.org/licenses/LICENSE-2.0
     /// </remarks>
+    [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView))]
+    [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
         private const int MaxWriteBufferRetries = 100;
@@ -644,7 +646,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        [DebuggerDisplay("{Format()}")]
+        [DebuggerDisplay("{Format(),nq}")]
         private class DrainStatus
         {
             public const int Idle = 0;
@@ -687,7 +689,7 @@ namespace BitFaster.Caching.Lfu
             }
 
             [ExcludeFromCodeCoverage]
-            private string Format()
+            internal string Format()
             {
                 switch (this.drainStatus.Value)
                 {
@@ -705,7 +707,8 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private class CacheMetrics : ICacheMetrics
+        [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Upd = {Updated}, Evict = {Evicted}")]
+        internal class CacheMetrics : ICacheMetrics
         {
             public long requestHitCount;
             public long requestMissCount;
@@ -741,6 +744,40 @@ namespace BitFaster.Caching.Lfu
             return sb.ToString();
         }
 #endif
+
+        [ExcludeFromCodeCoverage]
+        internal class LfuDebugView
+        {
+            private ConcurrentLfu<K, V> lfu;
+
+            public LfuDebugView(ConcurrentLfu<K, V> lfu)
+            {
+                this.lfu = lfu;
+            }
+
+            public string Maintenance => lfu.drainStatus.Format();
+
+            public ICacheMetrics Metrics => lfu.metrics;
+
+            public StripedMpscBuffer<LfuNode<K, V>> ReadBuffer => this.lfu.readBuffer;
+
+            public StripedMpscBuffer<LfuNode<K, V>> WriteBuffer => this.lfu.writeBuffer;
+
+            public KeyValuePair<K, V>[] Items
+            {
+                get
+                {
+                    var items = new KeyValuePair<K, V>[lfu.Count];
+
+                    int index = 0;
+                    foreach (var kvp in lfu)
+                    {
+                        items[index++] = kvp;
+                    }
+                    return items;
+                }
+            }
+        }
     }
 
     // Explicit layout cannot be a generic class member

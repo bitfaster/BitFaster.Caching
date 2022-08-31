@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ namespace BitFaster.Caching.Lru
     /// <summary>
     /// A simple partitioning scheme to put an approximately equal number of items in each queue.
     /// </summary>
+    [DebuggerDisplay("{Hot}/{Warm}/{Cold}")]
     public class EqualCapacityPartition : ICapacityPartition
     {
         private readonly int hotCapacity;

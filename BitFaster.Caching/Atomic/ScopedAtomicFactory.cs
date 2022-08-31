@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Atomic
 {
@@ -12,6 +8,7 @@ namespace BitFaster.Caching.Atomic
     // 1. Exactly once disposal.
     // 2. Exactly once invocation of value factory (synchronized create).
     // 3. Resolve race between create dispose init, if disposed is called before value is created, scoped value is disposed for life.
+    [DebuggerDisplay("IsValueCreated={initializer == null}, Value={ScopeIfCreated}")]
     public sealed class ScopedAtomicFactory<K, V> : IScoped<V>, IDisposable where V : IDisposable
     {
         private Scoped<V> scope;
