@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Atomic
 {
+    [DebuggerDisplay("IsValueCreated={initializer == null}, Value={ScopeIfCreated}")]
     public sealed class ScopedAsyncAtomicFactory<K, V> : IScoped<V>, IDisposable where V : IDisposable
     {
         private Scoped<V> scope;
