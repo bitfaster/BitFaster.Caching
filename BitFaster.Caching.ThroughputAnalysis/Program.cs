@@ -102,7 +102,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 for (int i = 0; i < warmup + runs; i++)
                 {
                     var scheduler = new BackgroundThreadScheduler();
-                    results[i] = MeasureThroughput(new ConcurrentLfu<int, int>(concurrencyLevel: tc, capacity: capacity, scheduler: scheduler, EqualityComparer<int>.Default), tc);
+                    results[i] = MeasureThroughput(new ConcurrentLfu<int, int>(concurrencyLevel: tc, capacity: capacity, scheduler: scheduler, EqualityComparer<int>.Default, BufferConfiguration.CreateDefault(concurrencyLevel: tc, capacity: capacity)), tc);
                     scheduler.Dispose();
                 }
                 avg = AverageLast(results, runs) / 1000000;

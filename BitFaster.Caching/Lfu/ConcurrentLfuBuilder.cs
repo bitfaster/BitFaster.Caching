@@ -23,7 +23,7 @@ namespace BitFaster.Caching.Lfu
         public override ICache<K, V> Build()
         {
             // TODO: key comparer
-            return new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer);
+            return new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, info.BufferConfiguration);
         }
     }
 }

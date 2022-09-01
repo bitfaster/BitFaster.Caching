@@ -14,7 +14,7 @@ namespace BitFaster.Caching.Lfu.Builder
         ///<inheritdoc/>
         public override IAsyncCache<K, V> Build()
         {
-            return new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer);
+            return new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, info.BufferConfiguration);
         }
     }
 }

@@ -64,18 +64,16 @@ namespace BitFaster.Caching.Lfu
 #endif
 
         public ConcurrentLfu(int capacity)
-            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default)
+            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, BufferConfiguration.CreateDefault(Defaults.ConcurrencyLevel, capacity))
         {        
         }
 
-        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
+        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, BufferConfiguration bufferConfiguration)
         {
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
-            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
-
-            // TODO: how big should this be in total? We shouldn't allow more than some capacity % of writes in the buffer
-            this.writeBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
+            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferConfiguration.ReadBufferStripes, bufferConfiguration.ReadBufferSize);
+            this.writeBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferConfiguration.WriteBufferStripes, bufferConfiguration.WriteBufferSize);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
