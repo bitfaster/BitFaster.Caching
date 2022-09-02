@@ -48,7 +48,7 @@ namespace BitFaster.Caching.Benchmarks
         private static readonly ICache<int, int> atomicFastLru = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithAtomicGetOrAdd().Build();
 
         private static readonly BackgroundThreadScheduler background = new BackgroundThreadScheduler();
-        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(1, 9, background, EqualityComparer<int>.Default, BufferConfiguration.CreateDefault(1, 128));
+        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(1, 9, background, EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
 
 
         private static readonly int key = 1;

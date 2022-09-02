@@ -45,23 +45,10 @@ namespace BitFaster.Caching.Scheduler
 
         public void Run(Action action)
         {
-            BufferStatus s;
-
-            //do
+            if (work.TryAdd(action) == BufferStatus.Success)
             {
-                s = work.TryAdd(action);
-            }
-            //while (s == Status.Contended);
-
-            if (s == BufferStatus.Success)
-            {
-
                 semaphore.Release();
                 count++;
-            }
-            else
-            {
-                throw new InvalidOperationException($"More than {MaxBacklog} tasks scheduled");
             }
         }
 

@@ -8,7 +8,7 @@ namespace BitFaster.Caching.Lfu.Builder
 {
     public sealed class LfuInfo<K>
     {
-        private BufferConfiguration bufferConfiguration;
+        private LfuBufferSize bufferConfiguration;
 
         public int Capacity { get; set; } = 128;
 
@@ -18,11 +18,11 @@ namespace BitFaster.Caching.Lfu.Builder
 
         public IEqualityComparer<K> KeyComparer { get; set; } = EqualityComparer<K>.Default;
 
-        public BufferConfiguration BufferConfiguration 
+        public LfuBufferSize BufferConfiguration 
         {
             get
             { 
-                return this.bufferConfiguration ?? BufferConfiguration.CreateDefault(ConcurrencyLevel, Capacity); 
+                return this.bufferConfiguration ?? LfuBufferSize.Default(ConcurrencyLevel, Capacity); 
             }
             set
             { 

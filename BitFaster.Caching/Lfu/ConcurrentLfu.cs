@@ -1,7 +1,6 @@
 ﻿using System;
 
-#if NETSTANDARD2_0
-#else
+#if !NETSTANDARD2_0
 using System.Buffers;
 #endif
 
@@ -37,8 +36,6 @@ namespace BitFaster.Caching.Lfu
     {
         private const int MaxWriteBufferRetries = 16;
 
-        public const int BufferSize = 128;
-
         private readonly ConcurrentDictionary<K, LfuNode<K, V>> dictionary;
 
         private readonly StripedMpscBuffer<LfuNode<K, V>> readBuffer;
@@ -64,16 +61,16 @@ namespace BitFaster.Caching.Lfu
 #endif
 
         public ConcurrentLfu(int capacity)
-            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, BufferConfiguration.CreateDefault(Defaults.ConcurrencyLevel, capacity))
+            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, LfuBufferSize.Default(Defaults.ConcurrencyLevel, capacity))
         {        
         }
 
-        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, BufferConfiguration bufferConfiguration)
+        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, LfuBufferSize bufferConfiguration)
         {
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
-            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferConfiguration.ReadBufferStripes, bufferConfiguration.ReadBufferSize);
-            this.writeBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferConfiguration.WriteBufferStripes, bufferConfiguration.WriteBufferSize);
+            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferConfiguration.Read);
+            this.writeBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferConfiguration.Write);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);

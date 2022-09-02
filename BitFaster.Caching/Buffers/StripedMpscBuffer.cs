@@ -22,13 +22,17 @@ namespace BitFaster.Caching.Buffers
         private MpscBoundedBuffer<T>[] buffers;
 
         public StripedMpscBuffer(int stripeCount, int bufferSize)
-        {
-            stripeCount = BitOps.CeilingPowerOfTwo(stripeCount);
-            buffers = new MpscBoundedBuffer<T>[stripeCount];
+            : this(new StripedBufferSize(bufferSize, stripeCount))
+        { 
+        }
 
-            for (var i = 0; i < stripeCount; i++)
+        public StripedMpscBuffer(StripedBufferSize bufferSize)
+        {
+            buffers = new MpscBoundedBuffer<T>[bufferSize.StripeCount];
+
+            for (var i = 0; i < bufferSize.StripeCount; i++)
             {
-                buffers[i] = new MpscBoundedBuffer<T>(bufferSize);
+                buffers[i] = new MpscBoundedBuffer<T>(bufferSize.BufferSize);
             }
         }
 

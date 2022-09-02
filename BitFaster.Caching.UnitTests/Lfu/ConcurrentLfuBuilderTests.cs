@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
+using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using FluentAssertions;
@@ -54,6 +51,17 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             lfu.GetOrAdd("a", k => 1);
             lfu.TryGet("A", out var value).Should().BeTrue();
+        }
+
+        [Fact]
+        public void TestBufferConfiguraiton()
+        {
+            ICache<string, int> lfu = new ConcurrentLfuBuilder<string, int>()
+               .WithBufferConfiguration(new LfuBufferSize(
+                    new StripedBufferSize(128, 2),
+                    new StripedBufferSize(128, 2)
+                   ))
+               .Build();
         }
 
         // 1

@@ -19,13 +19,17 @@ namespace BitFaster.Caching.Buffers
         private MpmcBoundedBuffer<T>[] buffers;
 
         public StripedMpmcBuffer(int stripeCount, int bufferSize)
+            : this(new StripedBufferSize(bufferSize, stripeCount))
         {
-            stripeCount = BitOps.CeilingPowerOfTwo(stripeCount);
-            buffers = new MpmcBoundedBuffer<T>[stripeCount];
+        }
 
-            for (var i = 0; i < stripeCount; i++)
+        public StripedMpmcBuffer(StripedBufferSize bufferSize)
+        {
+            buffers = new MpmcBoundedBuffer<T>[bufferSize.StripeCount];
+
+            for (var i = 0; i < bufferSize.StripeCount; i++)
             {
-                buffers[i] = new MpmcBoundedBuffer<T>(bufferSize);
+                buffers[i] = new MpmcBoundedBuffer<T>(bufferSize.BufferSize);
             }
         }
 
