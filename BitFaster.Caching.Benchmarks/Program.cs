@@ -1,12 +1,4 @@
-﻿using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Jobs;
-using BenchmarkDotNet.Running;
-using BitFaster.Caching.Benchmarks.Lru;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using BenchmarkDotNet.Running;
 
 namespace BitFaster.Caching.Benchmarks
 {
