@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Lru;
 using MathNet.Numerics.Distributions;
-using MathNet.Numerics.Random;
 
 namespace BitFaster.Caching.Benchmarks.Lru
 {
@@ -26,7 +24,8 @@ namespace BitFaster.Caching.Benchmarks.Lru
     [SimpleJob(RuntimeMoniker.Net48)]
     [SimpleJob(RuntimeMoniker.Net60)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
-    [MemoryDiagnoser]
+    [MemoryDiagnoser(displayGenColumns: false)]
+    [HideColumns("Median", "RatioSD")]
     public class LruZipDistribution
     {
         const double s = 0.86;
