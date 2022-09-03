@@ -35,7 +35,7 @@ namespace BitFaster.Caching.Lfu
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
-        private const int MaxWriteBufferRetries = 16;
+        private const int MaxWriteBufferRetries = 64;
 
         private readonly ConcurrentDictionary<K, LfuNode<K, V>> dictionary;
 
@@ -265,8 +265,6 @@ namespace BitFaster.Caching.Lfu
 
         private void AfterWrite(LfuNode<K, V> node)
         {
-            var spinner = new SpinWait();
-
             for (int i = 0; i < MaxWriteBufferRetries; i++)
             {
                 if (writeBuffer.TryAdd(node) == BufferStatus.Success)
@@ -276,12 +274,22 @@ namespace BitFaster.Caching.Lfu
                 }
 
                 TryScheduleDrain();
-
-                spinner.SpinOnce();
             }
 
             lock (this.maintenanceLock)
             {
+                // aggressively try to exit the lock early before doing full maintenance
+                var status = BufferStatus.Contended;
+                while (status != BufferStatus.Full)
+                {
+                    status = writeBuffer.TryAdd(node);
+
+                    if (status != BufferStatus.Success)
+                    {
+                        return;
+                    }
+                }
+
                 // if the write was dropped from the buffer, explicitly pass it to maintenance
                 Maintenance(node);
             }
@@ -289,6 +297,7 @@ namespace BitFaster.Caching.Lfu
 
         private void ScheduleAfterWrite()
         {
+            var spinner = new SpinWait();
             while (true)
             {
                 switch (this.drainStatus.Status())
@@ -309,6 +318,7 @@ namespace BitFaster.Caching.Lfu
                     case DrainStatus.ProcessingToRequired:
                         return;
                 }
+                spinner.SpinOnce();
             }
         }
 
@@ -384,11 +394,11 @@ namespace BitFaster.Caching.Lfu
 #if !NETSTANDARD2_0
             var localDrainBuffer = ArrayPool<LfuNode<K, V>>.Shared.Rent(this.readBuffer.Capacity);
 #endif
-            int maxSweeps = 1;
+   //         int maxSweeps = 1;
             int count = 0;
 
-            for (int s = 0; s < maxSweeps; s++)
-            {
+  //          for (int s = 0; s < maxSweeps; s++)
+   //         {
                 count = 0;
 
                 // extract to a buffer before doing book keeping work, ~2x faster
@@ -404,10 +414,15 @@ namespace BitFaster.Caching.Lfu
                     OnAccess(localDrainBuffer[i]);
                 }
 
-                wasDrained = count == 0; 
-            }
+                wasDrained = count == 0 && droppedWrite == null; 
+    //        }
 
             count = this.writeBuffer.DrainTo(localDrainBuffer);
+
+            if (!wasDrained)
+            {
+                wasDrained = count == 0 && droppedWrite == null;
+            }
 
             for (int i = 0; i < count; i++)
             {
@@ -567,7 +582,7 @@ namespace BitFaster.Caching.Lfu
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
                 // bail when we run out of options
-                if (candidate == null || victim == null || victim == candidate)
+                if (candidate == null | victim == null | victim == candidate)
                 {
                     break;
                 }
@@ -579,7 +594,7 @@ namespace BitFaster.Caching.Lfu
 
                     // victim is initialized to first, and iterates forwards
                     victim = victim.Next;
-                    candidate = candidate.Next;
+                    //candidate = candidate.Next;
 
                     Evict(evictee);
                 }
