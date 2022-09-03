@@ -18,6 +18,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
+using BitFaster.Caching.Concurrent;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 
@@ -204,7 +205,7 @@ namespace BitFaster.Caching.Lfu
                 return true;
             }
 
-            Interlocked.Increment(ref this.metrics.requestMissCount);
+            this.metrics.requestMissCount.Increment();
 
             value = default;
             return false;
@@ -706,17 +707,17 @@ namespace BitFaster.Caching.Lfu
         internal class CacheMetrics : ICacheMetrics
         {
             public long requestHitCount;
-            public long requestMissCount;
+            public LongAdder requestMissCount = new LongAdder();
             public long updatedCount;
             public long evictedCount;
 
             public double HitRatio => (double)requestHitCount / (double)Total;
 
-            public long Total => requestHitCount + requestMissCount;
+            public long Total => requestHitCount + requestMissCount.Sum();
 
             public long Hits => requestHitCount;
 
-            public long Misses => requestMissCount;
+            public long Misses => requestMissCount.Sum();
 
             public long Updated => updatedCount;
 
