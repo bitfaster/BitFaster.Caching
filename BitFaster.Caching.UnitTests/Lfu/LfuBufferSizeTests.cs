@@ -1,4 +1,5 @@
 ﻿using System;
+using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lfu;
 using FluentAssertions;
 using Xunit;
@@ -7,6 +8,22 @@ namespace BitFaster.Caching.UnitTests.Lfu
 {
     public class LfuBufferSizeTests
     {
+        [Fact]
+        public void WhenReadBufferIsNullThrows()
+        {
+            Action constructor = () => { var x = new LfuBufferSize(null, new StripedBufferSize(1, 1)); };
+
+            constructor.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact]
+        public void WhenWriteBufferIsNullThrows()
+        {
+            Action constructor = () => { var x = new LfuBufferSize(new StripedBufferSize(1, 1), null); };
+
+            constructor.Should().Throw<ArgumentNullException>();
+        }
+
         [SkippableTheory]
         [InlineData(1, 3, 1, 32, 1, 16)]
         [InlineData(1, 14, 1, 128, 1, 16)]
