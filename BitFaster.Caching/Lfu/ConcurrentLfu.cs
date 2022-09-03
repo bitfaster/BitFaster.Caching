@@ -65,12 +65,12 @@ namespace BitFaster.Caching.Lfu
         {        
         }
 
-        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, LfuBufferSize bufferConfiguration)
+        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, LfuBufferSize bufferSize)
         {
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
-            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferConfiguration.Read);
-            this.writeBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferConfiguration.Write);
+            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferSize.Read);
+            this.writeBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferSize.Write);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
