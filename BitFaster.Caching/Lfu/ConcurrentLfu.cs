@@ -1,7 +1,6 @@
 ﻿using System;
 
-#if NETSTANDARD2_0
-#else
+#if !NETSTANDARD2_0
 using System.Buffers;
 #endif
 
@@ -37,8 +36,6 @@ namespace BitFaster.Caching.Lfu
     {
         private const int MaxWriteBufferRetries = 16;
 
-        public const int BufferSize = 128;
-
         private readonly ConcurrentDictionary<K, LfuNode<K, V>> dictionary;
 
         private readonly StripedMpscBuffer<LfuNode<K, V>> readBuffer;
@@ -64,18 +61,16 @@ namespace BitFaster.Caching.Lfu
 #endif
 
         public ConcurrentLfu(int capacity)
-            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default)
+            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, LfuBufferSize.Default(Defaults.ConcurrencyLevel, capacity))
         {        
         }
 
-        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
+        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, LfuBufferSize bufferSize)
         {
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
-            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
-
-            // TODO: how big should this be in total? We shouldn't allow more than some capacity % of writes in the buffer
-            this.writeBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
+            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferSize.Read);
+            this.writeBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferSize.Write);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
