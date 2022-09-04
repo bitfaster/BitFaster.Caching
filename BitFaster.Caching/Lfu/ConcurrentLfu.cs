@@ -388,35 +388,34 @@ namespace BitFaster.Caching.Lfu
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
             var localDrainBuffer = RentDrainBuffer();
-            // extract to a buffer before doing book keeping work, ~2x faster
-            var count = readBuffer.DrainTo(localDrainBuffer);
 
-            for (int i = 0; i < count; i++)
+            // extract to a buffer before doing book keeping work, ~2x faster
+            int readCount = readBuffer.DrainTo(localDrainBuffer);
+
+            for (int i = 0; i < readCount; i++)
             {
                 this.cmSketch.Increment(localDrainBuffer[i].Key);
             }
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < readCount; i++)
             {
                 OnAccess(localDrainBuffer[i]);
             }
 
-        	var wasDrained = count == 0 && droppedWrite == null; 
-            count = this.writeBuffer.DrainTo(localDrainBuffer);
+            int writeCount = this.writeBuffer.DrainTo(localDrainBuffer);
 
-            if (!wasDrained)
-            {
-                wasDrained = count == 0 && droppedWrite == null;
-            }
-
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < writeCount; i++)
             {
                 OnWrite(localDrainBuffer[i]);
             }
 
+            // we are done only when both buffers were empty
+            var done = readCount == 0 & writeCount == 0;
+
             if (droppedWrite != null)
             {
                 OnWrite(droppedWrite);
+                done = true;
             }
 
             ReturnDrainBuffer(localDrainBuffer);
@@ -428,14 +427,14 @@ namespace BitFaster.Caching.Lfu
             // Reset to idle if either
             // 1. We drained both input buffers (all work done)
             // 2. or scheduler is foreground (since don't run continuously on the foreground)
-            if ((wasDrained || !scheduler.IsBackground) &&
+            if ((done || !scheduler.IsBackground) &&
                 (this.drainStatus.Status() != DrainStatus.ProcessingToIdle ||
                 !this.drainStatus.Cas(DrainStatus.ProcessingToIdle, DrainStatus.Idle)))
             {
                 this.drainStatus.Set(DrainStatus.Required);
             }
 
-            return wasDrained;
+            return done;
         }
 
         private void OnAccess(LfuNode<K, V> node)
