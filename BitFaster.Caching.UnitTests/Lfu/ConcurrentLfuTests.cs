@@ -758,7 +758,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public async Task ThreadedVerifyMisses()
         {
             // buffer size is 1, this will cause dropped writes on some threads where the buffer is full
-            cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default,
+            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default,
                 new LfuBufferSize(new StripedBufferSize(1, 1), new StripedBufferSize(1, 1)));
 
             int threads = 4;
