@@ -283,7 +283,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     status = writeBuffer.TryAdd(node);
 
-                    if (status != BufferStatus.Success)
+                    if (status == BufferStatus.Success)
                     {
                         return;
                     }
