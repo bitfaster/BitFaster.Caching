@@ -720,6 +720,37 @@ namespace BitFaster.Caching.UnitTests.Lfu
             VerifyHits(iterations: iterations + dropped, minSamples: iterations);
         }
 
+        [Fact]
+        public void VerifyMisses()
+        {
+            int iterations = 100000;
+            Func<int, int> func = x => x;
+
+            var start = Stopwatch.GetTimestamp();
+
+            for (int i = 0; i < iterations; i++)
+            {
+                cache.GetOrAdd(i, func);
+            }
+
+            var end = Stopwatch.GetTimestamp();
+
+            cache.PendingMaintenance();
+
+            var totalTicks = end - start;
+            var timeMs = ((double)totalTicks / Stopwatch.Frequency) * 1000.0;
+            var timeNs = timeMs / 1000000;
+
+            var timePerOp = timeMs / (double)iterations;
+            var samplePercent = this.cache.Metrics.Value.Misses / (double)iterations * 100;
+
+            this.output.WriteLine($"Elapsed {timeMs}ms - {timeNs}ns/op");
+            this.output.WriteLine($"Cache misses {this.cache.Metrics.Value.Misses} (sampled {samplePercent}%)");
+            this.output.WriteLine($"Maintenance ops {this.cache.Scheduler.RunCount}");
+
+            cache.Metrics.Value.Misses.Should().Be(iterations);
+        }
+
         private void VerifyHits(int iterations, int minSamples)
         {
             Func<int, int> func = x => x;
