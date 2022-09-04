@@ -56,7 +56,10 @@ namespace BitFaster.Caching.Lfu
 
         private readonly IScheduler scheduler;
 
-        private readonly LfuNode<K, V>[] removeList = new LfuNode<K, V>[Environment.ProcessorCount];
+        const int padding = 64;
+        const int spacing = 64;
+
+        private readonly LfuNode<K, V>[] removeList = new LfuNode<K, V>[padding + (Environment.ProcessorCount * spacing)];
 
 #if NETSTANDARD2_0
         private readonly LfuNode<K, V>[] drainBuffer;
@@ -278,26 +281,13 @@ namespace BitFaster.Caching.Lfu
 
                 TryScheduleDrain();
 
-                var rem = TryDequeue();
-                if (rem != null)
-                {
-                    this.dictionary.TryRemove(rem.Key, out var _);
-                    Disposer<V>.Dispose(rem.Value);
-                }
+                TryHelpRemove();
 
                 spinner.SpinOnce();
             }
 
             while (true)
             {
-
-                var rem = TryDequeue();
-                if (rem != null)
-                {
-                    this.dictionary.TryRemove(rem.Key, out var _);
-                    Disposer<V>.Dispose(rem.Value);
-                }
-
                 bool wasTaken = false;
                 Monitor.TryEnter(this.maintenanceLock, ref wasTaken);
                 try
@@ -315,6 +305,8 @@ namespace BitFaster.Caching.Lfu
                         Monitor.Exit(this.maintenanceLock);
                     }
                 }
+
+                TryHelpRemove();
             }
 
             //lock (this.maintenanceLock)
@@ -466,11 +458,12 @@ namespace BitFaster.Caching.Lfu
 
         private void TryAddToRemoveList(LfuNode<K, V> node)
         {
-            for (int i = 0; i < removeList.Length; i++)
+            for (int i = 0; i < Environment.ProcessorCount; i++)
             {
-                if (Volatile.Read(ref removeList[i]) == null)
+                int index = padding + (i * spacing);
+                if (Volatile.Read(ref removeList[index]) == null)
                 {
-                    if (Interlocked.CompareExchange(ref removeList[i], node, null) == null)
+                    if (Interlocked.CompareExchange(ref removeList[index], node, null) == null)
                     {
                         return;
                     }
@@ -482,31 +475,32 @@ namespace BitFaster.Caching.Lfu
             Disposer<V>.Dispose(node.Value);
         }
 
-        private LfuNode<K, V> TryDequeue()
+        private void TryHelpRemove()
         {
-            for (int i = 0; i < removeList.Length; i++)
+            for (int i = 0; i < Environment.ProcessorCount; i++)
             {
-                var node = Volatile.Read(ref removeList[i]);
+                int index = padding + (i * spacing);
+                var node = Volatile.Read(ref removeList[index]);
                 if (node != null)
                 {
-                    if (Interlocked.CompareExchange(ref removeList[i], null, node) == node)
+                    if (Interlocked.CompareExchange(ref removeList[index], null, node) == node)
                     {
-                        return node;
+                        this.dictionary.TryRemove(node.Key, out var _);
+                        Disposer<V>.Dispose(node.Value);
                     }
                 }
             }
-
-            return null;
         }
 
         private void RemoveAll()
         {
-            for (int i = 0; i < removeList.Length; i++)
+            for (int i = 0; i < Environment.ProcessorCount; i++)
             {
-                var node = Volatile.Read(ref removeList[i]);
+                int index = padding + (i * spacing);
+                var node = Volatile.Read(ref removeList[index]);
                 if (node != null)
                 {
-                    if (Interlocked.CompareExchange(ref removeList[i], null, node) == node)
+                    if (Interlocked.CompareExchange(ref removeList[index], null, node) == node)
                     {
                         this.dictionary.TryRemove(node.Key, out var _);
                         Disposer<V>.Dispose(node.Value);
