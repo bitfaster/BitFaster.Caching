@@ -409,7 +409,7 @@ namespace BitFaster.Caching.Lfu
                 OnWrite(localDrainBuffer[i]);
             }
 
-            // we are done only when both buffers were empty
+            // we are done only when both buffers are empty
             var done = readCount == 0 & writeCount == 0;
 
             if (droppedWrite != null)
