@@ -723,6 +723,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void VerifyMisses()
         {
+            cache = new ConcurrentLfu<int, int>(1, 20, new ForegroundScheduler(), EqualityComparer<int>.Default, 
+                new LfuBufferSize(new StripedBufferSize(1, 1), new StripedBufferSize(1, 1)));
+
             int iterations = 100000;
             Func<int, int> func = x => x;
 
