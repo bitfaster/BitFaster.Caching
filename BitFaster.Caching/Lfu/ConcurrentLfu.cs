@@ -56,6 +56,8 @@ namespace BitFaster.Caching.Lfu
 
         private readonly IScheduler scheduler;
 
+        private readonly LfuNode<K, V>[] removeList = new LfuNode<K, V>[Environment.ProcessorCount];
+
 #if NETSTANDARD2_0
         private readonly LfuNode<K, V>[] drainBuffer;
 #endif
@@ -276,14 +278,50 @@ namespace BitFaster.Caching.Lfu
 
                 TryScheduleDrain();
 
+                var rem = TryDequeue();
+                if (rem != null)
+                {
+                    this.dictionary.TryRemove(rem.Key, out var _);
+                    Disposer<V>.Dispose(rem.Value);
+                }
+
                 spinner.SpinOnce();
             }
 
-            lock (this.maintenanceLock)
+            while (true)
             {
-                // if the write was dropped from the buffer, explicitly pass it to maintenance
-                Maintenance(node);
+
+                var rem = TryDequeue();
+                if (rem != null)
+                {
+                    this.dictionary.TryRemove(rem.Key, out var _);
+                    Disposer<V>.Dispose(rem.Value);
+                }
+
+                bool wasTaken = false;
+                Monitor.TryEnter(this.maintenanceLock, ref wasTaken);
+                try
+                {
+                    if (wasTaken)
+                    {
+                        Maintenance(node);
+                        return;
+                    }
+                }
+                finally
+                {
+                    if (wasTaken)
+                    {
+                        Monitor.Exit(this.maintenanceLock);
+                    }
+                }
             }
+
+            //lock (this.maintenanceLock)
+            //{
+            //    // if the write was dropped from the buffer, explicitly pass it to maintenance
+            //    Maintenance(node);
+            //}
         }
 
         private void ScheduleAfterWrite()
@@ -411,6 +449,8 @@ namespace BitFaster.Caching.Lfu
             this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
             ReFitProtected();
 
+            RemoveAll();
+
             // Reset to idle if either
             // 1. We drained both input buffers (all work done)
             // 2. or scheduler is foreground (since don't run continuously on the foreground)
@@ -422,6 +462,57 @@ namespace BitFaster.Caching.Lfu
             }
 
             return wasDrained;
+        }
+
+        private void TryAddToRemoveList(LfuNode<K, V> node)
+        {
+            for (int i = 0; i < removeList.Length; i++)
+            {
+                if (Volatile.Read(ref removeList[i]) == null)
+                {
+                    if (Interlocked.CompareExchange(ref removeList[i], node, null) == null)
+                    {
+                        return;
+                    }
+                }
+            }
+
+            // direct remove if not added to list
+            this.dictionary.TryRemove(node.Key, out var _);
+            Disposer<V>.Dispose(node.Value);
+        }
+
+        private LfuNode<K, V> TryDequeue()
+        {
+            for (int i = 0; i < removeList.Length; i++)
+            {
+                var node = Volatile.Read(ref removeList[i]);
+                if (node != null)
+                {
+                    if (Interlocked.CompareExchange(ref removeList[i], null, node) == node)
+                    {
+                        return node;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private void RemoveAll()
+        {
+            for (int i = 0; i < removeList.Length; i++)
+            {
+                var node = Volatile.Read(ref removeList[i]);
+                if (node != null)
+                {
+                    if (Interlocked.CompareExchange(ref removeList[i], null, node) == node)
+                    {
+                        this.dictionary.TryRemove(node.Key, out var _);
+                        Disposer<V>.Dispose(node.Value);
+                    }
+                }
+            }
         }
 
         private void OnAccess(LfuNode<K, V> node)
@@ -606,9 +697,10 @@ namespace BitFaster.Caching.Lfu
 
         private void Evict(LfuNode<K, V> evictee)
         {
-            this.dictionary.TryRemove(evictee.Key, out var _);
+            //this.dictionary.TryRemove(evictee.Key, out var _);
+            TryAddToRemoveList(evictee);
             evictee.list.Remove(evictee);
-            Disposer<V>.Dispose(evictee.Value);
+//            Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
         }
 
