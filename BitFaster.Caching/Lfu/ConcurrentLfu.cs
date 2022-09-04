@@ -1,14 +1,4 @@
 ﻿using System;
-
-#if !NETSTANDARD2_0
-using System.Buffers;
-#endif
-
-#if DEBUG
-using System.Linq;
-using System.Text;
-#endif
-
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -21,6 +11,15 @@ using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Concurrent;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
+
+#if !NETSTANDARD2_0
+using System.Buffers;
+#endif
+
+#if DEBUG
+using System.Linq;
+using System.Text;
+#endif
 
 namespace BitFaster.Caching.Lfu
 {
@@ -58,7 +57,7 @@ namespace BitFaster.Caching.Lfu
         private readonly IScheduler scheduler;
 
 #if NETSTANDARD2_0
-        private readonly LfuNode<K, V>[] localDrainBuffer;
+        private readonly LfuNode<K, V>[] drainBuffer;
 #endif
 
         public ConcurrentLfu(int capacity)
@@ -84,7 +83,7 @@ namespace BitFaster.Caching.Lfu
             this.scheduler = scheduler;
 
 #if NETSTANDARD2_0
-            this.localDrainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
+            this.drainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
 #endif
         }
 
@@ -388,35 +387,21 @@ namespace BitFaster.Caching.Lfu
         private bool Maintenance(LfuNode<K, V> droppedWrite = null)
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
+            var localDrainBuffer = RentDrainBuffer();
+            // extract to a buffer before doing book keeping work, ~2x faster
+            var count = readBuffer.DrainTo(localDrainBuffer);
 
-            bool wasDrained = false;
-            
-#if !NETSTANDARD2_0
-            var localDrainBuffer = ArrayPool<LfuNode<K, V>>.Shared.Rent(this.readBuffer.Capacity);
-#endif
-   //         int maxSweeps = 1;
-            int count = 0;
+            for (int i = 0; i < count; i++)
+            {
+                this.cmSketch.Increment(localDrainBuffer[i].Key);
+            }
 
-  //          for (int s = 0; s < maxSweeps; s++)
-   //         {
-                count = 0;
+            for (int i = 0; i < count; i++)
+            {
+                OnAccess(localDrainBuffer[i]);
+            }
 
-                // extract to a buffer before doing book keeping work, ~2x faster
-                count = this.readBuffer.DrainTo(localDrainBuffer);
-
-                for (int i = 0; i < count; i++)
-                {
-                    this.cmSketch.Increment(localDrainBuffer[i].Key);
-                }
-
-                for (int i = 0; i < count; i++)
-                {
-                    OnAccess(localDrainBuffer[i]);
-                }
-
-                wasDrained = count == 0 && droppedWrite == null; 
-    //        }
-
+        	var wasDrained = count == 0 && droppedWrite == null; 
             count = this.writeBuffer.DrainTo(localDrainBuffer);
 
             if (!wasDrained)
@@ -434,9 +419,7 @@ namespace BitFaster.Caching.Lfu
                 OnWrite(droppedWrite);
             }
 
-#if !NETSTANDARD2_0
-            ArrayPool<LfuNode<K, V>>.Shared.Return(localDrainBuffer);
-#endif
+            ReturnDrainBuffer(localDrainBuffer);
 
             EvictEntries();
             this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
@@ -655,6 +638,22 @@ namespace BitFaster.Caching.Lfu
                 demoted.Position = Position.Probation;
                 this.probationLru.AddLast(demoted);
             }
+        }
+
+        private LfuNode<K, V>[] RentDrainBuffer()
+        {
+#if !NETSTANDARD2_0
+            return ArrayPool<LfuNode<K, V>>.Shared.Rent(this.readBuffer.Capacity);
+#else
+            return drainBuffer;
+#endif
+        }
+
+        private void ReturnDrainBuffer(LfuNode<K, V>[] localDrainBuffer)
+        {
+#if !NETSTANDARD2_0
+            ArrayPool<LfuNode<K, V>>.Shared.Return(localDrainBuffer);
+#endif
         }
 
         [DebuggerDisplay("{Format(),nq}")]
