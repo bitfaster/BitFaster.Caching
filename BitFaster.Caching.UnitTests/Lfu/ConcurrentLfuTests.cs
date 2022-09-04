@@ -782,6 +782,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.output.WriteLine($"Maintenance ops {this.cache.Scheduler.RunCount}");
 
             cache.Metrics.Value.Misses.Should().Be(iterations * threads);
+            cache.Count.Should().Be(20);
         }
 
         private void VerifyHits(int iterations, int minSamples)
