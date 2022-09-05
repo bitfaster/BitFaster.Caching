@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Text;
+﻿using System.Numerics;
 
 namespace BitFaster.Caching
 {
@@ -69,6 +66,15 @@ namespace BitFaster.Caching
 #else
             return BitOperations.PopCount(x);
 #endif
+        }
+
+        // Computes Stafford variant 13 of 64-bit mix function.
+        // http://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
+        public static ulong Mix64(ulong z)
+        {
+            z = (z ^ z >> 30) * 0xbf58476d1ce4e5b9L;
+            z = (z ^ z >> 27) * 0x94d049bb133111ebL;
+            return z ^ z >> 31;
         }
     }
 }
