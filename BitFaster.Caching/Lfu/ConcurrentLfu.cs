@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Concurrent;
 using BitFaster.Caching.Lru;
@@ -59,7 +60,9 @@ namespace BitFaster.Caching.Lfu
         const int padding = 64;
         const int spacing = 64;
 
-        private readonly LfuNode<K, V>[] removeList = new LfuNode<K, V>[padding + (Environment.ProcessorCount * spacing)];
+       // private readonly LfuNode<K, V>[] removeList = new LfuNode<K, V>[padding + (Environment.ProcessorCount * spacing)];
+
+        private readonly MpmcBoundedBuffer<LfuNode<K, V>> removeList2 = new MpmcBoundedBuffer<LfuNode<K, V>>(Environment.ProcessorCount);
 
 #if NETSTANDARD2_0
         private readonly LfuNode<K, V>[] drainBuffer;
@@ -281,7 +284,7 @@ namespace BitFaster.Caching.Lfu
 
                 TryScheduleDrain();
 
-                TryHelpRemove();
+                //TryHelpRemove();
 
                 spinner.SpinOnce();
             }
@@ -306,7 +309,7 @@ namespace BitFaster.Caching.Lfu
                     }
                 }
 
-                TryHelpRemove();
+                //TryHelpRemove();
             }
 
             //lock (this.maintenanceLock)
@@ -458,54 +461,73 @@ namespace BitFaster.Caching.Lfu
 
         private void TryAddToRemoveList(LfuNode<K, V> node)
         {
-            for (int i = 0; i < Environment.ProcessorCount; i++)
+            //for (int i = 0; i < Environment.ProcessorCount; i++)
+            //{
+            //    int index = padding + (i * spacing);
+            //    if (Volatile.Read(ref removeList[index]) == null)
+            //    {
+            //        if (Interlocked.CompareExchange(ref removeList[index], node, null) == null)
+            //        {
+            //            return;
+            //        }
+            //    }
+            //}
+
+            if (removeList2.TryAdd(node) != BufferStatus.Success)
             {
-                int index = padding + (i * spacing);
-                if (Volatile.Read(ref removeList[index]) == null)
-                {
-                    if (Interlocked.CompareExchange(ref removeList[index], node, null) == null)
-                    {
-                        return;
-                    }
-                }
+                // direct remove if not added to list
+                this.dictionary.TryRemove(node.Key, out var _);
+                Disposer<V>.Dispose(node.Value);
+
             }
 
-            // direct remove if not added to list
-            this.dictionary.TryRemove(node.Key, out var _);
-            Disposer<V>.Dispose(node.Value);
         }
 
         private void TryHelpRemove()
         {
-            for (int i = 0; i < Environment.ProcessorCount; i++)
+            //for (int i = 0; i < Environment.ProcessorCount; i++)
+            //{
+            //    int index = padding + (i * spacing);
+            //    var node = Volatile.Read(ref removeList[index]);
+            //    if (node != null)
+            //    {
+            //        if (Interlocked.CompareExchange(ref removeList[index], null, node) == node)
+            //        {
+            //            this.dictionary.TryRemove(node.Key, out var _);
+            //            Disposer<V>.Dispose(node.Value);
+            //        }
+            //    }
+            //}
+
+            if (removeList2.TryTake(out var node) != BufferStatus.Success)
             {
-                int index = padding + (i * spacing);
-                var node = Volatile.Read(ref removeList[index]);
-                if (node != null)
-                {
-                    if (Interlocked.CompareExchange(ref removeList[index], null, node) == node)
-                    {
-                        this.dictionary.TryRemove(node.Key, out var _);
-                        Disposer<V>.Dispose(node.Value);
-                    }
-                }
+                // direct remove if not added to list
+                this.dictionary.TryRemove(node.Key, out var _);
+                Disposer<V>.Dispose(node.Value);
+
             }
         }
 
         private void RemoveAll()
         {
-            for (int i = 0; i < Environment.ProcessorCount; i++)
+            //for (int i = 0; i < Environment.ProcessorCount; i++)
+            //{
+            //    int index = padding + (i * spacing);
+            //    var node = Volatile.Read(ref removeList[index]);
+            //    if (node != null)
+            //    {
+            //        if (Interlocked.CompareExchange(ref removeList[index], null, node) == node)
+            //        {
+            //            this.dictionary.TryRemove(node.Key, out var _);
+            //            Disposer<V>.Dispose(node.Value);
+            //        }
+            //    }
+            //}
+
+            while (removeList2.TryTake(out var node) != BufferStatus.Empty)
             {
-                int index = padding + (i * spacing);
-                var node = Volatile.Read(ref removeList[index]);
-                if (node != null)
-                {
-                    if (Interlocked.CompareExchange(ref removeList[index], null, node) == node)
-                    {
-                        this.dictionary.TryRemove(node.Key, out var _);
-                        Disposer<V>.Dispose(node.Value);
-                    }
-                }
+                this.dictionary.TryRemove(node.Key, out var _);
+                Disposer<V>.Dispose(node.Value);
             }
         }
 
