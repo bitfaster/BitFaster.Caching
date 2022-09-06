@@ -329,6 +329,7 @@ namespace BitFaster.Caching.Lfu
 
                     if (status == BufferStatus.Success)
                     {
+                        ScheduleAfterWrite();
                         return;
                     }
                 }
