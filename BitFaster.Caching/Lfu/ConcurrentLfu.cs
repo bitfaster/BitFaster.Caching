@@ -60,11 +60,23 @@ namespace BitFaster.Caching.Lfu
         private readonly LfuNode<K, V>[] drainBuffer;
 #endif
 
+        /// <summary>
+        /// Initializes a new instance of the ConcurrentLfu class with the specified capacity.
+        /// </summary>
+        /// <param name="capacity">The capacity.</param>
         public ConcurrentLfu(int capacity)
             : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, LfuBufferSize.Default(Defaults.ConcurrencyLevel, capacity))
         {        
         }
 
+        /// <summary>
+        /// Initializes a new instance of the ConcurrentLfu class with the specified concurrencyLevel, capacity, scheduler, equality comparer and buffer size.
+        /// </summary>
+        /// <param name="concurrencyLevel">The concurrency level.</param>
+        /// <param name="capacity">The capacity.</param>
+        /// <param name="scheduler">The scheduler.</param>
+        /// <param name="comparer">The equality comparer.</param>
+        /// <param name="bufferSize">The buffer size.</param>
         public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, LfuBufferSize bufferSize)
         {
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
@@ -87,20 +99,30 @@ namespace BitFaster.Caching.Lfu
 #endif
         }
 
+        ///<inheritdoc/>
         public int Count => this.dictionary.Count;
 
+        ///<inheritdoc/>
         public int Capacity => this.capacity.Capacity;
 
+        ///<inheritdoc/>
         public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(this.metrics);
 
+        ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
 
+        ///<inheritdoc/>
         public CachePolicy Policy => new CachePolicy(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
+        ///<inheritdoc/>
         public ICollection<K> Keys => this.dictionary.Keys;
 
+        /// <summary>
+        /// Gets the scheduler.
+        /// </summary>
         public IScheduler Scheduler => scheduler;
 
+        ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
         {
             while (true)
@@ -119,6 +141,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        ///<inheritdoc/>
         public void Clear()
         {
             this.Trim(this.Count);
@@ -131,6 +154,10 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        /// <summary>
+        /// Trim the specified number of items from the cache.
+        /// </summary>
+        /// <param name="itemCount">The number of items to remove.</param>
         public void Trim(int itemCount)
         {
             itemCount = Math.Min(itemCount, this.Count);
@@ -154,6 +181,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
             while (true)
@@ -172,6 +200,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        ///<inheritdoc/>
         public async ValueTask<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
             while (true)
@@ -190,6 +219,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
             if (this.dictionary.TryGetValue(key, out var node))
@@ -210,6 +240,7 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
+        ///<inheritdoc/>
         public bool TryRemove(K key)
         {
             if (this.dictionary.TryRemove(key, out var node))
@@ -222,6 +253,7 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
+        ///<inheritdoc/>
         public bool TryUpdate(K key, V value)
         {
             if (this.dictionary.TryGetValue(key, out var node))
@@ -238,11 +270,23 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
+        /// <summary>
+        /// Synchronously perform all pending maintenance. Draining the read and write buffers then
+        /// use the eviction policy to preserve bounded size and remove expired items.
+        /// </summary>
         public void PendingMaintenance()
         {
             DrainBuffers();
         }
 
+        /// <summary>Returns an enumerator that iterates through the cache.</summary>
+        /// <returns>An enumerator for the cache.</returns>
+        /// <remarks>
+        /// The enumerator returned from the cache is safe to use concurrently with
+        /// reads and writes, however it does not represent a moment-in-time snapshot.  
+        /// The contents exposed through the enumerator may contain modifications
+        /// made after <see cref="GetEnumerator"/> was called.
+        /// </remarks>
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
         {
             foreach (var kvp in this.dictionary)
@@ -744,7 +788,7 @@ namespace BitFaster.Caching.Lfu
         [ExcludeFromCodeCoverage]
         internal class LfuDebugView
         {
-            private ConcurrentLfu<K, V> lfu;
+            private readonly ConcurrentLfu<K, V> lfu;
 
             public LfuDebugView(ConcurrentLfu<K, V> lfu)
             {

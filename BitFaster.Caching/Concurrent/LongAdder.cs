@@ -9,10 +9,20 @@
 
 namespace BitFaster.Caching.Concurrent
 {
+    /// <summary>
+    /// A thread-safe counter suitable for high throuhgput counting across many concurrent threads.
+    /// </summary>
     public sealed class LongAdder : Striped64
     {
+        /// <summary>
+        /// Creates a new LongAdder with an intial sum of zero.
+        /// </summary>
         public LongAdder() { }
 
+        /// <summary>
+        /// Computes the current sum.
+        /// </summary>
+        /// <returns>The current sum.</returns>
         public long Sum()
         {
             var @as = this.Cells; Cell a;
@@ -28,11 +38,18 @@ namespace BitFaster.Caching.Concurrent
             return sum;
         }
 
+        /// <summary>
+        /// Increment by 1.
+        /// </summary>
         public void Increment()
         {
             Add(1L);
         }
 
+        /// <summary>
+        /// Adds the specified value.
+        /// </summary>
+        /// <param name="value">The value to add.</param>
         public void Add(long value)
         {
             Cell[] @as;
