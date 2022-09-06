@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.ConstrainedExecution;
 using System.Threading;
 
 /*
@@ -75,20 +76,43 @@ namespace BitFaster.Caching.Concurrent
      * contention levels will recur, so the cells will eventually be
      * needed again; and for short-lived ones, it does not matter.
      */
+
+    /// <summary>
+    /// Mmaintains a lazily-initialized table of atomically updated variables, plus an extra 
+    /// "base" field. The table size is a power of two. Indexing uses masked thread IDs.
+    /// </summary>
     [ExcludeFromCodeCoverage]
     public abstract class Striped64
     {
         // Number of CPUS, to place bound on table size
         private static readonly int MaxBuckets = Environment.ProcessorCount * 4;
 
+        /// <summary>
+        /// The base value used mainly when there is no contention, but also as a fallback 
+        /// during table initialization races. Updated via CAS.
+        /// </summary>
         protected PaddedLong @base = new PaddedLong();
+        
+        /// <summary>
+        /// When non-null, size is a power of 2.
+        /// </summary>
         protected Cell[] Cells;
         private int cellsBusy;
 
+        /// <summary>
+        /// A wrapper for PaddedLong.
+        /// </summary>
         protected sealed class Cell
         {
+            /// <summary>
+            /// The value of the cell.
+            /// </summary>
             public PaddedLong value;
 
+            /// <summary>
+            /// Initializes a new cell with the specified value.
+            /// </summary>
+            /// <param name="x">The value.</param>
             public Cell(long x)
             {
                 this.value = new PaddedLong() { value = x };

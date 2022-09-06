@@ -15,13 +15,22 @@ namespace BitFaster.Caching.Buffers
     {
         const int MaxAttempts = 3;
 
-        private MpscBoundedBuffer<T>[] buffers;
+        private readonly MpscBoundedBuffer<T>[] buffers;
 
+        /// <summary>
+        /// Initializes a new instance of the StripedMpscBuffer class with the specified stripe count and buffer size.
+        /// </summary>
+        /// <param name="stripeCount">The stripe count.</param>
+        /// <param name="bufferSize">The buffer size.</param>
         public StripedMpscBuffer(int stripeCount, int bufferSize)
             : this(new StripedBufferSize(bufferSize, stripeCount))
         { 
         }
 
+        /// <summary>
+        /// Initializes a new instance of the StripedMpscBuffer class with the specified buffer size.
+        /// </summary>
+        /// <param name="bufferSize">The buffer size.</param>
         public StripedMpscBuffer(StripedBufferSize bufferSize)
         {
             buffers = new MpscBoundedBuffer<T>[bufferSize.StripeCount];
@@ -32,10 +41,24 @@ namespace BitFaster.Caching.Buffers
             }
         }
 
+        /// <summary>
+        /// Gets the number of items contained in the buffer.
+        /// </summary>
         public int Count => buffers.Sum(b => b.Count);
 
+        /// <summary>
+        /// The bounded capacity.
+        /// </summary>
         public int Capacity => buffers.Length * buffers[0].Capacity;
 
+        /// <summary>
+        /// Drains the buffer into the specified array segment.
+        /// </summary>
+        /// <param name="outputBuffer">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
         public int DrainTo(T[] outputBuffer)
         {
             var count = 0;
@@ -54,6 +77,14 @@ namespace BitFaster.Caching.Buffers
             return count;
         }
 
+        /// <summary>
+        /// Tries to add the specified item.
+        /// </summary>
+        /// <param name="item">The item to be added.</param>
+        /// <returns>A BufferStatus value indicating whether the operation succeeded.</returns>
+        /// <remarks>
+        /// Thread safe.
+        /// </remarks>
         public BufferStatus TryAdd(T item)
         {
             var z = BitOps.Mix64((ulong)Environment.CurrentManagedThreadId);
@@ -79,6 +110,12 @@ namespace BitFaster.Caching.Buffers
             return result;
         }
 
+        /// <summary>
+        /// Removes all values from the buffer.
+        /// </summary>
+        /// <remarks>
+        /// Not thread safe.
+        /// </remarks>
         public void Clear()
         {
             for (var i = 0; i < buffers.Length; i++)
