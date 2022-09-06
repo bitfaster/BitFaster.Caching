@@ -11,7 +11,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     /// </summary>
     [SimpleJob(RuntimeMoniker.Net48)]
     [SimpleJob(RuntimeMoniker.Net60)]
-    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
+    // [DisassemblyDiagnoser(printSource: true, maxDepth: 5)] // Unstable
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Median", "RatioSD")]
     public class LruAsyncGet

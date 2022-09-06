@@ -2,10 +2,6 @@
 using System.Diagnostics;
 using System.Linq;
 
-#if !NETSTANDARD2_0
-using System.Runtime.Intrinsics.X86;
-#endif
-
 namespace BitFaster.Caching.Buffers
 {
     /// <summary>
@@ -60,28 +56,7 @@ namespace BitFaster.Caching.Buffers
 
         public BufferStatus TryAdd(T item)
         {
-            // Is using Sse42.Crc32 faster?
-            //#if NETSTANDARD2_0
-            //            ulong z = Mix64((ulong)Environment.CurrentManagedThreadId);
-            //            int inc = (int)(z >> 32) | 1;
-            //            int h = (int)z;
-            //#else
-            //            int inc, h;
-
-            //            // https://rigtorp.se/notes/hashing/
-            //            if (Sse42.IsSupported)
-            //            {
-            //                h = inc = (int)Sse42.Crc32(486187739, (uint)Environment.CurrentManagedThreadId);
-            //            }
-            //            else
-            //            {
-            //                ulong z = Mix64((ulong)Environment.CurrentManagedThreadId);
-            //                inc = (int)(z >> 32) | 1;
-            //                h = (int)z;
-            //            }
-            //#endif
-
-            var z = Mix64((ulong)Environment.CurrentManagedThreadId);
+            var z = BitOps.Mix64((ulong)Environment.CurrentManagedThreadId);
             var inc = (int)(z >> 32) | 1;
             var h = (int)z;
 
@@ -110,15 +85,6 @@ namespace BitFaster.Caching.Buffers
             {
                 buffers[i].Clear();
             }
-        }
-
-        // Computes Stafford variant 13 of 64-bit mix function.
-        // http://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
-        private static ulong Mix64(ulong z)
-        {
-            z = (z ^ z >> 30) * 0xbf58476d1ce4e5b9L;
-            z = (z ^ z >> 27) * 0x94d049bb133111ebL;
-            return z ^ z >> 31;
         }
     }
 }
