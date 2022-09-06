@@ -49,8 +49,17 @@ namespace BitFaster.Caching.Lru
 
         // Since T is a struct, making it readonly will force the runtime to make defensive copies
         // if mutate methods are called. Therefore, field must be mutable to maintain count.
-        protected T telemetryPolicy;
+        private T telemetryPolicy;
 
+        /// <summary>
+        /// Initializes a new instance of the ConcurrentLruCore class with the specified concurrencyLevel, capacity, equality comparer, item policy and telemetry policy.
+        /// </summary>
+        /// <param name="concurrencyLevel">The concurrency level.</param>
+        /// <param name="capacity">The capacity.</param>
+        /// <param name="comparer">The equality comparer.</param>
+        /// <param name="itemPolicy">The item policy.</param>
+        /// <param name="telemetryPolicy">The telemetry policy.</param>
+        /// <exception cref="ArgumentNullException"></exception>
         public ConcurrentLruCore(
             int concurrencyLevel,
             ICapacityPartition capacity,
@@ -96,12 +105,22 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => new Optional<ICacheEvents<K, V>>(new Proxy(this));
 
+        ///<inheritdoc/>
         public CachePolicy Policy => CreatePolicy(this);
 
+        /// <summary>
+        /// Gets the number of hot items.
+        /// </summary>
         public int HotCount => Volatile.Read(ref this.counter.hot);
 
+        /// <summary>
+        /// Gets the number of warm items.
+        /// </summary>
         public int WarmCount => Volatile.Read(ref this.counter.warm);
 
+        /// <summary>
+        /// Gets the number of cold items.
+        /// </summary>
         public int ColdCount => Volatile.Read(ref this.counter.cold);
 
         /// <summary>
@@ -335,7 +354,7 @@ namespace BitFaster.Caching.Lru
             // first scan each queue for discardable items and remove them immediately. Note this can remove > itemCount items.
             int itemsRemoved = this.itemPolicy.CanDiscard() ? TrimAllDiscardedItems() : 0;
 
-            TrimLiveItems(itemsRemoved, itemCount, capacity);
+            TrimLiveItems(itemsRemoved, itemCount);
         }
 
         private void TrimExpired()
@@ -346,7 +365,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
-        protected int TrimAllDiscardedItems()
+        private int TrimAllDiscardedItems()
         {
             int itemsRemoved = 0;
 
@@ -379,7 +398,7 @@ namespace BitFaster.Caching.Lru
             return itemsRemoved;
         }
 
-        private void TrimLiveItems(int itemsRemoved, int itemCount, int capacity)
+        private void TrimLiveItems(int itemsRemoved, int itemCount)
         {
             // If clear is called during trimming, it would be possible to get stuck in an infinite
             // loop here. Instead quit after n consecutive failed attempts to move warm/hot to cold.

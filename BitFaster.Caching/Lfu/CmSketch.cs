@@ -15,9 +15,9 @@ namespace BitFaster.Caching.Lfu
     public sealed class CmSketch<T>
     {
         // A mixture of seeds from FNV-1a, CityHash, and Murmur3
-        private static ulong[] Seed = { 0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L};
-        private static long ResetMask = 0x7777777777777777L;
-        private static long OneMask = 0x1111111111111111L;
+        private static readonly ulong[] Seed = { 0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L};
+        private static readonly long ResetMask = 0x7777777777777777L;
+        private static readonly long OneMask = 0x1111111111111111L;
 
         private int sampleSize;
         private int tableMask;
@@ -26,16 +26,32 @@ namespace BitFaster.Caching.Lfu
 
         private readonly IEqualityComparer<T> comparer;
 
+        /// <summary>
+        /// Initializes a new instance of the CmSketch class with the specified maximum size and equality comparer.
+        /// </summary>
+        /// <param name="maximumSize">The maximum size.</param>
+        /// <param name="comparer">The equality comparer.</param>
         public CmSketch(long maximumSize, IEqualityComparer<T> comparer)
         {
             EnsureCapacity(maximumSize);
             this.comparer = comparer;
         }
 
+        /// <summary>
+        /// Gets the reset sample size.
+        /// </summary>
         public int ResetSampleSize => this.sampleSize;
 
+        /// <summary>
+        /// Gets the size.
+        /// </summary>
         public int Size => this.size;
 
+        /// <summary>
+        /// Initialize such that the count min sketch can accurately estimate the count for values given
+        /// a maximum size.
+        /// </summary>
+        /// <param name="maximumSize">The maximum size.</param>
         public void EnsureCapacity(long maximumSize)
         {
             int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);
@@ -47,6 +63,11 @@ namespace BitFaster.Caching.Lfu
             size = 0;
         }
 
+        /// <summary>
+        /// Estimate the frequency of the specified value.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The estimated frequency of the value.</returns>
         public int EstimateFrequency(T value)
         {
             int hash = Spread(comparer.GetHashCode(value));
@@ -63,6 +84,10 @@ namespace BitFaster.Caching.Lfu
             return frequency;
         }
 
+        /// <summary>
+        /// Increment the count of the specified value.
+        /// </summary>
+        /// <param name="value">The value.</param>
         public void Increment(T value)
         {
             int hash = Spread(comparer.GetHashCode(value));
@@ -108,6 +133,9 @@ namespace BitFaster.Caching.Lfu
             size = (size - (count >> 2)) >> 1;
         }
 
+        /// <summary>
+        /// Clears the count for all items.
+        /// </summary>
         public void Clear()
         {
             table = new long[table.Length];
