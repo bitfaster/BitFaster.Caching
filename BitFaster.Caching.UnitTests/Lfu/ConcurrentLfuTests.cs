@@ -176,6 +176,16 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.PendingMaintenance();
             LogLru();
 
+            for (int i = 25; i < 50; i++)
+            {
+                cache.GetOrAdd(i, k => k);
+                cache.GetOrAdd(i, k => k);
+            }
+
+            // W [49] Protected [16] Probation [25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42]
+            cache.PendingMaintenance();
+            LogLru();
+
             cache.Trim(18);
 
             // W [49] Protected [16] Probation []
