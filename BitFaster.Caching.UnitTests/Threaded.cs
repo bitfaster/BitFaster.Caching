@@ -9,17 +9,23 @@ namespace BitFaster.Caching.UnitTests
 {
     public class Threaded
     {
-        public static async Task Run(int threadCount, Action action)
+        public static Task Run(int threadCount, Action action)
+        {
+            return Run(threadCount, i => action());
+        }
+
+        public static async Task Run(int threadCount, Action<int> action)
         {
             var tasks = new Task[threadCount];
             ManualResetEvent mre = new ManualResetEvent(false);
 
             for (int i = 0; i < threadCount; i++)
             {
+                int run = i; 
                 tasks[i] = Task.Run(() =>
                 {
                     mre.WaitOne();
-                    action();
+                    action(run);
                 });
             }
 
