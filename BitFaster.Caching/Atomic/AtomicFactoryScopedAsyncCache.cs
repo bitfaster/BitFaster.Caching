@@ -7,6 +7,11 @@ using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Atomic
 {
+    /// <summary>
+    /// A cache decorator for working with  <see cref="ScopedAsyncAtomicFactory{K, V}"/> wrapped values, giving exactly once initialization.
+    /// </summary>
+    /// <typeparam name="K">The type of keys in the cache.</typeparam>
+    /// <typeparam name="V">The type of values in the cache.</typeparam>
     [DebuggerDisplay("Count = {Count}")]
     public sealed class AtomicFactoryScopedAsyncCache<K, V> : IScopedAsyncCache<K, V> where V : IDisposable
     {

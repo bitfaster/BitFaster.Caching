@@ -182,7 +182,6 @@ namespace BitFaster.Caching.Concurrent
                             var r = new Cell(x);    // Optimistically create
                             if (this.cellsBusy == 0 && CasCellsBusy())
                             {
-                                var created = false;
                                 try
                                 {                   // Recheck under lock
                                     Cell[] rs; int m, j;
@@ -191,15 +190,14 @@ namespace BitFaster.Caching.Concurrent
                                         rs[j = (m - 1) & h] == null)
                                     {
                                         rs[j] = r;
-                                        created = true;
+                                        break;
                                     }
                                 }
                                 finally
                                 {
                                     VolatileWriteNotBusy();
                                 }
-                                if (created)
-                                    break;
+
                                 continue;           // Slot is now non-empty
                             }
                         }
@@ -236,7 +234,6 @@ namespace BitFaster.Caching.Concurrent
                 }
                 else if (this.cellsBusy == 0 && this.Cells == @as && CasCellsBusy())
                 {
-                    var init = false;
                     try
                     {                               // Initialize table
                         if (this.Cells == @as)
@@ -244,15 +241,13 @@ namespace BitFaster.Caching.Concurrent
                             var rs = new Cell[2];
                             rs[h & 1] = new Cell(x);
                             this.Cells = rs;
-                            init = true;
+                            break;
                         }
                     }
                     finally
                     {
                         VolatileWriteNotBusy();
                     }
-                    if (init)
-                        break;
                 }
                 // Fall back on using base
                 else if (this.@base.CompareAndSwap(v = this.@base.VolatileRead(), v + x))

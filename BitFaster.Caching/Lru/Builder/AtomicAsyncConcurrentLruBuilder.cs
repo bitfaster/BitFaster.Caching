@@ -2,6 +2,11 @@
 
 namespace BitFaster.Caching.Lru.Builder
 {
+    /// <summary>
+    /// A builder for creating a ConcurrentLru as IAsyncCache with atomic value creation.
+    /// </summary>
+    /// <typeparam name="K">The type of the cache key.</typeparam>
+    /// <typeparam name="V">The type of the cache value.</typeparam>
     public class AtomicAsyncConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, AtomicAsyncConcurrentLruBuilder<K, V>, IAsyncCache<K, V>>
     {
         private readonly ConcurrentLruBuilder<K, AsyncAtomicFactory<K, V>> inner;
