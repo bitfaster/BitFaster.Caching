@@ -30,32 +30,41 @@ namespace BitFaster.Caching.Atomic
             }
         }
 
+        ///<inheritdoc/>
         public int Count => this.cache.Count;
 
+        ///<inheritdoc/>
         public Optional<ICacheMetrics> Metrics => this.cache.Metrics;
 
+        ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => this.events;
 
+        ///<inheritdoc/>
         public ICollection<K> Keys => this.cache.Keys;
 
+        ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;
 
+        ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
         {
             this.cache.AddOrUpdate(key, new AtomicFactory<K, V>(value));
         }
 
+        ///<inheritdoc/>
         public void Clear()
         {
             this.cache.Clear();
         }
 
+        ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
             var atomicFactory = cache.GetOrAdd(key, _ => new AtomicFactory<K, V>());
             return atomicFactory.GetValue(key, valueFactory);
         }
 
+        ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
             AtomicFactory<K, V> output;
@@ -71,16 +80,19 @@ namespace BitFaster.Caching.Atomic
             return false;
         }
 
+        ///<inheritdoc/>
         public bool TryRemove(K key)
         {
             return cache.TryRemove(key);
         }
 
+        ///<inheritdoc/>
         public bool TryUpdate(K key, V value)
         {
             return cache.TryUpdate(key, new AtomicFactory<K, V>(value));
         }
 
+        ///<inheritdoc/>
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
         {
             foreach (var kvp in this.cache)

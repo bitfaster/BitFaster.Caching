@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
@@ -12,37 +8,44 @@ namespace BitFaster.Caching.Lru
     /// </summary>
     public readonly struct LruPolicy<K, V> : IItemPolicy<K, V, LruItem<K, V>>
     {
+        ///<inheritdoc/>
         public TimeSpan TimeToLive => Defaults.Infinite;
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LruItem<K, V> CreateItem(K key, V value)
         {
             return new LruItem<K, V>(key, value);
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LruItem<K, V> item)
         {
             item.WasAccessed = true;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(LruItem<K, V> item)
         {
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LruItem<K, V> item)
         {
             return false;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool CanDiscard()
         {
             return false;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteHot(LruItem<K, V> item)
         {
@@ -54,6 +57,7 @@ namespace BitFaster.Caching.Lru
             return ItemDestination.Cold;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteWarm(LruItem<K, V> item)
         {
@@ -65,6 +69,7 @@ namespace BitFaster.Caching.Lru
             return ItemDestination.Cold;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteCold(LruItem<K, V> item)
         {

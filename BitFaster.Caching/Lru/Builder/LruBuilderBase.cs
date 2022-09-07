@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru.Builder
 {
@@ -13,7 +10,7 @@ namespace BitFaster.Caching.Lru.Builder
     {
         internal readonly LruInfo<K> info;
 
-        protected LruBuilderBase(LruInfo<K> info)
+        internal LruBuilderBase(LruInfo<K> info)
         {
             this.info = info;
         }

@@ -15,6 +15,7 @@ namespace BitFaster.Caching.Lfu.Builder
             this.inner = inner;
         }
 
+        ///<inheritdoc/>
         public override IAsyncCache<K, V> Build()
         {
             var level1 = inner.Build();

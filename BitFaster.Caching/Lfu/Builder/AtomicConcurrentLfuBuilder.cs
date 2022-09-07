@@ -15,6 +15,7 @@ namespace BitFaster.Caching.Lfu.Builder
             this.inner = inner;
         }
 
+        ///<inheritdoc/>
         public override ICache<K, V> Build()
         {
             var level1 = inner.Build();

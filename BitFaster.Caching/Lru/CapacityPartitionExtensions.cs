@@ -1,14 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
+    /// <summary>
+    /// Extension methods for ICapacityPartition.
+    /// </summary>
     public static class CapacityPartitionExtensions
     {
+        /// <summary>
+        /// Validates the specified capacity partition.
+        /// </summary>
+        /// <param name="capacity">The capacity partition to validate.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Any of the hot, warm or cold capacities is less than 1.</exception>
         public static void Validate(this ICapacityPartition capacity)
         {
             if (capacity.Cold < 1)

@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
@@ -20,31 +16,40 @@ namespace BitFaster.Caching.Lru
     {
         private readonly int timeToLive;
 
+        ///<inheritdoc/>
         public TimeSpan TimeToLive => TimeSpan.FromMilliseconds(timeToLive);
 
+        /// <summary>
+        /// Initializes a new instance of the TLruTicksPolicy class with the specified time to live.
+        /// </summary>
+        /// <param name="timeToLive">The time to live.</param>
         public TLruTicksPolicy(TimeSpan timeToLive)
         {
             this.timeToLive = (int)timeToLive.TotalMilliseconds;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TickCountLruItem<K, V> CreateItem(K key, V value)
         {
             return new TickCountLruItem<K, V>(key, value);
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(TickCountLruItem<K, V> item)
         {
             item.WasAccessed = true;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(TickCountLruItem<K, V> item)
         {
             item.TickCount = Environment.TickCount;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(TickCountLruItem<K, V> item)
         {
@@ -56,12 +61,14 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool CanDiscard()
         {
             return true;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteHot(TickCountLruItem<K, V> item)
         {
@@ -78,6 +85,7 @@ namespace BitFaster.Caching.Lru
             return ItemDestination.Cold;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteWarm(TickCountLruItem<K, V> item)
         {
@@ -94,6 +102,7 @@ namespace BitFaster.Caching.Lru
             return ItemDestination.Cold;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteCold(TickCountLruItem<K, V> item)
         {

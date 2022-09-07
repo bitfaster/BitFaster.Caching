@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Scheduler
@@ -14,12 +11,16 @@ namespace BitFaster.Caching.Scheduler
         private long count;
         private Optional<Exception> lastException = Optional<Exception>.None();
 
+        ///<inheritdoc/>
         public bool IsBackground => true;
 
+        ///<inheritdoc/>
         public long RunCount => count;
 
+        ///<inheritdoc/>
         public Optional<Exception> LastException => lastException;
 
+        ///<inheritdoc/>
         public void Run(Action action)
         {
             count++;

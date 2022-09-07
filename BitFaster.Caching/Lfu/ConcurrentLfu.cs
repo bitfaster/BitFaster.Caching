@@ -783,7 +783,11 @@ namespace BitFaster.Caching.Lfu
         }
 
 #if DEBUG
-        public string FormatLruString()
+        /// <summary>
+        /// Format the LFU as a string by converting all the keys to strings.
+        /// </summary>
+        /// <returns>The LFU formatted as a string.</returns>
+        public string FormatLfuString()
         {
             var sb = new StringBuilder();
 

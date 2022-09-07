@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Runtime.Serialization;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
@@ -19,7 +16,11 @@ namespace BitFaster.Caching.Scheduler
     /// </remarks>
     public sealed class BackgroundThreadScheduler : IScheduler, IDisposable
     {
+        /// <summary>
+        /// The maximum number of work items to store.
+        /// </summary>
         public const int MaxBacklog = 16;
+
         private int count;
         private readonly CancellationTokenSource cts = new CancellationTokenSource();
         private readonly SemaphoreSlim semaphore = new SemaphoreSlim(0, MaxBacklog);
@@ -29,20 +30,28 @@ namespace BitFaster.Caching.Scheduler
 
         TaskCompletionSource<bool> completion = new TaskCompletionSource<bool>();
 
+        /// <summary>
+        /// Initializes a new instance of the BackgroundThreadScheduler class.
+        /// </summary>
         public BackgroundThreadScheduler()
         {
             // dedicated thread
             Task.Factory.StartNew(() => Background(), TaskCreationOptions.LongRunning);
         }
 
+        ///<inheritdoc/>
         public Task Completion => completion.Task;
 
+        ///<inheritdoc/>
         public bool IsBackground => true;
 
+        ///<inheritdoc/>
         public long RunCount => count;
 
+        ///<inheritdoc/>
         public Optional<Exception> LastException => lastException;
 
+        ///<inheritdoc/>
         public void Run(Action action)
         {
             if (work.TryAdd(action) == BufferStatus.Success)
@@ -93,6 +102,9 @@ namespace BitFaster.Caching.Scheduler
             completion.SetResult(true);
         }
 
+        /// <summary>
+        /// Terminate the background thread.
+        /// </summary>
         public void Dispose()
         {
             // prevent hang when cancel runs on the same thread

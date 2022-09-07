@@ -848,7 +848,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private void LogLru()
         {
 #if DEBUG
-            this.output.WriteLine(cache.FormatLruString());
+            this.output.WriteLine(cache.FormatLfuString());
 #endif        
         }
 
