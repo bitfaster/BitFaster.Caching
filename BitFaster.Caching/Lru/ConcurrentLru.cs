@@ -20,11 +20,11 @@ namespace BitFaster.Caching.Lru
 
         /// <summary>
         /// Initializes a new instance of the ConcurrentLru class that has the specified concurrency level, has the 
-        /// specified initial capacity, and uses the specified IEqualityComparer<T>.
+        /// specified initial capacity, and uses the specified IEqualityComparer.
         /// </summary>
         /// <param name="concurrencyLevel">The estimated number of threads that will update the ConcurrentLru concurrently.</param>
         /// <param name="capacity">The maximum number of elements that the ConcurrentLru can contain.</param>
-        /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
+        /// <param name="comparer">The IEqualityComparer implementation to use when comparing keys.</param>
         public ConcurrentLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer)
             : base(concurrencyLevel, new FavorWarmPartition(capacity), comparer, default, default)
         {
@@ -32,11 +32,11 @@ namespace BitFaster.Caching.Lru
 
         /// <summary>
         /// Initializes a new instance of the ConcurrentLru class that has the specified concurrency level, has the 
-        /// specified initial capacity, and uses the specified IEqualityComparer<T>.
+        /// specified initial capacity, and uses the specified IEqualityComparer.
         /// </summary>
         /// <param name="concurrencyLevel">The estimated number of threads that will update the ConcurrentLru concurrently.</param>
         /// <param name="capacity">The maximum number of elements that the ConcurrentLru can contain.</param>
-        /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
+        /// <param name="comparer">The IEqualityComparer implementation to use when comparing keys.</param>
         public ConcurrentLru(int concurrencyLevel, ICapacityPartition capacity, IEqualityComparer<K> comparer)
             : base(concurrencyLevel, capacity, comparer, default, default)
         {

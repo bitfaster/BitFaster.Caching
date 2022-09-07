@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
@@ -15,31 +11,40 @@ namespace BitFaster.Caching.Lru
     {
         private readonly TimeSpan timeToLive;
 
+        ///<inheritdoc/>
         public TimeSpan TimeToLive => timeToLive;
 
+        /// <summary>
+        /// Initializes a new instance of the TLruDateTimePolicy class with the specified time to live.
+        /// </summary>
+        /// <param name="timeToLive">The time to live.</param>
         public TLruDateTimePolicy(TimeSpan timeToLive)
         {
             this.timeToLive = timeToLive;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TimeStampedLruItem<K, V> CreateItem(K key, V value)
         {
             return new TimeStampedLruItem<K, V>(key, value);
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(TimeStampedLruItem<K, V> item)
         {
             item.WasAccessed = true;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(TimeStampedLruItem<K, V> item)
         {
             item.TimeStamp = DateTime.UtcNow;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(TimeStampedLruItem<K, V> item)
         {
@@ -51,12 +56,14 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool CanDiscard()
         {
             return true;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteHot(TimeStampedLruItem<K, V> item)
         {
@@ -73,6 +80,7 @@ namespace BitFaster.Caching.Lru
             return ItemDestination.Cold;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteWarm(TimeStampedLruItem<K, V> item)
         {
@@ -89,6 +97,7 @@ namespace BitFaster.Caching.Lru
             return ItemDestination.Cold;
         }
 
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteCold(TimeStampedLruItem<K, V> item)
         {

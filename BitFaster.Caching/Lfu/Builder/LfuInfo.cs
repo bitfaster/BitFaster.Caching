@@ -6,7 +6,7 @@ using BitFaster.Caching.Scheduler;
 
 namespace BitFaster.Caching.Lfu.Builder
 {
-    public sealed class LfuInfo<K>
+    internal sealed class LfuInfo<K>
     {
         private LfuBufferSize bufferConfiguration;
 

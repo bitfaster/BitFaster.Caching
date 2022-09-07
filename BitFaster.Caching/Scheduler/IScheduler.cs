@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Scheduler
 {
@@ -10,6 +7,9 @@ namespace BitFaster.Caching.Scheduler
     /// </summary>
     public interface IScheduler
     {
+        /// <summary>
+        /// Gets a value indicating whether this scheduler runs tasks in the background.
+        /// </summary>
         bool IsBackground { get; }
 
         /// <summary>

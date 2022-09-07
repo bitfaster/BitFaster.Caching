@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using BitFaster.Caching.Atomic;
+﻿using BitFaster.Caching.Atomic;
 
 namespace BitFaster.Caching.Lru.Builder
 {
@@ -17,6 +12,7 @@ namespace BitFaster.Caching.Lru.Builder
             this.inner = inner;
         }
 
+        ///<inheritdoc/>
         public override IAsyncCache<K, V> Build()
         {
             var level1 = inner.Build();
