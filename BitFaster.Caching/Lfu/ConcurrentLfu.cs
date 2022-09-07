@@ -621,7 +621,7 @@ namespace BitFaster.Caching.Lfu
 
                     // victim is initialized to first, and iterates forwards
                     victim = victim.Next;
-                    //candidate = candidate.Next;
+                    candidate = candidate.Next;
 
                     Evict(evictee);
                 }
