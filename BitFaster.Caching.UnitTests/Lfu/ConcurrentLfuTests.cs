@@ -740,6 +740,71 @@ namespace BitFaster.Caching.UnitTests.Lfu
             VerifyHits(iterations: iterations + dropped, minSamples: iterations);
         }
 
+        [Fact]
+        public void VerifyMisses()
+        {
+            cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default, 
+                new LfuBufferSize(new StripedBufferSize(1, 1), new StripedBufferSize(1, 1)));
+
+            int iterations = 100000;
+            Func<int, int> func = x => x;
+
+            var start = Stopwatch.GetTimestamp();
+
+            for (int i = 0; i < iterations; i++)
+            {
+                cache.GetOrAdd(i, func);
+            }
+
+            var end = Stopwatch.GetTimestamp();
+
+            cache.PendingMaintenance();
+
+            var totalTicks = end - start;
+            var timeMs = ((double)totalTicks / Stopwatch.Frequency) * 1000.0;
+            var timeNs = timeMs / 1000000;
+
+            var timePerOp = timeMs / (double)iterations;
+            var samplePercent = this.cache.Metrics.Value.Misses / (double)iterations * 100;
+
+            this.output.WriteLine($"Elapsed {timeMs}ms - {timeNs}ns/op");
+            this.output.WriteLine($"Cache misses {this.cache.Metrics.Value.Misses} (sampled {samplePercent}%)");
+            this.output.WriteLine($"Maintenance ops {this.cache.Scheduler.RunCount}");
+
+            cache.Metrics.Value.Misses.Should().Be(iterations);
+        }
+
+        [Fact]
+        public async Task ThreadedVerifyMisses()
+        {
+            // buffer size is 1, this will cause dropped writes on some threads where the buffer is full
+            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default,
+                new LfuBufferSize(new StripedBufferSize(1, 1), new StripedBufferSize(1, 1)));
+
+            int threads = 4;
+            int iterations = 100000;
+
+            await Threaded.Run(threads, i => 
+            {
+                Func<int, int> func = x => x;
+
+                int start = i * iterations;
+
+                for (int j = start; j < start + iterations; j++)
+                {
+                    cache.GetOrAdd(j, func);
+                }
+            });
+
+            var samplePercent = this.cache.Metrics.Value.Misses / (double)iterations / threads * 100;
+
+            this.output.WriteLine($"Cache misses {this.cache.Metrics.Value.Misses} (sampled {samplePercent}%)");
+            this.output.WriteLine($"Maintenance ops {this.cache.Scheduler.RunCount}");
+
+            cache.Metrics.Value.Misses.Should().Be(iterations * threads);
+            cache.Count.Should().BeCloseTo(20, 1);
+        }
+
         private void VerifyHits(int iterations, int minSamples)
         {
             Func<int, int> func = x => x;

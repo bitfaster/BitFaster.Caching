@@ -34,7 +34,7 @@ namespace BitFaster.Caching.Lfu
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
-        private const int MaxWriteBufferRetries = 16;
+        private const int MaxWriteBufferRetries = 64;
 
         private readonly ConcurrentDictionary<K, LfuNode<K, V>> dictionary;
 
@@ -308,8 +308,6 @@ namespace BitFaster.Caching.Lfu
 
         private void AfterWrite(LfuNode<K, V> node)
         {
-            var spinner = new SpinWait();
-
             for (int i = 0; i < MaxWriteBufferRetries; i++)
             {
                 if (writeBuffer.TryAdd(node) == BufferStatus.Success)
@@ -319,12 +317,23 @@ namespace BitFaster.Caching.Lfu
                 }
 
                 TryScheduleDrain();
-
-                spinner.SpinOnce();
             }
 
             lock (this.maintenanceLock)
             {
+                // aggressively try to exit the lock early before doing full maintenance
+                var status = BufferStatus.Contended;
+                while (status != BufferStatus.Full)
+                {
+                    status = writeBuffer.TryAdd(node);
+
+                    if (status == BufferStatus.Success)
+                    {
+                        ScheduleAfterWrite();
+                        return;
+                    }
+                }
+
                 // if the write was dropped from the buffer, explicitly pass it to maintenance
                 Maintenance(node);
             }
@@ -332,6 +341,7 @@ namespace BitFaster.Caching.Lfu
 
         private void ScheduleAfterWrite()
         {
+            var spinner = new SpinWait();
             while (true)
             {
                 switch (this.drainStatus.Status())
@@ -352,6 +362,7 @@ namespace BitFaster.Caching.Lfu
                     case DrainStatus.ProcessingToRequired:
                         return;
                 }
+                spinner.SpinOnce();
             }
         }
 
@@ -424,29 +435,32 @@ namespace BitFaster.Caching.Lfu
             var localDrainBuffer = RentDrainBuffer();
 
             // extract to a buffer before doing book keeping work, ~2x faster
-            var count = readBuffer.DrainTo(localDrainBuffer);
+            int readCount = readBuffer.DrainTo(localDrainBuffer);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < readCount; i++)
             {
                 this.cmSketch.Increment(localDrainBuffer[i].Key);
             }
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < readCount; i++)
             {
                 OnAccess(localDrainBuffer[i]);
             }
 
-            var wasDrained = count == 0;
-            count = this.writeBuffer.DrainTo(localDrainBuffer);
+            int writeCount = this.writeBuffer.DrainTo(localDrainBuffer);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < writeCount; i++)
             {
                 OnWrite(localDrainBuffer[i]);
             }
 
+            // we are done only when both buffers are empty
+            var done = readCount == 0 & writeCount == 0;
+
             if (droppedWrite != null)
             {
                 OnWrite(droppedWrite);
+                done = true;
             }
 
             ReturnDrainBuffer(localDrainBuffer);
@@ -458,14 +472,14 @@ namespace BitFaster.Caching.Lfu
             // Reset to idle if either
             // 1. We drained both input buffers (all work done)
             // 2. or scheduler is foreground (since don't run continuously on the foreground)
-            if ((wasDrained || !scheduler.IsBackground) &&
+            if ((done || !scheduler.IsBackground) &&
                 (this.drainStatus.Status() != DrainStatus.ProcessingToIdle ||
                 !this.drainStatus.Cas(DrainStatus.ProcessingToIdle, DrainStatus.Idle)))
             {
                 this.drainStatus.Set(DrainStatus.Required);
             }
 
-            return wasDrained;
+            return done;
         }
 
         private void OnAccess(LfuNode<K, V> node)
@@ -595,7 +609,7 @@ namespace BitFaster.Caching.Lfu
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
                 // bail when we run out of options
-                if (candidate == null || victim == null || victim == candidate)
+                if (candidate == null | victim == null | victim == candidate)
                 {
                     break;
                 }
