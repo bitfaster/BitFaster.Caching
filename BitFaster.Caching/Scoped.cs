@@ -27,6 +27,9 @@ namespace BitFaster.Caching
             this.refCount = new ReferenceCount<T>(value);
         }
 
+        /// <summary>
+        /// Gets a value indicating whether the scope is disposed.
+        /// </summary>
         public bool IsDisposed => isDisposed;
 
         /// <summary>

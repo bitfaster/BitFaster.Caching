@@ -3,6 +3,9 @@ using System.Diagnostics;
 
 namespace BitFaster.Caching.Lfu
 {
+    /// <summary>
+    /// Represents the LFU capacity partition. Uses a hill climbing algorithm to optimze partition sizes over time.
+    /// </summary>
     [DebuggerDisplay("{Capacity} ({Window}/{Protected}/{Probation})")]
     public sealed class LfuCapacityPartition
     {
@@ -28,24 +31,48 @@ namespace BitFaster.Caching.Lfu
         private const double MaxMainPercentage = 0.999d;
         private const double MinMainPercentage = 0.2d;
 
+        /// <summary>
+        /// Initializes a new instance of the LfuCapacityPartition class with the specified total capacity.
+        /// </summary>
+        /// <param name="totalCapacity">The total capacity.</param>
         public LfuCapacityPartition(int totalCapacity)
         {
             this.max = totalCapacity;
             (windowCapacity, protectedCapacity, probationCapacity) = ComputeQueueCapacity(totalCapacity, DefaultMainPercentage);
-            InitializeStepSize(totalCapacity);
+            InitializeStepSize();
 
             previousHitRate = 1.0;
         }
 
+        /// <summary>
+        /// Gets the number of items permitted in the window LRU.
+        /// </summary>
         public int Window => this.windowCapacity;
 
+        /// <summary>
+        /// Gets the number of items permitted in the protected LRU.
+        /// </summary>
         public int Protected => this.protectedCapacity;
 
+        /// <summary>
+        /// Gets the number of items permitted in the probation LRU.
+        /// </summary>
         public int Probation => this.probationCapacity;
 
+        /// <summary>
+        /// Gets the total capacity.
+        /// </summary>
         public int Capacity => this.max;
 
-        // Apply changes to the ratio of window to main, window = recency-biased, main = frequency-biased.
+
+        /// <summary>
+        /// Optimize the size of the window and main LRUs based on changes in hit rate.
+        /// </summary>
+        /// <param name="metrics">The cache metrics.</param>
+        /// <param name="sampleThreshold">The number of cache requests to sample before attempting to optimize LRU sizes.</param>
+        /// <remarks>
+        /// window = recency-biased, main = frequency-biased.
+        /// </remarks>
         public void OptimizePartitioning(ICacheMetrics metrics, int sampleThreshold)
         {
             long newHits = metrics.Hits;
@@ -81,7 +108,7 @@ namespace BitFaster.Caching.Lfu
             (windowCapacity, protectedCapacity, probationCapacity) = ComputeQueueCapacity(max, mainRatio);
         }
 
-        private void InitializeStepSize(int cacheSize)
+        private void InitializeStepSize()
         {
             stepSize = HillClimberStepPercent;
         }

@@ -4,12 +4,23 @@ using BitFaster.Caching.Buffers;
 
 namespace BitFaster.Caching.Lfu
 {
+    /// <summary>
+    /// Represents the read and write buffer sizes used to initialize ConcurrentLfu.
+    /// </summary>
     public class LfuBufferSize
     {
+        /// <summary>
+        /// The default buffer size.
+        /// </summary>
         public const int DefaultBufferSize = 128;
 
         private const int MaxWriteBufferTotalSize = 1024;
 
+        /// <summary>
+        /// Initializes a new instance of the LfuBufferSize class with the specified read and write buffer sizes.
+        /// </summary>
+        /// <param name="readBufferSize">The read buffer size.</param>
+        /// <param name="writeBufferSize">The write buffer size.</param>
         public LfuBufferSize(StripedBufferSize readBufferSize, StripedBufferSize writeBufferSize)
         {
             Read = readBufferSize ?? throw new ArgumentNullException(nameof(readBufferSize));

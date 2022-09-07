@@ -3,6 +3,19 @@ using BitFaster.Caching.Lfu.Builder;
 
 namespace BitFaster.Caching.Lfu
 {
+    /// <summary>
+    /// A builder of ICache and IScopedCache instances with the following configuration
+    /// settings:
+    /// - The maximum size.
+    /// - The concurrency level.
+    /// - The key comparer.
+    /// - The buffer sizes.
+    /// 
+    /// The following features can be selected which change the underlying cache implementation: 
+    /// - Scoped IDisposable values.
+    /// </summary>
+    /// <typeparam name="K">The type of keys in the cache.</typeparam>
+    /// <typeparam name="V">The type of values in the cache.</typeparam>
     public sealed class ConcurrentLfuBuilder<K, V> : LfuBuilderBase<K, V, ConcurrentLfuBuilder<K, V>, ICache<K, V>>
     {
         /// <summary>

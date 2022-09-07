@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru
 {
@@ -17,6 +13,10 @@ namespace BitFaster.Caching.Lru
         private readonly int warmCapacity;
         private readonly int coldCapacity;
 
+        /// <summary>
+        /// Initializes a new instance of the EqualCapacityPartition class with the specified total capacity.
+        /// </summary>
+        /// <param name="totalCapacity">The total capacity.</param>
         public EqualCapacityPartition(int totalCapacity)
         {
             var (hot, warm, cold) = ComputeQueueCapacity(totalCapacity);
@@ -25,10 +25,13 @@ namespace BitFaster.Caching.Lru
             this.coldCapacity = cold;
         }
 
+        ///<inheritdoc/>
         public int Cold => this.coldCapacity;
 
+        ///<inheritdoc/>
         public int Warm => this.warmCapacity;
 
+        ///<inheritdoc/>
         public int Hot => this.hotCapacity;
 
         private static (int hot, int warm, int cold) ComputeQueueCapacity(int capacity)
