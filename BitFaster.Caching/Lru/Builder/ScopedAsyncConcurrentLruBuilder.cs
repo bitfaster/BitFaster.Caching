@@ -2,6 +2,11 @@
 
 namespace BitFaster.Caching.Lru.Builder
 {
+    /// <summary>
+    /// A builder for creating a ConcurrentLru with scoped values.
+    /// </summary>
+    /// <typeparam name="K">The type of the cache key.</typeparam>
+    /// <typeparam name="V">The type of the cache value.</typeparam>
     public sealed class ScopedAsyncConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, ScopedAsyncConcurrentLruBuilder<K, V>, IScopedAsyncCache<K, V>> where V : IDisposable
     {
         private readonly AsyncConcurrentLruBuilder<K, Scoped<V>> inner;

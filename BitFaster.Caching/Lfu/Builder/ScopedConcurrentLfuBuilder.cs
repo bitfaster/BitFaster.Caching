@@ -1,9 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace BitFaster.Caching.Lfu.Builder
 {
+    /// <summary>
+    /// A builder for creating a ConcurrentLfu with scoped values.
+    /// </summary>
+    /// <typeparam name="K">The type of the cache key.</typeparam>
+    /// <typeparam name="V">The type of the cache value.</typeparam>
+    /// <typeparam name="W">The type of the wrapped cache value.</typeparam>
     public sealed class ScopedConcurrentLfuBuilder<K, V, W> : LfuBuilderBase<K, V, ScopedConcurrentLfuBuilder<K, V, W>, IScopedCache<K, V>> where V : IDisposable where W : IScoped<V>
     {
         private readonly ConcurrentLfuBuilder<K, W> inner;

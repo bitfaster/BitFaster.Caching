@@ -5,12 +5,21 @@ using System.Diagnostics;
 
 namespace BitFaster.Caching.Atomic
 {
+    /// <summary>
+    /// A cache decorator for working with  <see cref="AtomicFactory{K, V}"/> wrapped values, giving exactly once initialization.
+    /// </summary>
+    /// <typeparam name="K">The type of keys in the cache.</typeparam>
+    /// <typeparam name="V">The type of values in the cache.</typeparam>
     [DebuggerDisplay("Count = {Count}")]
     public sealed class AtomicFactoryCache<K, V> : ICache<K, V>
     {
         private readonly ICache<K, AtomicFactory<K, V>> cache;
         private readonly Optional<ICacheEvents<K, V>> events;
 
+        /// <summary>
+        /// Initializes a new instance of the ScopedCache class with the specified inner cache.
+        /// </summary>
+        /// <param name="cache">The decorated cache.</param>
         public AtomicFactoryCache(ICache<K, AtomicFactory<K, V>> cache)
         {
             if (cache == null)
