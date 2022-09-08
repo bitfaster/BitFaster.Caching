@@ -324,7 +324,8 @@ namespace BitFaster.Caching.Lfu
                 TryDeleteBufferedItems();
             }
 
-            //var spinner = new SpinWait();
+            //////////////////////////////////////////////////////////////////////////////////////////////////
+
             //while (true)
             //{
             //    bool wasTaken = false;
@@ -347,8 +348,7 @@ namespace BitFaster.Caching.Lfu
             //            }
 
             //            Maintenance(node);
-            //            DeleteAllBufferedItems();
-            //            return;
+            //            break;
             //        }
             //    }
             //    finally
@@ -358,11 +358,11 @@ namespace BitFaster.Caching.Lfu
             //            Monitor.Exit(this.maintenanceLock);
             //        }
             //    }
-
-            //    TryDeleteBufferedItems();
-
-            //    //spinner.SpinOnce();
             //}
+
+            //DeleteAllBufferedItems();
+
+            //////////////////////////////////////////////////////////////////////////////////////////////////
 
             lock (this.maintenanceLock)
             {
@@ -483,6 +483,7 @@ namespace BitFaster.Caching.Lfu
         private bool Maintenance(LfuNode<K, V> droppedWrite = null)
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
+
             var localDrainBuffer = RentDrainBuffer();
 
             // extract to a buffer before doing book keeping work, ~2x faster
@@ -518,6 +519,7 @@ namespace BitFaster.Caching.Lfu
 
             EvictEntries();
             QueueDeleteBuffer();
+
             this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
             ReFitProtected();
 
