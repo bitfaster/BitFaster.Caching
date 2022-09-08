@@ -7,7 +7,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Concurrent;
 using BitFaster.Caching.Lru;
@@ -57,12 +56,8 @@ namespace BitFaster.Caching.Lfu
 
         private readonly IScheduler scheduler;
 
-        const int padding = 64;
-        const int spacing = 64;
-
-       // private readonly LfuNode<K, V>[] removeList = new LfuNode<K, V>[padding + (Environment.ProcessorCount * spacing)];
-
-        private readonly MpmcBoundedBuffer<LfuNode<K, V>> removeList2 = new MpmcBoundedBuffer<LfuNode<K, V>>(Environment.ProcessorCount);
+        private readonly MpmcBoundedBuffer<List<LfuNode<K, V>>> cleanBufferQueue = new MpmcBoundedBuffer<List<LfuNode<K, V>>>(Environment.ProcessorCount);
+        private readonly MpmcBoundedBuffer<List<LfuNode<K, V>>> deleteBufferQueue = new MpmcBoundedBuffer<List<LfuNode<K, V>>>(Environment.ProcessorCount);
 
 #if NETSTANDARD2_0
         private readonly LfuNode<K, V>[] drainBuffer;
@@ -176,6 +171,7 @@ namespace BitFaster.Caching.Lfu
             {
                 // flush all buffers
                 Maintenance();
+                DeleteAllBufferedItems();
 
                 // walk in lru order, get itemCount keys to evict
                 TakeCandidatesInLruOrder(this.probationLru, candidates, itemCount);
@@ -325,51 +321,70 @@ namespace BitFaster.Caching.Lfu
                 }
 
                 TryScheduleDrain();
-                //TryHelpRemove();
-
+                TryDeleteBufferedItems();
             }
 
-            while (true)
+            //var spinner = new SpinWait();
+            //while (true)
+            //{
+            //    bool wasTaken = false;
+            //    Monitor.TryEnter(this.maintenanceLock, ref wasTaken);
+            //    try
+            //    {
+            //        if (wasTaken)
+            //        {
+            //            // aggressively try to exit the lock early before doing full maintenance
+            //            var status = BufferStatus.Contended;
+            //            while (status != BufferStatus.Full)
+            //            {
+            //                status = writeBuffer.TryAdd(node);
+
+            //                if (status == BufferStatus.Success)
+            //                {
+            //                    ScheduleAfterWrite();
+            //                    return;
+            //                }
+            //            }
+
+            //            Maintenance(node);
+            //            DeleteAllBufferedItems();
+            //            return;
+            //        }
+            //    }
+            //    finally
+            //    {
+            //        if (wasTaken)
+            //        {
+            //            Monitor.Exit(this.maintenanceLock);
+            //        }
+            //    }
+
+            //    TryDeleteBufferedItems();
+
+            //    //spinner.SpinOnce();
+            //}
+
+            lock (this.maintenanceLock)
             {
-                bool wasTaken = false;
-                Monitor.TryEnter(this.maintenanceLock, ref wasTaken);
-                try
+                // aggressively try to exit the lock early before doing full maintenance
+                var status = BufferStatus.Contended;
+                while (status != BufferStatus.Full)
                 {
-	                // aggressively try to exit the lock early before doing full maintenance
-	                var status = BufferStatus.Contended;
-	                while (status != BufferStatus.Full)
-	                {
-	                    status = writeBuffer.TryAdd(node);
+                    status = writeBuffer.TryAdd(node);
 
-	                    if (status == BufferStatus.Success)
-	                    {
-	                        ScheduleAfterWrite();
-	                        return;
-	                    }
-	                }
-
-                    if (wasTaken)
+                    if (status == BufferStatus.Success)
                     {
-                        Maintenance(node);
+                        ScheduleAfterWrite();
                         return;
                     }
                 }
-                finally
-                {
-                    if (wasTaken)
-                    {
-                        Monitor.Exit(this.maintenanceLock);
-                    }
-                }
 
-                //TryHelpRemove();
+                // if the write was dropped from the buffer, explicitly pass it to maintenance
+                Maintenance(node);
             }
 
-            //lock (this.maintenanceLock)
-            //{
-            //    // if the write was dropped from the buffer, explicitly pass it to maintenance
-            //    Maintenance(node);
-            //}
+            // remove outside the lock
+            DeleteAllBufferedItems();
         }
 
         private void ScheduleAfterWrite()
@@ -449,6 +464,9 @@ namespace BitFaster.Caching.Lfu
                     done = Maintenance();
                 }
 
+                // remove outside the lock
+                DeleteAllBufferedItems();
+
                 // don't run continuous foreground maintenance
                 if (!scheduler.IsBackground)
                 {
@@ -499,10 +517,9 @@ namespace BitFaster.Caching.Lfu
             ReturnDrainBuffer(localDrainBuffer);
 
             EvictEntries();
+            QueueDeleteBuffer();
             this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
             ReFitProtected();
-
-            RemoveAll();
 
             // Reset to idle if either
             // 1. We drained both input buffers (all work done)
@@ -519,73 +536,114 @@ namespace BitFaster.Caching.Lfu
 
         private void TryAddToRemoveList(LfuNode<K, V> node)
         {
-            //for (int i = 0; i < Environment.ProcessorCount; i++)
-            //{
-            //    int index = padding + (i * spacing);
-            //    if (Volatile.Read(ref removeList[index]) == null)
-            //    {
-            //        if (Interlocked.CompareExchange(ref removeList[index], node, null) == null)
-            //        {
-            //            return;
-            //        }
-            //    }
-            //}
+            deleteBuffer.Add(node);
 
-            if (removeList2.TryAdd(node) != BufferStatus.Success)
+            if (deleteBuffer.Count >= deleteBufferSize)
             {
-                // direct remove if not added to list
-                this.dictionary.TryRemove(node.Key, out var _);
-                Disposer<V>.Dispose(node.Value);
+               // int attempts = 0;
 
-            }
+                while (true)
+                {
+                    if (this.deleteBufferQueue.TryAdd(deleteBuffer) == BufferStatus.Success)
+                    {
+                        if (this.cleanBufferQueue.TryTake(out deleteBuffer) == BufferStatus.Success)
+                        {
+                            return;
+                        }
 
-        }
+                        deleteBuffer = new List<LfuNode<K, V>>(deleteBufferSize);
+                        return;
+                    }
+                }
 
-        private void TryHelpRemove()
-        {
-            //for (int i = 0; i < Environment.ProcessorCount; i++)
-            //{
-            //    int index = padding + (i * spacing);
-            //    var node = Volatile.Read(ref removeList[index]);
-            //    if (node != null)
-            //    {
-            //        if (Interlocked.CompareExchange(ref removeList[index], null, node) == node)
-            //        {
-            //            this.dictionary.TryRemove(node.Key, out var _);
-            //            Disposer<V>.Dispose(node.Value);
-            //        }
-            //    }
-            //}
+                //foreach (var n in deleteBuffer)
+                //{
+                //    this.dictionary.TryRemove(n.Key, out var _);
+                //    Disposer<V>.Dispose(n.Value);
+                //}
 
-            if (removeList2.TryTake(out var node) != BufferStatus.Success)
-            {
-                // direct remove if not added to list
-                this.dictionary.TryRemove(node.Key, out var _);
-                Disposer<V>.Dispose(node.Value);
-
+                //deleteBuffer.Clear();
             }
         }
 
-        private void RemoveAll()
+        private void QueueDeleteBuffer()
         {
-            //for (int i = 0; i < Environment.ProcessorCount; i++)
-            //{
-            //    int index = padding + (i * spacing);
-            //    var node = Volatile.Read(ref removeList[index]);
-            //    if (node != null)
-            //    {
-            //        if (Interlocked.CompareExchange(ref removeList[index], null, node) == node)
-            //        {
-            //            this.dictionary.TryRemove(node.Key, out var _);
-            //            Disposer<V>.Dispose(node.Value);
-            //        }
-            //    }
-            //}
-
-            while (removeList2.TryTake(out var node) != BufferStatus.Empty)
+            if (deleteBuffer.Count == 0)
             {
-                this.dictionary.TryRemove(node.Key, out var _);
-                Disposer<V>.Dispose(node.Value);
+                return;
+            }
+
+            while (true)
+            {
+                if (this.deleteBufferQueue.TryAdd(deleteBuffer) == BufferStatus.Success)
+                {
+                    if (this.cleanBufferQueue.TryTake(out deleteBuffer) == BufferStatus.Success)
+                    {
+                        return;
+                    }
+
+                    deleteBuffer = new List<LfuNode<K, V>>(deleteBufferSize);
+                    return;
+                }
+            }
+
+            //if (this.deleteBufferQueue.TryAdd(deleteBuffer) != BufferStatus.Success)
+            //{
+            //    foreach (var n in deleteBuffer)
+            //    {
+            //        this.dictionary.TryRemove(n.Key, out var _);
+            //        Disposer<V>.Dispose(n.Value);
+            //    }
+
+            //    deleteBuffer.Clear();
+            //}
+            //else
+            //{
+            //    if (this.cleanBufferQueue.TryTake(out deleteBuffer) == BufferStatus.Success)
+            //    {
+            //        return;
+            //    }
+
+            //    deleteBuffer = new List<LfuNode<K, V>>(deleteBufferSize);
+            //}
+        }
+
+        const int deleteBufferSize = 128;
+        private List<LfuNode<K, V>> deleteBuffer = new List<LfuNode<K, V>>(deleteBufferSize);
+
+        private void TryDeleteBufferedItems()
+        {
+            if (deleteBufferQueue.TryTake(out var buffer) == BufferStatus.Success)
+            {
+                foreach (var n in buffer)
+                {
+                    this.dictionary.TryRemove(n.Key, out var _);
+                    Disposer<V>.Dispose(n.Value);
+                }
+
+                buffer.Clear();
+                this.cleanBufferQueue.TryAdd(buffer);
+            }
+        }
+
+        private void DeleteAllBufferedItems()
+        {
+            var spinner = new SpinWait();
+            while (deleteBufferQueue.TryTake(out var buffer) != BufferStatus.Empty)
+            {
+                if (buffer != null)
+                {
+                    foreach (var n in buffer)
+                    {
+                        this.dictionary.TryRemove(n.Key, out var _);
+                        Disposer<V>.Dispose(n.Value);
+                    }
+
+                    buffer.Clear();
+                    this.cleanBufferQueue.TryAdd(buffer);
+                }
+
+                spinner.SpinOnce();
             }
         }
 
