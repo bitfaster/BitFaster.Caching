@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,10 +14,16 @@ namespace BitFaster.Caching
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
+    [DebuggerDisplay("Count = {Count}")]
     public sealed class ScopedAsyncCache<K, V> : IScopedAsyncCache<K, V> where V : IDisposable
     {
         private readonly IAsyncCache<K, Scoped<V>> cache;
 
+        /// <summary>
+        /// Initializes a new instance of the ScopedAsyncCache class with the specified inner cache.
+        /// </summary>
+        /// <param name="cache">The decorated cache.</param>
+        /// <exception cref="ArgumentNullException"></exception>
         public ScopedAsyncCache(IAsyncCache<K, Scoped<V>> cache)
         {
             if (cache == null)
@@ -106,6 +111,7 @@ namespace BitFaster.Caching
             return this.cache.TryUpdate(key, new Scoped<V>(value));
         }
 
+        ///<inheritdoc/>
         public IEnumerator<KeyValuePair<K, Scoped<V>>> GetEnumerator()
         {
             foreach (var kvp in this.cache)

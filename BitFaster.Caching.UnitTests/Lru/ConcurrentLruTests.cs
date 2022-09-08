@@ -962,6 +962,22 @@ namespace BitFaster.Caching.UnitTests.Lru
             removedItems[1].Reason.Should().Be(ItemRemovedReason.Trimmed);
         }
 
+        [Fact]
+        public async Task WhenItemsAreScannedInParallelCapacityIsNotExceeded()
+        {
+            await Threaded.Run(4, () => {
+                for (int i = 0; i < 100000; i++)
+                {
+                    lru.GetOrAdd(i + 1, i =>i.ToString());
+                }
+            });
+
+            this.testOutputHelper.WriteLine($"{lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
+
+            // allow +/- 1 variance for capacity
+            lru.Count.Should().BeCloseTo(9, 1);
+        }
+
         private void Warmup()
         {
             lru.GetOrAdd(-1, valueFactory.Create);

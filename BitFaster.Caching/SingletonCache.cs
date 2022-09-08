@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
@@ -29,11 +26,11 @@ namespace BitFaster.Caching
 
         /// <summary>
         /// Initializes a new instance of the SingletonCache that has the specified concurrency level, has the 
-        /// specified initial capacity, and uses the specified IEqualityComparer<T>.
+        /// specified initial capacity, and uses the specified IEqualityComparer.
         /// </summary>
         /// <param name="concurrencyLevel">The estimated number of threads that will update the SingletonCache concurrently.</param>
         /// <param name="capacity">The initial number of elements that the SingletonCache can contain.</param>
-        /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
+        /// <param name="comparer">The IEqualityComparer implementation to use when comparing keys.</param>
         public SingletonCache(int concurrencyLevel, int capacity, IEqualityComparer<TKey> comparer)
         {
             this.cache = new ConcurrentDictionary<TKey, ReferenceCount<TValue>>(concurrencyLevel, capacity, comparer);

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace BitFaster.Caching
 {
     /// <summary>
@@ -12,6 +7,11 @@ namespace BitFaster.Caching
     /// </summary>
     public class CachePolicy
     {
+        /// <summary>
+        /// Initializes a new instance of the CachePolicy class with the specified eviction and expire after write policies.
+        /// </summary>
+        /// <param name="eviction">The eviction policy.</param>
+        /// <param name="expireAfterWrite">The expire after write policy.</param>
         public CachePolicy(Optional<IBoundedPolicy> eviction, Optional<ITimePolicy> expireAfterWrite)
         {
             this.Eviction = eviction;

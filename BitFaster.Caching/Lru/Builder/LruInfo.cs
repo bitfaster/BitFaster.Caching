@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Lru.Builder
 {
-    public sealed class LruInfo<K>
+    internal sealed class LruInfo<K>
     {
         public ICapacityPartition Capacity { get; set; } = new FavorWarmPartition(128);
 

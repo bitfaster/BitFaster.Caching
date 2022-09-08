@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Diagnostics;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Buffers
 {
@@ -14,12 +12,18 @@ namespace BitFaster.Caching.Buffers
     /// Based on BoundedBuffer by Ben Manes.
     /// https://github.com/ben-manes/caffeine/blob/master/caffeine/src/main/java/com/github/benmanes/caffeine/cache/BoundedBuffer.java
     /// </remarks>
-    public class MpscBoundedBuffer<T> where T : class
+    [DebuggerDisplay("Count = {Count}/{Capacity}")]
+    public sealed class MpscBoundedBuffer<T> where T : class
     {
         private T[] buffer;
         private readonly int mask;
         private PaddedHeadAndTail headAndTail; // mutable struct, don't mark readonly
 
+        /// <summary>
+        /// Initializes a new instance of the MpscBoundedBuffer class with the specified bounded capacity.
+        /// </summary>
+        /// <param name="boundedLength">The bounded length.</param>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public MpscBoundedBuffer(int boundedLength)
         {
             if (boundedLength < 0)
@@ -34,8 +38,14 @@ namespace BitFaster.Caching.Buffers
             mask = boundedLength - 1;
         }
 
+        /// <summary>
+        /// The bounded capacity.
+        /// </summary>
         public int Capacity => buffer.Length;
 
+        /// <summary>
+        /// Gets the number of items contained in the buffer.
+        /// </summary>
         public int Count
         {
             get
@@ -69,7 +79,14 @@ namespace BitFaster.Caching.Buffers
             return 0;
         }
 
-        // thread safe
+        /// <summary>
+        /// Tries to add the specified item.
+        /// </summary>
+        /// <param name="item">The item to be added.</param>
+        /// <returns>A BufferStatus value indicating whether the operation succeeded.</returns>
+        /// <remarks>
+        /// Thread safe.
+        /// </remarks>
         public BufferStatus TryAdd(T item)
         {
             int head = Volatile.Read(ref headAndTail.Head);
@@ -92,7 +109,15 @@ namespace BitFaster.Caching.Buffers
             return BufferStatus.Contended;
         }
 
-        // thread safe for single try take/drain + multiple try add
+
+        /// <summary>
+        /// Tries to remove an item.
+        /// </summary>
+        /// <param name="item">The item to be removed.</param>
+        /// <returns>A BufferStatus value indicating whether the operation succeeded.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
         public BufferStatus TryTake(out T item)
         {
             int head = Volatile.Read(ref headAndTail.Head);
@@ -120,7 +145,14 @@ namespace BitFaster.Caching.Buffers
             return BufferStatus.Success;
         }
 
-        // thread safe for single try take/drain + multiple try add
+        /// <summary>
+        /// Drains the buffer into the specified array segment.
+        /// </summary>
+        /// <param name="output">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
         public int DrainTo(ArraySegment<T> output)
         {
             int head = Volatile.Read(ref headAndTail.Head);
@@ -157,7 +189,12 @@ namespace BitFaster.Caching.Buffers
             return outCount;
         }
 
-        // Not thread safe
+        /// <summary>
+        /// Removes all values from the buffer.
+        /// </summary>
+        /// <remarks>
+        /// Not thread safe.
+        /// </remarks>
         public void Clear()
         {
             buffer = new T[buffer.Length];

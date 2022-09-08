@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 
 namespace BitFaster.Caching.Buffers
@@ -16,12 +13,17 @@ namespace BitFaster.Caching.Buffers
     /// Based on the Segment internal class from ConcurrentQueue
     /// https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Collections/Concurrent/ConcurrentQueueSegment.cs
     /// </remarks>
-    public class MpmcBoundedBuffer<T>
+    public sealed class MpmcBoundedBuffer<T>
     {
         private Slot[] slots;
         private readonly int slotsMask;
         private PaddedHeadAndTail headAndTail; // mutable struct, don't mark readonly
 
+        /// <summary>
+        /// Initializes a new instance of the MpmcBoundedBuffer class with the specified bounded capacity.
+        /// </summary>
+        /// <param name="boundedLength">The bounded length.</param>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public MpmcBoundedBuffer(int boundedLength)
         {
             if (boundedLength < 0)
@@ -57,6 +59,9 @@ namespace BitFaster.Caching.Buffers
             }
         }
 
+        /// <summary>
+        /// Gets the number of items contained in the buffer.
+        /// </summary>
         public int Count
         {
             get
@@ -90,8 +95,16 @@ namespace BitFaster.Caching.Buffers
             return 0;
         }
 
+        /// <summary>
+        /// The bounded capacity.
+        /// </summary>
         public int Capacity => slots.Length;
 
+        /// <summary>
+        /// Tries to remove an item.
+        /// </summary>
+        /// <param name="item">The item to be removed.</param>
+        /// <returns>A BufferStatus value indicating whether the operation succeeded.</returns>
         public BufferStatus TryTake(out T item)
         {
             // Get the head at which to try to dequeue.
@@ -148,6 +161,11 @@ namespace BitFaster.Caching.Buffers
             return BufferStatus.Contended;
         }
 
+        /// <summary>
+        /// Tries to add the specified item.
+        /// </summary>
+        /// <param name="item">The item to be added.</param>
+        /// <returns>A BufferStatus value indicating whether the operation succeeded.</returns>
         public BufferStatus TryAdd(T item)
         {
             // Get the tail at which to try to return.
@@ -192,7 +210,12 @@ namespace BitFaster.Caching.Buffers
             return BufferStatus.Contended;
         }
 
-        // Not thread safe
+        /// <summary>
+        /// Removes all values from the buffer.
+        /// </summary>
+        /// <remarks>
+        /// Not thread safe.
+        /// </remarks>
         public void Clear()
         {
             slots = new Slot[slots.Length];

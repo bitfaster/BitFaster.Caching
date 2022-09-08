@@ -1,36 +1,23 @@
-﻿/*
- * Copyright 2015 Ben Manes. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace BitFaster.Caching.Lfu
 {
-    // https://en.wikipedia.org/wiki/Count%E2%80%93min_sketch#:~:text=In%20computing%2C%20the%20count%E2%80%93min,some%20events%20due%20to%20collisions.
-    // Parallel count min: https://www.atlantis-press.com/proceedings/mmebc-16/25859036
-    // SIMD: https://thlujy.github.io/papers/Lujianyuan-tpds-ufbf.pdf
-    // https://github.com/ben-manes/caffeine/blob/master/caffeine/src/main/java/com/github/benmanes/caffeine/cache/FrequencySketch.java
-    // https://github.com/ben-manes/caffeine/blob/master/caffeine/src/test/java/com/github/benmanes/caffeine/cache/FrequencySketchTest.java
-    public class CmSketch<T>
+    /// <summary>
+    /// A probabilistic data structure used to estimate the frequency of a given value. Periodic aging reduces the
+    /// accumulated count across all values over time, such that a historic popular value will decay to zero frequency
+    /// over time if it is not accessed.
+    /// </summary>
+    /// <remarks>
+    /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
+    /// http://www.apache.org/licenses/LICENSE-2.0
+    /// </remarks>
+    public sealed class CmSketch<T>
     {
         // A mixture of seeds from FNV-1a, CityHash, and Murmur3
-        private static ulong[] Seed = { 0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L};
-        private static long ResetMask = 0x7777777777777777L;
-        private static long OneMask = 0x1111111111111111L;
+        private static readonly ulong[] Seed = { 0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L};
+        private static readonly long ResetMask = 0x7777777777777777L;
+        private static readonly long OneMask = 0x1111111111111111L;
 
         private int sampleSize;
         private int tableMask;
@@ -39,16 +26,32 @@ namespace BitFaster.Caching.Lfu
 
         private readonly IEqualityComparer<T> comparer;
 
+        /// <summary>
+        /// Initializes a new instance of the CmSketch class with the specified maximum size and equality comparer.
+        /// </summary>
+        /// <param name="maximumSize">The maximum size.</param>
+        /// <param name="comparer">The equality comparer.</param>
         public CmSketch(long maximumSize, IEqualityComparer<T> comparer)
         {
             EnsureCapacity(maximumSize);
             this.comparer = comparer;
         }
 
+        /// <summary>
+        /// Gets the reset sample size.
+        /// </summary>
         public int ResetSampleSize => this.sampleSize;
 
+        /// <summary>
+        /// Gets the size.
+        /// </summary>
         public int Size => this.size;
 
+        /// <summary>
+        /// Initialize such that the count min sketch can accurately estimate the count for values given
+        /// a maximum size.
+        /// </summary>
+        /// <param name="maximumSize">The maximum size.</param>
         public void EnsureCapacity(long maximumSize)
         {
             int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);
@@ -60,6 +63,11 @@ namespace BitFaster.Caching.Lfu
             size = 0;
         }
 
+        /// <summary>
+        /// Estimate the frequency of the specified value.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The estimated frequency of the value.</returns>
         public int EstimateFrequency(T value)
         {
             int hash = Spread(comparer.GetHashCode(value));
@@ -76,6 +84,10 @@ namespace BitFaster.Caching.Lfu
             return frequency;
         }
 
+        /// <summary>
+        /// Increment the count of the specified value.
+        /// </summary>
+        /// <param name="value">The value.</param>
         public void Increment(T value)
         {
             int hash = Spread(comparer.GetHashCode(value));
@@ -121,6 +133,9 @@ namespace BitFaster.Caching.Lfu
             size = (size - (count >> 2)) >> 1;
         }
 
+        /// <summary>
+        /// Clears the count for all items.
+        /// </summary>
         public void Clear()
         {
             table = new long[table.Length];

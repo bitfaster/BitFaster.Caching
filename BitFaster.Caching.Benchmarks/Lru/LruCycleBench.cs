@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Lru;
@@ -28,7 +25,8 @@ namespace BitFaster.Caching.Benchmarks.Lru
     [SimpleJob(RuntimeMoniker.Net48)]
     [SimpleJob(RuntimeMoniker.Net60)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
-    [MemoryDiagnoser]
+    [MemoryDiagnoser(displayGenColumns: false)]
+    [HideColumns("Median", "RatioSD")]
     public class LruCycleBench
     {
         private static readonly ClassicLru<int, int> classicLru = new ClassicLru<int, int>(8, 9, EqualityComparer<int>.Default);

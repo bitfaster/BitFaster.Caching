@@ -10,7 +10,7 @@ namespace BitFaster.Caching.Lfu
     /// Adapted from the .NET linked list code, but with arg checking only applied in debug builds. 
     /// </summary>
     [DebuggerDisplay("Count = {Count}")]
-    internal class LfuNodeList<K, V> : IEnumerable<LfuNode<K, V>>
+    internal sealed class LfuNodeList<K, V> : IEnumerable<LfuNode<K, V>>
     {
         internal LfuNode<K, V> head;
         private int count;

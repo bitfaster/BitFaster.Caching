@@ -1,15 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using BitFaster.Caching.Scheduler;
 
 namespace BitFaster.Caching.Lfu.Builder
 {
+    /// <summary>
+    /// Represents the base class to be extended by LFU builder implementations.
+    /// </summary>
+    /// <typeparam name="K">The type of the key.</typeparam>
+    /// <typeparam name="V">The type of the value.</typeparam>
+    /// <typeparam name="TBuilder">The type of the builder.</typeparam>
+    /// <typeparam name="TCacheReturn">The return type of the builder.</typeparam>
     public abstract class LfuBuilderBase<K, V, TBuilder, TCacheReturn> where TBuilder : LfuBuilderBase<K, V, TBuilder, TCacheReturn>
     {
         internal readonly LfuInfo<K> info;
 
-        protected LfuBuilderBase(LfuInfo<K> info)
+        internal LfuBuilderBase(LfuInfo<K> info)
         {
             this.info = info;
         }
@@ -56,6 +61,17 @@ namespace BitFaster.Caching.Lfu.Builder
         public TBuilder WithKeyComparer(IEqualityComparer<K> comparer)
         {
             this.info.KeyComparer = comparer;
+            return this as TBuilder;
+        }
+
+        /// <summary>
+        /// Use the specified buffer configuration. Smaller buffers consume less memory, larger buffers can
+        /// increase concurrent throughput.
+        /// </summary>
+        /// <returns>A ConcurrentLfuBuilder</returns>
+        public TBuilder WithBufferConfiguration(LfuBufferSize bufferConfiguration)
+        {
+            this.info.BufferConfiguration = bufferConfiguration;
             return this as TBuilder;
         }
 

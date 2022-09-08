@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Diagnostics;
 
 namespace BitFaster.Caching.Lru
 {
     ///<inheritdoc/>
+    [DebuggerTypeProxy(typeof(LruDebugView<,>))]
+    [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class FastConcurrentTLru<K, V> : ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TLruLongTicksPolicy<K, V>, NoTelemetryPolicy<K, V>>
     {
         /// <summary>
@@ -20,11 +22,11 @@ namespace BitFaster.Caching.Lru
 
         /// <summary>
         /// Initializes a new instance of the FastConcurrentTLru class that has the specified concurrency level, has the 
-        /// specified initial capacity, uses the specified IEqualityComparer<T>, and has the specified time to live.
+        /// specified initial capacity, uses the specified IEqualityComparer, and has the specified time to live.
         /// </summary>
         /// <param name="concurrencyLevel">The estimated number of threads that will update the FastConcurrentTLru concurrently.</param>
         /// <param name="capacity">The maximum number of elements that the FastConcurrentTLru can contain.</param>
-        /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
+        /// <param name="comparer">The IEqualityComparer implementation to use when comparing keys.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public FastConcurrentTLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer, TimeSpan timeToLive)
             : base(concurrencyLevel, new FavorWarmPartition(capacity), comparer, new TLruLongTicksPolicy<K, V>(timeToLive), default)
@@ -33,11 +35,12 @@ namespace BitFaster.Caching.Lru
 
         /// <summary>
         /// Initializes a new instance of the FastConcurrentLru class that has the specified concurrency level, has the 
-        /// specified initial capacity, and uses the specified IEqualityComparer<T>.
+        /// specified initial capacity, and uses the specified IEqualityComparer.
         /// </summary>
         /// <param name="concurrencyLevel">The estimated number of threads that will update the FastConcurrentLru concurrently.</param>
         /// <param name="capacity">The maximum number of elements that the FastConcurrentLru can contain.</param>
-        /// <param name="comparer">The IEqualityComparer<T> implementation to use when comparing keys.</param>
+        /// <param name="comparer">The IEqualityComparer implementation to use when comparing keys.</param>
+        /// <param name="timeToLive">The time to live for cached values.</param>
         public FastConcurrentTLru(int concurrencyLevel, ICapacityPartition capacity, IEqualityComparer<K> comparer, TimeSpan timeToLive)
             : base(concurrencyLevel, capacity, comparer, new TLruLongTicksPolicy<K, V>(timeToLive), default)
         {

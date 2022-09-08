@@ -1,17 +1,26 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Atomic
 {
+    /// <summary>
+    /// A cache decorator for working with  <see cref="AsyncAtomicFactory{K, V}"/> wrapped values, giving exactly once initialization.
+    /// </summary>
+    /// <typeparam name="K">The type of keys in the cache.</typeparam>
+    /// <typeparam name="V">The type of values in the cache.</typeparam>
+    [DebuggerDisplay("Count = {Count}")]
     public sealed class AtomicFactoryAsyncCache<K, V> : IAsyncCache<K, V>
     {
         private readonly ICache<K, AsyncAtomicFactory<K, V>> cache;
         private readonly Optional<ICacheEvents<K, V>> events;
 
+        /// <summary>
+        /// Initializes a new instance of the AtomicFactoryAsyncCache class with the specified inner cache.
+        /// </summary>
+        /// <param name="cache">The decorated cache.</param>
         public AtomicFactoryAsyncCache(ICache<K, AsyncAtomicFactory<K, V>> cache)
         {
             if (cache == null)
@@ -31,32 +40,41 @@ namespace BitFaster.Caching.Atomic
             }
         }
 
+        ///<inheritdoc/>
         public int Count => cache.Count;
 
+        ///<inheritdoc/>
         public Optional<ICacheMetrics> Metrics => cache.Metrics;
 
+        ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => this.events;
 
+        ///<inheritdoc/>
         public ICollection<K> Keys => this.cache.Keys;
 
+        ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;
 
+        ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
         {
             cache.AddOrUpdate(key, new AsyncAtomicFactory<K, V>(value));
         }
 
+        ///<inheritdoc/>
         public void Clear()
         {
             cache.Clear();
         }
 
+        ///<inheritdoc/>
         public ValueTask<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
             var synchronized = cache.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
             return synchronized.GetValueAsync(key, valueFactory);
         }
 
+        ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
             AsyncAtomicFactory<K, V> output;
@@ -72,16 +90,19 @@ namespace BitFaster.Caching.Atomic
             return false;
         }
 
+        ///<inheritdoc/>
         public bool TryRemove(K key)
         {
             return cache.TryRemove(key);
         }
 
+        ///<inheritdoc/>
         public bool TryUpdate(K key, V value)
         {
             return cache.TryUpdate(key, new AsyncAtomicFactory<K, V>(value));
         }
 
+        ///<inheritdoc/>
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
         {
             foreach (var kvp in this.cache)

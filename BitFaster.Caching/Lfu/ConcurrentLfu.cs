@@ -1,15 +1,4 @@
 ﻿using System;
-
-#if NETSTANDARD2_0
-#else
-using System.Buffers;
-#endif
-
-#if DEBUG
-using System.Linq;
-using System.Text;
-#endif
-
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -19,8 +8,18 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
+using BitFaster.Caching.Concurrent;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
+
+#if !NETSTANDARD2_0
+using System.Buffers;
+#endif
+
+#if DEBUG
+using System.Linq;
+using System.Text;
+#endif
 
 namespace BitFaster.Caching.Lfu
 {
@@ -31,11 +30,11 @@ namespace BitFaster.Caching.Lfu
     /// Based on Caffeine written by Ben Manes.
     /// https://www.apache.org/licenses/LICENSE-2.0
     /// </remarks>
+    [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView))]
+    [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
-        private const int MaxWriteBufferRetries = 16;
-
-        public const int BufferSize = 128;
+        private const int MaxWriteBufferRetries = 64;
 
         private readonly ConcurrentDictionary<K, LfuNode<K, V>> dictionary;
 
@@ -58,22 +57,34 @@ namespace BitFaster.Caching.Lfu
         private readonly IScheduler scheduler;
 
 #if NETSTANDARD2_0
-        private readonly LfuNode<K, V>[] localDrainBuffer;
+        private readonly LfuNode<K, V>[] drainBuffer;
 #endif
 
+        /// <summary>
+        /// Initializes a new instance of the ConcurrentLfu class with the specified capacity.
+        /// </summary>
+        /// <param name="capacity">The capacity.</param>
         public ConcurrentLfu(int capacity)
-            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default)
+            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, LfuBufferSize.Default(Defaults.ConcurrencyLevel, capacity))
         {        
         }
 
-        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
+        /// <summary>
+        /// Initializes a new instance of the ConcurrentLfu class with the specified concurrencyLevel, capacity, scheduler, equality comparer and buffer size.
+        /// </summary>
+        /// <param name="concurrencyLevel">The concurrency level.</param>
+        /// <param name="capacity">The capacity.</param>
+        /// <param name="scheduler">The scheduler.</param>
+        /// <param name="comparer">The equality comparer.</param>
+        /// <param name="bufferSize">The buffer size.</param>
+        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, LfuBufferSize bufferSize)
         {
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
-            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(concurrencyLevel, BufferSize);
+            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferSize.Read);
 
             // Cap the write buffer to 10% of the cache size, or BufferSize. Whichever is smaller.
-            int writeBufferSize = Math.Min(capacity / 10, BufferSize);
+            int writeBufferSize = Math.Min(capacity / 10, 128);
             this.writeBuffer = new MpscBoundedBuffer<LfuNode<K, V>>(writeBufferSize);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
@@ -87,24 +98,34 @@ namespace BitFaster.Caching.Lfu
             this.scheduler = scheduler;
 
 #if NETSTANDARD2_0
-            this.localDrainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
+            this.drainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
 #endif
         }
 
+        ///<inheritdoc/>
         public int Count => this.dictionary.Count;
 
+        ///<inheritdoc/>
         public int Capacity => this.capacity.Capacity;
 
+        ///<inheritdoc/>
         public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(this.metrics);
 
+        ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
 
+        ///<inheritdoc/>
         public CachePolicy Policy => new CachePolicy(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
+        ///<inheritdoc/>
         public ICollection<K> Keys => this.dictionary.Keys;
 
+        /// <summary>
+        /// Gets the scheduler.
+        /// </summary>
         public IScheduler Scheduler => scheduler;
 
+        ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
         {
             while (true)
@@ -123,6 +144,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        ///<inheritdoc/>
         public void Clear()
         {
             this.Trim(this.Count);
@@ -135,6 +157,10 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        /// <summary>
+        /// Trim the specified number of items from the cache.
+        /// </summary>
+        /// <param name="itemCount">The number of items to remove.</param>
         public void Trim(int itemCount)
         {
             itemCount = Math.Min(itemCount, this.Count);
@@ -158,6 +184,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
             while (true)
@@ -176,6 +203,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        ///<inheritdoc/>
         public async ValueTask<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
             while (true)
@@ -194,6 +222,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
             if (this.dictionary.TryGetValue(key, out var node))
@@ -208,12 +237,13 @@ namespace BitFaster.Caching.Lfu
                 return true;
             }
 
-            Interlocked.Increment(ref this.metrics.requestMissCount);
+            this.metrics.requestMissCount.Increment();
 
             value = default;
             return false;
         }
 
+        ///<inheritdoc/>
         public bool TryRemove(K key)
         {
             if (this.dictionary.TryRemove(key, out var node))
@@ -226,6 +256,7 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
+        ///<inheritdoc/>
         public bool TryUpdate(K key, V value)
         {
             if (this.dictionary.TryGetValue(key, out var node))
@@ -242,11 +273,23 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
+        /// <summary>
+        /// Synchronously perform all pending maintenance. Draining the read and write buffers then
+        /// use the eviction policy to preserve bounded size and remove expired items.
+        /// </summary>
         public void PendingMaintenance()
         {
             DrainBuffers();
         }
 
+        /// <summary>Returns an enumerator that iterates through the cache.</summary>
+        /// <returns>An enumerator for the cache.</returns>
+        /// <remarks>
+        /// The enumerator returned from the cache is safe to use concurrently with
+        /// reads and writes, however it does not represent a moment-in-time snapshot.  
+        /// The contents exposed through the enumerator may contain modifications
+        /// made after <see cref="GetEnumerator"/> was called.
+        /// </remarks>
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
         {
             foreach (var kvp in this.dictionary)
@@ -268,8 +311,6 @@ namespace BitFaster.Caching.Lfu
 
         private void AfterWrite(LfuNode<K, V> node)
         {
-            var spinner = new SpinWait();
-
             for (int i = 0; i < MaxWriteBufferRetries; i++)
             {
                 if (writeBuffer.TryAdd(node) == BufferStatus.Success)
@@ -279,12 +320,23 @@ namespace BitFaster.Caching.Lfu
                 }
 
                 TryScheduleDrain();
-
-                spinner.SpinOnce();
             }
 
             lock (this.maintenanceLock)
             {
+                // aggressively try to exit the lock early before doing full maintenance
+                var status = BufferStatus.Contended;
+                while (status != BufferStatus.Full)
+                {
+                    status = writeBuffer.TryAdd(node);
+
+                    if (status == BufferStatus.Success)
+                    {
+                        ScheduleAfterWrite();
+                        return;
+                    }
+                }
+
                 // if the write was dropped from the buffer, explicitly pass it to maintenance
                 Maintenance(node);
             }
@@ -292,6 +344,7 @@ namespace BitFaster.Caching.Lfu
 
         private void ScheduleAfterWrite()
         {
+            var spinner = new SpinWait();
             while (true)
             {
                 switch (this.drainStatus.Status())
@@ -312,6 +365,7 @@ namespace BitFaster.Caching.Lfu
                     case DrainStatus.ProcessingToRequired:
                         return;
                 }
+                spinner.SpinOnce();
             }
         }
 
@@ -381,50 +435,38 @@ namespace BitFaster.Caching.Lfu
         private bool Maintenance(LfuNode<K, V> droppedWrite = null)
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
+            var localDrainBuffer = RentDrainBuffer();
 
-            bool wasDrained = false;
-            
-#if !NETSTANDARD2_0
-            var localDrainBuffer = ArrayPool<LfuNode<K, V>>.Shared.Rent(this.readBuffer.Capacity);
-#endif
-            int maxSweeps = 1;
-            int count = 0;
+            // extract to a buffer before doing book keeping work, ~2x faster
+            int readCount = readBuffer.DrainTo(localDrainBuffer);
 
-            for (int s = 0; s < maxSweeps; s++)
+            for (int i = 0; i < readCount; i++)
             {
-                count = 0;
+                this.cmSketch.Increment(localDrainBuffer[i].Key);
+            }
 
-                // extract to a buffer before doing book keeping work, ~2x faster
-                count = this.readBuffer.DrainTo(localDrainBuffer);
-
-                for (int i = 0; i < count; i++)
-                {
-                    this.cmSketch.Increment(localDrainBuffer[i].Key);
-                }
-
-                for (int i = 0; i < count; i++)
-                {
-                    OnAccess(localDrainBuffer[i]);
-                }
-
-                wasDrained = count == 0; 
+            for (int i = 0; i < readCount; i++)
+            {
+                OnAccess(localDrainBuffer[i]);
             }
 
             count = this.writeBuffer.DrainTo(new ArraySegment<LfuNode<K, V>>(localDrainBuffer));
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < writeCount; i++)
             {
                 OnWrite(localDrainBuffer[i]);
             }
 
+            // we are done only when both buffers are empty
+            var done = readCount == 0 & writeCount == 0;
+
             if (droppedWrite != null)
             {
                 OnWrite(droppedWrite);
+                done = true;
             }
 
-#if !NETSTANDARD2_0
-            ArrayPool<LfuNode<K, V>>.Shared.Return(localDrainBuffer);
-#endif
+            ReturnDrainBuffer(localDrainBuffer);
 
             EvictEntries();
             this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
@@ -433,14 +475,14 @@ namespace BitFaster.Caching.Lfu
             // Reset to idle if either
             // 1. We drained both input buffers (all work done)
             // 2. or scheduler is foreground (since don't run continuously on the foreground)
-            if ((wasDrained || !scheduler.IsBackground) &&
+            if ((done || !scheduler.IsBackground) &&
                 (this.drainStatus.Status() != DrainStatus.ProcessingToIdle ||
                 !this.drainStatus.Cas(DrainStatus.ProcessingToIdle, DrainStatus.Idle)))
             {
                 this.drainStatus.Set(DrainStatus.Required);
             }
 
-            return wasDrained;
+            return done;
         }
 
         private void OnAccess(LfuNode<K, V> node)
@@ -570,7 +612,7 @@ namespace BitFaster.Caching.Lfu
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
                 // bail when we run out of options
-                if (candidate == null || victim == null || victim == candidate)
+                if (candidate == null | victim == null | victim == candidate)
                 {
                     break;
                 }
@@ -645,7 +687,23 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        [DebuggerDisplay("{Format()}")]
+        private LfuNode<K, V>[] RentDrainBuffer()
+        {
+#if !NETSTANDARD2_0
+            return ArrayPool<LfuNode<K, V>>.Shared.Rent(this.readBuffer.Capacity);
+#else
+            return drainBuffer;
+#endif
+        }
+
+        private void ReturnDrainBuffer(LfuNode<K, V>[] localDrainBuffer)
+        {
+#if !NETSTANDARD2_0
+            ArrayPool<LfuNode<K, V>>.Shared.Return(localDrainBuffer);
+#endif
+        }
+
+        [DebuggerDisplay("{Format(),nq}")]
         private class DrainStatus
         {
             public const int Idle = 0;
@@ -688,7 +746,7 @@ namespace BitFaster.Caching.Lfu
             }
 
             [ExcludeFromCodeCoverage]
-            private string Format()
+            internal string Format()
             {
                 switch (this.drainStatus.Value)
                 {
@@ -706,20 +764,21 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private class CacheMetrics : ICacheMetrics
+        [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Upd = {Updated}, Evict = {Evicted}")]
+        internal class CacheMetrics : ICacheMetrics
         {
             public long requestHitCount;
-            public long requestMissCount;
+            public LongAdder requestMissCount = new LongAdder();
             public long updatedCount;
             public long evictedCount;
 
             public double HitRatio => (double)requestHitCount / (double)Total;
 
-            public long Total => requestHitCount + requestMissCount;
+            public long Total => requestHitCount + requestMissCount.Sum();
 
             public long Hits => requestHitCount;
 
-            public long Misses => requestMissCount;
+            public long Misses => requestMissCount.Sum();
 
             public long Updated => updatedCount;
 
@@ -727,7 +786,11 @@ namespace BitFaster.Caching.Lfu
         }
 
 #if DEBUG
-        public string FormatLruString()
+        /// <summary>
+        /// Format the LFU as a string by converting all the keys to strings.
+        /// </summary>
+        /// <returns>The LFU formatted as a string.</returns>
+        public string FormatLfuString()
         {
             var sb = new StringBuilder();
 
@@ -742,6 +805,40 @@ namespace BitFaster.Caching.Lfu
             return sb.ToString();
         }
 #endif
+
+        [ExcludeFromCodeCoverage]
+        internal class LfuDebugView
+        {
+            private readonly ConcurrentLfu<K, V> lfu;
+
+            public LfuDebugView(ConcurrentLfu<K, V> lfu)
+            {
+                this.lfu = lfu;
+            }
+
+            public string Maintenance => lfu.drainStatus.Format();
+
+            public ICacheMetrics Metrics => lfu.metrics;
+
+            public StripedMpscBuffer<LfuNode<K, V>> ReadBuffer => this.lfu.readBuffer;
+
+            public StripedMpscBuffer<LfuNode<K, V>> WriteBuffer => this.lfu.writeBuffer;
+
+            public KeyValuePair<K, V>[] Items
+            {
+                get
+                {
+                    var items = new KeyValuePair<K, V>[lfu.Count];
+
+                    int index = 0;
+                    foreach (var kvp in lfu)
+                    {
+                        items[index++] = kvp;
+                    }
+                    return items;
+                }
+            }
+        }
     }
 
     // Explicit layout cannot be a generic class member

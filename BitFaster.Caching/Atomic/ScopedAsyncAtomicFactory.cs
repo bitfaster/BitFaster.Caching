@@ -1,27 +1,43 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Atomic
 {
+    /// <summary>
+    /// A class that provides simple, lightweight exactly once initialization for scoped values
+    /// stored in a cache.
+    /// </summary>
+    /// <typeparam name="K">The type of the key.</typeparam>
+    /// <typeparam name="V">The type of the value.</typeparam>
+    [DebuggerDisplay("IsValueCreated={initializer == null}, Value={ScopeIfCreated}")]
     public sealed class ScopedAsyncAtomicFactory<K, V> : IScoped<V>, IDisposable where V : IDisposable
     {
         private Scoped<V> scope;
         private Initializer initializer;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ScopedAsyncAtomicFactory{K, V}"/> class.
+        /// </summary>
         public ScopedAsyncAtomicFactory()
         {
             initializer = new Initializer();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ScopedAsyncAtomicFactory{K, V}"/> class with the
+        /// specified value.
+        /// </summary>
+        /// <param name="value">The value.</param>
         public ScopedAsyncAtomicFactory(V value)
         {
             scope = new Scoped<V>(value);
         }
 
+        /// <summary>
+        /// Gets the scope if it has been initialized, else default.
+        /// </summary>
         public Scoped<V> ScopeIfCreated
         {
             get
@@ -35,6 +51,12 @@ namespace BitFaster.Caching.Atomic
             }
         }
 
+        /// <summary>
+        /// Attempts to create a lifetime for the scoped value. The lifetime guarantees the value is alive until 
+        /// the lifetime is disposed.
+        /// </summary>
+        /// <param name="lifetime">When this method returns, contains the Lifetime that was created, or the default value of the type if the operation failed.</param>
+        /// <returns>true if the Lifetime was created; otherwise false.</returns>
         public bool TryCreateLifetime(out Lifetime<V> lifetime)
         {
             if (scope?.IsDisposed ?? false || initializer != null)
@@ -46,6 +68,13 @@ namespace BitFaster.Caching.Atomic
             return scope.TryCreateLifetime(out lifetime);
         }
 
+        /// <summary>
+        /// Attempts to create a lifetime for the scoped value. The lifetime guarantees the value is alive until 
+        /// the lifetime is disposed.
+        /// </summary>
+        /// <param name="key">The key associated with the scoped value.</param>
+        /// <param name="valueFactory">The value factory to use to create the scoped value when it is not initialized.</param>
+        /// <returns>true if the Lifetime was created; otherwise false. If the lifetime was created, the new lifetime is also returned.</returns>
         public async ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             // if disposed, return
@@ -74,6 +103,11 @@ namespace BitFaster.Caching.Atomic
                 initializer = null;
             }
         }
+
+        /// <summary>
+        /// Terminates the scope and disposes the value. Once the scope is terminated, it is no longer
+        /// possible to create new lifetimes for the value.
+        /// </summary>
         public void Dispose()
         {
             var init = initializer;
@@ -91,7 +125,7 @@ namespace BitFaster.Caching.Atomic
 
         private class Initializer
         {
-            private object syncLock = new object();
+            private readonly object syncLock = new object();
             private bool isTaskInitialized;
             private bool isTaskCompleted;
             private bool isDisposeRequested;

@@ -3,9 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
+using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using BitFaster.Caching.UnitTests.Lru;
@@ -19,7 +18,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
     {
         private readonly ITestOutputHelper output;
 
-        private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
+        private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
         private ValueFactory valueFactory = new ValueFactory();
 
         public ConcurrentLfuTests(ITestOutputHelper output)
@@ -76,7 +75,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WhenItemIsEvictedItIsDisposed()
         {
-            var dcache = new ConcurrentLfu<int, DisposableItem>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
+            var dcache = new ConcurrentLfu<int, DisposableItem>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
             var disposables = new DisposableItem[25];
 
             for (int i = 0; i < 25; i++)
@@ -300,7 +299,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WhenHitRateChangesWindowSizeIsAdapted()
         {
-            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default);
+            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
 
             // First completely fill the cache, push entries into protected
             for (int i = 0; i < 20; i++)
@@ -369,13 +368,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void ReadSchedulesMaintenanceWhenBufferIsFull()
         {
             var scheduler = new TestScheduler();
-            cache = new ConcurrentLfu<int, int>(1, 20, scheduler, EqualityComparer<int>.Default);
+            cache = new ConcurrentLfu<int, int>(1, 20, scheduler, EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
 
             cache.GetOrAdd(1, k => k);
             scheduler.RunCount.Should().Be(1);
             cache.PendingMaintenance();
 
-            for (int i = 0; i < ConcurrentLfu<int, int>.BufferSize; i++)
+            for (int i = 0; i < LfuBufferSize.DefaultBufferSize; i++)
             {
                 scheduler.RunCount.Should().Be(1);
                 cache.GetOrAdd(1, k => k);
@@ -389,29 +388,31 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WhenReadBufferIsFullReadsAreDropped()
         {
-            int bufferSize = ConcurrentLfu<int, int>.BufferSize;
             var scheduler = new TestScheduler();
-            cache = new ConcurrentLfu<int, int>(1, 20, scheduler, EqualityComparer<int>.Default);
+            cache = new ConcurrentLfu<int, int>(1, 20, scheduler, EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
 
             cache.GetOrAdd(1, k => k);
             scheduler.RunCount.Should().Be(1);
             cache.PendingMaintenance();
 
-            for (int i = 0; i < bufferSize * 2; i++)
+            for (int i = 0; i < LfuBufferSize.DefaultBufferSize * 2; i++)
             {
                 cache.GetOrAdd(1, k => k);
             }
 
             cache.PendingMaintenance();
 
-            cache.Metrics.Value.Hits.Should().Be(bufferSize);
+            cache.Metrics.Value.Hits.Should().Be(LfuBufferSize.DefaultBufferSize);
         }
 
         [Fact]
         public void WhenWriteBufferIsFullAddDoesMaintenance()
         {
+            var bufferSize = LfuBufferSize.DefaultBufferSize;
             var scheduler = new TestScheduler();
-            cache = new ConcurrentLfu<int, int>(1, ConcurrentLfu<int, int>.BufferSize * 2, scheduler, EqualityComparer<int>.Default);
+
+            var bufferConfig = new LfuBufferSize(new StripedBufferSize(bufferSize, 1), new StripedBufferSize(bufferSize, 1));
+            cache = new ConcurrentLfu<int, int>(1, bufferSize * 2, scheduler, EqualityComparer<int>.Default, bufferConfig);
 
             // add an item, flush write buffer
             cache.GetOrAdd(-1, k => k);
@@ -424,7 +425,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             // add buffer size items, last iteration will invoke maintenance on the foreground since write
             // buffer is full and test scheduler did not do any work
-            for (int i = 0; i < ConcurrentLfu<int, int>.BufferSize; i++)
+            for (int i = 0; i < bufferSize; i++)
             {
                 //scheduler.RunCount.Should().Be(2);
                 cache.GetOrAdd(i, k => k);
@@ -438,9 +439,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WhenWriteBufferIsFullUpdatesAreDropped()
         {
-            int bufferSize = ConcurrentLfu<int, int>.BufferSize;
+            var bufferSize = LfuBufferSize.DefaultBufferSize;
             var scheduler = new TestScheduler();
-            cache = new ConcurrentLfu<int, int>(1, 20, scheduler, EqualityComparer<int>.Default);
+            var bufferConfig = new LfuBufferSize(new StripedBufferSize(bufferSize, 1), new StripedBufferSize(bufferSize, 1));
+            cache = new ConcurrentLfu<int, int>(1, 20, scheduler, EqualityComparer<int>.Default, bufferConfig);
 
             cache.GetOrAdd(1, k => k);
             scheduler.RunCount.Should().Be(1);
@@ -573,7 +575,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WhenItemIsRemovedItIsDisposed()
         {
-            var dcache = new ConcurrentLfu<int, DisposableItem>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
+            var dcache = new ConcurrentLfu<int, DisposableItem>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
             var disposable = new DisposableItem();
 
             dcache.GetOrAdd(1, k => disposable);
@@ -662,7 +664,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void TrimWhileItemsInWriteBufferRemovesNItems()
         {
             // null scheduler == no maintenance, all writes fit in buffer
-            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default);
+            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
 
             for (int i = 0; i < 25; i++)
             {
@@ -700,7 +702,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void VerifyHitsWithThreadPoolScheduler()
         {
             // when running all tests in parallel, sample count drops significantly: set low bar for stability.
-            cache = new ConcurrentLfu<int, int>(1, 20, new ThreadPoolScheduler(), EqualityComparer<int>.Default);
+            cache = new ConcurrentLfu<int, int>(1, 20, new ThreadPoolScheduler(), EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
             VerifyHits(iterations: 10000000, minSamples: 500000);
         }
 
@@ -710,7 +712,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void VerifyHitsWithNullScheduler()
         {
-            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default);
+            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
             VerifyHits(iterations: 10000000, minSamples: -1);
         }
 
@@ -721,16 +723,81 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void VerifyHitsWithForegroundScheduler()
         {
-            cache = new ConcurrentLfu<int, int>(1, 20, new ForegroundScheduler(), EqualityComparer<int>.Default);
+            cache = new ConcurrentLfu<int, int>(1, 20, new ForegroundScheduler(), EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
 
             // Note: TryAdd will drop 1 read per full read buffer, since TryAdd will return false
             // before TryScheduleDrain is called. This serves as sanity check.
             int iterations = 10000000;
-            int dropped = iterations / ConcurrentLfu<int, int>.BufferSize;
+            int dropped = iterations / LfuBufferSize.DefaultBufferSize;
 
             this.output.WriteLine($"Will drop {dropped} reads.");
 
             VerifyHits(iterations: iterations + dropped, minSamples: iterations);
+        }
+
+        [Fact]
+        public void VerifyMisses()
+        {
+            cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default, 
+                new LfuBufferSize(new StripedBufferSize(1, 1), new StripedBufferSize(1, 1)));
+
+            int iterations = 100000;
+            Func<int, int> func = x => x;
+
+            var start = Stopwatch.GetTimestamp();
+
+            for (int i = 0; i < iterations; i++)
+            {
+                cache.GetOrAdd(i, func);
+            }
+
+            var end = Stopwatch.GetTimestamp();
+
+            cache.PendingMaintenance();
+
+            var totalTicks = end - start;
+            var timeMs = ((double)totalTicks / Stopwatch.Frequency) * 1000.0;
+            var timeNs = timeMs / 1000000;
+
+            var timePerOp = timeMs / (double)iterations;
+            var samplePercent = this.cache.Metrics.Value.Misses / (double)iterations * 100;
+
+            this.output.WriteLine($"Elapsed {timeMs}ms - {timeNs}ns/op");
+            this.output.WriteLine($"Cache misses {this.cache.Metrics.Value.Misses} (sampled {samplePercent}%)");
+            this.output.WriteLine($"Maintenance ops {this.cache.Scheduler.RunCount}");
+
+            cache.Metrics.Value.Misses.Should().Be(iterations);
+        }
+
+        [Fact]
+        public async Task ThreadedVerifyMisses()
+        {
+            // buffer size is 1, this will cause dropped writes on some threads where the buffer is full
+            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default,
+                new LfuBufferSize(new StripedBufferSize(1, 1), new StripedBufferSize(1, 1)));
+
+            int threads = 4;
+            int iterations = 100000;
+
+            await Threaded.Run(threads, i => 
+            {
+                Func<int, int> func = x => x;
+
+                int start = i * iterations;
+
+                for (int j = start; j < start + iterations; j++)
+                {
+                    cache.GetOrAdd(j, func);
+                }
+            });
+
+            var samplePercent = this.cache.Metrics.Value.Misses / (double)iterations / threads * 100;
+
+            this.output.WriteLine($"Cache misses {this.cache.Metrics.Value.Misses} (sampled {samplePercent}%)");
+            this.output.WriteLine($"Maintenance ops {this.cache.Scheduler.RunCount}");
+
+            cache.Metrics.Value.Misses.Should().Be(iterations * threads);
+            cache.Count.Should().BeCloseTo(20, 1);
         }
 
         private void VerifyHits(int iterations, int minSamples)
@@ -776,7 +843,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private void LogLru()
         {
 #if DEBUG
-            this.output.WriteLine(cache.FormatLruString());
+            this.output.WriteLine(cache.FormatLfuString());
 #endif        
         }
 

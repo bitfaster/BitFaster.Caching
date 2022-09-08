@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,11 +26,23 @@ namespace BitFaster.Caching.Lru
         private readonly CacheMetrics metrics = new CacheMetrics();
         private readonly CachePolicy policy;
 
+        /// <summary>
+        /// Initializes a new instance of the ClassicLru class with the specified capacity.
+        /// </summary>
+        /// <param name="capacity"></param>
         public ClassicLru(int capacity)
             : this(Defaults.ConcurrencyLevel, capacity, EqualityComparer<K>.Default)
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the ClassicLru class with the specified concurrencyLevel, capacity and equality comparer.
+        /// </summary>
+        /// <param name="concurrencyLevel">The concurrency level.</param>
+        /// <param name="capacity">The capacity.</param>
+        /// <param name="comparer">The key comparer</param>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         public ClassicLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer)
         {
             if (capacity < 3)
@@ -58,8 +69,10 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(this.metrics);
 
+        ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
 
+        ///<inheritdoc/>
         public CachePolicy Policy => this.policy;
 
         /// <summary>
