@@ -1,11 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using BitFaster.Caching.Atomic;
 using BitFaster.Caching.Lfu.Builder;
 
 namespace BitFaster.Caching.Lfu
 {
+    /// <summary>
+    /// Extension methods to support building all cache variants.
+    /// </summary>
     public static class ConcurrentLfuBuilderExtensions
     {
         /// <summary>

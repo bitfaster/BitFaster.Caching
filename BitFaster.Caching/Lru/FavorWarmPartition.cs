@@ -14,15 +14,26 @@ namespace BitFaster.Caching.Lru
         private readonly int warmCapacity;
         private readonly int coldCapacity;
 
-        // Default to 80% capacity allocated to warm queue, 20% split equally for hot and cold.
-        // This favors frequently accessed items.
+        /// <summary>
+        /// Default to 80% capacity allocated to warm queue, 20% split equally for hot and cold.
+        /// This favors frequently accessed items.
+        /// </summary>
         public const double DefaultWarmRatio = 0.8;
 
+        /// <summary>
+        /// Initializes a new instance of the FavorWarmPartition class with the specified capacity and the default warm ratio.
+        /// </summary>
+        /// <param name="totalCapacity">The total capacity.</param>
         public FavorWarmPartition(int totalCapacity)
             : this(totalCapacity, DefaultWarmRatio)
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the FavorWarmPartition class with the specified capacity and warm ratio.
+        /// </summary>
+        /// <param name="totalCapacity">The total capacity.</param>
+        /// <param name="warmRatio">The ratio of warm items to hot and cold items.</param>
         public FavorWarmPartition(int totalCapacity, double warmRatio)
         {
             var (hot, warm, cold) = ComputeQueueCapacity(totalCapacity, warmRatio);
@@ -31,10 +42,13 @@ namespace BitFaster.Caching.Lru
             this.coldCapacity = cold;
         }
 
+        ///<inheritdoc/>
         public int Cold => this.coldCapacity;
 
+        ///<inheritdoc/>
         public int Warm => this.warmCapacity;
 
+        ///<inheritdoc/>
         public int Hot => this.hotCapacity;
 
         private static (int hot, int warm, int cold) ComputeQueueCapacity(int capacity, double warmRatio)

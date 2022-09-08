@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace BitFaster.Caching.Lfu
+﻿namespace BitFaster.Caching.Lfu
 {
     internal sealed class LfuNode<K, V>
     {
@@ -55,7 +51,7 @@ namespace BitFaster.Caching.Lfu
         }
     }
 
-    public enum Position
+    internal enum Position
     {
         Window,
         Probation,

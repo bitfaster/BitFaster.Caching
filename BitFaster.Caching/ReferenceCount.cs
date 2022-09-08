@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace BitFaster.Caching
 {
@@ -13,6 +12,11 @@ namespace BitFaster.Caching
         private readonly TValue value;
         private readonly int count;
 
+        /// <summary>
+        /// Initializes a new instance of the ReferenceCount class with the specified value.
+        /// Initial count is 1.
+        /// </summary>
+        /// <param name="value"></param>
         public ReferenceCount(TValue value)
         {
             this.value = value;
@@ -88,11 +92,23 @@ namespace BitFaster.Caching
             return hashCode;
         }
 
+        /// <summary>
+        /// Determines whether two ReferenceCount instances have the same value.
+        /// </summary>
+        /// <param name="left">The left ReferernceCount to compare, or null.</param>
+        /// <param name="right">The right ReferernceCount to compare, or null.</param>
+        /// <returns>true if the value of left is the same as the value of right; otherwise, false.</returns>
         public static bool operator ==(ReferenceCount<TValue> left, ReferenceCount<TValue> right)
         {
             return EqualityComparer<ReferenceCount<TValue>>.Default.Equals(left, right);
         }
 
+        /// <summary>
+        /// Determines whether two ReferenceCount instances have different values.
+        /// </summary>
+        /// <param name="left">The left ReferernceCount to compare, or null.</param>
+        /// <param name="right">The right ReferernceCount to compare, or null.</param>
+        /// <returns>true if the value of left is different from the value of right; otherwise, false.</returns>
         public static bool operator !=(ReferenceCount<TValue> left, ReferenceCount<TValue> right)
         {
             return !(left == right);

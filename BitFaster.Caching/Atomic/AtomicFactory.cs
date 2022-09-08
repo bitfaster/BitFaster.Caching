@@ -1,13 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Atomic
 {
+    /// <summary>
+    /// A class that provides simple, lightweight exactly once initialization for values
+    /// stored in a cache.
+    /// </summary>
+    /// <typeparam name="K">The type of the key.</typeparam>
+    /// <typeparam name="V">The type of the value.</typeparam>
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
     public sealed class AtomicFactory<K, V>
     {
@@ -16,16 +18,30 @@ namespace BitFaster.Caching.Atomic
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private V value;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AtomicFactory{K, V}"/> class.
+        /// </summary>
         public AtomicFactory()
         {
             initializer = new Initializer();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AtomicFactory{K, V}"/> class with the
+        /// specified value.
+        /// </summary>
+        /// <param name="value">The value.</param>
         public AtomicFactory(V value)
         {
             this.value = value;
         }
 
+        /// <summary>
+        /// Gets the value. If <see cref="IsValueCreated"/> is false, calling <see cref="GetValue"/> will force initialization via the <paramref name="valueFactory"/> parameter.
+        /// </summary>
+        /// <param name="key">The key associated with the value.</param>
+        /// <param name="valueFactory">The value factory to use to create the value when it is not initialized.</param>
+        /// <returns>The value.</returns>
         public V GetValue(K key, Func<K, V> valueFactory)
         {
             if (initializer == null)
@@ -36,8 +52,14 @@ namespace BitFaster.Caching.Atomic
             return CreateValue(key, valueFactory);
         }
 
+        /// <summary>
+        /// Gets a value indicating whether the value has been initialized.
+        /// </summary>
         public bool IsValueCreated => initializer == null;
 
+        /// <summary>
+        /// Gets the value if it has been initialized, else default.
+        /// </summary>
         public V ValueIfCreated
         {
             get
@@ -66,7 +88,7 @@ namespace BitFaster.Caching.Atomic
 
         private class Initializer
         {
-            private object syncLock = new object();
+            private readonly object syncLock = new object();
             private bool isInitialized;
             private V value;
 

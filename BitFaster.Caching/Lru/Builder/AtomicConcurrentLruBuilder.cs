@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using BitFaster.Caching.Atomic;
+﻿using BitFaster.Caching.Atomic;
 
 namespace BitFaster.Caching.Lru.Builder
 {
+    /// <summary>
+    /// A builder for creating a ConcurrentLru as ICache with atomic value creation.
+    /// </summary>
+    /// <typeparam name="K">The type of the cache key.</typeparam>
+    /// <typeparam name="V">The type of the cache value.</typeparam>
     public class AtomicConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, AtomicConcurrentLruBuilder<K, V>, ICache<K, V>>
     {
         private readonly ConcurrentLruBuilder<K, AtomicFactory<K, V>> inner;
@@ -17,6 +17,7 @@ namespace BitFaster.Caching.Lru.Builder
             this.inner = inner;
         }
 
+        ///<inheritdoc/>
         public override ICache<K, V> Build()
         {
             var level1 = inner.Build();

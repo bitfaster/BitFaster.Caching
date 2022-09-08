@@ -1,9 +1,5 @@
 ﻿using System;
 
-#if !NETSTANDARD2_0
-using System.Runtime.Intrinsics.X86;
-#endif
-
 namespace BitFaster.Caching.Buffers
 {
     /// <summary>
@@ -18,11 +14,20 @@ namespace BitFaster.Caching.Buffers
 
         private MpmcBoundedBuffer<T>[] buffers;
 
+        /// <summary>
+        /// Initializes a new instance of the StripedMpmcBuffer class with the specified stripe count and buffer size.
+        /// </summary>
+        /// <param name="stripeCount">The stripe count.</param>
+        /// <param name="bufferSize">The buffer size.</param>
         public StripedMpmcBuffer(int stripeCount, int bufferSize)
             : this(new StripedBufferSize(bufferSize, stripeCount))
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the StripedMpmcBuffer class with the specified buffer size.
+        /// </summary>
+        /// <param name="bufferSize">The buffer size.</param>
         public StripedMpmcBuffer(StripedBufferSize bufferSize)
         {
             buffers = new MpmcBoundedBuffer<T>[bufferSize.StripeCount];
@@ -33,8 +38,19 @@ namespace BitFaster.Caching.Buffers
             }
         }
 
+        /// <summary>
+        /// The bounded capacity.
+        /// </summary>
         public int Capacity => buffers.Length * buffers[0].Capacity;
 
+        /// <summary>
+        /// Drains the buffer into the specified output buffer.
+        /// </summary>
+        /// <param name="outputBuffer">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe.
+        /// </remarks>
         public int DrainTo(T[] outputBuffer)
         {
             var count = 0;
@@ -57,30 +73,17 @@ namespace BitFaster.Caching.Buffers
             return count;
         }
 
+        /// <summary>
+        /// Tries to add the specified item.
+        /// </summary>
+        /// <param name="item">The item to be added.</param>
+        /// <returns>A BufferStatus value indicating whether the operation succeeded.</returns>
+        /// <remarks>
+        /// Thread safe.
+        /// </remarks>
         public BufferStatus TryAdd(T item)
         {
-            // Is using Sse42.Crc32 faster?
-            //#if NETSTANDARD2_0
-            //            ulong z = Mix64((ulong)Environment.CurrentManagedThreadId);
-            //            int inc = (int)(z >> 32) | 1;
-            //            int h = (int)z;
-            //#else
-            //            int inc, h;
-
-            //            // https://rigtorp.se/notes/hashing/
-            //            if (Sse42.IsSupported)
-            //            {
-            //                h = inc = (int)Sse42.Crc32(486187739, (uint)Environment.CurrentManagedThreadId);
-            //            }
-            //            else
-            //            {
-            //                ulong z = Mix64((ulong)Environment.CurrentManagedThreadId);
-            //                inc = (int)(z >> 32) | 1;
-            //                h = (int)z;
-            //            }
-            //#endif
-
-            var z = Mix64((ulong)Environment.CurrentManagedThreadId);
+            var z = BitOps.Mix64((ulong)Environment.CurrentManagedThreadId);
             var inc = (int)(z >> 32) | 1;
             var h = (int)z;
 
@@ -103,21 +106,18 @@ namespace BitFaster.Caching.Buffers
             return result;
         }
 
+        /// <summary>
+        /// Removes all values from the buffer.
+        /// </summary>
+        /// <remarks>
+        /// Not thread safe.
+        /// </remarks>
         public void Clear()
         {
             for (var i = 0; i < buffers.Length; i++)
             {
                 buffers[i].Clear();
             }
-        }
-
-        // Computes Stafford variant 13 of 64-bit mix function.
-        // http://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
-        private static ulong Mix64(ulong z)
-        {
-            z = (z ^ z >> 30) * 0xbf58476d1ce4e5b9L;
-            z = (z ^ z >> 27) * 0x94d049bb133111ebL;
-            return z ^ z >> 31;
         }
     }
 }

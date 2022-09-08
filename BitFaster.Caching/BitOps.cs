@@ -1,17 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Text;
+﻿using System.Numerics;
 
 namespace BitFaster.Caching
 {
+    /// <summary>
+    /// Provides utility methods for bit-twiddling operations.
+    /// </summary>
     public class BitOps
     {
+        /// <summary>
+        /// Calculate the smallest power of 2 greater than the input parameter.
+        /// </summary>
+        /// <param name="x">The input parameter.</param>
+        /// <returns>Smallest power of two greater than or equal to x.</returns>
         public static int CeilingPowerOfTwo(int x)
         {
             return (int)CeilingPowerOfTwo((uint)x);
         }
 
+        /// <summary>
+        /// Calculate the smallest power of 2 greater than the input parameter.
+        /// </summary>
+        /// <param name="x">The input parameter.</param>
+        /// <returns>Smallest power of two greater than or equal to x.</returns>
         public static uint CeilingPowerOfTwo(uint x)
         {
 #if NETSTANDARD2_0
@@ -29,11 +39,21 @@ namespace BitFaster.Caching
 
         }
 
+        /// <summary>
+        /// Counts the number of 1 bits in the input parameter.
+        /// </summary>
+        /// <param name="x">The input parameter.</param>
+        /// <returns>The number of 1 bits.</returns>
         public static int BitCount(int x)
         {
             return BitCount((uint)x);
         }
 
+        /// <summary>
+        /// Counts the number of 1 bits in the input parameter.
+        /// </summary>
+        /// <param name="x">The input parameter.</param>
+        /// <returns>The number of 1 bits.</returns>
         public static int BitCount(uint x)
         {
 #if NETSTANDARD2_0
@@ -50,11 +70,21 @@ namespace BitFaster.Caching
 #endif
         }
 
+        /// <summary>
+        /// Counts the number of 1 bits in the input parameter.
+        /// </summary>
+        /// <param name="x">The input parameter.</param>
+        /// <returns>The number of 1 bits.</returns>
         public static int BitCount(long x)
         {
             return BitCount((ulong)x);
         }
 
+        /// <summary>
+        /// Counts the number of 1 bits in the input parameter.
+        /// </summary>
+        /// <param name="x">The input parameter.</param>
+        /// <returns>The number of 1 bits.</returns>
         public static int BitCount(ulong x)
         {
 #if NETSTANDARD2_0
@@ -69,6 +99,21 @@ namespace BitFaster.Caching
 #else
             return BitOperations.PopCount(x);
 #endif
+        }
+
+        /// <summary>
+        /// Computes Stafford variant 13 of 64-bit mix function.
+        /// </summary>
+        /// <param name="z">The input parameter.</param>
+        /// <returns>A bit mix of the input parameter.</returns>
+        /// <remarks>
+        /// See http://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
+        /// </remarks>
+        public static ulong Mix64(ulong z)
+        {
+            z = (z ^ z >> 30) * 0xbf58476d1ce4e5b9L;
+            z = (z ^ z >> 27) * 0x94d049bb133111ebL;
+            return z ^ z >> 31;
         }
     }
 }
