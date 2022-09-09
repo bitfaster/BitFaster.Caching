@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace BitFaster.Caching.Buffers
@@ -163,9 +166,9 @@ namespace BitFaster.Caching.Buffers
         public int DrainTo(ArraySegment<T> output)
         {
 #if NETSTANDARD2_0
-            var localBuffer = buffer;
+
 #else
-            var localBuffer = buffer.AsSpan<T>();
+            Span<T> localOutput = output;
 #endif
 
             int head = Volatile.Read(ref headAndTail.Head);
@@ -179,11 +182,16 @@ namespace BitFaster.Caching.Buffers
 
             int outCount = 0;
 
+#if !NETSTANDARD2_0
+            ref T refOutItem = ref MemoryMarshal.GetReference(localOutput);
+            ref T refOutEnd = ref Unsafe.Add(ref refOutItem, localOutput.Length);
+#endif
+
             do
             {
                 int index = head & mask;
 
-                T item = Volatile.Read(ref localBuffer[index]);
+                T item = Volatile.Read(ref buffer[index]);
 
                 if (item == null)
                 {
@@ -191,11 +199,23 @@ namespace BitFaster.Caching.Buffers
                     break;
                 }
 
-                Volatile.Write(ref localBuffer[index], null);
+                Volatile.Write(ref buffer[index], null);
+
+#if NETSTANDARD2_0
                 output.Array[output.Offset + outCount++] = item;
+#else
+                refOutItem = item;
+                refOutItem = ref Unsafe.Add(ref refOutItem, 1);
+                outCount++;
+#endif
+
                 head++;
             }
+#if NETSTANDARD2_0
             while (head != tail && outCount < output.Count);
+#else
+            while (head != tail && Unsafe.IsAddressLessThan(ref refOutItem, ref refOutEnd));
+#endif
 
             Volatile.Write(ref this.headAndTail.Head, head);
 
