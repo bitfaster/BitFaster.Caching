@@ -411,7 +411,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var bufferSize = LfuBufferSize.DefaultBufferSize;
             var scheduler = new TestScheduler();
 
-            var bufferConfig = new LfuBufferSize(new StripedBufferSize(bufferSize, 1), new StripedBufferSize(bufferSize, 1));
+            var bufferConfig = new LfuBufferSize(new StripedBufferSize(bufferSize, 1));
             cache = new ConcurrentLfu<int, int>(1, bufferSize * 2, scheduler, EqualityComparer<int>.Default, bufferConfig);
 
             // add an item, flush write buffer
@@ -439,7 +439,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             int capacity = 20;
             var bufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);
             var scheduler = new TestScheduler();
-            var bufferConfig = new LfuBufferSize(new StripedBufferSize(bufferSize, 1), new StripedBufferSize(bufferSize, 1));
+            var bufferConfig = new LfuBufferSize(new StripedBufferSize(bufferSize, 1));
             cache = new ConcurrentLfu<int, int>(1, capacity, scheduler, EqualityComparer<int>.Default, bufferConfig);
 
             cache.GetOrAdd(1, k => k);
@@ -736,7 +736,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void VerifyMisses()
         {
             cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default, 
-                new LfuBufferSize(new StripedBufferSize(1, 1), new StripedBufferSize(1, 1)));
+                new LfuBufferSize(new StripedBufferSize(1, 1)));
 
             int iterations = 100000;
             Func<int, int> func = x => x;
@@ -771,7 +771,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             // buffer size is 1, this will cause dropped writes on some threads where the buffer is full
             cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default,
-                new LfuBufferSize(new StripedBufferSize(1, 1), new StripedBufferSize(1, 1)));
+                new LfuBufferSize(new StripedBufferSize(1, 1)));
 
             int threads = 4;
             int iterations = 100000;
