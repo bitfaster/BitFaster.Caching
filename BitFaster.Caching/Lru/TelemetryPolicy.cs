@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
-using BitFaster.Caching.Concurrent;
+using BitFaster.Caching.Counters;
 
 namespace BitFaster.Caching.Lru
 {
@@ -12,10 +12,10 @@ namespace BitFaster.Caching.Lru
     [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Upd = {Updated}, Evict = {Evicted}")]
     public struct TelemetryPolicy<K, V> : ITelemetryPolicy<K, V>
     {
-        private LongAdder hitCount;
-        private LongAdder missCount;
-        private LongAdder evictedCount;
-        private LongAdder updatedCount;
+        private Counter hitCount;
+        private Counter missCount;
+        private Counter evictedCount;
+        private Counter updatedCount;
         private object eventSource;
 
         ///<inheritdoc/>
@@ -25,19 +25,19 @@ namespace BitFaster.Caching.Lru
         public double HitRatio => Total == 0 ? 0 : (double)Hits / (double)Total;
 
         ///<inheritdoc/>
-        public long Total => this.hitCount.Sum() + this.missCount.Sum();
+        public long Total => this.hitCount.Count() + this.missCount.Count();
 
         ///<inheritdoc/>
-        public long Hits => this.hitCount.Sum();
+        public long Hits => this.hitCount.Count();
 
         ///<inheritdoc/>
-        public long Misses => this.missCount.Sum();
+        public long Misses => this.missCount.Count();
 
         ///<inheritdoc/>
-        public long Evicted => this.evictedCount.Sum();
+        public long Evicted => this.evictedCount.Count();
 
         ///<inheritdoc/>
-        public long Updated => this.updatedCount.Sum();
+        public long Updated => this.updatedCount.Count();
 
         ///<inheritdoc/>
         public void IncrementMiss()
@@ -72,10 +72,10 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public void SetEventSource(object source)
         {
-            this.hitCount = new LongAdder();
-            this.missCount = new LongAdder();
-            this.evictedCount = new LongAdder();
-            this.updatedCount = new LongAdder();
+            this.hitCount = new Counter();
+            this.missCount = new Counter();
+            this.evictedCount = new Counter();
+            this.updatedCount = new Counter();
             this.eventSource = source;
         }
     }

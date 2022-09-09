@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
-using BitFaster.Caching.Concurrent;
+using BitFaster.Caching.Counters;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 
@@ -765,17 +765,17 @@ namespace BitFaster.Caching.Lfu
         internal class CacheMetrics : ICacheMetrics
         {
             public long requestHitCount;
-            public LongAdder requestMissCount = new LongAdder();
+            public Counter requestMissCount = new Counter();
             public long updatedCount;
             public long evictedCount;
 
             public double HitRatio => (double)requestHitCount / (double)Total;
 
-            public long Total => requestHitCount + requestMissCount.Sum();
+            public long Total => requestHitCount + requestMissCount.Count();
 
             public long Hits => requestHitCount;
 
-            public long Misses => requestMissCount.Sum();
+            public long Misses => requestMissCount.Count();
 
             public long Updated => updatedCount;
 

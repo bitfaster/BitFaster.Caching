@@ -1,18 +1,14 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.ConstrainedExecution;
 using System.Threading;
 
 /*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
- * 
- * See
- * http://hg.openjdk.java.net/jdk9/jdk9/jdk/file/65464a307408/src/java.base/share/classes/java/util/concurrent/atomic/Striped64.java
  */
 
-namespace BitFaster.Caching.Concurrent
+namespace BitFaster.Caching.Counters
 {
     /*
      * This class maintains a lazily-initialized table of atomically

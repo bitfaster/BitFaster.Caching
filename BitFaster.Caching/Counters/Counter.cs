@@ -2,28 +2,25 @@
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
- * 
- * See
- * http://hg.openjdk.java.net/jdk9/jdk9/jdk/file/65464a307408/src/java.base/share/classes/java/util/concurrent/atomic/LongAdder.java
  */
 
-namespace BitFaster.Caching.Concurrent
+namespace BitFaster.Caching.Counters
 {
     /// <summary>
     /// A thread-safe counter suitable for high throuhgput counting across many concurrent threads.
     /// </summary>
-    public sealed class LongAdder : Striped64
+    public sealed class Counter : Striped64
     {
         /// <summary>
-        /// Creates a new LongAdder with an intial sum of zero.
+        /// Creates a new Counter with an intial sum of zero.
         /// </summary>
-        public LongAdder() { }
+        public Counter() { }
 
         /// <summary>
-        /// Computes the current sum.
+        /// Computes the current count.
         /// </summary>
         /// <returns>The current sum.</returns>
-        public long Sum()
+        public long Count()
         {
             var @as = this.Cells; Cell a;
             var sum = @base.VolatileRead();
