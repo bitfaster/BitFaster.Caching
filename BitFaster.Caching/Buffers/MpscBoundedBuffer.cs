@@ -211,7 +211,7 @@ namespace BitFaster.Caching.Buffers
         // https://github.com/dotnet/runtime/issues/16143
         
         // Unsafe version
-        public unsafe int DrainTo2(ArraySegment<T> output)
+        public unsafe int DrainTo(ArraySegment<T> output)
         {
             Span<T> localBuffer = buffer;
             Span<T> localOutput = output;
@@ -262,7 +262,8 @@ namespace BitFaster.Caching.Buffers
         }
 
         // Pointer version, this is only valid for x64
-        public unsafe int DrainTo(ArraySegment<T> output)
+        // This is known to crash, so is not correct.
+        public unsafe int DrainTo2(ArraySegment<T> output)
         {
             int head = Volatile.Read(ref headAndTail.Head);
             int tail = Volatile.Read(ref headAndTail.Tail);
@@ -276,10 +277,10 @@ namespace BitFaster.Caching.Buffers
             // pretend the array is of type long (same size as ptr), then do ptr arithmetic
             ref long buffAsRefLong = ref Unsafe.As<T, long>(ref buffer[0]); 
             ref long outAsRefLong = ref Unsafe.As<T, long>(ref output.Array[output.Offset]);
+
             fixed (long* buffPtr = &buffAsRefLong, outPtr = &outAsRefLong)
             {
                 long* endOutPtr = outPtr + output.Count;
-
                 long* currOutPtr = outPtr;
 
                 do
