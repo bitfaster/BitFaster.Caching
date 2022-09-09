@@ -416,18 +416,15 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             // add an item, flush write buffer
             cache.GetOrAdd(-1, k => k);
-            //scheduler.RunCount.Should().Be(1);
             cache.PendingMaintenance();
 
             // remove the item but don't flush, it is now in the write buffer and maintenance is scheduled
             cache.TryRemove(-1).Should().BeTrue();
-            //scheduler.RunCount.Should().Be(2);
 
             // add buffer size items, last iteration will invoke maintenance on the foreground since write
             // buffer is full and test scheduler did not do any work
             for (int i = 0; i < bufferSize; i++)
             {
-                //scheduler.RunCount.Should().Be(2);
                 cache.GetOrAdd(i, k => k);
             }
 
