@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -205,8 +206,12 @@ namespace BitFaster.Caching.Buffers
         }
 
 #else
-
-        public int DrainTo(ArraySegment<T> output)
+        // https://docs.microsoft.com/en-us/dotnet/api/system.runtime.compilerservices.unsafe?view=dotnet-plat-ext-2.2
+        // https://mattwarren.org/2016/09/14/Subverting-.NET-Type-Safety-with-System.Runtime.CompilerServices.Unsafe/
+        // https://github.com/dotnet/runtime/issues/16143
+        
+        // Unsafe version
+        public unsafe int DrainTo2(ArraySegment<T> output)
         {
             Span<T> localBuffer = buffer;
             Span<T> localOutput = output;
@@ -254,6 +259,53 @@ namespace BitFaster.Caching.Buffers
             Volatile.Write(ref this.headAndTail.Head, head);
 
             return outCount;
+        }
+
+        // Pointer version, this is only valid for x64
+        public unsafe int DrainTo(ArraySegment<T> output)
+        {
+            int head = Volatile.Read(ref headAndTail.Head);
+            int tail = Volatile.Read(ref headAndTail.Tail);
+            int size = tail - head;
+
+            if (size == 0)
+            {
+                return 0;
+            }
+
+            // pretend the array is of type long (same size as ptr), then do ptr arithmetic
+            ref long buffAsRefLong = ref Unsafe.As<T, long>(ref buffer[0]); 
+            ref long outAsRefLong = ref Unsafe.As<T, long>(ref output.Array[output.Offset]);
+            fixed (long* buffPtr = &buffAsRefLong, outPtr = &outAsRefLong)
+            {
+                long* endOutPtr = outPtr + output.Count;
+
+                long* currOutPtr = outPtr;
+
+                do
+                {
+                    int index = head & mask;
+
+                    long* itemPtr = buffPtr + index;
+                    *currOutPtr = Volatile.Read(ref *itemPtr);
+
+                    if (*currOutPtr == 0)
+                    {
+                        // not published yet
+                        break;
+                    }
+
+                    Volatile.Write(ref *itemPtr, 0);
+
+                    currOutPtr++;
+                    head++;
+                }
+                while (head != tail && currOutPtr < endOutPtr);
+
+                Volatile.Write(ref this.headAndTail.Head, head);
+
+                return (int)(currOutPtr - outPtr);
+            }
         }
 #endif
 
