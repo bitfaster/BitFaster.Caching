@@ -56,9 +56,7 @@ namespace BitFaster.Caching.Lfu
 
         private readonly IScheduler scheduler;
 
-#if NETSTANDARD2_0
         private readonly LfuNode<K, V>[] drainBuffer;
-#endif
 
         /// <summary>
         /// Initializes a new instance of the ConcurrentLfu class with the specified capacity.
@@ -97,9 +95,7 @@ namespace BitFaster.Caching.Lfu
 
             this.scheduler = scheduler;
 
-#if NETSTANDARD2_0
             this.drainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
-#endif
         }
 
         ///<inheritdoc/>
@@ -689,18 +685,11 @@ namespace BitFaster.Caching.Lfu
 
         private LfuNode<K, V>[] RentDrainBuffer()
         {
-#if !NETSTANDARD2_0
-            return ArrayPool<LfuNode<K, V>>.Shared.Rent(this.readBuffer.Capacity);
-#else
             return drainBuffer;
-#endif
         }
 
         private void ReturnDrainBuffer(LfuNode<K, V>[] localDrainBuffer)
         {
-#if !NETSTANDARD2_0
-            ArrayPool<LfuNode<K, V>>.Shared.Return(localDrainBuffer);
-#endif
         }
 
         [DebuggerDisplay("{Format(),nq}")]
