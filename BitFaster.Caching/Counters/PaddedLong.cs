@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace BitFaster.Caching.Concurrent
+namespace BitFaster.Caching.Counters
 {
     /// <summary>
     /// A long value padded by the size of a CPU cache line to mitigate false sharing.
