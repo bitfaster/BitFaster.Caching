@@ -1,10 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿
 using BitFaster.Caching.Atomic;
 
 namespace BitFaster.Caching.Lfu.Builder
 {
+    /// <summary>
+    /// A builder for creating a ConcurrentLfu as IAsyncCache with atomic value creation.
+    /// </summary>
+    /// <typeparam name="K">The type of the cache key.</typeparam>
+    /// <typeparam name="V">The type of the cache value.</typeparam>
     public class AtomicConcurrentLfuBuilder<K, V> : LfuBuilderBase<K, V, AtomicConcurrentLfuBuilder<K, V>, ICache<K, V>>
     {
         private readonly ConcurrentLfuBuilder<K, AtomicFactory<K, V>> inner;
