@@ -32,6 +32,11 @@ namespace BitFaster.Caching.Lfu
     {
         private const int MaxWriteBufferRetries = 64;
 
+        /// <summary>
+        /// The default buffer size.
+        /// </summary>
+        public const int DefaultBufferSize = 128;
+
         private readonly ConcurrentDictionary<K, LfuNode<K, V>> dictionary;
 
         private readonly StripedMpscBuffer<LfuNode<K, V>> readBuffer;
@@ -59,7 +64,7 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <param name="capacity">The capacity.</param>
         public ConcurrentLfu(int capacity)
-            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, LfuBufferSize.Default(Defaults.ConcurrencyLevel, capacity))
+            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default)
         {        
         }
 
@@ -70,12 +75,13 @@ namespace BitFaster.Caching.Lfu
         /// <param name="capacity">The capacity.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="comparer">The equality comparer.</param>
-        /// <param name="bufferSize">The buffer size.</param>
-        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, LfuBufferSize bufferSize)
+        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
-            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferSize.Read);
+            // cap concurrency at proc count * 2
+            int readStripes = Math.Min(BitOps.CeilingPowerOfTwo(concurrencyLevel), BitOps.CeilingPowerOfTwo(Environment.ProcessorCount * 2));
+            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(readStripes, DefaultBufferSize);
 
             // Cap the write buffer to the cache size, or 128. Whichever is smaller.
             int writeBufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);

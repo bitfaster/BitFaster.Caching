@@ -22,7 +22,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
         const double s = 0.86;
         const int n = 500;
         static int capacity = 500;
-        const int maxThreads = 64;
+        const int maxThreads = 52;
         const int sampleCount = 2000;
         const int repeatCount = 400;
 
@@ -57,7 +57,6 @@ namespace BitFaster.Caching.ThroughputAnalysis
             {
                 resultTable.Columns.Add(tc.ToString());
             }
-
 
             DataRow classicLru = resultTable.NewRow();
             DataRow memoryCache = resultTable.NewRow();
@@ -102,7 +101,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 for (int i = 0; i < warmup + runs; i++)
                 {
                     var scheduler = new BackgroundThreadScheduler();
-                    results[i] = MeasureThroughput(new ConcurrentLfu<int, int>(concurrencyLevel: tc, capacity: capacity, scheduler: scheduler, EqualityComparer<int>.Default, LfuBufferSize.Default(concurrencyLevel: tc, capacity: capacity)), tc);
+                    results[i] = MeasureThroughput(new ConcurrentLfu<int, int>(concurrencyLevel: tc, capacity: capacity, scheduler: scheduler, EqualityComparer<int>.Default), tc);
                     scheduler.Dispose();
                 }
                 avg = AverageLast(results, runs) / 1000000;
