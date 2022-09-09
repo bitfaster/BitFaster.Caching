@@ -94,11 +94,11 @@ namespace BitFaster.Caching.Buffers
         /// </remarks>
         public BufferStatus TryAdd(T item)
         {
-#if NETSTANDARD2_0
+//#if NETSTANDARD2_0
             var localBuffer = buffer;
-#else
-            var localBuffer = buffer.AsSpan<T>();
-#endif
+//#else
+//            var localBuffer = buffer.AsSpan<T>();
+//#endif
 
             int head = Volatile.Read(ref headAndTail.Head);
             int tail = Volatile.Read(ref headAndTail.Tail);
@@ -263,7 +263,7 @@ namespace BitFaster.Caching.Buffers
 
         // Pointer version, this is only valid for x64
         // This is known to crash, so is not correct.
-        public unsafe int DrainTo2(ArraySegment<T> output)
+        public unsafe int DrainTo1(ArraySegment<T> output)
         {
             int head = Volatile.Read(ref headAndTail.Head);
             int tail = Volatile.Read(ref headAndTail.Tail);
