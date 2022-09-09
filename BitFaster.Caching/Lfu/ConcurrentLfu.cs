@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
-using BitFaster.Caching.Concurrent;
+using BitFaster.Caching.Counters;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 
@@ -39,7 +39,7 @@ namespace BitFaster.Caching.Lfu
         private readonly ConcurrentDictionary<K, LfuNode<K, V>> dictionary;
 
         private readonly StripedMpscBuffer<LfuNode<K, V>> readBuffer;
-        private readonly StripedMpscBuffer<LfuNode<K, V>> writeBuffer;
+        private readonly MpscBoundedBuffer<LfuNode<K, V>> writeBuffer;
 
         private readonly CacheMetrics metrics = new CacheMetrics();
 
@@ -85,7 +85,10 @@ namespace BitFaster.Caching.Lfu
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
             this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferSize.Read);
-            this.writeBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferSize.Write);
+
+            // Cap the write buffer to the cache size, or 128. Whichever is smaller.
+            int writeBufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);
+            this.writeBuffer = new MpscBoundedBuffer<LfuNode<K, V>>(writeBufferSize);
 
             this.cmSketch = new CmSketch<K>(1, comparer);
             this.cmSketch.EnsureCapacity(capacity);
@@ -499,7 +502,7 @@ namespace BitFaster.Caching.Lfu
                 OnAccess(localDrainBuffer[i]);
             }
 
-            int writeCount = this.writeBuffer.DrainTo(localDrainBuffer);
+            int writeCount = this.writeBuffer.DrainTo(new ArraySegment<LfuNode<K, V>>(localDrainBuffer));
 
             for (int i = 0; i < writeCount; i++)
             {
@@ -933,17 +936,17 @@ namespace BitFaster.Caching.Lfu
         internal class CacheMetrics : ICacheMetrics
         {
             public long requestHitCount;
-            public LongAdder requestMissCount = new LongAdder();
+            public Counter requestMissCount = new Counter();
             public long updatedCount;
             public long evictedCount;
 
             public double HitRatio => (double)requestHitCount / (double)Total;
 
-            public long Total => requestHitCount + requestMissCount.Sum();
+            public long Total => requestHitCount + requestMissCount.Count();
 
             public long Hits => requestHitCount;
 
-            public long Misses => requestMissCount.Sum();
+            public long Misses => requestMissCount.Count();
 
             public long Updated => updatedCount;
 
@@ -987,7 +990,7 @@ namespace BitFaster.Caching.Lfu
 
             public StripedMpscBuffer<LfuNode<K, V>> ReadBuffer => this.lfu.readBuffer;
 
-            public StripedMpscBuffer<LfuNode<K, V>> WriteBuffer => this.lfu.writeBuffer;
+            public MpscBoundedBuffer<LfuNode<K, V>> WriteBuffer => this.lfu.writeBuffer;
 
             public KeyValuePair<K, V>[] Items
             {

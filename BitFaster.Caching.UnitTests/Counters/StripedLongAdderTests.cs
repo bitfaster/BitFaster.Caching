@@ -1,32 +1,32 @@
 ﻿using System.Threading.Tasks;
-using BitFaster.Caching.Concurrent;
+using BitFaster.Caching.Counters;
 using FluentAssertions;
 using Xunit;
 
-namespace BitFaster.Caching.UnitTests.Concurrent
+namespace BitFaster.Caching.UnitTests.Counters
 {
     public class StripedLongAdderTests
     {
         [Fact]
         public void InitialValueIsZero()
         {
-            new LongAdder().Sum().Should().Be(0);
+            new Counter().Count().Should().Be(0);
         }
 
         [Fact]
         public void WhenIncrementedOneIsAdded()
         {
-            var adder = new LongAdder();
+            var adder = new Counter();
 
             adder.Increment();
 
-            adder.Sum().Should().Be(1);
+            adder.Count().Should().Be(1);
         }
 
         [Fact]
         public async Task WhenAddingConcurrentlySumIsCorrect()
         {
-            var adder = new LongAdder();
+            var adder = new Counter();
 
             await Threaded.Run(4, () => 
             {
@@ -36,7 +36,7 @@ namespace BitFaster.Caching.UnitTests.Concurrent
                 }
             });
 
-            adder.Sum().Should().Be(400000);
+            adder.Count().Should().Be(400000);
         }
     }
 }

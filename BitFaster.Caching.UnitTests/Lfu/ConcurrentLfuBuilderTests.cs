@@ -58,7 +58,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             ICache<string, int> lfu = new ConcurrentLfuBuilder<string, int>()
                .WithBufferConfiguration(new LfuBufferSize(
-                    new StripedBufferSize(128, 2),
                     new StripedBufferSize(128, 2)
                    ))
                .Build();
