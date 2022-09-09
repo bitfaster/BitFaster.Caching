@@ -12,10 +12,6 @@ using BitFaster.Caching.Counters;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 
-#if !NETSTANDARD2_0
-using System.Buffers;
-#endif
-
 #if DEBUG
 using System.Linq;
 using System.Text;
@@ -431,26 +427,25 @@ namespace BitFaster.Caching.Lfu
         private bool Maintenance(LfuNode<K, V> droppedWrite = null)
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
-            var localDrainBuffer = RentDrainBuffer();
 
             // extract to a buffer before doing book keeping work, ~2x faster
-            int readCount = readBuffer.DrainTo(localDrainBuffer);
+            int readCount = readBuffer.DrainTo(this.drainBuffer);
 
             for (int i = 0; i < readCount; i++)
             {
-                this.cmSketch.Increment(localDrainBuffer[i].Key);
+                this.cmSketch.Increment(this.drainBuffer[i].Key);
             }
 
             for (int i = 0; i < readCount; i++)
             {
-                OnAccess(localDrainBuffer[i]);
+                OnAccess(this.drainBuffer[i]);
             }
 
-            int writeCount = this.writeBuffer.DrainTo(new ArraySegment<LfuNode<K, V>>(localDrainBuffer));
+            int writeCount = this.writeBuffer.DrainTo(new ArraySegment<LfuNode<K, V>>(this.drainBuffer));
 
             for (int i = 0; i < writeCount; i++)
             {
-                OnWrite(localDrainBuffer[i]);
+                OnWrite(this.drainBuffer[i]);
             }
 
             // we are done only when both buffers are empty
@@ -461,8 +456,6 @@ namespace BitFaster.Caching.Lfu
                 OnWrite(droppedWrite);
                 done = true;
             }
-
-            ReturnDrainBuffer(localDrainBuffer);
 
             EvictEntries();
             this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
@@ -681,15 +674,6 @@ namespace BitFaster.Caching.Lfu
                 demoted.Position = Position.Probation;
                 this.probationLru.AddLast(demoted);
             }
-        }
-
-        private LfuNode<K, V>[] RentDrainBuffer()
-        {
-            return drainBuffer;
-        }
-
-        private void ReturnDrainBuffer(LfuNode<K, V>[] localDrainBuffer)
-        {
         }
 
         [DebuggerDisplay("{Format(),nq}")]
