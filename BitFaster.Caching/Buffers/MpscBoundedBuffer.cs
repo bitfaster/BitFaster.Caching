@@ -16,6 +16,7 @@ namespace BitFaster.Caching.Buffers
     public sealed class MpscBoundedBuffer<T> where T : class
     {
         private T[] buffer;
+
         private readonly int mask;
         private PaddedHeadAndTail headAndTail; // mutable struct, don't mark readonly
 
@@ -89,11 +90,17 @@ namespace BitFaster.Caching.Buffers
         /// </remarks>
         public BufferStatus TryAdd(T item)
         {
+#if NETSTANDARD2_0
+            var localBuffer = buffer;
+#else
+            var localBuffer = buffer.AsSpan<T>();
+#endif
+
             int head = Volatile.Read(ref headAndTail.Head);
             int tail = Volatile.Read(ref headAndTail.Tail);
             int size = tail - head;
 
-            if (size >= buffer.Length)
+            if (size >= localBuffer.Length)
             {
                 return BufferStatus.Full;
             }
@@ -101,7 +108,7 @@ namespace BitFaster.Caching.Buffers
             if (Interlocked.CompareExchange(ref this.headAndTail.Tail, tail + 1, tail) == tail)
             {
                 int index = (int)(tail & mask);
-                Volatile.Write(ref buffer[index], item);
+                Volatile.Write(ref localBuffer[index], item);
 
                 return BufferStatus.Success;
             }
@@ -155,6 +162,12 @@ namespace BitFaster.Caching.Buffers
         /// </remarks>
         public int DrainTo(ArraySegment<T> output)
         {
+#if NETSTANDARD2_0
+            var localBuffer = buffer;
+#else
+            var localBuffer = buffer.AsSpan<T>();
+#endif
+
             int head = Volatile.Read(ref headAndTail.Head);
             int tail = Volatile.Read(ref headAndTail.Tail);
             int size = tail - head;
@@ -170,7 +183,7 @@ namespace BitFaster.Caching.Buffers
             {
                 int index = head & mask;
 
-                T item = Volatile.Read(ref buffer[index]);
+                T item = Volatile.Read(ref localBuffer[index]);
 
                 if (item == null)
                 {
@@ -178,7 +191,7 @@ namespace BitFaster.Caching.Buffers
                     break;
                 }
 
-                Volatile.Write(ref buffer[index], null);
+                Volatile.Write(ref localBuffer[index], null);
                 output.Array[output.Offset + outCount++] = item;
                 head++;
             }
