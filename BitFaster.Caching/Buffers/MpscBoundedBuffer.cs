@@ -163,13 +163,9 @@ namespace BitFaster.Caching.Buffers
         /// <remarks>
         /// Thread safe for single try take/drain + multiple try add.
         /// </remarks>
+#if NETSTANDARD2_0
         public int DrainTo(ArraySegment<T> output)
         {
-#if NETSTANDARD2_0
-
-#else
-            Span<T> localOutput = output;
-#endif
 
             int head = Volatile.Read(ref headAndTail.Head);
             int tail = Volatile.Read(ref headAndTail.Tail);
@@ -181,11 +177,6 @@ namespace BitFaster.Caching.Buffers
             }
 
             int outCount = 0;
-
-#if !NETSTANDARD2_0
-            ref T refOutItem = ref MemoryMarshal.GetReference(localOutput);
-            ref T refOutEnd = ref Unsafe.Add(ref refOutItem, localOutput.Length);
-#endif
 
             do
             {
@@ -201,26 +192,70 @@ namespace BitFaster.Caching.Buffers
 
                 Volatile.Write(ref buffer[index], null);
 
-#if NETSTANDARD2_0
+
                 output.Array[output.Offset + outCount++] = item;
-#else
-                refOutItem = item;
-                refOutItem = ref Unsafe.Add(ref refOutItem, 1);
-                outCount++;
-#endif
 
                 head++;
             }
-#if NETSTANDARD2_0
             while (head != tail && outCount < output.Count);
-#else
-            while (head != tail && Unsafe.IsAddressLessThan(ref refOutItem, ref refOutEnd));
-#endif
 
             Volatile.Write(ref this.headAndTail.Head, head);
 
             return outCount;
         }
+
+#else
+
+        public int DrainTo(ArraySegment<T> output)
+        {
+            Span<T> localBuffer = buffer;
+            Span<T> localOutput = output;
+
+            int head = Volatile.Read(ref headAndTail.Head);
+            int tail = Volatile.Read(ref headAndTail.Tail);
+            int size = tail - head;
+
+            if (size == 0)
+            {
+                return 0;
+            }
+
+            int outCount = 0;
+
+            ref T refOutItem = ref MemoryMarshal.GetReference(localOutput);
+            ref T refOutEnd = ref Unsafe.Add(ref refOutItem, localOutput.Length);
+
+            ref T refBuffStart = ref MemoryMarshal.GetReference(localBuffer);
+
+            do
+            {
+                int index = head & mask;
+
+                ref T refBuffItem = ref Unsafe.Add(ref refBuffStart, index);
+
+                T item = Volatile.Read(ref refBuffItem);
+
+                if (item == null)
+                {
+                    // not published yet
+                    break;
+                }
+
+                Volatile.Write(ref refBuffItem, null);
+
+                refOutItem = item;
+                refOutItem = ref Unsafe.Add(ref refOutItem, 1);
+                outCount++;
+
+                head++;
+            }
+            while (head != tail && Unsafe.IsAddressLessThan(ref refOutItem, ref refOutEnd));
+
+            Volatile.Write(ref this.headAndTail.Head, head);
+
+            return outCount;
+        }
+#endif
 
         /// <summary>
         /// Removes all values from the buffer.
