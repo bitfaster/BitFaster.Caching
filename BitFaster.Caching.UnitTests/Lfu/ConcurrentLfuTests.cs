@@ -439,10 +439,11 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WhenWriteBufferIsFullUpdatesAreDropped()
         {
-            var bufferSize = LfuBufferSize.DefaultBufferSize;
+            int capacity = 20;
+            var bufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);
             var scheduler = new TestScheduler();
             var bufferConfig = new LfuBufferSize(new StripedBufferSize(bufferSize, 1), new StripedBufferSize(bufferSize, 1));
-            cache = new ConcurrentLfu<int, int>(1, 20, scheduler, EqualityComparer<int>.Default, bufferConfig);
+            cache = new ConcurrentLfu<int, int>(1, capacity, scheduler, EqualityComparer<int>.Default, bufferConfig);
 
             cache.GetOrAdd(1, k => k);
             scheduler.RunCount.Should().Be(1);
@@ -455,8 +456,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.PendingMaintenance();
 
-            // buffer size is 2 (10% of 20)
-            cache.Metrics.Value.Updated.Should().Be(2);
+            cache.Metrics.Value.Updated.Should().Be(bufferSize);
         }
 
         [Fact]
@@ -797,7 +797,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.output.WriteLine($"Maintenance ops {this.cache.Scheduler.RunCount}");
 
             cache.Metrics.Value.Misses.Should().Be(iterations * threads);
-            cache.Count.Should().BeCloseTo(20, 1);
         }
 
         private void VerifyHits(int iterations, int minSamples)
