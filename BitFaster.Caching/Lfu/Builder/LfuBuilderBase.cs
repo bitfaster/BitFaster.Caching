@@ -65,17 +65,6 @@ namespace BitFaster.Caching.Lfu.Builder
         }
 
         /// <summary>
-        /// Use the specified buffer configuration. Smaller buffers consume less memory, larger buffers can
-        /// increase concurrent throughput.
-        /// </summary>
-        /// <returns>A ConcurrentLfuBuilder</returns>
-        public TBuilder WithBufferConfiguration(LfuBufferSize bufferConfiguration)
-        {
-            this.info.BufferConfiguration = bufferConfiguration;
-            return this as TBuilder;
-        }
-
-        /// <summary>
         /// Builds a cache configured via the method calls invoked on the builder instance.
         /// </summary>
         /// <returns>A cache.</returns>
