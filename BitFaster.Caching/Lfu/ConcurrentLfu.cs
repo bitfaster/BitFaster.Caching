@@ -33,6 +33,9 @@ namespace BitFaster.Caching.Lfu
     ///   the LRU protected item is demoted to probation.</description></item>
     ///   <item><description>When a protected item is accessed, it is moved to the protected MRU position.</description></item>
     /// </list>
+    /// The size of the admission window and main space are adapted over time to iteratively improve hit rate using a 
+    /// hill climbing algorithm. A larger window favors workloads with high recency bias, whereas a larger main space
+    /// favors workloads with frequency bias.
     /// </summary>
     /// <remarks>
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
