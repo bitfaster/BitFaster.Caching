@@ -16,13 +16,13 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public Exporter(int maxThreads)
         {
-            // Desired output:
-            // Class       1  2  3  4  5
+            // output:
+            // ThreadCount   1  2  3  4  5
             // Classic       5  6  7  7  8
             // Concurrent    5  6  7  7  8
 
             resultTable.Clear();
-            resultTable.Columns.Add("Class");
+            resultTable.Columns.Add("ThreadCount");
             foreach (var tc in Enumerable.Range(1, maxThreads).ToArray())
             {
                 resultTable.Columns.Add(tc.ToString());
