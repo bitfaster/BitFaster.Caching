@@ -69,8 +69,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public int[] GetTestData(int threadId)
         {
-            // threads index from 1, samples from 0
-            return samples[threadId-1];
+            return samples[threadId];
         }
     }
 }

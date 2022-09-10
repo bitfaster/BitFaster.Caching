@@ -31,9 +31,11 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public ICollection<K> Keys => throw new NotImplementedException();
 
+        private static readonly MemoryCacheEntryOptions SizeOne = new MemoryCacheEntryOptions() { Size = 1 };
+
         public void AddOrUpdate(K key, V value)
         {
-            exMemoryCache.Set(key, value, new MemoryCacheEntryOptions() { Size = 1 });
+            exMemoryCache.Set(key, value, SizeOne);
         }
 
         public void Clear()

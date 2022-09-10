@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,9 +24,11 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             for (int i = 0; i < tasks.Length; i++)
             {
-                tasks[i] = Task.Factory.StartNew(() => syncStart(i), TaskCreationOptions.LongRunning);
+                int index = i;
+                tasks[i] = Task.Factory.StartNew(() => syncStart(index), TaskCreationOptions.LongRunning);
             }
 
+            // try to mitigate spam from MemoryCache
             for (int i = 0; i < 3; i++)
             { 
                 GC.Collect(); 
