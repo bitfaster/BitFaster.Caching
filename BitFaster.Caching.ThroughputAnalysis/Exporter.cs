@@ -34,7 +34,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             foreach (var c in caches)
             {
                 c.DataRow = resultTable.NewRow();
-                c.DataRow["Class"] = c.Name;
+                c.DataRow["ThreadCount"] = c.Name;
             }
         }
 

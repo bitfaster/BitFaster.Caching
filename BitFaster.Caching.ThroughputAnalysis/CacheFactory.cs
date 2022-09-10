@@ -10,7 +10,6 @@ using BitFaster.Caching.Scheduler;
 
 namespace BitFaster.Caching.ThroughputAnalysis
 {
-
     public interface ICacheFactory
     {
         (IScheduler, ICache<int, int>) Create(int threadCount);
