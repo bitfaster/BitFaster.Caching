@@ -20,21 +20,12 @@ namespace BitFaster.Caching.Buffers
         /// <param name="stripeCount">The stripe count.</param>
         /// <param name="bufferSize">The buffer size.</param>
         public StripedMpmcBuffer(int stripeCount, int bufferSize)
-            : this(new StripedBufferSize(bufferSize, stripeCount))
-        {
-        }
+        { 
+            buffers = new MpmcBoundedBuffer<T>[stripeCount];
 
-        /// <summary>
-        /// Initializes a new instance of the StripedMpmcBuffer class with the specified buffer size.
-        /// </summary>
-        /// <param name="bufferSize">The buffer size.</param>
-        public StripedMpmcBuffer(StripedBufferSize bufferSize)
-        {
-            buffers = new MpmcBoundedBuffer<T>[bufferSize.StripeCount];
-
-            for (var i = 0; i < bufferSize.StripeCount; i++)
+            for (var i = 0; i < stripeCount; i++)
             {
-                buffers[i] = new MpmcBoundedBuffer<T>(bufferSize.BufferSize);
+                buffers[i] = new MpmcBoundedBuffer<T>(bufferSize);
             }
         }
 

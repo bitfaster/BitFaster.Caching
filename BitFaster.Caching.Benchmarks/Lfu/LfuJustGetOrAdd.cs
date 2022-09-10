@@ -22,11 +22,11 @@ namespace BitFaster.Caching.Benchmarks
 
         const int stripes = 1;
         private static readonly BackgroundThreadScheduler background = new BackgroundThreadScheduler();
-        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(stripes, 9, background, EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
+        private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(stripes, 9, background, EqualityComparer<int>.Default);
 
-        private static readonly ConcurrentLfu<int, int> concurrentLfuFore = new ConcurrentLfu<int, int>(stripes, 9, new ForegroundScheduler(), EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
-        private static readonly ConcurrentLfu<int, int> concurrentLfuTp = new ConcurrentLfu<int, int>(stripes, 9, new ThreadPoolScheduler(), EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
-        private static readonly ConcurrentLfu<int, int> concurrentLfuNull = new ConcurrentLfu<int, int>(stripes, 9, new NullScheduler(), EqualityComparer<int>.Default, LfuBufferSize.Default(1, 128));
+        private static readonly ConcurrentLfu<int, int> concurrentLfuFore = new ConcurrentLfu<int, int>(stripes, 9, new ForegroundScheduler(), EqualityComparer<int>.Default);
+        private static readonly ConcurrentLfu<int, int> concurrentLfuTp = new ConcurrentLfu<int, int>(stripes, 9, new ThreadPoolScheduler(), EqualityComparer<int>.Default);
+        private static readonly ConcurrentLfu<int, int> concurrentLfuNull = new ConcurrentLfu<int, int>(stripes, 9, new NullScheduler(), EqualityComparer<int>.Default);
 
         [GlobalSetup]
         public void GlobalSetup()

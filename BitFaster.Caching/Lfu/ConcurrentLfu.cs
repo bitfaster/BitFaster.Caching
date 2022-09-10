@@ -12,10 +12,6 @@ using BitFaster.Caching.Counters;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 
-#if !NETSTANDARD2_0
-using System.Buffers;
-#endif
-
 #if DEBUG
 using System.Linq;
 using System.Text;
@@ -35,6 +31,11 @@ namespace BitFaster.Caching.Lfu
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
         private const int MaxWriteBufferRetries = 64;
+
+        /// <summary>
+        /// The default buffer size.
+        /// </summary>
+        public const int DefaultBufferSize = 128;
 
         private readonly ConcurrentDictionary<K, LfuNode<K, V>> dictionary;
 
@@ -59,16 +60,14 @@ namespace BitFaster.Caching.Lfu
         private readonly MpmcBoundedBuffer<List<LfuNode<K, V>>> cleanBufferQueue = new MpmcBoundedBuffer<List<LfuNode<K, V>>>(Environment.ProcessorCount);
         private readonly MpmcBoundedBuffer<List<LfuNode<K, V>>> deleteBufferQueue = new MpmcBoundedBuffer<List<LfuNode<K, V>>>(Environment.ProcessorCount);
 
-#if NETSTANDARD2_0
         private readonly LfuNode<K, V>[] drainBuffer;
-#endif
 
         /// <summary>
         /// Initializes a new instance of the ConcurrentLfu class with the specified capacity.
         /// </summary>
         /// <param name="capacity">The capacity.</param>
         public ConcurrentLfu(int capacity)
-            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, LfuBufferSize.Default(Defaults.ConcurrencyLevel, capacity))
+            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default)
         {        
         }
 
@@ -79,12 +78,13 @@ namespace BitFaster.Caching.Lfu
         /// <param name="capacity">The capacity.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="comparer">The equality comparer.</param>
-        /// <param name="bufferSize">The buffer size.</param>
-        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, LfuBufferSize bufferSize)
+        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
-            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(bufferSize.Read);
+            // cap concurrency at proc count * 2
+            int readStripes = Math.Min(BitOps.CeilingPowerOfTwo(concurrencyLevel), BitOps.CeilingPowerOfTwo(Environment.ProcessorCount * 2));
+            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(readStripes, DefaultBufferSize);
 
             // Cap the write buffer to the cache size, or 128. Whichever is smaller.
             int writeBufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);
@@ -100,9 +100,7 @@ namespace BitFaster.Caching.Lfu
 
             this.scheduler = scheduler;
 
-#if NETSTANDARD2_0
             this.drainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
-#endif
         }
 
         ///<inheritdoc/>
@@ -487,26 +485,25 @@ namespace BitFaster.Caching.Lfu
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
 
-            var localDrainBuffer = RentDrainBuffer();
 
             // extract to a buffer before doing book keeping work, ~2x faster
-            int readCount = readBuffer.DrainTo(localDrainBuffer);
+            int readCount = readBuffer.DrainTo(this.drainBuffer);
 
             for (int i = 0; i < readCount; i++)
             {
-                this.cmSketch.Increment(localDrainBuffer[i].Key);
+                this.cmSketch.Increment(this.drainBuffer[i].Key);
             }
 
             for (int i = 0; i < readCount; i++)
             {
-                OnAccess(localDrainBuffer[i]);
+                OnAccess(this.drainBuffer[i]);
             }
 
-            int writeCount = this.writeBuffer.DrainTo(new ArraySegment<LfuNode<K, V>>(localDrainBuffer));
+            int writeCount = this.writeBuffer.DrainTo(new ArraySegment<LfuNode<K, V>>(this.drainBuffer));
 
             for (int i = 0; i < writeCount; i++)
             {
-                OnWrite(localDrainBuffer[i]);
+                OnWrite(this.drainBuffer[i]);
             }
 
             // we are done only when both buffers are empty
@@ -517,8 +514,6 @@ namespace BitFaster.Caching.Lfu
                 OnWrite(droppedWrite);
                 done = true;
             }
-
-            ReturnDrainBuffer(localDrainBuffer);
 
             EvictEntries();
             QueueDeleteBuffer();
@@ -853,22 +848,6 @@ namespace BitFaster.Caching.Lfu
                 demoted.Position = Position.Probation;
                 this.probationLru.AddLast(demoted);
             }
-        }
-
-        private LfuNode<K, V>[] RentDrainBuffer()
-        {
-#if !NETSTANDARD2_0
-            return ArrayPool<LfuNode<K, V>>.Shared.Rent(this.readBuffer.Capacity);
-#else
-            return drainBuffer;
-#endif
-        }
-
-        private void ReturnDrainBuffer(LfuNode<K, V>[] localDrainBuffer)
-        {
-#if !NETSTANDARD2_0
-            ArrayPool<LfuNode<K, V>>.Shared.Return(localDrainBuffer);
-#endif
         }
 
         [DebuggerDisplay("{Format(),nq}")]
