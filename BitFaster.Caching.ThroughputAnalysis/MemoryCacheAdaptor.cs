@@ -48,7 +48,6 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
-
             if (!exMemoryCache.TryGetValue(key, out object result))
             {
                 using ICacheEntry entry = exMemoryCache.CreateEntry(key);
