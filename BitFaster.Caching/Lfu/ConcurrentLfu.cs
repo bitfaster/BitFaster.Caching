@@ -20,11 +20,26 @@ using System.Text;
 namespace BitFaster.Caching.Lfu
 {
     /// <summary>
-    /// An LFU cache with a W-TinyLfu eviction policy.
+    /// An approximate LFU based on the W-TinyLfu eviction policy. W-TinyLfu tracks items using a window LRU list, and 
+    /// a main space LRU divided into protected and probation segments. Reads and writes to the cache are stored in buffers
+    /// and later applied to the policy LRU lists in batches under a lock. Each read and write is tracked using a compact 
+    /// popularity sketch to probalistically estimate item frequency. Items proceed through the LRU lists as follows:
+    /// <list type="number">
+    ///   <item><description>New items are added to the window LRU. When acessed window items move to the window MRU position.</description></item>
+    ///   <item><description>When the window is full, candidate items are moved to the probation segment in LRU order.</description></item>
+    ///   <item><description>When the main space is full, the access frequency of each window candidate is compared 
+    ///   to probation victims in LRU order. The item with the lowest frequency is evicted until the cache size is within bounds.</description></item>
+    ///   <item><description>When a probation item is accessed, it is moved to the protected segment. If the protected segment is full, 
+    ///   the LRU protected item is demoted to probation.</description></item>
+    ///   <item><description>When a protected item is accessed, it is moved to the protected MRU position.</description></item>
+    /// </list>
+    /// The size of the admission window and main space are adapted over time to iteratively improve hit rate using a 
+    /// hill climbing algorithm. A larger window favors workloads with high recency bias, whereas a larger main space
+    /// favors workloads with frequency bias.
     /// </summary>
     /// <remarks>
-    /// Based on Caffeine written by Ben Manes.
-    /// https://www.apache.org/licenses/LICENSE-2.0
+    /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
+    /// https://github.com/ben-manes/caffeine
     /// </remarks>
     [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
