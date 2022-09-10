@@ -66,7 +66,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             cache.Count.Should().Be(20);
@@ -84,7 +84,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 dcache.GetOrAdd(i, k => disposables[i]);
             }
 
-            dcache.PendingMaintenance();
+            dcache.DoMaintenance();
             LogLru();
 
             dcache.Count.Should().Be(20);
@@ -103,7 +103,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             // W [19] Protected [] Probation [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             for (int i = 0; i < 15; i++)
@@ -112,7 +112,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             // W [19] Protected [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] Probation [15,16,17,18]
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             for (int k = 0; k < 2; k++)
@@ -123,7 +123,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                     {
                         cache.GetOrAdd(j + 20, k => k);
                     }
-                    cache.PendingMaintenance();
+                    cache.DoMaintenance();
                     LogLru();
                 }
             }
@@ -145,7 +145,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             // W [24] Protected [5,6,7,8,9,10,11,12,13,14,20,21,22,23,25] Probation []
             cache.Trim(4);
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             cache.TryGet(1, out var value1).Should().BeFalse();
@@ -162,12 +162,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             // W [19] Protected [] Probation [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             // W [19] Protected [16] Probation [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,17,18]
             cache.GetOrAdd(16, k => k);
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             for (int i = 25; i < 50; i++)
@@ -177,13 +177,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             // W [49] Protected [16] Probation [25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42]
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             cache.Trim(18);
 
             // W [49] Protected [16] Probation []
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             cache.TryGet(16, out var value1).Should().BeTrue();
@@ -199,12 +199,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             //  W [19] Protected [] Probation [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             // W [24] Protected [16] Probation [2,6,7,8,9,10,11,12,13,14,15,17,18,19,20,21,22,23]
             cache.TryUpdate(16, -16).Should().BeTrue();
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             for (int i = 25; i < 50; i++)
@@ -214,13 +214,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             //  W [49] Protected [16] Probation [2,6,7,8,9,10,11,12,13,14,15,17,18,19,20,21,22,23]
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             cache.Trim(18);
 
             // W [49] Protected [16] Probation []
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             cache.TryGet(16, out var value1).Should().BeTrue();
@@ -235,7 +235,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             cache.GetOrAdd(7, k => k);
@@ -243,19 +243,19 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.GetOrAdd(9, k => k);
 
             // W [19] Protected [7,8,9] Probation [0,1,2,3,4,5,6,10,11,12,13,14,15,16,17,18]
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             // W [19] Protected [8,9,7] Probation [0,1,2,3,4,5,6,10,11,12,13,14,15,16,17,18]
             // element 7 now moved to back of LRU
             cache.GetOrAdd(7, k => k);
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             // Trim is LRU order
             //W [19] Protected [7] Probation []
             cache.Trim(18);
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             cache.TryGet(7, out var _).Should().BeTrue();
@@ -270,7 +270,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             cache.GetOrAdd(7, k => k);
@@ -278,19 +278,19 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.GetOrAdd(9, k => k);
 
             // W [19] Protected [7,8,9] Probation [0,1,2,3,4,5,6,10,11,12,13,14,15,16,17,18]
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             // W [19] Protected [8,9,7] Probation [0,1,2,3,4,5,6,10,11,12,13,14,15,16,17,18]
             // element 7 now moved to back of LRU
             cache.TryUpdate(7, -7).Should().BeTrue();
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             // Trim is LRU order
             //W [19] Protected [7] Probation []
             cache.Trim(18);
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             cache.TryGet(7, out var _).Should().BeTrue();
@@ -308,7 +308,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             // W [19] Protected [] Probation [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             for (int i = 0; i < 15; i++)
@@ -317,7 +317,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             // W [19] Protected [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] Probation [15,16,17,18]
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             // The reset sample size is 200, so do 200 cache hits
@@ -328,7 +328,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             // then miss 200 times
@@ -338,7 +338,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i + 100, k => k);
             }
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             // then miss 200 more times (window adaptation +1 window slots)
@@ -348,14 +348,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i + 200, k => k);
             }
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             // make 2 requests to new keys, if window is size is now 2 both will exist:
             cache.GetOrAdd(666, k => k);
             cache.GetOrAdd(667, k => k);
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
             LogLru();
 
             cache.TryGet(666, out var _).Should().BeTrue();
@@ -372,7 +372,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.GetOrAdd(1, k => k);
             scheduler.RunCount.Should().Be(1);
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             for (int i = 0; i < ConcurrentLfu<int, int>.DefaultBufferSize; i++)
             {
@@ -393,14 +393,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.GetOrAdd(1, k => k);
             scheduler.RunCount.Should().Be(1);
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             for (int i = 0; i < ConcurrentLfu<int, int>.DefaultBufferSize * 2; i++)
             {
                 cache.GetOrAdd(1, k => k);
             }
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             cache.Metrics.Value.Hits.Should().Be(ConcurrentLfu<int, int>.DefaultBufferSize);
         }
@@ -415,7 +415,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             // add an item, flush write buffer
             cache.GetOrAdd(-1, k => k);
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             // remove the item but don't flush, it is now in the write buffer and maintenance is scheduled
             cache.TryRemove(-1).Should().BeTrue();
@@ -442,14 +442,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.GetOrAdd(1, k => k);
             scheduler.RunCount.Should().Be(1);
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             for (int i = 0; i < bufferSize * 2; i++)
             {
                 cache.TryUpdate(1, i);
             }
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             cache.Metrics.Value.Updated.Should().Be(bufferSize);
         }
@@ -484,7 +484,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.GetOrAdd(1, k => k);
             bool result = cache.TryGet(1, out var value);
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             cache.Metrics.Value.HitRatio.Should().Be(0.5);
             cache.Metrics.Value.Hits.Should().Be(1);
@@ -504,7 +504,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.GetOrAdd(i, k => k);
             }
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             cache.Metrics.Value.Evicted.Should().Be(5);
         }
@@ -576,7 +576,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             dcache.GetOrAdd(1, k => disposable);
 
             dcache.TryRemove(1).Should().BeTrue();
-            dcache.PendingMaintenance();
+            dcache.DoMaintenance();
 
             disposable.IsDisposed.Should().BeTrue();
         }
@@ -587,7 +587,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.GetOrAdd(1, k => k);
 
             cache.TryRemove(1).Should().BeTrue();
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             cache.Metrics.Value.Evicted.Should().Be(1);
         }
@@ -605,7 +605,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.GetOrAdd(1, k => k);
 
             // wait for the maintenance thread to run, this will attach the new node to the LRU list
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             // pending write in the buffer
             cache.TryUpdate(1, 2);
@@ -613,7 +613,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             // immediately remove
             cache.TryRemove(1).Should().BeTrue();
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             cache.TryGet(1, out var _).Should().BeFalse();
         }
@@ -629,10 +629,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(2, k => k);
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             cache.Clear();
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             cache.Count.Should().Be(0);
             cache.TryGet(1, out var _).Should().BeFalse();
@@ -645,12 +645,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
             {
                 cache.GetOrAdd(i, k => k);
             }
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             cache.Count.Should().Be(20);
 
             cache.Trim(5);
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             cache.Count.Should().Be(15);
         }
@@ -669,7 +669,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             // Trim implicitly performs maintenance
             cache.Trim(5);
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             // The trim takes effect before all the writes are replayed by the maintenance thread.
             cache.Metrics.Value.Evicted.Should().Be(10);
@@ -747,7 +747,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             var end = Stopwatch.GetTimestamp();
 
-            cache.PendingMaintenance();
+            cache.DoMaintenance();
 
             var totalTicks = end - start;
             var timeMs = ((double)totalTicks / Stopwatch.Frequency) * 1000.0;
