@@ -286,10 +286,14 @@ namespace BitFaster.Caching.Lfu
         }
 
         /// <summary>
-        /// Synchronously perform all pending maintenance. Draining the read and write buffers then
+        /// Synchronously perform all pending policy maintenance. Drain the read and write buffers then
         /// use the eviction policy to preserve bounded size and remove expired items.
         /// </summary>
-        public void PendingMaintenance()
+        /// <remarks>
+        /// Note: maintenance is automatically performed asynchronously immediately following a read or write.
+        /// It is not necessary to call this method, <see cref="DoMaintenance"/> is provided purely to enable tests to reach a consistent state.
+        /// </remarks>
+        public void DoMaintenance()
         {
             DrainBuffers();
         }
