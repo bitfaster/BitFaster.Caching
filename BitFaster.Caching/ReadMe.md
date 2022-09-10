@@ -4,7 +4,7 @@ High performance, thread-safe in-memory caching primitives for .NET.
 
 ## ConcurrentLru
 
-`ConcurrentLru` is a light weight drop in replacement for `ConcurrentDictionary`, but with bounded size enforced by the TU-Q pseudo LRU eviction policy. There are no background threads, no lock contention, lookups are fast and hit rate outperforms a pure LRU in all tested scenarios.
+`ConcurrentLru` is a light weight drop in replacement for `ConcurrentDictionary`, but with bounded size enforced by the TU-Q eviction policy (similar to [2Q](https://www.vldb.org/conf/1994/P439.PDF)). There are no background threads, no lock contention, lookups are fast and hit rate outperforms a pure LRU in all tested scenarios.
 
 Choose a capacity and use just like ConcurrentDictionary, but with bounded size:
 
