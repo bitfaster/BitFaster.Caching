@@ -31,9 +31,11 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public ICollection<K> Keys => throw new NotImplementedException();
 
+        private static readonly MemoryCacheEntryOptions SizeOne = new MemoryCacheEntryOptions() { Size = 1 };
+
         public void AddOrUpdate(K key, V value)
         {
-            throw new NotImplementedException();
+            exMemoryCache.Set(key, value, SizeOne);
         }
 
         public void Clear()
@@ -48,7 +50,6 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
-
             if (!exMemoryCache.TryGetValue(key, out object result))
             {
                 using ICacheEntry entry = exMemoryCache.CreateEntry(key);
