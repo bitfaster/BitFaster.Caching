@@ -33,7 +33,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public void AddOrUpdate(K key, V value)
         {
-            throw new NotImplementedException();
+            exMemoryCache.Set(key, value, new MemoryCacheEntryOptions() { Size = 1 });
         }
 
         public void Clear()
