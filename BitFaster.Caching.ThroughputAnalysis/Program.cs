@@ -8,8 +8,8 @@ namespace BitFaster.Caching.ThroughputAnalysis
 {
     class Program
     {
-        const int maxThreads = 52;
-        const int repeatCount = 400;
+        private static readonly int maxThreads = Environment.ProcessorCount * 2;
+        private const int repeatCount = 400;
 
         static void Main(string[] args)
         {
