@@ -87,8 +87,7 @@ namespace BitFaster.Caching.Lfu
             int writeBufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);
             this.writeBuffer = new MpscBoundedBuffer<LfuNode<K, V>>(writeBufferSize);
 
-            this.cmSketch = new CmSketch<K>(1, comparer);
-            this.cmSketch.EnsureCapacity(capacity);
+            this.cmSketch = new CmSketch<K>(capacity, comparer);
             this.windowLru = new LfuNodeList<K, V>();
             this.probationLru = new LfuNodeList<K, V>();
             this.protectedLru = new LfuNodeList<K, V>();

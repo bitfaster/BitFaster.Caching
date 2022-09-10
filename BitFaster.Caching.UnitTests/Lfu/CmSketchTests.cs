@@ -16,7 +16,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WhenCapacityIsZeroDefaultsSelected()
         {
-            sketch.EnsureCapacity(0);
+            sketch = new CmSketch<int>(0, EqualityComparer<int>.Default);
 
             sketch.ResetSampleSize.Should().Be(10);
         }
@@ -55,7 +55,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             bool reset = false;
 
-            sketch.EnsureCapacity(64);
+            sketch = new CmSketch<int>(64, EqualityComparer<int>.Default);
 
             for (int i = 1; i < 20 * 64; i++)
             {

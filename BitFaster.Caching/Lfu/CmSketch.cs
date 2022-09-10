@@ -47,12 +47,7 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         public int Size => this.size;
 
-        /// <summary>
-        /// Initialize such that the count min sketch can accurately estimate the count for values given
-        /// a maximum size.
-        /// </summary>
-        /// <param name="maximumSize">The maximum size.</param>
-        public void EnsureCapacity(long maximumSize)
+        private void EnsureCapacity(long maximumSize)
         {
             int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);
 
