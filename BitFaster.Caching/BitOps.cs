@@ -5,7 +5,7 @@ namespace BitFaster.Caching
     /// <summary>
     /// Provides utility methods for bit-twiddling operations.
     /// </summary>
-    public class BitOps
+    public static class BitOps
     {
         /// <summary>
         /// Calculate the smallest power of 2 greater than the input parameter.
