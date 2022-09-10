@@ -10,7 +10,7 @@ namespace BitFaster.Caching.Lfu
     /// </summary>
     /// <remarks>
     /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
-    /// http://www.apache.org/licenses/LICENSE-2.0
+    /// https://github.com/ben-manes/caffeine
     /// </remarks>
     public sealed class CmSketch<T>
     {
