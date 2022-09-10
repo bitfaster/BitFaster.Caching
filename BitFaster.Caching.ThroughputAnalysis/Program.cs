@@ -53,13 +53,10 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 foreach (var cacheConfig in cachesToTest)
                 {
                     var (sched, cache) = cacheConfig.Create(tc);
-
                     double thru = bench.Run(warmup, runs, tc, dataConfig, cache);
-
                     (sched as IDisposable)?.Dispose();
 
                     cacheConfig.DataRow[tc.ToString()] = thru.ToString();
-
                     Console.WriteLine($"{cacheConfig.Name} ({tc.ToString("00")}) {FormatThroughput(thru)} million ops/sec");
                 }
             }
