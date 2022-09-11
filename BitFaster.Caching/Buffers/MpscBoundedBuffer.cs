@@ -8,10 +8,7 @@ namespace BitFaster.Caching.Buffers
     /// Provides a multi-producer, single-consumer thread-safe ring buffer. When the buffer is full,
     /// TryAdd fails and returns false. When the buffer is empty, TryTake fails and returns false.
     /// </summary>
-    /// <remarks>
-    /// Based on BoundedBuffer by Ben Manes.
-    /// https://github.com/ben-manes/caffeine/blob/master/caffeine/src/main/java/com/github/benmanes/caffeine/cache/BoundedBuffer.java
-    /// </remarks>
+    /// Based on the BoundedBuffer class in the Caffeine library by ben.manes@gmail.com (Ben Manes).
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class MpscBoundedBuffer<T> where T : class
     {

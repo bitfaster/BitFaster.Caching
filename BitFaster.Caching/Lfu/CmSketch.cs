@@ -8,10 +8,8 @@ namespace BitFaster.Caching.Lfu
     /// accumulated count across all values over time, such that a historic popular value will decay to zero frequency
     /// over time if it is not accessed.
     /// </summary>
-    /// <remarks>
     /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    /// </remarks>
     public sealed class CmSketch<T>
     {
         // A mixture of seeds from FNV-1a, CityHash, and Murmur3
