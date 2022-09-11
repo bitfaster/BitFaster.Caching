@@ -1,10 +1,44 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using BenchmarkDotNet.Environments;
 
 namespace BitFaster.Caching.ThroughputAnalysis
 {
     public class Host
     {
+        public static void PrintInfo()
+        {
+            var hostinfo = HostEnvironmentInfo.GetCurrent();
+
+            foreach (var segment in hostinfo.ToFormattedString())
+            {
+                string toPrint = segment;
+
+                // remove benchmark dot net
+                if (toPrint.StartsWith("Ben"))
+                {
+                    toPrint = segment.Substring(segment.IndexOf(',') + 2, segment.Length - segment.IndexOf(',') - 2);
+                }
+
+                Console.WriteLine(toPrint);
+            }
+
+            Console.WriteLine();
+            Console.WriteLine($"Available CPU Count: {Host.GetAvailableCoreCount()}");
+
+            if (Host.GetLogicalCoreCount() > Host.GetAvailableCoreCount())
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+
+                Console.WriteLine("WARNING: not all cores available.");
+                Console.WriteLine($"DOTNET_Thread_UseAllCpuGroups: {Environment.GetEnvironmentVariable("DOTNET_Thread_UseAllCpuGroups") ?? "Not Set (disabled)"}");
+
+                Console.ResetColor();
+            }
+
+            Console.WriteLine();
+        }
+
         public static int GetAvailableCoreCount()
         {
             if (int.TryParse(Environment.GetEnvironmentVariable("DOTNET_Thread_UseAllCpuGroups") ?? "0", out int useAllGroups))
