@@ -35,7 +35,7 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
-    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="ReadMe.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
