@@ -27,3 +27,7 @@ var lfu = new ConcurrentLfu<string, SomeItem>(capacity);
 
 var value = lfu.GetOrAdd("key", (key) => new SomeItem(key));
 ```
+
+# Documentation
+
+Please refer to the [wiki](https://github.com/bitfaster/BitFaster.Caching/wiki) for full API documentation, and a complete analysis of hit rate vs cache size, latency and throughput.
