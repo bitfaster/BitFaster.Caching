@@ -37,10 +37,8 @@ namespace BitFaster.Caching.Lfu
     /// hill climbing algorithm. A larger window favors workloads with high recency bias, whereas a larger main space
     /// favors workloads with frequency bias.
     /// </summary>
-    /// <remarks>
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    /// </remarks>
     [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
