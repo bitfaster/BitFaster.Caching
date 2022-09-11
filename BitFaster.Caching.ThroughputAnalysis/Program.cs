@@ -91,6 +91,9 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
 
             Console.WriteLine();
+            Console.WriteLine($"ProcessorCount: {Environment.ProcessorCount}");
+            Console.WriteLine($"Use all NUMA processor groups: {Environment.GetEnvironmentVariable("DOTNET_Thread_UseAllCpuGroups") ?? "Not Set (disabled)"}");
+            Console.WriteLine();
         }
 
         private static string FormatThroughput(double thru)
