@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using BenchmarkDotNet.Environments;
 
@@ -49,6 +50,8 @@ namespace BitFaster.Caching.ThroughputAnalysis
             {
                 const int warmup = 3;
                 const int runs = 6;
+
+                UpdateTitle(mode, tc, maxThreads);
 
                 foreach (var cacheConfig in cachesToTest)
                 {
@@ -111,6 +114,11 @@ namespace BitFaster.Caching.ThroughputAnalysis
             string dformat = "0.00;-0.00";
             string raw = thru.ToString(dformat);
             return raw.PadLeft(7, ' ');
+        }
+
+        private static void UpdateTitle(Mode mode, int tc, int maxTc)
+        {
+            Console.Title = $"{mode} {tc}/{maxTc}";
         }
     }
 }
