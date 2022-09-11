@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
 using BitFaster.Caching.Lru.Builder;
 
 namespace BitFaster.Caching.Lru
@@ -10,14 +6,18 @@ namespace BitFaster.Caching.Lru
     /// <summary>
     /// A builder of ICache and IScopedCache instances with the following configuration
     /// settings:
-    /// - The maximum size.
-    /// - The concurrency level.
-    /// - The key comparer.
-    /// 
+    /// <list type="bullet">
+    ///   <item><description>The maximum size.</description></item>
+    ///   <item><description>The concurrency level.</description></item>
+    ///   <item><description>The key comparer.</description></item>
+    /// </list>
     /// The following features can be selected which change the underlying cache implementation: 
-    /// - Collect metrics (e.g. hit rate). Small perf penalty.
-    /// - Time based expiration, measured since write.
-    /// - Scoped IDisposable values.
+    /// <list type="bullet">
+    ///   <item><description>Collect metrics (e.g. hit rate). Small perf penalty.</description></item>
+    ///   <item><description>Time based expiration, measured since write.</description></item>
+    ///   <item><description>Scoped IDisposable values.</description></item>
+    ///   <item><description>Atomic value factory.</description></item>
+    /// </list>
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
