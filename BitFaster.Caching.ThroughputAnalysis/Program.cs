@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using BenchmarkDotNet.Environments;
 
@@ -8,7 +9,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 {
     class Program
     {
-        private static readonly int maxThreads =  Environment.ProcessorCount * 2;
+        private static readonly int maxThreads = Host.GetAvailableCoreCount() * 2;
         private const int repeatCount = 400;
 
         static void Main(string[] args)
@@ -49,6 +50,8 @@ namespace BitFaster.Caching.ThroughputAnalysis
             {
                 const int warmup = 3;
                 const int runs = 6;
+
+                UpdateTitle(mode, tc, maxThreads);
 
                 foreach (var cacheConfig in cachesToTest)
                 {
@@ -91,13 +94,31 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
 
             Console.WriteLine();
+            Console.WriteLine($"Available CPU Count: {Host.GetAvailableCoreCount()}");
+
+            if (Host.GetLogicalCoreCount() > Host.GetAvailableCoreCount())
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+
+                Console.WriteLine("WARNING: not all cores available.");
+                Console.WriteLine($"DOTNET_Thread_UseAllCpuGroups: {Environment.GetEnvironmentVariable("DOTNET_Thread_UseAllCpuGroups") ?? "Not Set (disabled)"}");
+
+                Console.ResetColor();
+            }
+
+            Console.WriteLine();
         }
 
         private static string FormatThroughput(double thru)
         {
             string dformat = "0.00;-0.00";
             string raw = thru.ToString(dformat);
-            return raw.PadLeft(6, ' ');
+            return raw.PadLeft(7, ' ');
+        }
+
+        private static void UpdateTitle(Mode mode, int tc, int maxTc)
+        {
+            Console.Title = $"{mode} {tc}/{maxTc}";
         }
     }
 }
