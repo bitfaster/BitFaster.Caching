@@ -5,10 +5,10 @@ namespace BitFaster.Caching.ThroughputAnalysis
     [Flags]
     public enum Mode
     {
-        Read = 0,
-        ReadWrite = 1,
-        Evict = 2,
-        Update = 4,
+        Read = 1,
+        ReadWrite = 2,
+        Evict = 4,
+        Update = 8,
         All = ~0,
     }
 }

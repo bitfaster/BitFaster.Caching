@@ -47,12 +47,12 @@ namespace BitFaster.Caching.Lru
         {
             if (capacity < 3)
             {
-                throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be greater than or equal to 3.");
+                Ex.ThrowArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
             }
 
             if (comparer == null)
             {
-                throw new ArgumentNullException(nameof(comparer));
+                Ex.ThrowArgNull(nameof(comparer));
             }
 
             this.capacity = capacity;
@@ -315,7 +315,7 @@ namespace BitFaster.Caching.Lru
         {
             if (itemCount < 1 || itemCount > this.capacity)
             {
-                throw new ArgumentOutOfRangeException(nameof(itemCount), "itemCount must be greater than or equal to one, and less than the capacity of the cache.");
+                Ex.ThrowArgOutOfRange(nameof(itemCount), "itemCount must be greater than or equal to one, and less than the capacity of the cache.");
             }
 
             for (int i = 0; i < itemCount; i++)

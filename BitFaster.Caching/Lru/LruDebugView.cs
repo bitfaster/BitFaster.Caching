@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
@@ -13,7 +14,7 @@ namespace BitFaster.Caching.Lru
         {
             if (cache is null)
             {
-                throw new ArgumentNullException(nameof(cache));
+                Ex.ThrowArgNull(nameof(cache));
             }
 
             this.cache = cache;

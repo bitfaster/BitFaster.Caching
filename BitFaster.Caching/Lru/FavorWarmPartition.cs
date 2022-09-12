@@ -55,12 +55,12 @@ namespace BitFaster.Caching.Lru
         {
             if (capacity < 3)
             {
-                throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be greater than or equal to 3.");
+                Ex.ThrowArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
             }
 
             if (warmRatio <= 0.0 || warmRatio >= 1.0)
             {
-                throw new ArgumentOutOfRangeException(nameof(warmRatio), "warmRatio must be between 0.0 and 1.0");
+                Ex.ThrowArgOutOfRange(nameof(warmRatio), "warmRatio must be between 0.0 and 1.0");
             }
 
             int warm2 = (int)(capacity * warmRatio);
