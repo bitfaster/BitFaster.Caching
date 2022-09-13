@@ -49,6 +49,7 @@ namespace BitFaster.Caching
                 case ExceptionArgument.comparer: return nameof(ExceptionArgument.comparer);
                 case ExceptionArgument.scoped: return nameof(ExceptionArgument.scoped);
                 case ExceptionArgument.capacity: return nameof(ExceptionArgument.capacity);
+                case ExceptionArgument.node: return nameof(ExceptionArgument.node);
                 default:
                     Debug.Fail("The ExceptionArgument value is not defined.");
                     return string.Empty;
@@ -62,5 +63,6 @@ namespace BitFaster.Caching
         comparer,
         scoped,
         capacity,
+        node,
     }
 }

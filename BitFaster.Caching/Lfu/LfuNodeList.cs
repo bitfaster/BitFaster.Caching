@@ -125,7 +125,7 @@ namespace BitFaster.Caching.Lfu
         {
             if (node == null)
             {
-                Ex.ThrowArgNull(nameof(node));
+                Ex.ThrowArgNull(ExceptionArgument.node);
             }
 
             if (node.list != null)
@@ -139,7 +139,7 @@ namespace BitFaster.Caching.Lfu
         {
             if (node == null)
             {
-                Ex.ThrowArgNull(nameof(node));
+                Ex.ThrowArgNull(ExceptionArgument.node);
             }
 
             if (node.list != this)
