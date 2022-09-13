@@ -72,12 +72,12 @@ namespace BitFaster.Caching.Lru
         {
             if (capacity == null)
             {
-                Ex.ThrowArgNull(nameof(capacity));
+                Ex.ThrowArgNull(ExceptionArgument.capacity);
             }
 
             if (comparer == null)
             {
-                Ex.ThrowArgNull(nameof(comparer));
+                Ex.ThrowArgNull(ExceptionArgument.comparer);
             }
 
             capacity.Validate();

@@ -52,7 +52,7 @@ namespace BitFaster.Caching.Lru
 
             if (comparer == null)
             {
-                Ex.ThrowArgNull(nameof(comparer));
+                Ex.ThrowArgNull(ExceptionArgument.comparer);
             }
 
             this.capacity = capacity;

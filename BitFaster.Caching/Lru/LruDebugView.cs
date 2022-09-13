@@ -14,7 +14,7 @@ namespace BitFaster.Caching.Lru
         {
             if (cache is null)
             {
-                Ex.ThrowArgNull(nameof(cache));
+                Ex.ThrowArgNull(ExceptionArgument.cache);
             }
 
             this.cache = cache;
