@@ -25,7 +25,7 @@ namespace BitFaster.Caching.Buffers
         {
             if (boundedLength < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(boundedLength));
+                Ex.ThrowArgOutOfRange(nameof(boundedLength));
             }
 
             // must be power of 2 to use & slotsMask instead of %

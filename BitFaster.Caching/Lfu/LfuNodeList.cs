@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -65,7 +66,7 @@ namespace BitFaster.Caching.Lfu
         public void RemoveFirst()
         {
 #if DEBUG
-            if (head == null) { throw new InvalidOperationException("List is empty."); }
+            if (head == null) { Ex.ThrowInvalidOp("List is empty."); }
 #endif
             InternalRemoveNode(head);
         }
@@ -124,12 +125,12 @@ namespace BitFaster.Caching.Lfu
         {
             if (node == null)
             {
-                throw new ArgumentNullException(nameof(node));
+                Ex.ThrowArgNull(ExceptionArgument.node);
             }
 
             if (node.list != null)
             {
-                throw new InvalidOperationException("Node is already attached to a list.");
+                Ex.ThrowInvalidOp("Node is already attached to a list.");
             }
         }
 
@@ -138,12 +139,12 @@ namespace BitFaster.Caching.Lfu
         {
             if (node == null)
             {
-                throw new ArgumentNullException(nameof(node));
+                Ex.ThrowArgNull(ExceptionArgument.node);
             }
 
             if (node.list != this)
             {
-                throw new InvalidOperationException("Node is already attached to a different list.");
+                Ex.ThrowInvalidOp("Node is already attached to a different list.");
             }
         }
 #endif
@@ -172,7 +173,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     if (index == 0 || (index == list.Count + 1))
                     {
-                        throw new InvalidOperationException("Out of bounds");
+                        Ex.ThrowInvalidOp("Out of bounds");
                     }
 
                     return Current;
