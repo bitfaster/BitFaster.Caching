@@ -274,7 +274,7 @@ namespace BitFaster.Caching.Lfu
             Vector256<ulong> hash = Vector256.Create((ulong)item);
             hash = Avx2.Add(hash, VectorSeed);
 
-            // unfortunately no vector multiply until .NET 7
+            // unfortunately no Vector256 multiply until .NET 7
             hash = Vector256.Create(
                 hash.GetElement(0) * 0xc3a5c85c97cb3127L,
                 hash.GetElement(1) * 0xb492b66fbe98f273L,
