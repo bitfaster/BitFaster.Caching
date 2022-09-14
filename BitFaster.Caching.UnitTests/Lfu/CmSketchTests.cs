@@ -11,12 +11,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
 {
     public class CmSketchTests
     {
-        private CmSketch<int> sketch = new CmSketch<int>(512, EqualityComparer<int>.Default);
+        private CmSketch<int, DetectAvx2> sketch = new CmSketch<int, DetectAvx2>(512, EqualityComparer<int>.Default);
 
         [Fact]
         public void WhenCapacityIsZeroDefaultsSelected()
         {
-            sketch = new CmSketch<int>(0, EqualityComparer<int>.Default);
+            sketch = new CmSketch<int, DetectAvx2>(0, EqualityComparer<int>.Default);
 
             sketch.ResetSampleSize.Should().Be(10);
         }
@@ -55,7 +55,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             bool reset = false;
 
-            sketch = new CmSketch<int>(64, EqualityComparer<int>.Default);
+            sketch = new CmSketch<int, DetectAvx2>(64, EqualityComparer<int>.Default);
 
             for (int i = 1; i < 20 * 64; i++)
             {

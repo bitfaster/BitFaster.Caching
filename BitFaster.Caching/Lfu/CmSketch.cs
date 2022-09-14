@@ -1,6 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 
+#if !NETSTANDARD2_0
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
+
 namespace BitFaster.Caching.Lfu
 {
     /// <summary>
@@ -10,7 +15,7 @@ namespace BitFaster.Caching.Lfu
     /// </summary>
     /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    public sealed class CmSketch<T>
+    public sealed class CmSketch<T, TAVX> where TAVX : struct, IAvx2Toggle
     {
         // A mixture of seeds from FNV-1a, CityHash, and Murmur3
         private static readonly ulong[] Seed = { 0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L};
@@ -63,7 +68,49 @@ namespace BitFaster.Caching.Lfu
         /// <returns>The estimated frequency of the value.</returns>
         public int EstimateFrequency(T value)
         {
-            int hash = Spread(comparer.GetHashCode(value));
+#if NETSTANDARD2_0
+            return EstimateFrequencyStd(value);
+#else
+            
+            TAVX avx2 = default;
+
+            if (avx2.IsSupported)
+            {
+                return EstimateFrequencyAvx(value);
+            }
+            else
+            {
+                return EstimateFrequencyStd(value);
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Increment the count of the specified value.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        public void Increment(T value)
+        {
+#if NETSTANDARD2_0
+            IncrementStd(value);
+#else
+
+            TAVX avx2 = default;
+
+            if (avx2.IsSupported)
+            {
+                IncrementAvx(value);
+            }
+            else
+            {
+                IncrementStd(value);
+            }
+#endif
+        }
+
+        private int EstimateFrequencyStd(T value)
+        {
+            int hash = Spread(value.GetHashCode());
 
             int start = (hash & 3) << 2;
             int frequency = int.MaxValue;
@@ -77,13 +124,9 @@ namespace BitFaster.Caching.Lfu
             return frequency;
         }
 
-        /// <summary>
-        /// Increment the count of the specified value.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        public void Increment(T value)
+        private void IncrementStd(T value)
         {
-            int hash = Spread(comparer.GetHashCode(value));
+            int hash = Spread(value.GetHashCode());
             int start = (hash & 3) << 2;
 
             // Loop unrolling improves throughput by 5m ops/s
@@ -102,6 +145,7 @@ namespace BitFaster.Caching.Lfu
                 Reset();
             }
         }
+
 
         private bool IncrementAt(int i, int j)
         {
@@ -149,5 +193,108 @@ namespace BitFaster.Caching.Lfu
             y = ((y >> 16) ^ y) * 0x45d9f3b;
             return (int)((y >> 16) ^ y);
         }
+#if !NETSTANDARD2_0
+     private unsafe int EstimateFrequencyAvx(T value)
+        {
+            int hash = Spread(value.GetHashCode());
+            int start = (hash & 3) << 2;
+
+            fixed (long* tablePtr = &table[0])
+            {
+                var tableVector = Avx2.GatherVector256(tablePtr, IndexesOfAvx(hash), 8).AsUInt64();
+
+                Vector256<ulong> starts = Vector256.Create(0UL, 1UL, 2UL, 3UL);
+                starts = Avx2.Add(starts, Vector256.Create((ulong)start));
+                starts = Avx2.ShiftLeftLogical(starts, 2);
+
+                tableVector = Avx2.ShiftRightLogicalVariable(tableVector, starts);
+                tableVector = Avx2.And(tableVector, Vector256.Create(0xfUL));
+
+                Vector256<int> permuteMask = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
+                Vector128<int> f = Avx2.PermuteVar8x32(tableVector.AsInt32(), permuteMask)
+                    .GetLower();
+
+                return Math.Min(
+                    f.GetElement(0),
+                        Math.Min(f.GetElement(1),
+                            Math.Min(f.GetElement(2), f.GetElement(3)))
+                    );
+            }
+        }
+
+        private unsafe void IncrementAvx(T value)
+        {
+            int hash = Spread(value.GetHashCode());
+            int start = (hash & 3) << 2;
+
+            Vector128<int> indexes = IndexesOfAvx(hash);
+
+            fixed (long* tablePtr = &table[0])
+            {
+                var tableVector = Avx2.GatherVector256(tablePtr, indexes, 8);
+
+                // offset = j << 2, where j [start+0, start+1, start+2, start+3]
+                Vector256<ulong> offset = Vector256.Create((ulong)start);
+                Vector256<ulong> add = Vector256.Create(0UL, 1UL, 2UL, 3UL);
+                offset = Avx2.Add(offset, add);
+                offset = Avx2.ShiftLeftLogical(offset, 2);
+
+                // mask = (0xfL << offset)
+                Vector256<long> fifteen = Vector256.Create(0xfL);
+                Vector256<long> mask = Avx2.ShiftLeftLogicalVariable(fifteen, offset);
+
+                // (table[i] & mask) != mask)
+                // Note this is opposite
+                Vector256<long> masked = Avx2.CompareEqual(Avx2.And(tableVector, mask), mask);
+
+                // 1L << offset
+                Vector256<long> inc = Avx2.ShiftLeftLogicalVariable(Vector256.Create(1L), offset);
+
+                // mask to zero out non matches (add zero below) - order of operands matters here
+                inc = Avx2.AndNot(masked, inc);
+
+                *(tablePtr + indexes.GetElement(0)) += inc.GetElement(0);
+                *(tablePtr + indexes.GetElement(1)) += inc.GetElement(1);
+                *(tablePtr + indexes.GetElement(2)) += inc.GetElement(2);
+                *(tablePtr + indexes.GetElement(3)) += inc.GetElement(3);
+
+                bool wasInc = Avx2.MoveMask(masked.AsByte()) != 0; // _mm256_movemask_epi8
+
+                if (wasInc && (++size == sampleSize))
+                {
+                    Reset();
+                }
+            }
+        }
+
+        private Vector128<int> IndexesOfAvx(int item)
+        {
+            Vector256<ulong> VectorSeed = Vector256.Create(0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L);
+            Vector256<ulong> hash = Vector256.Create((ulong)item);
+            hash = Avx2.Add(hash, VectorSeed);
+
+            // vector multiply?
+            // hash = hash * VectorSeed; // .NET 7
+            hash = Vector256.Create(
+                hash.GetElement(0) * 0xc3a5c85c97cb3127L,
+                hash.GetElement(1) * 0xb492b66fbe98f273L,
+                hash.GetElement(2) * 0x9ae16a3b2f90404fL,
+                hash.GetElement(3) * 0xcbf29ce484222325L);
+
+            Vector256<ulong> shift = Vector256.Create(32UL);
+            Vector256<ulong> shifted = Avx2.ShiftRightLogicalVariable(hash, shift);
+            hash = Avx2.Add(hash, shifted);
+
+            // Move            [a1, a2, b1, b2, c1, c2, d1, d2]
+            // To              [a1, b1, c1, d1, a2, b2, c2, d2]
+            // then GetLower() [a1, b1, c1, d1]
+            Vector256<int> permuteMask = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
+            Vector128<int> f = Avx2.PermuteVar8x32(hash.AsInt32(), permuteMask)
+                .GetLower();
+
+            Vector128<int> maskVector = Vector128.Create(tableMask);
+            return Avx2.And(f, maskVector);
+        }
+#endif
     }
 }
