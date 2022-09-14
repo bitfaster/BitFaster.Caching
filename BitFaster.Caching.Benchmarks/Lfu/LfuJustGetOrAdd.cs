@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Benchmarks
     [MemoryDiagnoser(displayGenColumns: false)]
     // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/
     // [ThreadingDiagnoser] // Requires .NET Core
-    [HideColumns("Median", "RatioSD")]
+    [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class LfuJustGetOrAdd
     {
         private static readonly ConcurrentDictionary<int, int> dictionary = new ConcurrentDictionary<int, int>(8, 9, EqualityComparer<int>.Default);

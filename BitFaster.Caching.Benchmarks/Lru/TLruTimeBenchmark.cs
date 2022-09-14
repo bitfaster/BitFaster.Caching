@@ -11,7 +11,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     /// </summary>
     [SimpleJob(RuntimeMoniker.Net48)]
     [SimpleJob(RuntimeMoniker.Net60)]
-    [HideColumns("Median", "RatioSD")]
+    [HideColumns("Job", "Median", "RatioSD")]
     public class TLruTimeBenchmark
     {
         private static readonly ConcurrentLruCore<int, int, TimeStampedLruItem<int, int>, TLruDateTimePolicy<int, int>, NoTelemetryPolicy<int, int>> dateTimeTLru

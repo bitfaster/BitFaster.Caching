@@ -8,7 +8,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
 {
     [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
-    [HideColumns("Median", "RatioSD")]
+    [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class SketchFrequency
     {
         private static CmSketch<int, DisableAvx2> std = new CmSketch<int, DisableAvx2>(10, EqualityComparer<int>.Default);

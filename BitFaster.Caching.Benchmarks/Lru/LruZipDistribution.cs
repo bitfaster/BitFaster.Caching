@@ -25,7 +25,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     [SimpleJob(RuntimeMoniker.Net60)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser(displayGenColumns: false)]
-    [HideColumns("Median", "RatioSD")]
+    [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class LruZipDistribution
     {
         const double s = 0.86;

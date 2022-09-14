@@ -50,17 +50,6 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         public int Size => this.size;
 
-        private void EnsureCapacity(long maximumSize)
-        {
-            int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);
-
-            table = new long[(maximum == 0) ? 1 : BitOps.CeilingPowerOfTwo(maximum)];
-            tableMask = Math.Max(0, table.Length - 1);
-            sampleSize = (maximumSize == 0) ? 10 : (10 * maximum);
-
-            size = 0;
-        }
-
         /// <summary>
         /// Estimate the frequency of the specified value.
         /// </summary>
@@ -108,6 +97,15 @@ namespace BitFaster.Caching.Lfu
 #endif
         }
 
+        /// <summary>
+        /// Clears the count for all items.
+        /// </summary>
+        public void Clear()
+        {
+            table = new long[table.Length];
+            size = 0;
+        }
+
         private int EstimateFrequencyStd(T value)
         {
             int hash = Spread(value.GetHashCode());
@@ -146,7 +144,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-
         private bool IncrementAt(int i, int j)
         {
             int offset = j << 2;
@@ -170,12 +167,14 @@ namespace BitFaster.Caching.Lfu
             size = (size - (count >> 2)) >> 1;
         }
 
-        /// <summary>
-        /// Clears the count for all items.
-        /// </summary>
-        public void Clear()
+        private void EnsureCapacity(long maximumSize)
         {
-            table = new long[table.Length];
+            int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);
+
+            table = new long[(maximum == 0) ? 1 : BitOps.CeilingPowerOfTwo(maximum)];
+            tableMask = Math.Max(0, table.Length - 1);
+            sampleSize = (maximumSize == 0) ? 10 : (10 * maximum);
+
             size = 0;
         }
 
@@ -193,8 +192,9 @@ namespace BitFaster.Caching.Lfu
             y = ((y >> 16) ^ y) * 0x45d9f3b;
             return (int)((y >> 16) ^ y);
         }
+
 #if !NETSTANDARD2_0
-     private unsafe int EstimateFrequencyAvx(T value)
+        private unsafe int EstimateFrequencyAvx(T value)
         {
             int hash = Spread(value.GetHashCode());
             int start = (hash & 3) << 2;
@@ -210,6 +210,7 @@ namespace BitFaster.Caching.Lfu
                 tableVector = Avx2.ShiftRightLogicalVariable(tableVector, starts);
                 tableVector = Avx2.And(tableVector, Vector256.Create(0xfUL));
 
+                // Note: this is faster than skipping then doing the Min checks on long values
                 Vector256<int> permuteMask = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
                 Vector128<int> f = Avx2.PermuteVar8x32(tableVector.AsInt32(), permuteMask)
                     .GetLower();
@@ -244,13 +245,13 @@ namespace BitFaster.Caching.Lfu
                 Vector256<long> mask = Avx2.ShiftLeftLogicalVariable(fifteen, offset);
 
                 // (table[i] & mask) != mask)
-                // Note this is opposite
+                // Note masked is 'equal' - therefore use AndNot below
                 Vector256<long> masked = Avx2.CompareEqual(Avx2.And(tableVector, mask), mask);
 
                 // 1L << offset
                 Vector256<long> inc = Avx2.ShiftLeftLogicalVariable(Vector256.Create(1L), offset);
 
-                // mask to zero out non matches (add zero below) - order of operands matters here
+                // Mask to zero out non matches (add zero below) - first operand is NOT then AND result (order matters)
                 inc = Avx2.AndNot(masked, inc);
 
                 *(tablePtr + indexes.GetElement(0)) += inc.GetElement(0);
@@ -273,8 +274,7 @@ namespace BitFaster.Caching.Lfu
             Vector256<ulong> hash = Vector256.Create((ulong)item);
             hash = Avx2.Add(hash, VectorSeed);
 
-            // vector multiply?
-            // hash = hash * VectorSeed; // .NET 7
+            // unfortunately no vector multiply until .NET 7
             hash = Vector256.Create(
                 hash.GetElement(0) * 0xc3a5c85c97cb3127L,
                 hash.GetElement(1) * 0xb492b66fbe98f273L,
