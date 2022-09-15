@@ -15,6 +15,9 @@ namespace BitFaster.Caching
         bool IsSupported { get; }
     }
 
+    /// <summary>
+    /// Detect AVX2 support and enable if available.
+    /// </summary>
     public struct DetectAvx2 : IAvx2Toggle
     {
 #if NETSTANDARD2_0
@@ -26,6 +29,9 @@ namespace BitFaster.Caching
 #endif
     }
 
+    /// <summary>
+    /// Force disable AVX2.
+    /// </summary>
     public struct DisableAvx2 : IAvx2Toggle
     {
         /// <inheritdoc/>

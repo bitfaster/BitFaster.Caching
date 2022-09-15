@@ -108,7 +108,7 @@ namespace BitFaster.Caching.Lfu
 
         private int EstimateFrequencyStd(T value)
         {
-            int hash = Spread(value.GetHashCode());
+            int hash = Spread(comparer.GetHashCode(value));
 
             int start = (hash & 3) << 2;
             int frequency = int.MaxValue;
@@ -124,7 +124,7 @@ namespace BitFaster.Caching.Lfu
 
         private void IncrementStd(T value)
         {
-            int hash = Spread(value.GetHashCode());
+            int hash = Spread(comparer.GetHashCode(value));
             int start = (hash & 3) << 2;
 
             // Loop unrolling improves throughput by 5m ops/s
@@ -196,7 +196,7 @@ namespace BitFaster.Caching.Lfu
 #if !NETSTANDARD2_0
         private unsafe int EstimateFrequencyAvx(T value)
         {
-            int hash = Spread(value.GetHashCode());
+            int hash = Spread(comparer.GetHashCode(value));
             int start = (hash & 3) << 2;
 
             fixed (long* tablePtr = &table[0])
@@ -225,7 +225,7 @@ namespace BitFaster.Caching.Lfu
 
         private unsafe void IncrementAvx(T value)
         {
-            int hash = Spread(value.GetHashCode());
+            int hash = Spread(comparer.GetHashCode(value));
             int start = (hash & 3) << 2;
 
             Vector128<int> indexes = IndexesOfAvx(hash);
