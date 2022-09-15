@@ -23,7 +23,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     [SimpleJob(RuntimeMoniker.Net60)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser(displayGenColumns: false)]
-    [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
+    [HideColumns("Median", "RatioSD")]
     public class LruJustTryGet
     {
         private static readonly ConcurrentDictionary<int, int> dictionary = new ConcurrentDictionary<int, int>(8, 9, EqualityComparer<int>.Default);

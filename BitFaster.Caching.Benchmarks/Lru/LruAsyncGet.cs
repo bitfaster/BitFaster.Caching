@@ -13,7 +13,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     [SimpleJob(RuntimeMoniker.Net60)]
     // [DisassemblyDiagnoser(printSource: true, maxDepth: 5)] // Unstable
     [MemoryDiagnoser(displayGenColumns: false)]
-    [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
+    [HideColumns("Median", "RatioSD")]
     public class LruAsyncGet
     {
         // if the cache value is a value type, value task has no effect - so use string to repro.

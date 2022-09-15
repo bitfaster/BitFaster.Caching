@@ -11,7 +11,7 @@ namespace BitFaster.Caching.Benchmarks
     [SimpleJob(RuntimeMoniker.Net60)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 3)]
     [MemoryDiagnoser(displayGenColumns: false)]
-    [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
+    [HideColumns("Median", "RatioSD")]
     public class DisposerBench
     {
         [Benchmark(Baseline = true)]

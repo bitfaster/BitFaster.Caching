@@ -26,7 +26,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     [SimpleJob(RuntimeMoniker.Net60)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser(displayGenColumns: false)]
-    [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
+    [HideColumns("Median", "RatioSD")]
     public class LruCycleBench
     {
         private static readonly ClassicLru<int, int> classicLru = new ClassicLru<int, int>(8, 9, EqualityComparer<int>.Default);
