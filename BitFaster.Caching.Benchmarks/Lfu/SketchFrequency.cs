@@ -11,13 +11,14 @@ namespace BitFaster.Caching.Benchmarks.Lfu
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class SketchFrequency
     {
+        const int iterations = 512;
         private static CmSketch<int, DisableAvx2> std = new CmSketch<int, DisableAvx2>(10, EqualityComparer<int>.Default);
         private static CmSketch<int, DetectAvx2> avx = new CmSketch<int, DetectAvx2>(10, EqualityComparer<int>.Default);
 
         [GlobalSetup]
         public void Setup()
         {
-            for (int i = 0; i < 128; i++)
+            for (int i = 0; i < iterations; i++)
             {
                 if (i % 3 == 0)
                 {
@@ -28,29 +29,15 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 
         [Benchmark(Baseline = true)]
-        public int EstimateFrequency()
+        public bool EstimateFrequency()
         {
-            int count = 0;
-            for (int i = 0; i < 128; i++)
-            {
-                if (std.EstimateFrequency(i) > std.EstimateFrequency(i + 1))
-                    count++;
-            }
-
-            return count;
+            return std.EstimateFrequency(1) > std.EstimateFrequency(2);
         }
 
         [Benchmark()]
-        public int EstimateFrequencyAvx()
+        public bool EstimateFrequencyAvx()
         {
-            int count = 0;
-            for (int i = 0; i < 128; i++)
-            {
-                if (avx.EstimateFrequency(i) > avx.EstimateFrequency(i + 1))
-                    count++;
-            }
-
-            return count;
+            return avx.EstimateFrequency(1) > avx.EstimateFrequency(2);
         }
     }
 }

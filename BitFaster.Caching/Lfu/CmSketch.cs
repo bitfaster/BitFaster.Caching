@@ -210,16 +210,20 @@ namespace BitFaster.Caching.Lfu
                 tableVector = Avx2.ShiftRightLogicalVariable(tableVector, starts);
                 tableVector = Avx2.And(tableVector, Vector256.Create(0xfUL));
 
-                // Note: this is faster than skipping then doing the Min checks on long values
-                Vector256<int> permuteMask = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
-                Vector128<int> f = Avx2.PermuteVar8x32(tableVector.AsInt32(), permuteMask)
-                    .GetLower();
+                //////////////////////////////////
+                //| Method               | Mean     | Error    | StdDev   |Ratio | Allocated  |
+                //| ---------------------| --------:| --------:| --------:| ----:| ----------:|
+                //| EstimateFrequency    | 30.06 ns | 0.512 ns | 0.479 ns | 1.00 |          - |
+                //| EstimateFrequencyAvx | 24.46 ns | 0.145 ns | 0.121 ns | 0.81 |          - |
 
-                return Math.Min(
-                    f.GetElement(0),
-                        Math.Min(f.GetElement(1),
-                            Math.Min(f.GetElement(2), f.GetElement(3)))
-                    );
+                Vector256<int> permuteMask = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
+                Vector128<ushort> lower = Avx2.PermuteVar8x32(tableVector.AsInt32(), permuteMask)
+                        .GetLower()
+                        .AsUInt16();
+
+                // set the zeroed high parts of the long value to ushort.Max
+                var masked = Avx2.Blend(lower, Vector128.Create(ushort.MaxValue), 0b10101010);
+                return Avx2.MinHorizontal(masked).GetElement(0);
             }
         }
 
