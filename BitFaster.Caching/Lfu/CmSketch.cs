@@ -210,12 +210,6 @@ namespace BitFaster.Caching.Lfu
                 tableVector = Avx2.ShiftRightLogicalVariable(tableVector, starts);
                 tableVector = Avx2.And(tableVector, Vector256.Create(0xfUL));
 
-                //////////////////////////////////
-                //| Method               | Mean     | Error    | StdDev   |Ratio | Allocated  |
-                //| ---------------------| --------:| --------:| --------:| ----:| ----------:|
-                //| EstimateFrequency    | 30.06 ns | 0.512 ns | 0.479 ns | 1.00 |          - |
-                //| EstimateFrequencyAvx | 24.46 ns | 0.145 ns | 0.121 ns | 0.81 |          - |
-
                 Vector256<int> permuteMask = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
                 Vector128<ushort> lower = Avx2.PermuteVar8x32(tableVector.AsInt32(), permuteMask)
                         .GetLower()
@@ -277,13 +271,7 @@ namespace BitFaster.Caching.Lfu
             Vector256<ulong> VectorSeed = Vector256.Create(0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L);
             Vector256<ulong> hash = Vector256.Create((ulong)item);
             hash = Avx2.Add(hash, VectorSeed);
-
-            // unfortunately no Vector256 multiply until .NET 7
-            hash = Vector256.Create(
-                hash.GetElement(0) * 0xc3a5c85c97cb3127L,
-                hash.GetElement(1) * 0xb492b66fbe98f273L,
-                hash.GetElement(2) * 0x9ae16a3b2f90404fL,
-                hash.GetElement(3) * 0xcbf29ce484222325L);
+            hash = Multiply(hash, VectorSeed);
 
             Vector256<ulong> shift = Vector256.Create(32UL);
             Vector256<ulong> shifted = Avx2.ShiftRightLogicalVariable(hash, shift);
@@ -298,6 +286,19 @@ namespace BitFaster.Caching.Lfu
 
             Vector128<int> maskVector = Vector128.Create(tableMask);
             return Avx2.And(f, maskVector);
+        }
+
+        // taken from Agner Fog's vector library, see https://github.com/vectorclass/version2, vectori256.h
+        private static Vector256<ulong> Multiply(Vector256<ulong> a, Vector256<ulong> b)
+        {
+            // instruction does not exist. Split into 32-bit multiplies
+            Vector256<int> bswap = Avx2.Shuffle(b.AsInt32(), 0xB1);                 // swap H<->L
+            Vector256<int> prodlh = Avx2.MultiplyLow(a.AsInt32(), bswap);           // 32 bit L*H products
+            Vector256<int> zero = Vector256.Create(0);                              // 0
+            Vector256<int> prodlh2 = Avx2.HorizontalAdd(prodlh, zero);              // a0Lb0H+a0Hb0L,a1Lb1H+a1Hb1L,0,0
+            Vector256<int> prodlh3 = Avx2.Shuffle(prodlh2, 0x73);                   // 0, a0Lb0H+a0Hb0L, 0, a1Lb1H+a1Hb1L
+            Vector256<ulong> prodll = Avx2.Multiply(a.AsUInt32(), b.AsUInt32());    // a0Lb0L,a1Lb1L, 64 bit unsigned products
+            return Avx2.Add(prodll.AsInt64(), prodlh3.AsInt64()).AsUInt64();        // a0Lb0L+(a0Lb0H+a0Hb0L)<<32, a1Lb1L+(a1Lb1H+a1Hb1L)<<32
         }
 #endif
     }

@@ -1,12 +1,8 @@
-﻿using System;
+﻿
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Lfu;
-using MathNet.Numerics.LinearAlgebra.Factorization;
 
 namespace BitFaster.Caching.Benchmarks.Lfu
 {
@@ -15,13 +11,14 @@ namespace BitFaster.Caching.Benchmarks.Lfu
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class SketchIncrement
     {
+        const int iterations = 1024;
         private static CmSketch<int, DisableAvx2> std = new CmSketch<int, DisableAvx2>(10, EqualityComparer<int>.Default);
         private static CmSketch<int, DetectAvx2> avx = new CmSketch<int, DetectAvx2>(10, EqualityComparer<int>.Default);
 
         [Benchmark(Baseline = true)]
         public void Inc()
         {
-            for (int i = 0; i < 128; i++)
+            for (int i = 0; i < iterations; i++)
             {
                 std.Increment(i);
             }
@@ -30,7 +27,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         [Benchmark()]
         public void IncAvx()
         {
-            for (int i = 0; i < 128; i++)
+            for (int i = 0; i < iterations; i++)
             {
                 avx.Increment(i);
             }
