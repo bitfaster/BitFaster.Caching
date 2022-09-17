@@ -7,7 +7,7 @@ namespace BitFaster.Caching
     /// <summary>
     /// Represents a marker interface to enable AVX2 specific optimization.
     /// </summary>
-    public interface IAvx2Toggle
+    public interface IAvx2
     {
         /// <summary>
         /// Gets a value indicating whether Avx2 is supported
@@ -18,7 +18,7 @@ namespace BitFaster.Caching
     /// <summary>
     /// Detect AVX2 support and enable if available.
     /// </summary>
-    public struct DetectAvx2 : IAvx2Toggle
+    public struct DetectAvx2 : IAvx2
     {
 #if NETSTANDARD2_0
         /// <inheritdoc/>
@@ -32,7 +32,7 @@ namespace BitFaster.Caching
     /// <summary>
     /// Force disable AVX2.
     /// </summary>
-    public struct DisableAvx2 : IAvx2Toggle
+    public struct DisableAvx2 : IAvx2
     {
         /// <inheritdoc/>
         public bool IsSupported => false;

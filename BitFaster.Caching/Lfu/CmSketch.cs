@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Lfu
     /// </summary>
     /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    public sealed class CmSketch<T, TAVX> where TAVX : struct, IAvx2Toggle
+    public sealed class CmSketch<T, AVX2> where AVX2 : struct, IAvx2
     {
         // A mixture of seeds from FNV-1a, CityHash, and Murmur3
         private static readonly ulong[] Seed = { 0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L};
@@ -61,7 +61,7 @@ namespace BitFaster.Caching.Lfu
             return EstimateFrequencyStd(value);
 #else
             
-            TAVX avx2 = default;
+            AVX2 avx2 = default;
 
             if (avx2.IsSupported)
             {
@@ -84,7 +84,7 @@ namespace BitFaster.Caching.Lfu
             IncrementStd(value);
 #else
 
-            TAVX avx2 = default;
+            AVX2 avx2 = default;
 
             if (avx2.IsSupported)
             {
@@ -288,19 +288,17 @@ namespace BitFaster.Caching.Lfu
             return Avx2.And(f, maskVector);
         }
 
-        // Based on Peter Cordes optimized version of the AVX2 answer given here: https://godbolt.org/g/3MoJmL
-        // https://stackoverflow.com/questions/37296289/fastest-way-to-multiply-an-array-of-int64-t
-        // Also see Agner Fog's vector library, see https://github.com/vectorclass/version2, vectori256.h
+        // taken from Agner Fog's vector library, see https://github.com/vectorclass/version2, vectori256.h
         private static Vector256<ulong> Multiply(Vector256<ulong> a, Vector256<ulong> b)
         {
             // instruction does not exist. Split into 32-bit multiplies
-            Vector256<int> bswap = Avx2.Shuffle(b.AsInt32(), 0xB1);                                         // swap H<->L
-            Vector256<int> prodlh = Avx2.MultiplyLow(a.AsInt32(), bswap);                                   // 32 bit L*H products
-            Vector256<ulong> prodlh2 = Avx2.ShiftRightLogical(prodlh.AsUInt64(), 32);                       // 0  , a0Hb0L,          0, a1Hb1L
-            Vector256<int> prodlh3 = Avx2.Add(prodlh2.AsInt32(), prodlh.AsInt32());                         // xxx, a0Lb0H+a0Hb0L, xxx, a1Lb1H+a1Hb1L
-            Vector256<uint> prodlh4 = Avx2.And(prodlh3.AsUInt32(), Vector256.Create(0x00000000FFFFFFFF));   // zero high halves
-            Vector256<ulong> prodll = Avx2.Multiply(a.AsUInt32(), b.AsUInt32());                            // a0Lb0L,a1Lb1L, 64 bit unsigned products
-            return Avx2.Add(prodll.AsInt64(), prodlh4.AsInt64()).AsUInt64();                                // a0Lb0L+(a0Lb0H+a0Hb0L)<<32, a1Lb1L+(a1Lb1H+a1Hb1L)<<32
+            Vector256<int> bswap = Avx2.Shuffle(b.AsInt32(), 0xB1);                 // swap H<->L
+            Vector256<int> prodlh = Avx2.MultiplyLow(a.AsInt32(), bswap);           // 32 bit L*H products
+            Vector256<int> zero = Vector256.Create(0);                              // 0
+            Vector256<int> prodlh2 = Avx2.HorizontalAdd(prodlh, zero);              // a0Lb0H+a0Hb0L,a1Lb1H+a1Hb1L,0,0
+            Vector256<int> prodlh3 = Avx2.Shuffle(prodlh2, 0x73);                   // 0, a0Lb0H+a0Hb0L, 0, a1Lb1H+a1Hb1L
+            Vector256<ulong> prodll = Avx2.Multiply(a.AsUInt32(), b.AsUInt32());    // a0Lb0L,a1Lb1L, 64 bit unsigned products
+            return Avx2.Add(prodll.AsInt64(), prodlh3.AsInt64()).AsUInt64();        // a0Lb0L+(a0Lb0H+a0Hb0L)<<32, a1Lb1L+(a1Lb1H+a1Hb1L)<<32
         }
 #endif
     }
