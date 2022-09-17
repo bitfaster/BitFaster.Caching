@@ -20,12 +20,25 @@ using System.Text;
 namespace BitFaster.Caching.Lfu
 {
     /// <summary>
-    /// An LFU cache with a W-TinyLfu eviction policy.
+    /// An approximate LFU based on the W-TinyLfu eviction policy. W-TinyLfu tracks items using a window LRU list, and 
+    /// a main space LRU divided into protected and probation segments. Reads and writes to the cache are stored in buffers
+    /// and later applied to the policy LRU lists in batches under a lock. Each read and write is tracked using a compact 
+    /// popularity sketch to probalistically estimate item frequency. Items proceed through the LRU lists as follows:
+    /// <list type="number">
+    ///   <item><description>New items are added to the window LRU. When acessed window items move to the window MRU position.</description></item>
+    ///   <item><description>When the window is full, candidate items are moved to the probation segment in LRU order.</description></item>
+    ///   <item><description>When the main space is full, the access frequency of each window candidate is compared 
+    ///   to probation victims in LRU order. The item with the lowest frequency is evicted until the cache size is within bounds.</description></item>
+    ///   <item><description>When a probation item is accessed, it is moved to the protected segment. If the protected segment is full, 
+    ///   the LRU protected item is demoted to probation.</description></item>
+    ///   <item><description>When a protected item is accessed, it is moved to the protected MRU position.</description></item>
+    /// </list>
+    /// The size of the admission window and main space are adapted over time to iteratively improve hit rate using a 
+    /// hill climbing algorithm. A larger window favors workloads with high recency bias, whereas a larger main space
+    /// favors workloads with frequency bias.
     /// </summary>
-    /// <remarks>
-    /// Based on Caffeine written by Ben Manes.
-    /// https://www.apache.org/licenses/LICENSE-2.0
-    /// </remarks>
+    /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
+    /// https://github.com/ben-manes/caffeine
     [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
@@ -44,7 +57,7 @@ namespace BitFaster.Caching.Lfu
 
         private readonly CacheMetrics metrics = new CacheMetrics();
 
-        private readonly CmSketch<K> cmSketch;
+        private readonly CmSketch<K, DetectAvx2> cmSketch;
 
         private readonly LfuNodeList<K, V> windowLru;
         private readonly LfuNodeList<K, V> probationLru;
@@ -90,8 +103,7 @@ namespace BitFaster.Caching.Lfu
             int writeBufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);
             this.writeBuffer = new MpscBoundedBuffer<LfuNode<K, V>>(writeBufferSize);
 
-            this.cmSketch = new CmSketch<K>(1, comparer);
-            this.cmSketch.EnsureCapacity(capacity);
+            this.cmSketch = new CmSketch<K, DetectAvx2>(capacity, comparer);
             this.windowLru = new LfuNodeList<K, V>();
             this.probationLru = new LfuNodeList<K, V>();
             this.protectedLru = new LfuNodeList<K, V>();
@@ -276,10 +288,14 @@ namespace BitFaster.Caching.Lfu
         }
 
         /// <summary>
-        /// Synchronously perform all pending maintenance. Draining the read and write buffers then
+        /// Synchronously perform all pending policy maintenance. Drain the read and write buffers then
         /// use the eviction policy to preserve bounded size and remove expired items.
         /// </summary>
-        public void PendingMaintenance()
+        /// <remarks>
+        /// Note: maintenance is automatically performed asynchronously immediately following a read or write.
+        /// It is not necessary to call this method, <see cref="DoMaintenance"/> is provided purely to enable tests to reach a consistent state.
+        /// </remarks>
+        public void DoMaintenance()
         {
             DrainBuffers();
         }
@@ -766,36 +782,67 @@ namespace BitFaster.Caching.Lfu
             return first;
         }
 
-        private void EvictFromMain(LfuNode<K, V> candidate)
+        private struct EvictIterator
         {
-            var victim = this.probationLru.First; // victims are LRU position in probation
+            private CmSketch<K, DetectAvx2> sketch;
+            public LfuNode<K, V> node;
+            public int freq;
+
+            public EvictIterator(CmSketch<K, DetectAvx2> sketch, LfuNode<K, V> node)
+            {
+                this.sketch = sketch;
+                this.node = node;
+                freq = node == null ? -1 : sketch.EstimateFrequency(node.Key);
+            }
+
+            public void Next()
+            {
+                node = node.Next;
+
+                if (node != null)
+                {
+                    freq = sketch.EstimateFrequency(node.Key);
+                }
+            }
+        }
+
+        private void EvictFromMain(LfuNode<K, V> candidateNode)
+        {
+            var victim = new EvictIterator(this.cmSketch, this.probationLru.First); // victims are LRU position in probation
+            var candidate = new EvictIterator(this.cmSketch, candidateNode);
 
             // first pass: admit candidates
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
                 // bail when we run out of options
-                if (candidate == null | victim == null | victim == candidate)
+                if (candidate.node == null | victim.node == null)
                 {
                     break;
                 }
 
-                // Evict the entry with the lowest frequency
-                if (AdmitCandidate(candidate.Key, victim.Key))
+                if (victim.node == candidate.node)
                 {
-                    var evictee = victim;
+                    Evict(candidate.node);
+                    break;
+                }
+
+                // Evict the entry with the lowest frequency
+                if (candidate.freq > victim.freq)
+                {
+                    var evictee = victim.node;
 
                     // victim is initialized to first, and iterates forwards
-                    victim = victim.Next;
-                    candidate = candidate.Next;
+                    victim.Next();
+                    candidate.Next();
 
                     Evict(evictee);
                 }
                 else
                 {
-                    var evictee = candidate;
+                    var evictee = candidate.node;
 
-                    // candidate is initialized to last, and iterates backwards
-                    candidate = candidate.Next;
+                    // candidate is initialized to first cand, and iterates forwards
+                    candidate.Next();
 
                     Evict(evictee);
                 }
@@ -804,16 +851,16 @@ namespace BitFaster.Caching.Lfu
             // 2nd pass: remove probation items in LRU order, evict lowest frequency
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
-                victim = this.probationLru.First;
-                var victim2 = victim.Next;
+                var victim1 = this.probationLru.First;
+                var victim2 = victim1.Next;
 
-                if (AdmitCandidate(victim.Key, victim2.Key))
+                if (AdmitCandidate(victim1.Key, victim2.Key))
                 {
                     Evict(victim2);
                 }
                 else
                 {
-                    Evict(victim);
+                    Evict(victim1);
                 }
             }
         }
@@ -873,7 +920,7 @@ namespace BitFaster.Caching.Lfu
                     case ProcessingToRequired:
                         return false;
                     default:
-                        throw new InvalidOperationException();
+                        return false; // not reachable
                 }
             }
 

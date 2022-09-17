@@ -9,6 +9,7 @@ namespace BitFaster.Caching.Counters
     /// <summary>
     /// A thread-safe counter suitable for high throuhgput counting across many concurrent threads.
     /// </summary>
+    /// Based on the LongAdder class by Doug Lea.
     public sealed class Counter : Striped64
     {
         /// <summary>

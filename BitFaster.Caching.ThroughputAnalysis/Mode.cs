@@ -1,16 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.ThroughputAnalysis
 {
+    [Flags]
     public enum Mode
     {
-        Read,
-        ReadWrite,
-        Evict,
-        Update,
+        Read = 1,
+        ReadWrite = 2,
+        Evict = 4,
+        Update = 8,
+        All = ~0,
     }
 }

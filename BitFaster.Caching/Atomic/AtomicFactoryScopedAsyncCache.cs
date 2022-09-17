@@ -26,7 +26,7 @@ namespace BitFaster.Caching.Atomic
         {
             if (cache == null)
             {
-                throw new ArgumentNullException(nameof(cache));
+                Ex.ThrowArgNull(ExceptionArgument.cache);
             }
 
             this.cache = cache;
@@ -87,7 +87,7 @@ namespace BitFaster.Caching.Atomic
 
                 if (c++ > ScopedCacheDefaults.MaxRetry)
                 {
-                    throw new InvalidOperationException(ScopedCacheDefaults.RetryFailureMessage);
+                    Ex.ThrowScopedRetryFailure();
                 }
             }
         }

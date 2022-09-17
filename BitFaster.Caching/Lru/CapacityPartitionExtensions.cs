@@ -16,17 +16,17 @@ namespace BitFaster.Caching.Lru
         {
             if (capacity.Cold < 1)
             { 
-                throw new ArgumentOutOfRangeException(nameof(capacity.Cold));
+                Ex.ThrowArgOutOfRange(nameof(capacity.Cold));
             }
 
             if (capacity.Warm < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(capacity.Warm));
+                Ex.ThrowArgOutOfRange(nameof(capacity.Warm));
             }
 
             if (capacity.Hot < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(capacity.Hot));
+                Ex.ThrowArgOutOfRange(nameof(capacity.Hot));
             }
         }
     }

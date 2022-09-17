@@ -9,10 +9,7 @@ namespace BitFaster.Caching.Buffers
     /// Provides a multi-producer, multi-consumer thread-safe ring buffer. When the buffer is full,
     /// TryAdd fails and returns false. When the buffer is empty, TryTake fails and returns false.
     /// </summary>
-    /// <remarks>
-    /// Based on the Segment internal class from ConcurrentQueue
-    /// https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Collections/Concurrent/ConcurrentQueueSegment.cs
-    /// </remarks>
+    /// Based on the Segment internal class from the .NET ConcurrentQueue class.
     public sealed class MpmcBoundedBuffer<T>
     {
         private Slot[] slots;
@@ -28,7 +25,7 @@ namespace BitFaster.Caching.Buffers
         {
             if (boundedLength < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(boundedLength));
+                Ex.ThrowArgOutOfRange(nameof(boundedLength));
             }
 
             // must be power of 2 to use & slotsMask instead of %

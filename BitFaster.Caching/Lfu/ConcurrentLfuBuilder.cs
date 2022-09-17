@@ -6,13 +6,16 @@ namespace BitFaster.Caching.Lfu
     /// <summary>
     /// A builder of ICache and IScopedCache instances with the following configuration
     /// settings:
-    /// - The maximum size.
-    /// - The concurrency level.
-    /// - The key comparer.
-    /// - The buffer sizes.
-    /// 
+    /// <list type="bullet">
+    ///   <item><description>The maximum size.</description></item>
+    ///   <item><description>The concurrency level.</description></item>
+    ///   <item><description>The key comparer.</description></item>
+    /// </list>
     /// The following features can be selected which change the underlying cache implementation: 
-    /// - Scoped IDisposable values.
+    /// <list type="bullet">
+    ///   <item><description>Scoped IDisposable values.</description></item>
+    ///   <item><description>Atomic value factory.</description></item>
+    /// </list>
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
