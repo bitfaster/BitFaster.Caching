@@ -453,21 +453,24 @@ namespace BitFaster.Caching.Lfu
             // extract to a buffer before doing book keeping work, ~2x faster
             int readCount = readBuffer.DrainTo(this.drainBuffer);
 
-            for (int i = 0; i < readCount; i++)
+            // to eliminate the bounds check from the loops, take a local reference then iterate backwards
+            var lbuff = this.drainBuffer;
+
+            for (int i = readCount - 1; i >= 0; i--)
             {
-                this.cmSketch.Increment(this.drainBuffer[i].Key);
+                this.cmSketch.Increment(lbuff[i].Key);
             }
 
-            for (int i = 0; i < readCount; i++)
+            for (int i = readCount - 1; i >= 0; i--)
             {
-                OnAccess(this.drainBuffer[i]);
+                OnAccess(lbuff[i]);
             }
 
             int writeCount = this.writeBuffer.DrainTo(new ArraySegment<LfuNode<K, V>>(this.drainBuffer));
 
-            for (int i = 0; i < writeCount; i++)
+            for (int i = writeCount - 1; i >= 0; i--)
             {
-                OnWrite(this.drainBuffer[i]);
+                OnWrite(lbuff[i]);
             }
 
             // we are done only when both buffers are empty
