@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching
@@ -12,8 +13,7 @@ namespace BitFaster.Caching
 
         public static void ThrowArgOutOfRange(string paramName, string message) => throw CreateArgumentOutOfRangeException(paramName, message);
 
-        public static void ThrowInvalidOp() => throw CreateInvalidOperationException();
-
+        [ExcludeFromCodeCoverage]
         public static void ThrowInvalidOp(string message) => throw CreateInvalidOperationException(message);
 
         public static void ThrowScopedRetryFailure() => throw CreateScopedRetryFailure();
@@ -32,6 +32,7 @@ namespace BitFaster.Caching
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static InvalidOperationException CreateInvalidOperationException() => new InvalidOperationException();
 
+        [ExcludeFromCodeCoverage]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static InvalidOperationException CreateInvalidOperationException(string message) => new InvalidOperationException(message);
 
@@ -41,6 +42,7 @@ namespace BitFaster.Caching
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static ObjectDisposedException CreateObjectDisposedException<T>() => new ObjectDisposedException(nameof(T));
 
+        [ExcludeFromCodeCoverage]
         private static string GetArgumentString(ExceptionArgument argument)
         {
             switch (argument)
