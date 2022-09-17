@@ -29,9 +29,6 @@ namespace BitFaster.Caching
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static ArgumentOutOfRangeException CreateArgumentOutOfRangeException(string paramName, string message) => new ArgumentOutOfRangeException(paramName, message);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static InvalidOperationException CreateInvalidOperationException() => new InvalidOperationException();
-
         [ExcludeFromCodeCoverage]
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static InvalidOperationException CreateInvalidOperationException(string message) => new InvalidOperationException(message);
