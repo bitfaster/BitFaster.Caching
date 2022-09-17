@@ -721,7 +721,6 @@ namespace BitFaster.Caching.Lfu
                     case ProcessingToRequired:
                         return false;
                     default:
-                        Ex.ThrowInvalidOp();
                         return false; // not reachable
                 }
             }
