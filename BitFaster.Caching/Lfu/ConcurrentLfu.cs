@@ -619,6 +619,19 @@ namespace BitFaster.Caching.Lfu
         {
             var victim = this.probationLru.First; // victims are LRU position in probation
 
+            int cFreq = 0;
+            int vFreq = 0;
+
+            if (candidate != null)
+            {
+                cFreq = this.cmSketch.EstimateFrequency(candidate.Key);
+            }
+
+            if (victim != null)
+            { 
+                vFreq = this.cmSketch.EstimateFrequency(victim.Key);
+            }
+
             // first pass: admit candidates
             while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
             {
@@ -629,13 +642,23 @@ namespace BitFaster.Caching.Lfu
                 }
 
                 // Evict the entry with the lowest frequency
-                if (AdmitCandidate(candidate.Key, victim.Key))
+                if (cFreq > vFreq)
                 {
                     var evictee = victim;
 
                     // victim is initialized to first, and iterates forwards
                     victim = victim.Next;
                     candidate = candidate.Next;
+
+                    if (candidate != null)
+                    {
+                        cFreq = this.cmSketch.EstimateFrequency(candidate.Key);
+                    }
+
+                    if (victim != null)
+                    {
+                        vFreq = this.cmSketch.EstimateFrequency(victim.Key);
+                    }
 
                     Evict(evictee);
                 }
@@ -645,6 +668,11 @@ namespace BitFaster.Caching.Lfu
 
                     // candidate is initialized to last, and iterates backwards
                     candidate = candidate.Next;
+
+                    if (candidate != null)
+                    {
+                        cFreq = this.cmSketch.EstimateFrequency(candidate.Key);
+                    }
 
                     Evict(evictee);
                 }
