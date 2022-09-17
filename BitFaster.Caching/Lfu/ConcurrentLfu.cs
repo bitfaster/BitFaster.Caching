@@ -57,7 +57,7 @@ namespace BitFaster.Caching.Lfu
 
         private readonly CacheMetrics metrics = new CacheMetrics();
 
-        private readonly CmSketch<K> cmSketch;
+        private readonly CmSketch<K, DetectAvx2> cmSketch;
 
         private readonly LfuNodeList<K, V> windowLru;
         private readonly LfuNodeList<K, V> probationLru;
@@ -100,7 +100,7 @@ namespace BitFaster.Caching.Lfu
             int writeBufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);
             this.writeBuffer = new MpscBoundedBuffer<LfuNode<K, V>>(writeBufferSize);
 
-            this.cmSketch = new CmSketch<K>(capacity, comparer);
+            this.cmSketch = new CmSketch<K, DetectAvx2>(capacity, comparer);
             this.windowLru = new LfuNodeList<K, V>();
             this.probationLru = new LfuNodeList<K, V>();
             this.protectedLru = new LfuNodeList<K, V>();
