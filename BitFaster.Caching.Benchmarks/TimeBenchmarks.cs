@@ -7,7 +7,7 @@ namespace BitFaster.Caching.Benchmarks
 {
     [SimpleJob(RuntimeMoniker.Net48)]
     [SimpleJob(RuntimeMoniker.Net60)]
-    [HideColumns("Median", "RatioSD")]
+    [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class TimeBenchmarks
     {
         private static readonly Stopwatch sw = Stopwatch.StartNew();
