@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Lfu
     /// </summary>
     /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    public sealed class CmSketch<T, AVX2> where AVX2 : struct, IAvx2
+    public sealed class CmSketch<T, AVX2> where AVX2 : struct, Isa
     {
         // A mixture of seeds from FNV-1a, CityHash, and Murmur3
         private static readonly ulong[] Seed = { 0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L};
@@ -63,7 +63,7 @@ namespace BitFaster.Caching.Lfu
             
             AVX2 avx2 = default;
 
-            if (avx2.IsSupported)
+            if (avx2.IsAvx2Supported)
             {
                 return EstimateFrequencyAvx(value);
             }
@@ -86,7 +86,7 @@ namespace BitFaster.Caching.Lfu
 
             AVX2 avx2 = default;
 
-            if (avx2.IsSupported)
+            if (avx2.IsAvx2Supported)
             {
                 IncrementAvx(value);
             }

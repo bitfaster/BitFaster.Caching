@@ -8,16 +8,16 @@ using Xunit;
 namespace BitFaster.Caching.UnitTests.Lfu
 {
     // Test with AVX2 if it is supported
-    public class CMSketchAvx2Tests : CmSketchTestBase<DetectAvx2>
+    public class CMSketchAvx2Tests : CmSketchTestBase<Detect>
     {
     }
 
     // Test with AVX2 disabled
-    public class CmSketchTests : CmSketchTestBase<DisableAvx2>
+    public class CmSketchTests : CmSketchTestBase<Disable>
     {
     }
 
-    public abstract class CmSketchTestBase<AVX2> where AVX2 : struct, IAvx2
+    public abstract class CmSketchTestBase<AVX2> where AVX2 : struct, Isa
     {
         private CmSketch<int, AVX2> sketch = new CmSketch<int, AVX2>(512, EqualityComparer<int>.Default);
 
@@ -101,7 +101,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private static void SkipAvxIfNotSupported()
         {
             // when we are trying to test Avx2, skip the test if it's not supported
-            Skip.If(typeof(AVX2) == typeof(DetectAvx2) && !Avx2.IsSupported);
+            Skip.If(typeof(AVX2) == typeof(Detect) && !Avx2.IsSupported);
         }
     }
 }
