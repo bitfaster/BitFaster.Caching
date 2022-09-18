@@ -615,9 +615,9 @@ namespace BitFaster.Caching.Lfu
             return first;
         }
 
-        private struct EvictIterator
+        private ref struct EvictIterator
         {
-            private CmSketch<K, DetectAvx2> sketch;
+            private readonly CmSketch<K, DetectAvx2> sketch;
             public LfuNode<K, V> node;
             public int freq;
 
