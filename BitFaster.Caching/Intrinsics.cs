@@ -10,15 +10,15 @@ namespace BitFaster.Caching
     public interface IsaProbe
     {
         /// <summary>
-        /// Gets a value indicating whether Avx2 is supported.
+        /// Gets a value indicating whether AVX2 is supported.
         /// </summary>
         bool IsAvx2Supported { get; }
     }
 
     /// <summary>
-    /// Detect support for hardware intrinsics.
+    /// Detect support for hardware instructions via intrinsics.
     /// </summary>
-    public struct Detect : IsaProbe
+    public readonly struct DetectIsa : IsaProbe
     {
 #if NETSTANDARD2_0
         /// <inheritdoc/>
@@ -30,9 +30,9 @@ namespace BitFaster.Caching
     }
 
     /// <summary>
-    /// Force disable hardware intrinsics.
+    /// Force disable hardware instructions via intrinsics.
     /// </summary>
-    public struct Disable : IsaProbe
+    public readonly struct DisableHardwareIntrinsics : IsaProbe
     {
         /// <inheritdoc/>
         public bool IsAvx2Supported => false;
