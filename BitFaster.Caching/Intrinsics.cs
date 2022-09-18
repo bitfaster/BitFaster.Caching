@@ -5,20 +5,20 @@ using System.Runtime.Intrinsics.X86;
 namespace BitFaster.Caching
 {
     /// <summary>
-    /// Represents a marker interface to enable AVX2 specific optimization.
+    /// Represents a marker interface to enable instruction set hardware intrinsics.
     /// </summary>
-    public interface Isa
+    public interface IsaProbe
     {
         /// <summary>
-        /// Gets a value indicating whether Avx2 is supported
+        /// Gets a value indicating whether Avx2 is supported.
         /// </summary>
         bool IsAvx2Supported { get; }
     }
 
     /// <summary>
-    /// Detect AVX2 support and enable if available.
+    /// Detect support for hardware intrinsics.
     /// </summary>
-    public struct Detect : Isa
+    public struct Detect : IsaProbe
     {
 #if NETSTANDARD2_0
         /// <inheritdoc/>
@@ -30,9 +30,9 @@ namespace BitFaster.Caching
     }
 
     /// <summary>
-    /// Force disable AVX2.
+    /// Force disable hardware intrinsics.
     /// </summary>
-    public struct Disable : Isa
+    public struct Disable : IsaProbe
     {
         /// <inheritdoc/>
         public bool IsAvx2Supported => false;

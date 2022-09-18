@@ -17,9 +17,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
     {
     }
 
-    public abstract class CmSketchTestBase<TISA> where TISA : struct, Isa
+    public abstract class CmSketchTestBase<I> where I : struct, IsaProbe
     {
-        private CmSketch<int, TISA> sketch = new CmSketch<int, TISA>(512, EqualityComparer<int>.Default);
+        private CmSketch<int, I> sketch = new CmSketch<int, I>(512, EqualityComparer<int>.Default);
 
         public CmSketchTestBase()
         {
@@ -29,7 +29,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [SkippableFact]
         public void WhenCapacityIsZeroDefaultsSelected()
         {
-            sketch = new CmSketch<int, TISA>(0, EqualityComparer<int>.Default);
+            sketch = new CmSketch<int, I>(0, EqualityComparer<int>.Default);
 
             sketch.ResetSampleSize.Should().Be(10);
         }
@@ -68,7 +68,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             bool reset = false;
 
-            sketch = new CmSketch<int, TISA>(64, EqualityComparer<int>.Default);
+            sketch = new CmSketch<int, I>(64, EqualityComparer<int>.Default);
 
             for (int i = 1; i < 20 * 64; i++)
             {
@@ -101,7 +101,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private static void SkipAvxIfNotSupported()
         {
             // when we are trying to test Avx2, skip the test if it's not supported
-            Skip.If(typeof(TISA) == typeof(Detect) && !Avx2.IsSupported);
+            Skip.If(typeof(I) == typeof(Detect) && !Avx2.IsSupported);
         }
     }
 }
