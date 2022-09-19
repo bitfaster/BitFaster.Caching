@@ -12,8 +12,8 @@ namespace BitFaster.Caching.Benchmarks.Lfu
     public class SketchFrequency
     {
         const int iterations = 512;
-        private static CmSketch<int, DisableAvx2> std = new CmSketch<int, DisableAvx2>(10, EqualityComparer<int>.Default);
-        private static CmSketch<int, DetectAvx2> avx = new CmSketch<int, DetectAvx2>(10, EqualityComparer<int>.Default);
+        private static CmSketch<int, DisableHardwareIntrinsics> std = new CmSketch<int, DisableHardwareIntrinsics>(10, EqualityComparer<int>.Default);
+        private static CmSketch<int, DetectIsa> avx = new CmSketch<int, DetectIsa>(10, EqualityComparer<int>.Default);
 
         [GlobalSetup]
         public void Setup()
