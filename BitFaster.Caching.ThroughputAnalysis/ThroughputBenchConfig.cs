@@ -47,9 +47,11 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         private int[][] samples;
 
+        const int maxSamples = 10_000_000;
+
         public EvictionConfig(int iterations, int sampleCount, int threadCount)
         {
-            if (sampleCount > 100000)
+            if (sampleCount > maxSamples)
             {
                 throw new ArgumentOutOfRangeException("Sample count too large, will result in overlap");
             }
@@ -57,10 +59,10 @@ namespace BitFaster.Caching.ThroughputAnalysis
             this.iterations = iterations;
             samples = new int[threadCount][];
 
-            for (int i = 0; i < threadCount; i++)
+            Parallel.ForEach(Enumerable.Range(0, threadCount), i =>
             {
-                samples[i] = Enumerable.Range(i * 100000, sampleCount).ToArray();
-            }
+                samples[i] = Enumerable.Range(i * maxSamples, sampleCount).ToArray();
+            });
         }
 
         public int Iterations => iterations;

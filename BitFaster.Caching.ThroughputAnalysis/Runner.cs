@@ -25,22 +25,24 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         private static void RunTest(Mode mode)
         {
+            Console.WriteLine();
             Console.WriteLine("Generating input distribution...");
 
             var (bench, dataConfig, capacity) = ConfigFactory.Create(mode, repeatCount);
+            Console.WriteLine($"Cache size {capacity:n0} iterations {dataConfig.Iterations:n0}");
 
             var cachesToTest = new List<ICacheFactory>();
-            cachesToTest.Add(new ClassicLruFactory(capacity));
-            cachesToTest.Add(new MemoryCacheFactory(capacity));
-            cachesToTest.Add(new FastConcurrentLruFactory(capacity));
-            cachesToTest.Add(new ConcurrentLruFactory(capacity));
+            //cachesToTest.Add(new ClassicLruFactory(capacity));
+            //cachesToTest.Add(new MemoryCacheFactory(capacity));
+            //cachesToTest.Add(new FastConcurrentLruFactory(capacity));
+            //cachesToTest.Add(new ConcurrentLruFactory(capacity));
             cachesToTest.Add(new ConcurrentLfuFactory(capacity));
 
             var exporter = new Exporter(maxThreads);
             exporter.Initialize(cachesToTest);
 
             Console.WriteLine();
-            Console.WriteLine($"Running {mode}...");
+            Console.WriteLine($"Running {mode}...");         
             Console.WriteLine();
 
             foreach (int tc in Enumerable.Range(1, maxThreads).ToArray())

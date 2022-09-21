@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 
 #if !NETSTANDARD2_0
@@ -70,6 +71,24 @@ namespace BitFaster.Caching.Lfu
             else
             {
                 return EstimateFrequencyStd(value);
+            }
+#endif
+        }
+
+        public (int, int) EstimateFrequency(T value1, T value2)
+        {
+#if NETSTANDARD2_0
+            return (EstimateFrequencyStd(value1), EstimateFrequencyStd(value2));
+#else
+            I isa = default;
+
+            if (isa.IsAvx2Supported)
+            {
+                return CompareFrequencyAvx(value1, value2);
+            }
+            else
+            {
+                return (EstimateFrequencyStd(value1), EstimateFrequencyStd(value2));
             }
 #endif
         }
@@ -218,6 +237,47 @@ namespace BitFaster.Caching.Lfu
                 // set the zeroed high parts of the long value to ushort.Max
                 var masked = Avx2.Blend(lower, Vector128.Create(ushort.MaxValue), 0b10101010);
                 return Avx2.MinHorizontal(masked).GetElement(0);
+            }
+        }
+
+        private unsafe (int, int) CompareFrequencyAvx(T value1, T value2)
+        {
+            int hash1 = Spread(comparer.GetHashCode(value1));
+            int start1 = (hash1 & 3) << 2;
+
+            int hash2 = Spread(comparer.GetHashCode(value2));
+            int start2 = (hash2 & 3) << 2;
+
+            fixed (long* tablePtr = &table[0])
+            {
+                var tableVector1 = Avx2.GatherVector256(tablePtr, IndexesOfAvx(hash1), 8).AsUInt64();
+                var tableVector2 = Avx2.GatherVector256(tablePtr, IndexesOfAvx(hash2), 8).AsUInt64();
+
+                Vector256<ulong> starts = Vector256.Create(0UL, 1UL, 2UL, 3UL);
+                Vector256<ulong> starts1 = Avx2.Add(starts, Vector256.Create((ulong)start1));
+                Vector256<ulong> starts2 = Avx2.Add(starts, Vector256.Create((ulong)start2));
+                starts1 = Avx2.ShiftLeftLogical(starts1, 2);
+                starts2 = Avx2.ShiftLeftLogical(starts2, 2);
+
+                tableVector1 = Avx2.ShiftRightLogicalVariable(tableVector1, starts1);
+                tableVector2 = Avx2.ShiftRightLogicalVariable(tableVector2, starts2);
+                var fifteen = Vector256.Create(0xfUL);
+                tableVector1 = Avx2.And(tableVector1, fifteen);
+                tableVector2 = Avx2.And(tableVector2, fifteen);
+
+                Vector256<int> permuteMask = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
+                Vector128<ushort> lower1 = Avx2.PermuteVar8x32(tableVector1.AsInt32(), permuteMask)
+                        .GetLower()
+                        .AsUInt16();
+                Vector128<ushort> lower2 = Avx2.PermuteVar8x32(tableVector2.AsInt32(), permuteMask)
+                       .GetLower()
+                       .AsUInt16();
+
+                // set the zeroed high parts of the long value to ushort.Max
+                var maxMask = Vector128.Create(ushort.MaxValue);
+                var masked1 = Avx2.Blend(lower1, maxMask, 0b10101010);
+                var masked2 = Avx2.Blend(lower2, maxMask, 0b10101010);
+                return (Avx2.MinHorizontal(masked1).GetElement(0), Avx2.MinHorizontal(masked2).GetElement(0));
             }
         }
 

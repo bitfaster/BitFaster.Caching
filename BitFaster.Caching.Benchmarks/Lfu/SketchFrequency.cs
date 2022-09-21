@@ -11,9 +11,12 @@ namespace BitFaster.Caching.Benchmarks.Lfu
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class SketchFrequency
     {
-        const int iterations = 512;
-        private static CmSketch<int, DisableHardwareIntrinsics> std = new CmSketch<int, DisableHardwareIntrinsics>(10, EqualityComparer<int>.Default);
-        private static CmSketch<int, DetectIsa> avx = new CmSketch<int, DetectIsa>(10, EqualityComparer<int>.Default);
+        const int sketchSize = 1_048_576;
+        const int iterations = 1_048_576;
+        private static CmSketch<int, DisableHardwareIntrinsics> std = new CmSketch<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
+        private static CmSketch<int, DetectIsa> avx = new CmSketch<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
+        private static CmSketchBlock<int, DisableHardwareIntrinsics> block = new CmSketchBlock<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
+        private static CmSketchBlock<int, DetectIsa> blockAvx = new CmSketchBlock<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
 
         [GlobalSetup]
         public void Setup()
@@ -28,16 +31,70 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             }
         }
 
-        [Benchmark(Baseline = true)]
-        public bool EstimateFrequency()
+        [Benchmark(Baseline = true, OperationsPerInvoke = iterations)]
+        public int EstimateFrequency()
         {
-            return std.EstimateFrequency(1) > std.EstimateFrequency(2);
+            int count = 0;
+            for (int i = 0; i < iterations; i++)
+                count += std.EstimateFrequency(i) > std.EstimateFrequency(i + 1) ? 1: 0;
+
+            return count;
         }
 
-        [Benchmark()]
-        public bool EstimateFrequencyAvx()
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public int EstimateFrequencyAvx()
         {
-            return avx.EstimateFrequency(1) > avx.EstimateFrequency(2);
+            int count = 0;
+            for (int i = 0; i < iterations; i++)
+                count += avx.EstimateFrequency(i) > avx.EstimateFrequency(i + 1) ? 1 : 0;
+
+            return count;
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public int CompoundEstimateFrequencyAvx()
+        {
+            int count = 0;
+            for (int i = 0; i < iterations; i++)
+            {
+                var (a, b) = avx.EstimateFrequency(i, i + 1);
+                count += a;
+            }
+
+            return count;
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public int EstimateFrequencyBlock()
+        {
+            int count = 0;
+            for (int i = 0; i < iterations; i++)
+                count += block.EstimateFrequency(i) > block.EstimateFrequency(i + 1) ? 1 : 0;
+
+            return count;
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public int EstimateFrequencyBlockAvx()
+        {
+            int count = 0;
+            for (int i = 0; i < iterations; i++)
+                count += blockAvx.EstimateFrequency(i) > blockAvx.EstimateFrequency(i + 1) ? 1 : 0;
+
+            return count;
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public int CompoundEstimateFrequencyBlockAvx()
+        {
+            int count = 0;
+            for (int i = 0; i < iterations; i++)
+            {
+                var (a, b) = blockAvx.EstimateFrequency(i, i + 1);
+                count += a;
+            }
+
+            return count;
         }
     }
 }
