@@ -71,6 +71,12 @@ namespace BitFaster.Caching.Lfu
 #endif
         }
 
+        /// <summary>
+        /// Estimate the frequency of the specified values.
+        /// </summary>
+        /// <param name="value1">The first value</param>
+        /// <param name="value2">The second value</param>
+        /// <returns>The estimated frequency of the values.</returns>
         public (int, int) EstimateFrequency(T value1, T value2)
         {
 #if NETSTANDARD2_0
@@ -220,14 +226,6 @@ namespace BitFaster.Caching.Lfu
             Vector256<ulong> VectorSeed = Vector256.Create(0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L, 0x9ae16a3b2f90404fL, 0xcbf29ce484222325L);
             Vector256<int> permuteMask = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
             Vector128<int> rehashInt = Rehash(ref permuteMask, ref VectorSeed, hash);
-
-            //Vector256<ulong> rehash = Vector256.Create((ulong)hash);
-            //rehash = Avx2.Add(rehash, VectorSeed);
-            //rehash = Multiply(rehash, VectorSeed);
-            //rehash = Avx2.Add(rehash, Avx2.ShiftRightLogical(rehash, 32));
-
-            //Vector128<int> rehashInt = Avx2.PermuteVar8x32(rehash.AsInt32(), permuteMask)
-            //    .GetLower();
 
             Vector128<int> offset = Avx2.And(rehashInt, Vector128.Create(1));
             var index = Avx2.ShiftRightLogical(rehashInt, 1);

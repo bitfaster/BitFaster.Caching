@@ -75,6 +75,12 @@ namespace BitFaster.Caching.Lfu
 #endif
         }
 
+        /// <summary>
+        /// Estimate the frequency of the specified values.
+        /// </summary>
+        /// <param name="value1">The first value</param>
+        /// <param name="value2">The second value</param>
+        /// <returns>The estimated frequency of the values.</returns>
         public (int, int) EstimateFrequency(T value1, T value2)
         {
 #if NETSTANDARD2_0
