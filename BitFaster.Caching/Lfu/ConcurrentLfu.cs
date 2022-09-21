@@ -637,19 +637,6 @@ namespace BitFaster.Caching.Lfu
                     freq = sketch.EstimateFrequency(node.Key);
                 }
             }
-
-            //public void NextWith(EvictIterator iter)
-            //{
-            //    node = node.Next;
-            //    iter.node = iter.node.Next;
-
-            //    if (node != null & iter.node != null)
-            //    {
-            //        bool r = sketch.CompareFrequency(node.Key, iter.node.Key);
-            //        freq = r ? 1 : 0;
-            //        iter.freq = r ? 0 : 1;
-            //    }
-            //}
         }
 
         private void EvictFromMain(LfuNode<K, V> candidateNode)
@@ -713,8 +700,10 @@ namespace BitFaster.Caching.Lfu
 
         private bool AdmitCandidate(K candidateKey, K victimKey)
         {
-            int victimFreq = this.cmSketch.EstimateFrequency(victimKey);
-            int candidateFreq = this.cmSketch.EstimateFrequency(candidateKey);
+            //int victimFreq = this.cmSketch.EstimateFrequency(victimKey);
+            //int candidateFreq = this.cmSketch.EstimateFrequency(candidateKey);
+
+            var (victimFreq, candidateFreq) = this.cmSketch.EstimateFrequency(victimKey, candidateKey);
 
             // TODO: random factor when candidate freq < 5
             return candidateFreq > victimFreq;
