@@ -138,7 +138,7 @@ namespace BitFaster.Caching.Lfu
 
             for (int i = 0; i < 4; i++)
             {
-                int h = counterHash << (i << 3);
+                int h = (int)((uint)counterHash >> (i << 3));
                 int offset = h & 1;
                 int index = (h >> 1) & 15;
                 int count = (int)(((ulong)table[block + offset + (i << 1)] >> (index << 2)) & 0xfL);
@@ -158,7 +158,7 @@ namespace BitFaster.Caching.Lfu
             bool added = false;
             for (int i = 0; i < 4; i++)
             {
-                int h = counterHash << (i << 3);
+                int h = (int)((uint)counterHash >> (i << 3));
                 int offset = h & 1;
                 int index = (h >> 1) & 15;
                 added |= IncrementAt(block + offset + (i << 1), index);
@@ -232,7 +232,7 @@ namespace BitFaster.Caching.Lfu
             int block = (blockHash & blockMask) << 3;
 
             Vector128<int> h = Vector128.Create(counterHash);
-            h = Avx2.ShiftLeftLogical(h, Vector128.Create(0, 8, 16, 24));
+            h = Avx2.ShiftRightLogical(h.AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
 
             Vector128<int> offset = Avx2.And(h, Vector128.Create(1));
             var index = Avx2.ShiftRightLogical(h, 1);
@@ -273,7 +273,7 @@ namespace BitFaster.Caching.Lfu
             int block = (blockHash & blockMask) << 3;
 
             Vector128<int> h = Vector128.Create(counterHash);
-            h = Avx2.ShiftLeftLogical(h, Vector128.Create(0, 8, 16, 24));
+            h = Avx2.ShiftRightLogical(h.AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
 
             Vector128<int> offset = Avx2.And(h, Vector128.Create(1));
             var index = Avx2.ShiftRightLogical(h, 1);
