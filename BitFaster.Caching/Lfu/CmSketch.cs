@@ -257,7 +257,8 @@ namespace BitFaster.Caching.Lfu
                 *(tablePtr + indexes.GetElement(2)) += inc.GetElement(2);
                 *(tablePtr + indexes.GetElement(3)) += inc.GetElement(3);
 
-                bool wasInc = Avx2.MoveMask(masked.AsByte()) != 0; // _mm256_movemask_epi8
+                Vector256<byte> result = Avx2.CompareEqual(masked.AsByte(), Vector256.Create(0).AsByte());
+                bool wasInc = Avx2.MoveMask(result.AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
 
                 if (wasInc && (++size == sampleSize))
                 {

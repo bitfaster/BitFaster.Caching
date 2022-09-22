@@ -76,6 +76,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
                 if (sketch.Size != i)
                 {
+                    i.Should().NotBe(1, "sketch should not be reset on the first iteration. Resize logic is broken");
+
                     reset = true;
                     break;
                 }
