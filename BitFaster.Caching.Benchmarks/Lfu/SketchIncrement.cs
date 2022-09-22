@@ -15,8 +15,12 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         const int iterations = 1_048_576;
         private static CmSketch<int, DisableHardwareIntrinsics> std = new CmSketch<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
         private static CmSketch<int, DetectIsa> avx = new CmSketch<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
+
         private static CmSketchBlock<int, DisableHardwareIntrinsics> block = new CmSketchBlock<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
         private static CmSketchBlock<int, DetectIsa> blockAvx = new CmSketchBlock<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
+
+        private static CmSketchBlockV2<int, DisableHardwareIntrinsics> block2 = new CmSketchBlockV2<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
+        private static CmSketchBlockV2<int, DetectIsa> block2Avx = new CmSketchBlockV2<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
 
         [Benchmark(Baseline = true, OperationsPerInvoke = iterations)]
         public void Inc()
@@ -51,6 +55,24 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             for (int i = 0; i < iterations; i++)
             {
                 blockAvx.Increment(i);
+            }
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public void IncBlock2()
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                block2.Increment(i);
+            }
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public void IncBlock2Avx()
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                block2Avx.Increment(i);
             }
         }
     }

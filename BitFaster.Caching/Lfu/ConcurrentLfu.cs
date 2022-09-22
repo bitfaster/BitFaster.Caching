@@ -57,7 +57,7 @@ namespace BitFaster.Caching.Lfu
 
         private readonly CacheMetrics metrics = new CacheMetrics();
 
-        private readonly CmSketchBlock<K, DetectIsa> cmSketch;
+        private readonly CmSketchBlockV2<K, DetectIsa> cmSketch;
 
         private readonly LfuNodeList<K, V> windowLru;
         private readonly LfuNodeList<K, V> probationLru;
@@ -100,7 +100,7 @@ namespace BitFaster.Caching.Lfu
             int writeBufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);
             this.writeBuffer = new MpscBoundedBuffer<LfuNode<K, V>>(writeBufferSize);
 
-            this.cmSketch = new CmSketchBlock<K, DetectIsa>(capacity, comparer);
+            this.cmSketch = new CmSketchBlockV2<K, DetectIsa>(capacity, comparer);
             this.windowLru = new LfuNodeList<K, V>();
             this.probationLru = new LfuNodeList<K, V>();
             this.protectedLru = new LfuNodeList<K, V>();
@@ -617,11 +617,11 @@ namespace BitFaster.Caching.Lfu
 
         private ref struct EvictIterator
         {
-            private readonly CmSketchBlock<K, DetectIsa> sketch;
+            private readonly CmSketchBlockV2<K, DetectIsa> sketch;
             public LfuNode<K, V> node;
             public int freq;
 
-            public EvictIterator(CmSketchBlock<K, DetectIsa> sketch, LfuNode<K, V> node)
+            public EvictIterator(CmSketchBlockV2<K, DetectIsa> sketch, LfuNode<K, V> node)
             {
                 this.sketch = sketch;
                 this.node = node;
@@ -700,10 +700,10 @@ namespace BitFaster.Caching.Lfu
 
         private bool AdmitCandidate(K candidateKey, K victimKey)
         {
-            //int victimFreq = this.cmSketch.EstimateFrequency(victimKey);
-            //int candidateFreq = this.cmSketch.EstimateFrequency(candidateKey);
+            int victimFreq = this.cmSketch.EstimateFrequency(victimKey);
+            int candidateFreq = this.cmSketch.EstimateFrequency(candidateKey);
 
-            var (victimFreq, candidateFreq) = this.cmSketch.EstimateFrequency(victimKey, candidateKey);
+            //var (victimFreq, candidateFreq) = this.cmSketch.EstimateFrequency(victimKey, candidateKey);
 
             // TODO: random factor when candidate freq < 5
             return candidateFreq > victimFreq;

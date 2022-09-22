@@ -26,7 +26,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                     return (new UpdateThroughputBenchmark(), new ZipfConfig(repeatCount, sampleCount, s, n), n);
                 case Mode.Evict:
 
-                    int cacheSize = 10_000;
+                    int cacheSize = 100;
                     int evictSamples = Math.Min(10_000_000, cacheSize * 2);
 
                     return (new ReadThroughputBenchmark() { Initialize = c => Init(c) }, new EvictionConfig(EvictIters(cacheSize), evictSamples, maxThreads), cacheSize);

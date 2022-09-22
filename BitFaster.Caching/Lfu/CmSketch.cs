@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 #if !NETSTANDARD2_0
 using System.Runtime.Intrinsics;
@@ -181,6 +182,9 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
+        // https://arxiv.org/pdf/1611.07612.pdf
+        // https://github.com/CountOnes/hamming_weight
+        // https://stackoverflow.com/questions/50081465/counting-1-bits-population-count-on-large-data-using-avx-512-or-avx-2
         private void Reset()
         {
             int count = 0;
@@ -323,7 +327,9 @@ namespace BitFaster.Caching.Lfu
                 *(tablePtr + indexes.GetElement(2)) += inc.GetElement(2);
                 *(tablePtr + indexes.GetElement(3)) += inc.GetElement(3);
 
-                bool wasInc = Avx2.MoveMask(masked.AsByte()) != 0; // _mm256_movemask_epi8
+                //      bool wasInc = Avx2.MoveMask(masked.AsByte()) != 0; // _mm256_movemask_epi8
+                Vector256<byte> result = Avx2.CompareEqual(masked.AsByte(), Vector256.Create(0).AsByte());
+                bool wasInc = Avx2.MoveMask(result.AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
 
                 if (wasInc && (++size == sampleSize))
                 {
@@ -355,7 +361,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         // taken from Agner Fog's vector library, see https://github.com/vectorclass/version2, vectori256.h
-        private static Vector256<ulong> Multiply(Vector256<ulong> a, Vector256<ulong> b)
+        private static Vector256<ulong> Multiply(in Vector256<ulong> a, in Vector256<ulong> b)
         {
             // instruction does not exist. Split into 32-bit multiplies
             Vector256<int> bswap = Avx2.Shuffle(b.AsInt32(), 0xB1);                 // swap H<->L
