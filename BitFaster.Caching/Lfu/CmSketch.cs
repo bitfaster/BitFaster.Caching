@@ -158,18 +158,36 @@ namespace BitFaster.Caching.Lfu
 
         private void Reset()
         {
-            int count = 0;
-            for (int i = 0; i < table.Length; i++)
+            // unroll, almost 2x faster
+            int count0 = 0;
+            int count1 = 0;
+            int count2 = 0;
+            int count3 = 0;
+
+            for (int i = 0; i < table.Length; i += 4)
             {
-                count += BitOps.BitCount(table[i] & OneMask);
+                count0 += BitOps.BitCount(table[i] & OneMask);
+                count1 += BitOps.BitCount(table[i + 1] & OneMask);
+                count2 += BitOps.BitCount(table[i + 2] & OneMask);
+                count3 += BitOps.BitCount(table[i + 3] & OneMask);
+
                 table[i] = (long)((ulong)table[i] >> 1) & ResetMask;
+                table[i + 1] = (long)((ulong)table[i + 1] >> 1) & ResetMask;
+                table[i + 2] = (long)((ulong)table[i + 2] >> 1) & ResetMask;
+                table[i + 3] = (long)((ulong)table[i + 3] >> 1) & ResetMask;
             }
-            size = (size - (count >> 2)) >> 1;
+
+            count0 = (count0 + count1) + (count2 + count3);
+
+            size = (size - (count0 >> 2)) >> 1;
         }
 
         private void EnsureCapacity(long maximumSize)
         {
             int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);
+
+            // clamp to 4 as min size
+            maximum = Math.Max(4, maximum);
 
             table = new long[(maximum == 0) ? 1 : BitOps.CeilingPowerOfTwo(maximum)];
             tableMask = Math.Max(0, table.Length - 1);
@@ -300,6 +318,21 @@ namespace BitFaster.Caching.Lfu
             Vector256<int> prodlh3 = Avx2.Shuffle(prodlh2, 0x73);                   // 0, a0Lb0H+a0Hb0L, 0, a1Lb1H+a1Hb1L
             Vector256<ulong> prodll = Avx2.Multiply(a.AsUInt32(), b.AsUInt32());    // a0Lb0L,a1Lb1L, 64 bit unsigned products
             return Avx2.Add(prodll.AsInt64(), prodlh3.AsInt64()).AsUInt64();        // a0Lb0L+(a0Lb0H+a0Hb0L)<<32, a1Lb1L+(a1Lb1H+a1Hb1L)<<32
+        }
+
+        // https://stackoverflow.com/questions/50081465/counting-1-bits-population-count-on-large-data-using-avx-512-or-avx-2
+        private void ResetAvx()
+        {
+            Vector256<byte> lut = Vector256.Create(
+                (byte) /* 0 */ 0, /* 1 */ 1, /* 2 */ 1, /* 3 */ 2,
+                       /* 4 */ 1, /* 5 */ 2, /* 6 */ 2, /* 7 */ 3,
+                       /* 8 */ 1, /* 9 */ 2, /* a */ 2, /* b */ 3,
+                       /* c */ 2, /* d */ 3, /* e */ 3, /* f */ 4,
+                       /* 0 */ 0, /* 1 */ 1, /* 2 */ 1, /* 3 */ 2,
+                       /* 4 */ 1, /* 5 */ 2, /* 6 */ 2, /* 7 */ 3,
+                       /* 8 */ 1, /* 9 */ 2, /* a */ 2, /* b */ 3,
+                       /* c */ 2, /* d */ 3, /* e */ 3, /* f */ 4
+                );
         }
 #endif
     }
