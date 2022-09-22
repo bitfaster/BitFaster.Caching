@@ -319,21 +319,6 @@ namespace BitFaster.Caching.Lfu
             Vector256<ulong> prodll = Avx2.Multiply(a.AsUInt32(), b.AsUInt32());    // a0Lb0L,a1Lb1L, 64 bit unsigned products
             return Avx2.Add(prodll.AsInt64(), prodlh3.AsInt64()).AsUInt64();        // a0Lb0L+(a0Lb0H+a0Hb0L)<<32, a1Lb1L+(a1Lb1H+a1Hb1L)<<32
         }
-
-        // https://stackoverflow.com/questions/50081465/counting-1-bits-population-count-on-large-data-using-avx-512-or-avx-2
-        private void ResetAvx()
-        {
-            Vector256<byte> lut = Vector256.Create(
-                (byte) /* 0 */ 0, /* 1 */ 1, /* 2 */ 1, /* 3 */ 2,
-                       /* 4 */ 1, /* 5 */ 2, /* 6 */ 2, /* 7 */ 3,
-                       /* 8 */ 1, /* 9 */ 2, /* a */ 2, /* b */ 3,
-                       /* c */ 2, /* d */ 3, /* e */ 3, /* f */ 4,
-                       /* 0 */ 0, /* 1 */ 1, /* 2 */ 1, /* 3 */ 2,
-                       /* 4 */ 1, /* 5 */ 2, /* 6 */ 2, /* 7 */ 3,
-                       /* 8 */ 1, /* 9 */ 2, /* a */ 2, /* b */ 3,
-                       /* c */ 2, /* d */ 3, /* e */ 3, /* f */ 4
-                );
-        }
 #endif
     }
 }
