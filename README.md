@@ -4,13 +4,13 @@ High performance, thread-safe in-memory caching primitives for .NET.
 
 [![NuGet version](https://badge.fury.io/nu/BitFaster.Caching.svg)](https://badge.fury.io/nu/BitFaster.Caching) ![Nuget](https://img.shields.io/nuget/dt/bitfaster.caching) ![.NET Core](https://github.com/bitfaster/BitFaster.Caching/workflows/.NET%20Core/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/bitfaster/BitFaster.Caching/badge.svg?branch=main)](https://coveralls.io/github/bitfaster/BitFaster.Caching?branch=main)
 
-
+BitFaster.Caching uses modern techniques to optimize hit rate, concurrent throughput and latency.
 
 # Features
 
-- [ConcurrentLru](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru), a lightweight pseudo LRU based on the [2Q](https://www.vldb.org/conf/1994/P439.PDF)) eviction policy. Offers size and time based eviction.
-- [ConcurrentLfu](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLfu), an approximate LFU based on the [W-TinyLFU](https://arxiv.org/pdf/1512.00727.pdf) eviction policy. ConcurrentLfu has near optimal hit rate and high scalability.
-- Configurable [atomic valueFactory](https://github.com/bitfaster/BitFaster.Caching/wiki/Atomic-GetOrAdd) to mitigate cache stampede.
+- [ConcurrentLru](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru), a lightweight pseudo LRU based on the [2Q](https://www.vldb.org/conf/1994/P439.PDF)) eviction policy. Also with [time based eviction](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentTLru).
+- [ConcurrentLfu](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLfu), an approximate LFU based on the [W-TinyLFU](https://arxiv.org/pdf/1512.00727.pdf) eviction policy.
+- Configurable [atomic valueFactory](https://github.com/bitfaster/BitFaster.Caching/wiki/Atomic-GetOrAdd) to mitigate [cache stampede](https://en.wikipedia.org/wiki/Cache_stampede).
 - Configurable [thread-safe wrappers for IDisposable](https://github.com/bitfaster/BitFaster.Caching/wiki/IDisposable-and-Scoped-values) cache values.
 - A [builder API](https://github.com/bitfaster/BitFaster.Caching/wiki/Cache-Builders) to easily configure cache features.
 - [SingletonCache](https://github.com/bitfaster/BitFaster.Caching/wiki/SingletonCache) for caching single instance values, such as lock objects.
@@ -24,7 +24,7 @@ Please refer to the [wiki](https://github.com/bitfaster/BitFaster.Caching/wiki) 
     
 BitFaster.Caching is installed from NuGet:
 
-`dotnet add package BitFaster.Caching` 
+`dotnet add package BitFaster.Caching`
 
 ## ConcurrentLru
 
