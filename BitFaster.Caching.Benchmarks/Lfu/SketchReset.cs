@@ -5,7 +5,7 @@ using BenchmarkDotNet.Jobs;
 namespace BitFaster.Caching.Benchmarks.Lfu
 {
     [SimpleJob(RuntimeMoniker.Net60)]
-    public class Reset
+    public class SketchReset
     {
         static long ResetMask = 0x7777777777777777L;
         static long OneMask = 0x1111111111111111L;
