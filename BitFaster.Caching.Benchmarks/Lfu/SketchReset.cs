@@ -1,8 +1,10 @@
 ﻿
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 
 namespace BitFaster.Caching.Benchmarks.Lfu
 {
+    [SimpleJob(RuntimeMoniker.Net60)]
     public class Reset
     {
         static long ResetMask = 0x7777777777777777L;
@@ -20,7 +22,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 
         [Benchmark(Baseline = true)]
-        public int ResetStd()
+        public int Reset1()
         {
             int count = 0;
             for (int i = 0; i < table.Length; i++)
@@ -30,6 +32,24 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             }
 
             return count;
+        }
+
+        [Benchmark()]
+        public int Reset2()
+        {
+            int count0 = 0;
+            int count1 = 0;
+
+            for (int i = 0; i < table.Length; i += 2)
+            {
+                count0 += BitOps.BitCount(table[i] & OneMask);
+                count1 += BitOps.BitCount(table[i + 1] & OneMask);
+
+                table[i] = (long)((ulong)table[i] >> 1) & ResetMask;
+                table[i + 1] = (long)((ulong)table[i + 1] >> 1) & ResetMask;
+            }
+
+            return count0 + count1;
         }
 
         [Benchmark()]
