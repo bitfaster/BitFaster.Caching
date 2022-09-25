@@ -8,9 +8,8 @@ namespace BitFaster.Caching.ThroughputAnalysis
     public class Runner
     {
         private static readonly int maxThreads = Host.GetAvailableCoreCount() * 2;
-        private const int repeatCount = 400;
 
-        public static void Run(Mode mode)
+        public static void Run(Mode mode, int cacheSize)
         {
             ThreadPool.SetMinThreads(maxThreads, maxThreads);
 
@@ -18,29 +17,29 @@ namespace BitFaster.Caching.ThroughputAnalysis
             {
                 if (mode.HasFlag(value) && value != Mode.All)
                 {
-                    RunTest(value);
+                    RunTest(value, cacheSize);
                 }
             }           
         }
 
-        private static void RunTest(Mode mode)
+        private static void RunTest(Mode mode, int cacheSize)
         {
             Console.WriteLine("Generating input distribution...");
 
-            var (bench, dataConfig, capacity) = ConfigFactory.Create(mode, repeatCount);
+            var (bench, dataConfig, capacity) = ConfigFactory.Create(mode, cacheSize, maxThreads);
 
             var cachesToTest = new List<ICacheFactory>();
-            cachesToTest.Add(new ClassicLruFactory(capacity));
-            cachesToTest.Add(new MemoryCacheFactory(capacity));
-            cachesToTest.Add(new FastConcurrentLruFactory(capacity));
-            cachesToTest.Add(new ConcurrentLruFactory(capacity));
+            //cachesToTest.Add(new ClassicLruFactory(capacity));
+            //cachesToTest.Add(new MemoryCacheFactory(capacity));
+            //cachesToTest.Add(new FastConcurrentLruFactory(capacity));
+            //cachesToTest.Add(new ConcurrentLruFactory(capacity));
             cachesToTest.Add(new ConcurrentLfuFactory(capacity));
 
             var exporter = new Exporter(maxThreads);
             exporter.Initialize(cachesToTest);
 
             Console.WriteLine();
-            Console.WriteLine($"Running {mode}...");
+            Console.WriteLine($"Running {mode} with size {cacheSize} over {maxThreads} threads...");
             Console.WriteLine();
 
             foreach (int tc in Enumerable.Range(1, maxThreads).ToArray())
@@ -63,7 +62,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             exporter.CaptureRows(cachesToTest);
 
-            exporter.ExportCsv(mode);
+            exporter.ExportCsv(mode, cacheSize);
 
             //ConsoleTable
             //    .From(resultTable)
