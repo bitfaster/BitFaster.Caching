@@ -21,12 +21,12 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
         // distribution (about 45 / 20). 
 
         // Took 1 million samples
-        const int sampleCount = 1000000;
+        const int sampleCount = 1_000_000;
 
         // Simulated a database of 50,000 pages and
         // buffer sizes ranging from 2,500 (5%) items to 20,000
         // (40%) items.
-        const int n = 50000;
+        const int n = 50_000;
 
         public static void Run()
         {

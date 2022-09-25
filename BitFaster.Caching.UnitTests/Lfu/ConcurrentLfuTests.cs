@@ -687,7 +687,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void VerifyHitsWithBackgroundScheduler()
         {
             // when running all tests in parallel, sample count drops significantly: set low bar for stability.
-            VerifyHits(iterations: 10000000, minSamples: 250000);
+            VerifyHits(iterations: 10_000_000, minSamples: 250_000);
         }
 
         //Elapsed 590.8154ms - 0.0005908154ns/op
@@ -698,7 +698,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             // when running all tests in parallel, sample count drops significantly: set low bar for stability.
             cache = new ConcurrentLfu<int, int>(1, 20, new ThreadPoolScheduler(), EqualityComparer<int>.Default);
-            VerifyHits(iterations: 10000000, minSamples: 500000);
+            VerifyHits(iterations: 10_000_000, minSamples: 500_000);
         }
 
         //Elapsed 273.0148ms - 0.0002730148ns/op
@@ -708,7 +708,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void VerifyHitsWithNullScheduler()
         {
             cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default);
-            VerifyHits(iterations: 10000000, minSamples: -1);
+            VerifyHits(iterations: 10_000_000, minSamples: -1);
         }
 
         //Will drop 78125 reads.
@@ -722,7 +722,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             // Note: TryAdd will drop 1 read per full read buffer, since TryAdd will return false
             // before TryScheduleDrain is called. This serves as sanity check.
-            int iterations = 10000000;
+            int iterations = 10_000_000;
             int dropped = iterations / ConcurrentLfu<int, int>.DefaultBufferSize;
 
             this.output.WriteLine($"Will drop {dropped} reads.");
@@ -735,7 +735,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
 
-            int iterations = 100000;
+            int iterations = 100_000;
             Func<int, int> func = x => x;
 
             var start = Stopwatch.GetTimestamp();
@@ -751,7 +751,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             var totalTicks = end - start;
             var timeMs = ((double)totalTicks / Stopwatch.Frequency) * 1000.0;
-            var timeNs = timeMs / 1000000;
+            var timeNs = timeMs / 1_000_000;
 
             var timePerOp = timeMs / (double)iterations;
             var samplePercent = this.cache.Metrics.Value.Misses / (double)iterations * 100;
@@ -770,7 +770,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default);
 
             int threads = 4;
-            int iterations = 100000;
+            int iterations = 100_000;
 
             await Threaded.Run(threads, i => 
             {
@@ -808,7 +808,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             var totalTicks = end - start;
             var timeMs = ((double)totalTicks / Stopwatch.Frequency) * 1000.0;
-            var timeNs = timeMs / 1000000;
+            var timeNs = timeMs / 1_000_000;
 
             var timePerOp = timeMs / (double)iterations;
             var samplePercent = this.cache.Metrics.Value.Hits / (double)iterations * 100;
