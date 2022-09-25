@@ -46,9 +46,9 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
         }
 
-        public void ExportCsv(Mode mode)
+        public void ExportCsv(Mode mode, int cacheSize)
         {
-            using (var textWriter = File.CreateText($"Results{mode}.csv"))
+            using (var textWriter = File.CreateText($"Results_{mode}_{cacheSize}.csv"))
             using (var csv = new CsvWriter(textWriter, CultureInfo.InvariantCulture))
             {
                 foreach (DataColumn column in resultTable.Columns)
