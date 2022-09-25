@@ -38,7 +38,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
                     a.TestKey(url);
                 }
 
-                if (count++ % 100000 == 0)
+                if (count++ % 100_000 == 0)
                 {
                     Console.WriteLine($"Processed {count} URIs...");
                 }

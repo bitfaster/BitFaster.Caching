@@ -27,7 +27,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
 
             // return million ops/sec
-            const int oneMillion = 1000000;
+            const int oneMillion = 1_000_000;
             return AverageLast(results, runs) / oneMillion;
         }
 

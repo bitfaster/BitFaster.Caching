@@ -4,229 +4,50 @@ High performance, thread-safe in-memory caching primitives for .NET.
 
 [![NuGet version](https://badge.fury.io/nu/BitFaster.Caching.svg)](https://badge.fury.io/nu/BitFaster.Caching) ![Nuget](https://img.shields.io/nuget/dt/bitfaster.caching) ![.NET Core](https://github.com/bitfaster/BitFaster.Caching/workflows/.NET%20Core/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/bitfaster/BitFaster.Caching/badge.svg?branch=main)](https://coveralls.io/github/bitfaster/BitFaster.Caching?branch=main)
 
-# Installing via NuGet
-`Install-Package BitFaster.Caching`
+BitFaster.Caching uses modern techniques to optimize hit rate, concurrent throughput and latency.
 
-# Quick Start
+# Features
 
-Please refer to the [wiki](https://github.com/bitfaster/BitFaster.Caching/wiki) for more detailed documentation.
+- [ConcurrentLru](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru), a lightweight pseudo LRU based on the [2Q](https://www.vldb.org/conf/1994/P439.PDF)) eviction policy. Also with [time based eviction](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentTLru).
+- [ConcurrentLfu](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLfu), an approximate LFU based on the [W-TinyLFU](https://arxiv.org/pdf/1512.00727.pdf) eviction policy.
+- Configurable [atomic valueFactory](https://github.com/bitfaster/BitFaster.Caching/wiki/Atomic-GetOrAdd) to mitigate [cache stampede](https://en.wikipedia.org/wiki/Cache_stampede).
+- Configurable [thread-safe wrappers for IDisposable](https://github.com/bitfaster/BitFaster.Caching/wiki/IDisposable-and-Scoped-values) cache values.
+- A [builder API](https://github.com/bitfaster/BitFaster.Caching/wiki/Cache-Builders) to easily configure cache features.
+- [SingletonCache](https://github.com/bitfaster/BitFaster.Caching/wiki/SingletonCache) for caching single instance values, such as lock objects.
+- High performance [concurrent counters](https://github.com/bitfaster/BitFaster.Caching/wiki/Metrics).
+
+# Documentation
+
+Please refer to the [wiki](https://github.com/bitfaster/BitFaster.Caching/wiki) for full API documentation, and a complete analysis of hit rate, latency and throughput.
+
+# Getting started
     
+BitFaster.Caching is installed from NuGet:
+
+`dotnet add package BitFaster.Caching`
+
 ## ConcurrentLru
 
-`ConcurrentLru` is a light weight drop in replacement for `ConcurrentDictionary`, but with bounded size enforced by a pseudo LRU eviction policy. There are no background threads, no lock contention, lookups are fast and hit rate outperforms a pure LRU in all tested scenarios.
+`ConcurrentLru` is a light weight drop in replacement for `ConcurrentDictionary`, but with bounded size enforced by the TU-Q eviction policy (similar to [2Q](https://www.vldb.org/conf/1994/P439.PDF)). There are no background threads, no global locks, concurrent throughput is high, lookups are fast and hit rate outperforms a pure LRU in all tested scenarios.
 
-Choose a capacity and use just like ConcurrentDictionary, but with bounded size:
+Choose a capacity and use just like `ConcurrentDictionary`, but with bounded size:
 
 ```csharp
 int capacity = 666;
-var lru = new ConcurrentLru<int, SomeItem>(capacity);
+var lru = new ConcurrentLru<string, SomeItem>(capacity);
 
-var value = lru.GetOrAdd(1, (k) => new SomeItem(k));
-var value = await lru.GetOrAddAsync(0, (k) => Task.FromResult(new SomeItem(k)));
+var value = lru.GetOrAdd("key", (key) => new SomeItem(key));
 ```
 
-## Atomic GetOrAdd
+## ConcurrentLfu
 
-ConcurrentDictionary GetOrAdd is not performed atomically. In other words, concurrent requests for the same key can invoke the valueFactory delegate multiple times, and the last write wins. 
+`ConcurrentLfu` is a drop in replacement for `ConcurrentDictionary`, but with bounded size enforced by the [W-TinyLFU eviction policy](https://arxiv.org/pdf/1512.00727.pdf). `ConcurrentLfu` has near optimal hit rate and high scalability. Reads and writes are buffered then replayed asynchronously to mitigate lock contention.
 
-ConcurrentLru can be configured to use atomic GetOrAdd using the ConcurrentLruBuilder:
+Choose a capacity and use just like `ConcurrentDictionary`, but with bounded size:
 
 ```csharp
-var lru = new ConcurrentLruBuilder<int, SomeItem>()
-    .WithCapacity(666)
-    .WithAtomicGetOrAdd()
-    .Build();
+int capacity = 666;
+var lfu = new ConcurrentLfu<string, SomeItem>(capacity);
 
-var value = lru.GetOrAdd(1, (k) => new SomeItem(k));
+var value = lfu.GetOrAdd("key", (key) => new SomeItem(key));
 ```
-
-## Time based eviction
-
-`ConcurrentTLru` functions the same as `ConcurrentLru`, but entries also expire after a fixed duration since creation or most recent replacement. This can be used to remove stale items. If the values generated for each key can change over time, `ConcurrentTLru` is eventually consistent where the inconsistency window = time to live (TTL).
-
-```csharp
-var lru = new ConcurrentLruBuilder<int, SomeItem>()
-    .WithCapacity(666)
-    .WithExpireAfterWrite(TimeSpan.FromMinutes(5))
-    .Build();
-
-var value = lru.GetOrAdd(1, (k) => new SomeItem(k));
-```
-
-## Caching IDisposable values
-
-It can be useful to combine object pooling and caching to reduce allocations, using IDisposable to return objects to the pool. All cache classes in BitFaster.Caching own the lifetime of cached values, and will automatically dispose values when they are evicted. 
-
-To avoid races using objects after they have been disposed by the cache, use `IScopedCache` which wraps values in `Scoped<T>`. The call to `ScopedGetOrAdd` creates a `Lifetime` that guarantees the scoped object will not be disposed until the lifetime is disposed. Scoped cache is thread safe, and guarantees correct disposal for concurrent lifetimes. 
-
-```csharp
-var lru = new ConcurrentLruBuilder<int, Disposable>()
-    .WithCapacity(666)
-    .AsScopedCache()
-    .Build();
-var valueFactory = new SomeDisposableValueFactory();
-
-using (var lifetime = lru.ScopedGetOrAdd(1, valueFactory.Create))
-{
-    // lifetime.Value is guaranteed to be alive until the lifetime is disposed
-}
-```
-```csharp
-class SomeDisposableValueFactory
-{
-   public Scoped<SomeDisposable>> Create(int key)
-   {
-      return new Scoped<SomeDisposable>(new SomeDisposable(key));
-   }
-}
-```
-
-## Caching Singletons by key
-
-`SingletonCache` enables mapping every key to a single instance of a value, and keeping the value alive only while it is in use. This is useful when the total number of keys is large, but few will be in use at any moment and removing an item while in use would result in an invalid program state.
-
-The example below shows how to implement exclusive Url access using a lock object per Url. 
-
-```csharp
-
-var urlLocks = new SingletonCache<Url, object>();
-
-Url url = new Url("https://foo.com");
-
-using (var lifetime = urlLocks.Acquire(url))
-{
-   lock (lifetime.Value)
-   {
-      // exclusive url access
-   }
-}
-
-```
-
-
-# Performance
-
-*DISCLAIMER: Always measure performance in the context of your application. The results provided here are intended as a guide.*
-    
-The cache replacement policy must maximize the cache hit rate, and minimize the computational and space overhead involved in implementing the policy. Below an analysis of hit rate vs cache size, latency and throughput is provided.  
-
-## ConcurrentLru Hit rate
-
-The charts below show the relative hit rate of classic LRU vs Concurrent LRU on a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) of input keys, with parameter *s* = 0.5 and *s* = 0.86 respectively. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
-
-Here *N* = 50000, and we take 1 million sample keys. The hit rate is the number of times we get a cache hit divided by 1 million.
-This test was repeated with the cache configured to different sizes expressed as a percentage *N* (e.g. 10% would be a cache with a capacity 5000). ConcurrentLru is configured with the default `FavorFrequencyPartition` to allocate internal queue capacity (see [here](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru#how-it-works) for details).
-
-<table>
-  <tr>
-    <td>
-<img src="https://user-images.githubusercontent.com/12851828/178164042-ecea02ee-df6f-4641-9a58-1357ec3cf292.png" width="350"/>
-</td>
-    <td>
-<img src="https://user-images.githubusercontent.com/12851828/178164023-fdd8bea3-b7b0-4c44-be1a-843656ba5f9a.png" width="350"/>
-</td>
-   </tr> 
-</table>
-
-As above, but interleaving a sequential scan of every key (aka sequential flooding). In this case, ConcurrentLru performs significantly better across the board, and is therefore more resistant to scanning.
-
-<table>
-  <tr>
-    <td>
-<img src="https://user-images.githubusercontent.com/12851828/178164070-cc317a51-bba4-4e2d-af95-f4210ae7c888.png" width="350"/>
-</td>
-    <td>
-<img src="https://user-images.githubusercontent.com/12851828/178164094-83ce2e97-f3c3-406d-b39e-4196388ac0a6.png" width="350"/>
-</td>
-   </tr> 
-</table>
-
-These charts summarize the percentage increase in hit rate for ConcurrentLru vs LRU. Increase is in hit rate is significant at lower cache sizes, outperforming the classic LRU by over 150% when *s* = 0.5 in the best case for both Zipf and scan access patterns.
-
-<table>
-  <tr>
-    <td>
-<img src="https://user-images.githubusercontent.com/12851828/178164132-365cfa9b-bd64-48a0-a2e0-d33a4dd0c83d.png" width="350"/>
-</td>
-    <td>
-<img src="https://user-images.githubusercontent.com/12851828/178164153-969501a1-c400-4464-8439-058d59d1a595.png" width="350"/>
-</td>
-   </tr> 
-</table>
-
-## ConcurrentLru Latency
-
-In these benchmarks, a cache miss is essentially free. These tests exist purely to compare the raw execution speed of the cache bookkeeping code. In a real setting, where a cache miss is presumably quite expensive, the relative overhead of the cache will be very small.
-
-Benchmarks are based on BenchmarkDotNet, so are single threaded. The ConcurrentLru family of classes are composed internally of ConcurrentDictionary.GetOrAdd and ConcurrentQueue.Enqueue/Dequeue method calls, and scale well to concurrent workloads.
-
-Benchmark results below are from a workstation with the following config:
-
-~~~
-BenchmarkDotNet=v0.13.1, OS=Windows 10.0.22000
-Intel Xeon W-2133 CPU 3.60GHz, 1 CPU, 12 logical and 6 physical cores
-  [Host]             : .NET Framework 4.8 (4.8.4510.0), X64 RyuJIT
-  .NET 6.0           : .NET 6.0.5 (6.0.522.21309), X64 RyuJIT
-  .NET Framework 4.8 : .NET Framework 4.8 (4.8.4510.0), X64 RyuJIT
-~~~
-
-The relative ranking of each cache implementation is stable across .NET Framework/Core/5/6 and on the CPU architectures available in Azure (e.g. Intel Skylake, AMD Zen). Absolute performance can vary.
-
-### What are FastConcurrentLru/FastConcurrentTLru?
-
-These are classes that execute with the hit counting logic eliminated (via JIT). If hit counts are not required, this makes the code around 10% faster.
-
-### Lookup keys with a Zipf distribution
-
-Take 1000 samples of a [Zipfian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law) over a set of keys of size *N* and use the keys to lookup values in the cache. If there are *N* items, the probability of accessing an item numbered *i* or less is (*i* / *N*)^*s*. 
-
-*s* = 0.86 (yields approx 80/20 distribution)<br>
-*N* = 500
-
-Cache size = *N* / 10 (so we can cache 10% of the total set). ConcurrentLru has approximately the same computational overhead as a standard LRU in this single threaded test.
-
-|             Method |     Mean |   Error |  StdDev | Ratio | RatioSD |
-|------------------- |---------:|--------:|--------:|------:|--------:|
-|         ClassicLru | 175.7 ns | 2.75 ns | 2.43 ns |  1.00 |    0.00 |
-|  FastConcurrentLru | 180.2 ns | 2.55 ns | 2.26 ns |  1.03 |    0.02 |
-|      ConcurrentLru | 189.1 ns | 3.14 ns | 2.94 ns |  1.08 |    0.03 |
-| FastConcurrentTLru | 261.4 ns | 4.53 ns | 4.01 ns |  1.49 |    0.04 |
-|     ConcurrentTLru | 266.1 ns | 3.96 ns | 3.51 ns |  1.51 |    0.03 |
-
-### Raw Lookup speed
-
-In this test the same items are fetched repeatedly, no items are evicted. Representative of high hit rate scenario, when there are a low number of hot items.
-
-- ConcurrentLru family does not move items in the queues, it is just marking as accessed for pure cache hits.
-- Classic Lru must maintain item order, and is internally splicing the fetched item to the head of the linked list.
-- MemoryCache and ConcurrentDictionary represent a pure lookup. This is the best case scenario for MemoryCache, since the lookup key is a string (if the key were a Guid, using MemoryCache adds string conversion overhead). 
-
-FastConcurrentLru does not allocate and is approximately 5-10x faster than System.Runtime.Caching.MemoryCache or the newer Microsoft.Extensions.Caching.Memory.MemoryCache.
-
-|                   Method |           Runtime |       Mean |    StdDev | Ratio |Allocated |
-|------------------------- |------------------ |-----------:|----------:|------:|---------:|
-|     ConcurrentDictionary |          .NET 6.0 |   7.783 ns | 0.0720 ns |  1.00 |        - |
-|        FastConcurrentLru |          .NET 6.0 |   9.773 ns | 0.0361 ns |  1.26 |        - |
-|            ConcurrentLru |          .NET 6.0 |  13.615 ns | 0.0606 ns |  1.75 |        - |
-|       FastConcurrentTLru |          .NET 6.0 |  25.480 ns | 0.0935 ns |  3.28 |        - |
-|           ConcurrentTLru |          .NET 6.0 |  29.890 ns | 0.2107 ns |  3.84 |        - |
-|               ClassicLru |          .NET 6.0 |  54.422 ns | 0.2935 ns |  7.00 |        - |
-|    RuntimeMemoryCacheGet |          .NET 6.0 | 115.016 ns | 0.6619 ns | 14.79 |     32 B |
-| ExtensionsMemoryCacheGet |          .NET 6.0 |  53.328 ns | 0.2130 ns |  6.85 |     24 B |
-|                          |                   |            |           |       |          |
-|     ConcurrentDictionary |.NET Framework 4.8 |  13.644 ns | 0.0601 ns |  1.00 |        - |
-|        FastConcurrentLru |.NET Framework 4.8 |  14.639 ns | 0.0892 ns |  1.07 |        - |
-|            ConcurrentLru |.NET Framework 4.8 |  17.008 ns | 0.2538 ns |  1.25 |        - |
-|       FastConcurrentTLru |.NET Framework 4.8 |  43.854 ns | 0.0827 ns |  3.22 |        - |
-|           ConcurrentTLru |.NET Framework 4.8 |  47.954 ns | 1.2772 ns |  3.52 |        - |
-|               ClassicLru |.NET Framework 4.8 |  62.683 ns | 0.8105 ns |  4.60 |        - |
-|    RuntimeMemoryCacheGet |.NET Framework 4.8 | 287.627 ns | 1.3691 ns | 21.08 |     32 B |
-| ExtensionsMemoryCacheGet |.NET Framework 4.8 | 114.511 ns | 0.5902 ns |  8.39 |     24 B |
-
-## ConcurrentLru Throughput
-
-In this test, we generate 2000 samples of 500 keys with a Zipfian distribution (s = 0.86). Caches have size 50. From N concurrent threads, fetch the sample keys in sequence (each thread is using the same input keys). The principal scalability limit in concurrent applications is the exclusive resource lock. As the number of threads increases, ConcurrentLru significantly outperforms an LRU implemented with a short lived exclusive lock used to synchronize the linked list data structure.
-
-This test was run on a Standard D16s v3 Azure VM (16 cpus), with .NET Core 3.1.
-
-![image](https://user-images.githubusercontent.com/12851828/86203563-2f941880-bb1a-11ea-8d6a-70ece91b4362.png)

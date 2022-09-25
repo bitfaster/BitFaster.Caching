@@ -123,7 +123,7 @@ namespace BitFaster.Caching.UnitTests
             {
                 tasks[concurrency] = Task.Run(() =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < 100_000; i++)
                     {
                         using (var lifetime = cache.Acquire("Foo"))
                         {

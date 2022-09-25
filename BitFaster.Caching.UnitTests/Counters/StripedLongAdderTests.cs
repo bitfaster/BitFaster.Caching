@@ -30,13 +30,13 @@ namespace BitFaster.Caching.UnitTests.Counters
 
             await Threaded.Run(4, () => 
             {
-                for (int i = 0; i < 100000; i++)
+                for (int i = 0; i < 100_000; i++)
                 {
                     adder.Increment();
                 }
             });
 
-            adder.Count().Should().Be(400000);
+            adder.Count().Should().Be(400_000);
         }
     }
 }
