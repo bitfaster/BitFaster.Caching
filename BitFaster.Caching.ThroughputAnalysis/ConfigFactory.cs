@@ -27,7 +27,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 case Mode.Update:
                     return (new UpdateThroughputBenchmark(), new ZipfConfig(iterations, samples, s, n), cacheSize);
                 case Mode.Evict:
-                    return (new ReadThroughputBenchmark(), new EvictionConfig(iterations, samples, maxThreads), cacheSize);
+                    return (new ReadThroughputBenchmark() { Initialize = c => EvictionInit(c) }, new EvictionConfig(iterations, samples, maxThreads), cacheSize);
             }
 
             throw new InvalidOperationException();
@@ -50,5 +50,13 @@ namespace BitFaster.Caching.ThroughputAnalysis
             < 5_000_000 => cacheSize * 2,
             _ => cacheSize
         };
+
+        private static void EvictionInit(ICache<int, int> cache)
+        {
+            Parallel.ForEach(Enumerable.Range(0, cache.Policy.Eviction.Value.Capacity).Select(i => -i), i =>
+            {
+                cache.GetOrAdd(i, key => i);
+            });
+        }
     }
 }
