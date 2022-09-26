@@ -13,9 +13,13 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public abstract class ThroughputBenchmarkBase
     {
+        public Action<ICache<int, int>> Initialize { get; set; }
+
         public double Run(int warmup, int runs, int threads, IThroughputBenchConfig config, ICache<int, int> cache)
         {
             double[] results = new double[warmup + runs];
+
+            Initialize?.Invoke(cache);
 
             for (int i = 0; i < warmup + runs; i++)
             {
