@@ -210,6 +210,8 @@ namespace BitFaster.Caching.Lfu
                     AfterWrite(node);
                     return node.Value;
                 }
+
+                Disposer<V>.Dispose(node.Value);
             }
         }
 
@@ -229,6 +231,8 @@ namespace BitFaster.Caching.Lfu
                     AfterWrite(node);
                     return node.Value;
                 }
+
+                Disposer<V>.Dispose(node.Value);
             }
         }
 
