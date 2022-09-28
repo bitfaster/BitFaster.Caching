@@ -12,6 +12,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
     {
         MemoryCacheOptionsAccessor accessor;
         MemoryCache exMemoryCache;
+        CachePolicy policy;
 
         public MemoryCacheAdaptor(int capacity)
         {
@@ -19,6 +20,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             accessor.Value.SizeLimit = capacity;
 
             exMemoryCache = new MemoryCache(accessor);
+            policy = new CachePolicy(new Optional<IBoundedPolicy>(new BoundedPolicy(capacity)), Optional<ITimePolicy>.None());
         }
 
         public int Count => throw new NotImplementedException();
@@ -27,7 +29,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public Optional<ICacheEvents<K, V>> Events => throw new NotImplementedException();
 
-        public CachePolicy Policy => throw new NotImplementedException();
+        public CachePolicy Policy => this.policy;
 
         public ICollection<K> Keys => throw new NotImplementedException();
 
@@ -80,6 +82,23 @@ namespace BitFaster.Caching.ThroughputAnalysis
         IEnumerator IEnumerable.GetEnumerator()
         {
             throw new NotImplementedException();
+        }
+
+        private class BoundedPolicy : IBoundedPolicy
+        {
+            private int capacity;
+
+            public BoundedPolicy(int capacity)
+            {
+                this.capacity = capacity;
+            }
+
+            public int Capacity => this.capacity;
+
+            public void Trim(int itemCount)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 
