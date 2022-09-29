@@ -26,9 +26,6 @@ namespace BitFaster.Caching.ThroughputAnalysis
             this.iterations = iterations;
 
             samples = FastZipf.Generate(sampleCount, s, n);
-
-            //Random random = new Random(666);
-            //Zipf.Samples(random, samples, s, n);
         }
 
         public int Iterations => iterations;
