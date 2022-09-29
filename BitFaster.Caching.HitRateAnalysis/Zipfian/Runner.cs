@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.ThroughputAnalysis;
 using MathNet.Numerics;
 using MathNet.Numerics.Distributions;
 
@@ -58,8 +59,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
             {
                 Console.WriteLine($"Generating Zipfian distribution with {sampleCount} samples, s = {sValues[index]}, N = {n}");
                 var sw = Stopwatch.StartNew();
-                zipdfDistribution[index] = new int[sampleCount];
-                Zipf.Samples(zipdfDistribution[index], sValues[index], n);
+                zipdfDistribution[index] = FastZipf.Generate(new Random(666), sampleCount, sValues[index], n);
                 Console.WriteLine($"Took {sw.Elapsed} for s = {sValues[index]}.");
             });
 
