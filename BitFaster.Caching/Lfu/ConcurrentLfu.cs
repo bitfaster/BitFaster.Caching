@@ -57,7 +57,7 @@ namespace BitFaster.Caching.Lfu
 
         private readonly CacheMetrics metrics = new CacheMetrics();
 
-        private readonly CmSketchBlockV2<K, DetectIsa> cmSketch;
+        private readonly CmSketchSegmentBlock<K, DetectIsa> cmSketch;
 
         private readonly LfuNodeList<K, V> windowLru;
         private readonly LfuNodeList<K, V> probationLru;
@@ -100,7 +100,7 @@ namespace BitFaster.Caching.Lfu
             int writeBufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);
             this.writeBuffer = new MpscBoundedBuffer<LfuNode<K, V>>(writeBufferSize);
 
-            this.cmSketch = new CmSketchBlockV2<K, DetectIsa>(capacity, comparer);
+            this.cmSketch = new CmSketchSegmentBlock<K, DetectIsa>(capacity, comparer);
             this.windowLru = new LfuNodeList<K, V>();
             this.probationLru = new LfuNodeList<K, V>();
             this.protectedLru = new LfuNodeList<K, V>();
@@ -621,11 +621,11 @@ namespace BitFaster.Caching.Lfu
 
         private ref struct EvictIterator
         {
-            private readonly CmSketchBlockV2<K, DetectIsa> sketch;
+            private readonly CmSketchSegmentBlock<K, DetectIsa> sketch;
             public LfuNode<K, V> node;
             public int freq;
 
-            public EvictIterator(CmSketchBlockV2<K, DetectIsa> sketch, LfuNode<K, V> node)
+            public EvictIterator(CmSketchSegmentBlock<K, DetectIsa> sketch, LfuNode<K, V> node)
             {
                 this.sketch = sketch;
                 this.node = node;
