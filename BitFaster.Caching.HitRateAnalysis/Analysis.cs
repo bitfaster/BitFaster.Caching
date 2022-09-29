@@ -14,17 +14,21 @@ namespace BitFaster.Caching.HitRateAnalysis
         private readonly ConcurrentLru<K, int> concurrentLru;
         private readonly ClassicLru<K, int> classicLru;
         private readonly ConcurrentLfu<K, int> concurrentLfu;
+        private readonly MemoryCacheAdaptor<K, int> memoryCache;
 
         public Analysis(int cacheSize)
         {
             concurrentLru = new ConcurrentLru<K, int>(1, cacheSize, EqualityComparer<K>.Default);
             classicLru = new ClassicLru<K, int>(1, cacheSize, EqualityComparer<K>.Default);
             concurrentLfu = new ConcurrentLfu<K, int>(1, cacheSize, new ForegroundScheduler(), EqualityComparer<K>.Default);
+            memoryCache = new MemoryCacheAdaptor<K, int>(cacheSize);
         }
 
         public int CacheSize => concurrentLru.Capacity;
 
         public double ClassicLruHitRate => classicLru.Metrics.Value.HitRatio * 100;
+
+        public double MemoryCacheHitRate => memoryCache.Metrics.Value.HitRatio * 100;
 
         public double ConcurrentLruHitRate => concurrentLru.Metrics.Value.HitRatio * 100;
 
@@ -35,6 +39,7 @@ namespace BitFaster.Caching.HitRateAnalysis
             concurrentLru.GetOrAdd(key, u => 1);
             classicLru.GetOrAdd(key, u => 1);
             concurrentLfu.GetOrAdd(key, u => 1);
+            memoryCache.GetOrAdd(key, u => 1);
         }
 
         public static void WriteToFile(string path, IEnumerable<Analysis<K>> results)

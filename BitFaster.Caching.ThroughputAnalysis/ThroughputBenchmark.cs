@@ -13,7 +13,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public abstract class ThroughputBenchmarkBase
     {
-        public Action<ICache<int, int>> Initialize { get; set;  }
+        public Action<ICache<int, int>> Initialize { get; set; }
 
         public double Run(int warmup, int runs, int threads, IThroughputBenchConfig config, ICache<int, int> cache)
         {

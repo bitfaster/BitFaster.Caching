@@ -187,18 +187,36 @@ namespace BitFaster.Caching.Lfu
         // https://stackoverflow.com/questions/50081465/counting-1-bits-population-count-on-large-data-using-avx-512-or-avx-2
         private void Reset()
         {
-            int count = 0;
-            for (int i = 0; i < table.Length; i++)
+            // unroll, almost 2x faster
+            int count0 = 0;
+            int count1 = 0;
+            int count2 = 0;
+            int count3 = 0;
+
+            for (int i = 0; i < table.Length; i += 4)
             {
-                count += BitOps.BitCount(table[i] & OneMask);
+                count0 += BitOps.BitCount(table[i] & OneMask);
+                count1 += BitOps.BitCount(table[i + 1] & OneMask);
+                count2 += BitOps.BitCount(table[i + 2] & OneMask);
+                count3 += BitOps.BitCount(table[i + 3] & OneMask);
+
                 table[i] = (long)((ulong)table[i] >> 1) & ResetMask;
+                table[i + 1] = (long)((ulong)table[i + 1] >> 1) & ResetMask;
+                table[i + 2] = (long)((ulong)table[i + 2] >> 1) & ResetMask;
+                table[i + 3] = (long)((ulong)table[i + 3] >> 1) & ResetMask;
             }
-            size = (size - (count >> 2)) >> 1;
+
+            count0 = (count0 + count1) + (count2 + count3);
+
+            size = (size - (count0 >> 2)) >> 1;
         }
 
         private void EnsureCapacity(long maximumSize)
         {
             int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);
+
+            // clamp to 4 as min size
+            maximum = Math.Max(4, maximum);
 
             table = new long[(maximum == 0) ? 1 : BitOps.CeilingPowerOfTwo(maximum)];
             tableMask = Math.Max(0, table.Length - 1);

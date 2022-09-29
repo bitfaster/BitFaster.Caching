@@ -6,13 +6,14 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 
-namespace BitFaster.Caching.ThroughputAnalysis
+namespace BitFaster.Caching.HitRateAnalysis
 {
     public class MemoryCacheAdaptor<K, V> : ICache<K, V>
     {
         MemoryCacheOptionsAccessor accessor;
         MemoryCache exMemoryCache;
         CachePolicy policy;
+        CacheMetrics metrics;
 
         public MemoryCacheAdaptor(int capacity)
         {
@@ -21,11 +22,12 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             exMemoryCache = new MemoryCache(accessor);
             policy = new CachePolicy(new Optional<IBoundedPolicy>(new BoundedPolicy(capacity)), Optional<ITimePolicy>.None());
+            metrics = new CacheMetrics();
         }
 
         public int Count => throw new NotImplementedException();
 
-        public Optional<ICacheMetrics> Metrics => throw new NotImplementedException();
+        public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(this.metrics);
 
         public Optional<ICacheEvents<K, V>> Events => throw new NotImplementedException();
 
@@ -59,6 +61,12 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 result = valueFactory(key);
                 entry.Value = result;
                 entry.SetSize(1);
+
+                this.metrics.requestMissCount++;
+            }
+            else
+            {
+                this.metrics.requestHitCount++;
             }
 
             return (V)result;
@@ -99,6 +107,24 @@ namespace BitFaster.Caching.ThroughputAnalysis
             {
                 throw new NotImplementedException();
             }
+        }
+
+        private class CacheMetrics : ICacheMetrics
+        {
+            public long requestHitCount;
+            public long requestMissCount;
+
+            public double HitRatio => (double)requestHitCount / (double)Total;
+
+            public long Total => requestHitCount + requestMissCount;
+
+            public long Hits => requestHitCount;
+
+            public long Misses => requestMissCount;
+
+            public long Evicted => throw new NotImplementedException();
+
+            public long Updated => throw new NotImplementedException();
         }
     }
 

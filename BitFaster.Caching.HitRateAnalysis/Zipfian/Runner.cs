@@ -4,7 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.ThroughputAnalysis;
 using MathNet.Numerics;
 using MathNet.Numerics.Distributions;
 
@@ -58,8 +60,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
             {
                 Console.WriteLine($"Generating Zipfian distribution with {sampleCount} samples, s = {sValues[index]}, N = {n}");
                 var sw = Stopwatch.StartNew();
-                zipdfDistribution[index] = new int[sampleCount];
-                Zipf.Samples(zipdfDistribution[index], sValues[index], n);
+                zipdfDistribution[index] = FastZipf.Generate(new Random(666), sampleCount, sValues[index], n);
                 Console.WriteLine($"Took {sw.Elapsed} for s = {sValues[index]}.");
             });
 
@@ -74,9 +75,13 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
 
                 var concurrentLru = new ConcurrentLru<int, int>(1, cacheSize, EqualityComparer<int>.Default);
                 var classicLru = new ClassicLru<int, int>(1, cacheSize, EqualityComparer<int>.Default);
+                var memCache = new MemoryCacheAdaptor<int, int>(cacheSize);
+                var concurrentLfu = new ConcurrentLfu<int, int>(cacheSize);
 
                 var concurrentLruScan = new ConcurrentLru<int, int>(1, cacheSize, EqualityComparer<int>.Default);
                 var classicLruScan = new ClassicLru<int, int>(1, cacheSize, EqualityComparer<int>.Default);
+                var memCacheScan = new MemoryCacheAdaptor<int, int>(cacheSize);
+                var concurrentLfuScan = new ConcurrentLfu<int, int>(cacheSize);
 
                 var d = a.s == 0.5 ? 0 : 1;
 
@@ -88,6 +93,14 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                 lruSw.Stop();
                 Console.WriteLine($"concurrentLru size={cacheSize} took {lruSw.Elapsed}.");
 
+                var lfuSw = Stopwatch.StartNew();
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    concurrentLfu.GetOrAdd(zipdfDistribution[d][i], func);
+                }
+                lfuSw.Stop();
+                Console.WriteLine($"concurrentLfu size={cacheSize} took {lfuSw.Elapsed}.");
+
                 var clruSw = Stopwatch.StartNew();
                 for (int i = 0; i < sampleCount; i++)
                 {
@@ -95,6 +108,14 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                 }
                 clruSw.Stop();
                 Console.WriteLine($"classic lru size={cacheSize} took {clruSw.Elapsed}.");
+
+                var memSw = Stopwatch.StartNew();
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    memCache.GetOrAdd(zipdfDistribution[d][i], func);
+                }
+                memSw.Stop();
+                Console.WriteLine($"memcache size={cacheSize} took {memSw.Elapsed}.");
 
                 var lruSwScan = Stopwatch.StartNew();
                 for (int i = 0; i < sampleCount; i++)
@@ -105,6 +126,15 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                 lruSwScan.Stop();
                 Console.WriteLine($"concurrentLruScan lru size={cacheSize} took {lruSwScan.Elapsed}.");
 
+                var lfuSwScan = Stopwatch.StartNew();
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    concurrentLfuScan.GetOrAdd(zipdfDistribution[d][i], func);
+                    concurrentLfuScan.GetOrAdd(i % n, func);
+                }
+                lfuSwScan.Stop();
+                Console.WriteLine($"concurrentLfuScan lru size={cacheSize} took {lfuSwScan.Elapsed}.");
+
                 var clruSwScan = Stopwatch.StartNew();
                 for (int i = 0; i < sampleCount; i++)
                 {
@@ -113,6 +143,15 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                 }
                 clruSwScan.Stop();
                 Console.WriteLine($"classicLruScan lru size={cacheSize} took {clruSwScan.Elapsed}.");
+
+                var memSwScan = Stopwatch.StartNew();
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    memCacheScan.GetOrAdd(zipdfDistribution[d][i], func);
+                    memCacheScan.GetOrAdd(i % n, func);
+                }
+                memSwScan.Stop();
+                Console.WriteLine($"memcacheScan size={cacheSize} took {memSwScan.Elapsed}.");
 
                 results.Add(new AnalysisResult
                 {
@@ -124,6 +163,18 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                     IsScan = false,
                     HitRatio = classicLru.Metrics.Value.HitRatio * 100.0,
                     Duration = clruSw.Elapsed,
+                });
+
+                results.Add(new AnalysisResult
+                {
+                    Cache = "MemoryCache",
+                    N = a.N,
+                    s = a.s,
+                    CacheSizePercent = a.CacheSizePercent * 100.0,
+                    Samples = a.Samples,
+                    IsScan = false,
+                    HitRatio = memCache.Metrics.Value.HitRatio * 100.0,
+                    Duration = memSw.Elapsed,
                 });
 
                 results.Add(new AnalysisResult
@@ -140,6 +191,18 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
 
                 results.Add(new AnalysisResult
                 {
+                    Cache = "ConcurrentLfu",
+                    N = a.N,
+                    s = a.s,
+                    CacheSizePercent = a.CacheSizePercent * 100.0,
+                    Samples = a.Samples,
+                    IsScan = false,
+                    HitRatio = concurrentLfu.Metrics.Value.HitRatio * 100.0,
+                    Duration = lfuSw.Elapsed,
+                });
+
+                results.Add(new AnalysisResult
+                {
                     Cache = "ClassicLru",
                     N = a.N,
                     s = a.s,
@@ -152,6 +215,18 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
 
                 results.Add(new AnalysisResult
                 {
+                    Cache = "MemoryCache",
+                    N = a.N,
+                    s = a.s,
+                    CacheSizePercent = a.CacheSizePercent * 100.0,
+                    Samples = a.Samples,
+                    IsScan = true,
+                    HitRatio = memCacheScan.Metrics.Value.HitRatio * 100.0,
+                    Duration = memSwScan.Elapsed,
+                });
+
+                results.Add(new AnalysisResult
+                {
                     Cache = "ConcurrentLru",
                     N = a.N,
                     s = a.s,
@@ -160,6 +235,18 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                     IsScan = true,
                     HitRatio = concurrentLruScan.Metrics.Value.HitRatio * 100.0,
                     Duration = lruSwScan.Elapsed,
+                });
+
+                results.Add(new AnalysisResult
+                {
+                    Cache = "ConcurrentLfu",
+                    N = a.N,
+                    s = a.s,
+                    CacheSizePercent = a.CacheSizePercent * 100.0,
+                    Samples = a.Samples,
+                    IsScan = true,
+                    HitRatio = concurrentLfuScan.Metrics.Value.HitRatio * 100.0,
+                    Duration = lfuSwScan.Elapsed,
                 });
             }
 
