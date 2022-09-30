@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+
+#if !NETSTANDARD2_0
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace BitFaster.Caching.Lfu
 {
@@ -26,9 +30,9 @@ namespace BitFaster.Caching.Lfu
 
         public int Size => this.size;
 
-        public int EstimateFrequency(T value)
+        public unsafe int EstimateFrequency(T value)
         {
-            int[] count = new int[4];
+            var count = stackalloc int[4];
             int blockHash = Spread(comparer.GetHashCode(value));
             int counterHash = Rehash(blockHash);
             int block = (blockHash & blockMask) << 3;
@@ -43,9 +47,9 @@ namespace BitFaster.Caching.Lfu
             return Math.Min(Math.Min(count[0], count[1]), Math.Min(count[2], count[3]));
         }
 
-        public void Increment(T value)
+        public unsafe void Increment(T value)
         {
-            int[] index = new int[8];
+            var index = stackalloc int[8];
             int blockHash = Spread(comparer.GetHashCode(value));
             int counterHash = Rehash(blockHash);
             int block = (blockHash & blockMask) << 3;
@@ -143,5 +147,109 @@ namespace BitFaster.Caching.Lfu
 
             size = (size - (count0 >> 2)) >> 1;
         }
+#if !NETSTANDARD2_0
+        private unsafe int EstimateFrequencyAvx(T value)
+        {
+            int blockHash = Spread(comparer.GetHashCode(value));
+            int counterHash = Rehash(blockHash);
+            int block = (blockHash & blockMask) << 3;
+
+            Vector128<int> h = Vector128.Create(counterHash);
+            h = Avx2.ShiftRightLogical(h.AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
+
+            var index = Avx2.ShiftRightLogical(h, 3);
+            index = Avx2.And(index, Vector128.Create(15));
+            Vector128<int> offset = Avx2.And(h, Vector128.Create(7));
+            var blockOffset = Avx2.Add(Vector128.Create(block), offset);
+
+            // incAt
+            blockOffset = Avx2.ShiftLeftLogical(blockOffset, 2);
+
+
+            var blockIndex = Vector128.Create(block);
+            blockIndex = Avx2.Add(blockIndex, offset);
+            blockIndex = Avx2.Add(blockIndex, Vector128.Create(0, 2, 4, 6)); // (i << 1)
+
+            fixed (long* tablePtr = &table[0])
+            {
+                var tableVector = Avx2.GatherVector256(tablePtr, blockIndex, 8);
+                index = Avx2.ShiftLeftLogical(index, 2);
+
+                // convert index from int to long via permute
+                Vector256<long> indexLong = Vector256.Create(index, Vector128.Create(0)).AsInt64();
+                Vector256<int> permuteMask2 = Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7);
+                indexLong = Avx2.PermuteVar8x32(indexLong.AsInt32(), permuteMask2).AsInt64();
+                tableVector = Avx2.ShiftRightLogicalVariable(tableVector, indexLong.AsUInt64());
+                tableVector = Avx2.And(tableVector, Vector256.Create(0xfL));
+
+                Vector256<int> permuteMask = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
+                Vector128<ushort> count = Avx2.PermuteVar8x32(tableVector.AsInt32(), permuteMask)
+                    .GetLower()
+                    .AsUInt16();
+
+                // set the zeroed high parts of the long value to ushort.Max
+                count = Avx2.Blend(count, Vector128.Create(ushort.MaxValue), 0b10101010);
+                return Avx2.MinHorizontal(count).GetElement(0);
+            }
+        }
+
+        //private unsafe void IncrementAvx(T value)
+        //{
+        //    int baseHash = BaseHash(comparer.GetHashCode(value));
+        //    int blockHash = BlockHash(baseHash);
+        //    int counterHash = CounterHash(blockHash);
+        //    int block = (blockHash & blockMask) << 3;
+
+        //    Vector128<int> h = Vector128.Create(counterHash);
+        //    h = Avx2.ShiftRightLogical(h.AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
+
+        //    Vector128<int> offset = Avx2.And(h, Vector128.Create(1));
+        //    var index = Avx2.ShiftRightLogical(h, 1);
+        //    index = Avx2.And(index, Vector128.Create(15));
+
+        //    var blockIndex = Vector128.Create(block);
+        //    blockIndex = Avx2.Add(blockIndex, offset);
+        //    blockIndex = Avx2.Add(blockIndex, Vector128.Create(0, 2, 4, 6)); // (i << 1)
+
+        //    fixed (long* tablePtr = &table[0])
+        //    {
+        //        var tableVector = Avx2.GatherVector256(tablePtr, blockIndex, 8);
+
+        //        // j == index
+        //        Vector256<long> offsetLong = Vector256.Create(offset, Vector128.Create(0)).AsInt64();
+
+        //        Vector256<int> permuteMask2 = Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7);
+        //        var fifteen2 = Vector256.Create(0xfL);
+        //        offsetLong = Avx2.PermuteVar8x32(offsetLong.AsInt32(), permuteMask2).AsInt64();
+
+        //        // mask = (0xfL << offset)
+        //        Vector256<long> fifteen = Vector256.Create(0xfL);
+        //        Vector256<long> mask = Avx2.ShiftLeftLogicalVariable(fifteen, offsetLong.AsUInt64());
+
+        //        // (table[i] & mask) != mask)
+        //        // Note masked is 'equal' - therefore use AndNot below
+        //        Vector256<long> masked = Avx2.CompareEqual(Avx2.And(tableVector, mask), mask);
+
+        //        // 1L << offset
+        //        Vector256<long> inc = Avx2.ShiftLeftLogicalVariable(Vector256.Create(1L), offsetLong.AsUInt64());
+
+        //        // Mask to zero out non matches (add zero below) - first operand is NOT then AND result (order matters)
+        //        inc = Avx2.AndNot(masked, inc);
+
+        //        *(tablePtr + blockIndex.GetElement(0)) += inc.GetElement(0);
+        //        *(tablePtr + blockIndex.GetElement(1)) += inc.GetElement(1);
+        //        *(tablePtr + blockIndex.GetElement(2)) += inc.GetElement(2);
+        //        *(tablePtr + blockIndex.GetElement(3)) += inc.GetElement(3);
+
+        //        Vector256<byte> result = Avx2.CompareEqual(masked.AsByte(), Vector256.Create(0).AsByte());
+        //        bool wasInc = Avx2.MoveMask(result.AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
+
+        //        if (wasInc && (++size == sampleSize))
+        //        {
+        //            Reset();
+        //        }
+        //    }
+        //}
+#endif
     }
 }
