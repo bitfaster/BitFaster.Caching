@@ -215,13 +215,28 @@ namespace BitFaster.Caching.Lfu
 
         private void Reset()
         {
-            int count = 0;
-            for (int i = 0; i < table.Length; i++)
+            // unroll, almost 2x faster
+            int count0 = 0;
+            int count1 = 0;
+            int count2 = 0;
+            int count3 = 0;
+
+            for (int i = 0; i < table.Length; i += 4)
             {
-                count += BitOps.BitCount(table[i] & OneMask);
+                count0 += BitOps.BitCount(table[i] & OneMask);
+                count1 += BitOps.BitCount(table[i + 1] & OneMask);
+                count2 += BitOps.BitCount(table[i + 2] & OneMask);
+                count3 += BitOps.BitCount(table[i + 3] & OneMask);
+
                 table[i] = (long)((ulong)table[i] >> 1) & ResetMask;
+                table[i + 1] = (long)((ulong)table[i + 1] >> 1) & ResetMask;
+                table[i + 2] = (long)((ulong)table[i + 2] >> 1) & ResetMask;
+                table[i + 3] = (long)((ulong)table[i + 3] >> 1) & ResetMask;
             }
-            size = (size - (count >> 2)) >> 1;
+
+            count0 = (count0 + count1) + (count2 + count3);
+
+            size = (size - (count0 >> 2)) >> 1;
         }
 #if !NETSTANDARD2_0
         private unsafe int EstimateFrequencyAvx(T value)
@@ -291,7 +306,6 @@ namespace BitFaster.Caching.Lfu
                 Vector256<long> offsetLong = Vector256.Create(offset, Vector128.Create(0)).AsInt64();
 
                 Vector256<int> permuteMask2 = Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7);
-                var fifteen2 = Vector256.Create(0xfL);
                 offsetLong = Avx2.PermuteVar8x32(offsetLong.AsInt32(), permuteMask2).AsInt64();
 
                 // mask = (0xfL << offset)

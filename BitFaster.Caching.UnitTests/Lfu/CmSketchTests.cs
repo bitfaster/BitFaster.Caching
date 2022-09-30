@@ -156,16 +156,16 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
 #if DEBUG
-        [SkippableFact]
-        public void TestUniform()
-        {
-            for (int i = 0; i < 512 * 10; i++)
-            {
-                sketch.Increment(i);
-            }
+        //[SkippableFact]
+        //public void TestUniform()
+        //{
+        //    for (int i = 0; i < 512 * 10; i++)
+        //    {
+        //        sketch.Increment(i);
+        //    }
 
-            var b = sketch.TableToBinary();
-        }
+        //    var b = sketch.TableToBinary();
+        //}
 #endif
     }
 }

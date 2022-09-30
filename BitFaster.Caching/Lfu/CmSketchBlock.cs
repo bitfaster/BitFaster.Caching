@@ -206,13 +206,28 @@ namespace BitFaster.Caching.Lfu
 
         private void Reset()
         {
-            int count = 0;
-            for (int i = 0; i < table.Length; i++)
+            // unroll, almost 2x faster
+            int count0 = 0;
+            int count1 = 0;
+            int count2 = 0;
+            int count3 = 0;
+
+            for (int i = 0; i < table.Length; i += 4)
             {
-                count += BitOps.BitCount(table[i] & OneMask);
+                count0 += BitOps.BitCount(table[i] & OneMask);
+                count1 += BitOps.BitCount(table[i + 1] & OneMask);
+                count2 += BitOps.BitCount(table[i + 2] & OneMask);
+                count3 += BitOps.BitCount(table[i + 3] & OneMask);
+
                 table[i] = (long)((ulong)table[i] >> 1) & ResetMask;
+                table[i + 1] = (long)((ulong)table[i + 1] >> 1) & ResetMask;
+                table[i + 2] = (long)((ulong)table[i + 2] >> 1) & ResetMask;
+                table[i + 3] = (long)((ulong)table[i + 3] >> 1) & ResetMask;
             }
-            size = (size - (count >> 2)) >> 1;
+
+            count0 = (count0 + count1) + (count2 + count3);
+
+            size = (size - (count0 >> 2)) >> 1;
         }
 #if !NETSTANDARD2_0
         private unsafe int EstimateFrequencyAvx(T value)

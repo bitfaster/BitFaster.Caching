@@ -62,17 +62,17 @@ namespace BitFaster.Caching.UnitTests.Lfu
             sketch.EstimateFrequency(2).Should().Be(1);
         }
 
-        //[SkippableFact]
-        //public void WhenTwoItemsIncrementedCountIsIndependent2()
-        //{
-        //    sketch.Increment(1);
-        //    sketch.Increment(1);
-        //    sketch.Increment(2);
+        ////[SkippableFact]
+        ////public void WhenTwoItemsIncrementedCountIsIndependent2()
+        ////{
+        ////    sketch.Increment(1);
+        ////    sketch.Increment(1);
+        ////    sketch.Increment(2);
 
-        //    var (a, b) = sketch.EstimateFrequency(1, 2);
-        //    a.Should().Be(2);
-        //    b.Should().Be(1);
-        //}
+        ////    var (a, b) = sketch.EstimateFrequency(1, 2);
+        ////    a.Should().Be(2);
+        ////    b.Should().Be(1);
+        ////}
 
         [SkippableFact]
         public void WhenSampleSizeExceededCountIsReset()

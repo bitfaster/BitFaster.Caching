@@ -30,10 +30,10 @@ namespace BitFaster.Caching.ThroughputAnalysis
             var (bench, dataConfig, capacity) = ConfigFactory.Create(mode, cacheSize, maxThreads);
 
             var cachesToTest = new List<ICacheFactory>();
-            //cachesToTest.Add(new ClassicLruFactory(capacity));
-            //cachesToTest.Add(new MemoryCacheFactory(capacity));
-            //cachesToTest.Add(new FastConcurrentLruFactory(capacity));
-            //cachesToTest.Add(new ConcurrentLruFactory(capacity));
+            cachesToTest.Add(new ClassicLruFactory(capacity));
+            cachesToTest.Add(new MemoryCacheFactory(capacity));
+            cachesToTest.Add(new FastConcurrentLruFactory(capacity));
+            cachesToTest.Add(new ConcurrentLruFactory(capacity));
             cachesToTest.Add(new ConcurrentLfuFactory(capacity));
 
             var exporter = new Exporter(maxThreads);

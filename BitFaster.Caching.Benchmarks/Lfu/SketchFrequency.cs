@@ -24,6 +24,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private static CmSketchBlockV2<int, DetectIsa> block2Avx = new CmSketchBlockV2<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
 
         private static CmSketchSegmentBlock<int, DisableHardwareIntrinsics> blockSeg = new CmSketchSegmentBlock<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
+        private static CmSketchSegmentBlock<int, DetectIsa> blockSegAvx = new CmSketchSegmentBlock<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
 
         [GlobalSetup]
         public void Setup()
@@ -39,6 +40,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
                     block2.Increment(i);
                     block2Avx.Increment(i);
                     blockSeg.Increment(i);
+                    blockSegAvx.Increment(i);
                 }
             }
         }
@@ -135,6 +137,16 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             int count = 0;
             for (int i = 0; i < iterations; i++)
                 count += blockSeg.EstimateFrequency(i) > blockSeg.EstimateFrequency(i + 1) ? 1 : 0;
+
+            return count;
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public int EstimateFrequencyBlockSegAvx()
+        {
+            int count = 0;
+            for (int i = 0; i < iterations; i++)
+                count += blockSegAvx.EstimateFrequency(i) > blockSegAvx.EstimateFrequency(i + 1) ? 1 : 0;
 
             return count;
         }
