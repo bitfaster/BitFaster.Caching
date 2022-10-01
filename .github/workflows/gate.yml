@@ -37,7 +37,7 @@ jobs:
         path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.info
     - name: Generate unit test report
       uses: phoenix-actions/test-reporting@v8
-      id: unit-test-report
+      id: unit-test-report-win
       if: success() || failure() 
       with:
         name: test results
