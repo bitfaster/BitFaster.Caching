@@ -1,4 +1,4 @@
-name: Build and Test (macos-latest)
+name: CI (mac)
 
 on:
   push:
@@ -22,4 +22,13 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Test
-      run: dotnet test --no-restore --verbosity normal
+      run: dotnet test --no-restore --verbosity normal --logger "trx;LogFileName=results.trx"
+    - name: Generate test report
+      uses: phoenix-actions/test-reporting@v8
+      id: unit-test-report
+      if: success() || failure() 
+      with:
+        name: test results
+        path: BitFaster.Caching.UnitTests/TestResults/results.trx
+        reporter: dotnet-trx 
+        only-summary: 'true'
