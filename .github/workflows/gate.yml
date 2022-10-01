@@ -1,4 +1,4 @@
-name: CI (win)
+name: Build
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
     branches: [ main ]
 
 jobs:
-  buildwin:
+  win:
 
     runs-on: windows-latest
 
@@ -47,7 +47,7 @@ jobs:
         reporter: dotnet-trx 
         only-summary: 'true'
 
-  buildmac:
+  mac:
 
     runs-on: macos-latest
 
@@ -81,7 +81,7 @@ jobs:
         only-summary: 'true'
 
   finish:
-    needs: [buildwin, buildmac]
+    needs: [win, mac]
     runs-on: ubuntu-latest
     steps:
     - name: Coveralls Finished
