@@ -10,7 +10,7 @@ on:
 
 jobs:
   win:
-
+    name: build (win)
     runs-on: windows-latest
 
     steps:
@@ -48,7 +48,7 @@ jobs:
         only-summary: 'true'
 
   mac:
-
+    name: build (mac)
     runs-on: macos-latest
 
     steps:
@@ -81,7 +81,7 @@ jobs:
         only-summary: 'true'
 
   coverage:
-
+    name: build (finalize)
     needs: [win, mac]
     
     runs-on: ubuntu-latest
