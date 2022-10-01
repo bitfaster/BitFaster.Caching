@@ -2,8 +2,10 @@ name: CI (mac)
 
 on:
   push:
+    paths-ignore: [ '**.md' ]
     branches: [ main ]
   pull_request:
+    paths-ignore: [ '**.md' ]
     branches: [ main ]
 
 jobs:
@@ -22,8 +24,13 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Test
-      run: dotnet test --no-restore --verbosity normal --logger "trx;LogFileName=results.trx"
-    - name: Generate test report
+      run: dotnet test --no-restore --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results.trx"
+    - name: Publish coverage report to coveralls.io   
+      uses: coverallsapp/github-action@master   
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }} 
+        path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.info
+    - name: Generate unit test report
       uses: phoenix-actions/test-reporting@v8
       id: unit-test-report
       if: success() || failure() 

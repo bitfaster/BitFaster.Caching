@@ -35,7 +35,7 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }} 
         path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.info
-    - name: Generate test report
+    - name: Generate unit test report
       uses: phoenix-actions/test-reporting@v8
       id: unit-test-report
       if: success() || failure() 
