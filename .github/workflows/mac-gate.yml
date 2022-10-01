@@ -30,12 +30,14 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }} 
         path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.info
+        flag-name: mac
+        parallel: true
     - name: Generate unit test report
       uses: phoenix-actions/test-reporting@v8
       id: unit-test-report-mac
       if: success() || failure() 
       with:
-        name: test results
+        name: test results (mac)
         path: BitFaster.Caching.UnitTests/TestResults/results.trx
         reporter: dotnet-trx 
         only-summary: 'true'
