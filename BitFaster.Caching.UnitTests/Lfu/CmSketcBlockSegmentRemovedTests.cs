@@ -7,20 +7,20 @@ using Xunit;
 namespace BitFaster.Caching.UnitTests.Lfu
 {
     // Test with AVX2 if it is supported
-    public class CMSketchSegmentBlockAvx2Tests : CmSketchSegmentBlockTestBase<DetectIsa>
+    public class CMSketchBlockSegmentRemovedAvx2Tests : CmSketcBlockSegmentRemovedTestBase<DetectIsa>
     {
     }
 
     // Test with AVX2 disabled
-    public class CmSketchSegmentBlockTests : CmSketchSegmentBlockTestBase<DisableHardwareIntrinsics>
+    public class CmSketchBlockSegmentRemovedTests : CmSketcBlockSegmentRemovedTestBase<DisableHardwareIntrinsics>
     {
     }
 
-    public abstract class CmSketchSegmentBlockTestBase<I> where I : struct, IsaProbe
+    public abstract class CmSketcBlockSegmentRemovedTestBase<I> where I : struct, IsaProbe
     {
-        private CmSketchSegmentBlock<int, I> sketch = new CmSketchSegmentBlock<int, I>(512, EqualityComparer<int>.Default);
+        private CmSketchBlockSegmentRemoved<int, I> sketch = new CmSketchBlockSegmentRemoved<int, I>(512, EqualityComparer<int>.Default);
 
-        public CmSketchSegmentBlockTestBase()
+        public CmSketcBlockSegmentRemovedTestBase()
         {
             Intrinsics.SkipAvxIfNotSupported<I>();
         }
@@ -28,7 +28,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [SkippableFact]
         public void WhenCapacityIsZeroDefaultsSelected()
         {
-            sketch = new CmSketchSegmentBlock<int, I>(0, EqualityComparer<int>.Default);
+            sketch = new CmSketchBlockSegmentRemoved<int, I>(0, EqualityComparer<int>.Default);
 
             sketch.ResetSampleSize.Should().Be(10);
         }
@@ -79,7 +79,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             bool reset = false;
 
-            sketch = new CmSketchSegmentBlock<int, I>(64, EqualityComparer<int>.Default);
+            sketch = new CmSketchBlockSegmentRemoved<int, I>(64, EqualityComparer<int>.Default);
 
             for (int i = 1; i < 20 * 64; i++)
             {

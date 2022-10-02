@@ -22,8 +22,11 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private static CmSketchBlockV2<int, DisableHardwareIntrinsics> block2 = new CmSketchBlockV2<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
         private static CmSketchBlockV2<int, DetectIsa> block2Avx = new CmSketchBlockV2<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
 
-        private static CmSketchSegmentBlock<int, DisableHardwareIntrinsics> blockSeg = new CmSketchSegmentBlock<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
-        private static CmSketchSegmentBlock<int, DetectIsa> blockSegAvx = new CmSketchSegmentBlock<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
+        private static CmSketchBlockSegmentRemoved<int, DisableHardwareIntrinsics> blockSeg = new CmSketchBlockSegmentRemoved<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
+        private static CmSketchBlockSegmentRemoved<int, DetectIsa> blockSegAvx = new CmSketchBlockSegmentRemoved<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
+
+        private static CmSketchBlockSegmentRemoved<int, DisableHardwareIntrinsics> blockSegRem = new CmSketchBlockSegmentRemoved<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
+        private static CmSketchBlockSegmentRemoved<int, DetectIsa> blockSegRemAvx = new CmSketchBlockSegmentRemoved<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
 
         [Benchmark(Baseline = true, OperationsPerInvoke = iterations)]
         public void Inc()
@@ -94,6 +97,24 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             for (int i = 0; i < iterations; i++)
             {
                 blockSegAvx.Increment(i);
+            }
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public void IncBlockSegRem()
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                blockSegRem.Increment(i);
+            }
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public void IncBlockSegRemAvx()
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                blockSegRemAvx.Increment(i);
             }
         }
     }

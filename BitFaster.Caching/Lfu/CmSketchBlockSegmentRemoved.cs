@@ -8,7 +8,13 @@ using System.Runtime.Intrinsics.X86;
 
 namespace BitFaster.Caching.Lfu
 {
-    public class CmSketchSegmentBlock<T, I> where I : struct, IsaProbe
+    // This matches https://github.com/bitfaster/BitFaster.Caching/files/9662049/FrequencySketch.txt
+    // Similar to https://github.com/ben-manes/caffeine/blob/master/caffeine/src/main/java/com/github/benmanes/caffeine/cache/FrequencySketch.java
+    // but with
+    //      index[i + 4] = block + offset; 
+    // rather than
+    //      index[i + 4] = block + offset + (i << 1);
+    public class CmSketchBlockSegmentRemoved<T, I> where I : struct, IsaProbe
     {
         private static readonly long ResetMask = 0x7777777777777777L;
         private static readonly long OneMask = 0x1111111111111111L;
@@ -20,7 +26,7 @@ namespace BitFaster.Caching.Lfu
 
         private readonly IEqualityComparer<T> comparer;
 
-        public CmSketchSegmentBlock(long maximumSize, IEqualityComparer<T> comparer)
+        public CmSketchBlockSegmentRemoved(long maximumSize, IEqualityComparer<T> comparer)
         {
             EnsureCapacity(maximumSize);
             this.comparer = comparer;
