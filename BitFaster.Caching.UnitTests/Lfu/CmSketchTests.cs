@@ -4,7 +4,7 @@ using FluentAssertions;
 using System.Collections.Generic;
 
 
-#if !NETSTANDARD2_0
+#if !NET48
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -109,7 +109,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         private static void SkipAvxIfNotSupported()
         {
-#if !NETSTANDARD2_0
+#if !NET48
             // when we are trying to test Avx2, skip the test if it's not supported
             Skip.If(typeof(I) == typeof(DetectIsa) && !Avx2.IsSupported);
 #endif
