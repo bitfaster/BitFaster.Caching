@@ -14,7 +14,7 @@ namespace BitFaster.Caching.UnitTests
         protected const int capacity = 6;
         protected readonly IScopedCache<int, Disposable> cache;
 
-        protected List<ItemRemovedEventArgs<int, Scoped<Disposable>>> removedItems = new();
+        protected List<ItemRemovedEventArgs<int, Scoped<Disposable>>> removedItems = new List<ItemRemovedEventArgs<int, Scoped<Disposable>>>();
 
         protected ScopedCacheTestBase(IScopedCache<int, Disposable> cache)
         {

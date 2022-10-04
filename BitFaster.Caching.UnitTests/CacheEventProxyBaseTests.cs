@@ -14,7 +14,7 @@ namespace BitFaster.Caching.UnitTests
         private TestCacheEvents<int, int> testCacheEvents;
         private EventProxy<int, int> eventProxy;
 
-        private List<ItemRemovedEventArgs<int, int>> removedItems = new();
+        private List<ItemRemovedEventArgs<int, int>> removedItems = new List<ItemRemovedEventArgs<int, int>>();
 
         public CacheEventProxyBaseTests()
         {

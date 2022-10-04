@@ -80,8 +80,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         public async Task WhenItemIsExpiredItIsRemoved()
         {
             lru.GetOrAdd(1, valueFactory.Create);
-
-            await Task.Delay(timeToLive * ttlWaitMlutiplier);
+            
+            await Task.Delay(TimeSpan.FromTicks(timeToLive.Ticks * ttlWaitMlutiplier));
 
             lru.TryGet(1, out var value).Should().BeFalse();
         }
@@ -91,7 +91,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
-            await Task.Delay(timeToLive * ttlWaitMlutiplier);
+            await Task.Delay(TimeSpan.FromTicks(timeToLive.Ticks * ttlWaitMlutiplier));
 
             lru.TryUpdate(1, "3");
 
@@ -110,7 +110,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             // hot[8, 7], warm[1, 0], cold[6, 5], evicted[4, 3]
             for (int i = 0; i < 8; i++)
             {
-                lruEvents.GetOrAdd(i + 1, i => i + 1);
+                lruEvents.GetOrAdd(i + 1, j => j + 1);
             }
 
             removedItems.Count.Should().Be(2);
@@ -133,7 +133,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             for (int i = 0; i < 6; i++)
             {
-                lruEvents.GetOrAdd(i + 1, i => i + 1);
+                lruEvents.GetOrAdd(i + 1, j => j + 1);
             }
 
             removedItems.Count.Should().Be(0);
@@ -157,7 +157,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(8, "8");
             lru.AddOrUpdate(9, "9");
 
-            await Task.Delay(timeToLive * ttlWaitMlutiplier);
+            await Task.Delay(TimeSpan.FromTicks(timeToLive.Ticks * ttlWaitMlutiplier));
 
             lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
@@ -175,7 +175,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(5, "5");
             lru.AddOrUpdate(6, "6");
 
-            await Task.Delay(timeToLive * ttlWaitMlutiplier);
+            await Task.Delay(TimeSpan.FromTicks(timeToLive.Ticks * ttlWaitMlutiplier));
 
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
@@ -193,7 +193,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(2, "2");
             lru.AddOrUpdate(3, "3");
 
-            await Task.Delay(timeToLive * ttlWaitMlutiplier);
+            await Task.Delay(TimeSpan.FromTicks(timeToLive.Ticks * ttlWaitMlutiplier));
 
             lru.Trim(1);
 

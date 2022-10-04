@@ -121,7 +121,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 {
                     for (int i = 0; i < 15; i++)
                     {
-                        cache.GetOrAdd(j + 20, k => k);
+                        cache.GetOrAdd(j + 20, kk => kk);
                     }
                     cache.DoMaintenance();
                     LogLru();
@@ -826,7 +826,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             // verify this doesn't block or throw
             var b = cache.Scheduler as BackgroundThreadScheduler;
-            if (b is not null)
+            if (b != null)
             {
                 b.Dispose();
             }

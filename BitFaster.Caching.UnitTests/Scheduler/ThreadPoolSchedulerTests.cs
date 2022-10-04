@@ -30,8 +30,8 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         {
             bool run = false;
 
-            TaskCompletionSource tcs = new TaskCompletionSource();
-            scheduler.Run(() => { Volatile.Write(ref run, true); tcs.SetResult(); });
+            var tcs = new TaskCompletionSource<bool>();
+            scheduler.Run(() => { Volatile.Write(ref run, true); tcs.SetResult(true); });
 
             await tcs.Task;
 
@@ -41,10 +41,10 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         [Fact]
         public async Task WhenWorkDoesNotThrowLastExceptionIsEmpty()
         {
-            TaskCompletionSource tcs = new TaskCompletionSource();
+            var tcs = new TaskCompletionSource<bool>();
             scheduler.RunCount.Should().Be(0);
 
-            scheduler.Run(() => { tcs.SetResult(); });
+            scheduler.Run(() => { tcs.SetResult(true); });
 
             await tcs.Task;
 
@@ -54,9 +54,9 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         [Fact]
         public async Task WhenWorkThrowsLastExceptionIsPopulated()
         {
-            TaskCompletionSource tcs = new TaskCompletionSource();
+            var tcs = new TaskCompletionSource<bool>();
             scheduler.Run(() => { throw new InvalidCastException(); });
-            scheduler.Run(() => { tcs.SetResult(); });
+            scheduler.Run(() => { tcs.SetResult(true); });
 
             await tcs.Task;
             await scheduler.WaitForExceptionAsync();

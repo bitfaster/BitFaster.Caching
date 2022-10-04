@@ -90,7 +90,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenOnItemRemovedInvokedEventIsFired()
         {
-            List<ItemRemovedEventArgs<int, int>> eventList = new();
+            var eventList = new List<ItemRemovedEventArgs<int, int>>();
 
             telemetryPolicy.ItemRemoved += (source, args) => eventList.Add(args);
 
@@ -105,7 +105,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenEventSourceIsSetItemRemovedEventUsesSource()
         {
-            List<object> eventSourceList = new();
+            List<object> eventSourceList = new List<object>();
 
             telemetryPolicy.SetEventSource(this);
 

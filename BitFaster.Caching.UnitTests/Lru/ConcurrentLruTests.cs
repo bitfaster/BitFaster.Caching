@@ -513,7 +513,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             // hot[8, 7], warm[1, 0], cold[6, 5], evicted[4, 3]
             for (int i = 0; i < 8; i++)
             {
-                lruEvents.GetOrAdd(i + 1, i => i + 1);
+                lruEvents.GetOrAdd(i + 1, j => j + 1);
             }
 
             removedItems.Count.Should().Be(2);
@@ -547,7 +547,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             for (int i = 0; i < 6; i++)
             {
-                lruEvents.GetOrAdd(i + 1, i => i + 1);
+                lruEvents.GetOrAdd(i + 1, j => j + 1);
             }
 
             removedItems.Count.Should().Be(0);
@@ -756,7 +756,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             for (int i = 0; i < 6; i++)
             {
-                lruEvents.GetOrAdd(i + 1, i => i + 1);
+                lruEvents.GetOrAdd(i + 1, j => j + 1);
             }
 
             lruEvents.Clear();
@@ -946,7 +946,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             for (int i = 0; i < 6; i++)
             {
-                lruEvents.GetOrAdd(i + 1, i => i + 1);
+                lruEvents.GetOrAdd(i + 1, j => j + 1);
             }
 
             lruEvents.Trim(2);
@@ -968,7 +968,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             await Threaded.Run(4, () => {
                 for (int i = 0; i < 100000; i++)
                 {
-                    lru.GetOrAdd(i + 1, i =>i.ToString());
+                    lru.GetOrAdd(i + 1, j => j.ToString());
                 }
             });
 

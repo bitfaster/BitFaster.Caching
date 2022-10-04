@@ -15,9 +15,9 @@ namespace BitFaster.Caching.UnitTests.Atomic
     public class AtomicFactoryCacheTests
     {
         private const int capacity = 6;
-        private readonly AtomicFactoryCache<int, int> cache = new(new ConcurrentLru<int, AtomicFactory<int, int>>(capacity));
+        private readonly AtomicFactoryCache<int, int> cache = new AtomicFactoryCache<int, int>(new ConcurrentLru<int, AtomicFactory<int, int>>(capacity));
 
-        private List<ItemRemovedEventArgs<int, int>> removedItems = new();
+        private List<ItemRemovedEventArgs<int, int>> removedItems = new List<ItemRemovedEventArgs<int, int>>();
 
         [Fact]
         public void WhenInnerCacheIsNullCtorThrows()
