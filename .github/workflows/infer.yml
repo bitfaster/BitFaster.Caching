@@ -9,7 +9,7 @@ on:
     branches: [ main ]
 
 jobs:
-  bench:
+  infer:
 
     runs-on: ubuntu-latest
 
