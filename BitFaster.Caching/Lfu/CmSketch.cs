@@ -285,7 +285,7 @@ namespace BitFaster.Caching.Lfu
 
                 // j == index
                 index = Avx2.ShiftLeftLogical(index, 2);
-                Vector256<long> offsetLong = Vector256.Create(index, Vector128.Create(0)).AsInt64();
+                Vector256<long> offsetLong = Vector256.Create(index, Vector128<int>.Zero).AsInt64();
 
                 Vector256<int> permuteMask = Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7);
                 offsetLong = Avx2.PermuteVar8x32(offsetLong.AsInt32(), permuteMask).AsInt64();
