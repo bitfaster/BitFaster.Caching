@@ -238,12 +238,12 @@ namespace BitFaster.Caching.Lfu
             var index = Avx2.ShiftRightLogical(h, 1);
             index = Avx2.And(index, Vector128.Create(15)); // j - counter index
             Vector128<int> offset = Avx2.And(h, Vector128.Create(1));
-            var blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
+            Vector128<int> blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
             blockOffset = Avx2.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
 
             fixed (long* tablePtr = &table[0])
             {
-                var tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
+                Vector256<long> tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
                 index = Avx2.ShiftLeftLogical(index, 2);
 
                 // convert index from int to long via permute
@@ -273,22 +273,21 @@ namespace BitFaster.Caching.Lfu
             Vector128<int> h = Vector128.Create(counterHash);
             h = Avx2.ShiftRightLogicalVariable(h.AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
 
-            var index = Avx2.ShiftRightLogical(h, 1);
+            Vector128<int> index = Avx2.ShiftRightLogical(h, 1);
             index = Avx2.And(index, Vector128.Create(15)); // j - counter index
             Vector128<int> offset = Avx2.And(h, Vector128.Create(1));
-            var blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
+            Vector128<int> blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
             blockOffset = Avx2.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
 
             fixed (long* tablePtr = &table[0])
             {
-                var tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
+                Vector256<long> tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
 
                 // j == index
                 index = Avx2.ShiftLeftLogical(index, 2);
                 Vector256<long> offsetLong = Vector256.Create(index, Vector128.Create(0)).AsInt64();
 
                 Vector256<int> permuteMask = Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7);
-                var fifteen2 = Vector256.Create(0xfL);
                 offsetLong = Avx2.PermuteVar8x32(offsetLong.AsInt32(), permuteMask).AsInt64();
 
                 // mask = (0xfL << offset)
