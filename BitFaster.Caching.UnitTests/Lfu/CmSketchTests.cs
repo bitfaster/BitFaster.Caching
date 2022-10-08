@@ -1,7 +1,7 @@
 ﻿
+using System.Collections.Generic;
 using BitFaster.Caching.Lfu;
 using FluentAssertions;
-using System.Collections.Generic;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lfu
@@ -24,6 +24,21 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             Intrinsics.SkipAvxIfNotSupported<I>();
         }
+
+        [SkippableFact]
+        public void Repro()
+        {
+            sketch = new CmSketch<int, I>(1_048_576, EqualityComparer<int>.Default);
+
+            for (int i = 0; i < 1_048_576; i++)
+            {
+                if (i % 3 == 0)
+                {
+                    sketch.Increment(i);
+                }
+            }
+        }
+
 
         [SkippableFact]
         public void WhenCapacityIsZeroDefaultsSelected()
@@ -60,18 +75,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             sketch.EstimateFrequency(1).Should().Be(2);
             sketch.EstimateFrequency(2).Should().Be(1);
-        }
-
-        [SkippableFact]
-        public void WhenTwoItemsIncrementedCountIsIndependent2()
-        {
-            sketch.Increment(1);
-            sketch.Increment(1);
-            sketch.Increment(2);
-
-            var (a, b) = sketch.EstimateFrequency(1, 2);
-            a.Should().Be(2);
-            b.Should().Be(1);
         }
 
         [SkippableFact]
@@ -154,18 +157,5 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             }
         }
-
-#if DEBUG
-        //[SkippableFact]
-        //public void TestUniform()
-        //{
-        //    for (int i = 0; i < 512 * 10; i++)
-        //    {
-        //        sketch.Increment(i);
-        //    }
-
-        //    var b = sketch.TableToBinary();
-        //}
-#endif
     }
 }
