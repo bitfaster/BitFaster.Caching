@@ -13,6 +13,9 @@ jobs:
 
     runs-on: windows-latest
 
+    permissions:
+      checks: write
+
     steps:
     - uses: actions/checkout@v3
     - name: Setup .NET Core
@@ -51,6 +54,9 @@ jobs:
 
     runs-on: macos-latest
 
+    permissions:
+      checks: write
+
     steps:
     - uses: actions/checkout@v3
     - name: Setup .NET Core
@@ -80,12 +86,15 @@ jobs:
         reporter: dotnet-trx 
         only-summary: 'true'
 
-  finish:
+  coverage:
+
     needs: [win, mac]
+    
     runs-on: ubuntu-latest
+    
     steps:
     - name: Coveralls Finished
       uses: coverallsapp/github-action@master
       with:
-        github-token: ${{ secrets.github_token }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true

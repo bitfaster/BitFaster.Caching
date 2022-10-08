@@ -1,8 +1,7 @@
 ﻿
+using System.Collections.Generic;
 using BitFaster.Caching.Lfu;
 using FluentAssertions;
-using System.Collections.Generic;
-using System.Runtime.Intrinsics.X86;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lfu
@@ -23,8 +22,23 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         public CmSketchTestBase()
         {
-            SkipAvxIfNotSupported();
+            Intrinsics.SkipAvxIfNotSupported<I>();
         }
+
+        [SkippableFact]
+        public void Repro()
+        {
+            sketch = new CmSketch<int, I>(1_048_576, EqualityComparer<int>.Default);
+
+            for (int i = 0; i < 1_048_576; i++)
+            {
+                if (i % 3 == 0)
+                {
+                    sketch.Increment(i);
+                }
+            }
+        }
+
 
         [SkippableFact]
         public void WhenCapacityIsZeroDefaultsSelected()
@@ -100,10 +114,48 @@ namespace BitFaster.Caching.UnitTests.Lfu
             sketch.EstimateFrequency(2).Should().Be(0);
         }
 
-        private static void SkipAvxIfNotSupported()
+        [SkippableFact]
+        public void HeavyHitters()
         {
-            // when we are trying to test Avx2, skip the test if it's not supported
-            Skip.If(typeof(I) == typeof(DetectIsa) && !Avx2.IsSupported);
+            for (int i = 100; i < 100_000; i++)
+            {
+                sketch.Increment(i);
+            }
+            for (int i = 0; i < 10; i += 2)
+            {
+                for (int j = 0; j < i; j++)
+                {
+                    sketch.Increment(i);
+                }
+            }
+
+            // A perfect popularity count yields an array [0, 0, 2, 0, 4, 0, 6, 0, 8, 0]
+            int[] popularity = new int[10];
+
+            for (int i = 0; i < 10; i++)
+            {
+                popularity[i] = sketch.EstimateFrequency(i);
+            }
+
+            for (int i = 0; i < popularity.Length; i++)
+            {
+                if ((i == 0) || (i == 1) || (i == 3) || (i == 5) || (i == 7) || (i == 9))
+                {
+                    popularity[i].Should().BeLessThanOrEqualTo(popularity[2]);
+                }
+                else if (i == 2)
+                {
+                    popularity[2].Should().BeLessThanOrEqualTo(popularity[4]);
+                }
+                else if (i == 4)
+                {
+                    popularity[4].Should().BeLessThanOrEqualTo(popularity[6]);
+                }
+                else if (i == 6)
+                {
+                    popularity[6].Should().BeLessThanOrEqualTo(popularity[8]);
+                }
+            }
         }
     }
 }
