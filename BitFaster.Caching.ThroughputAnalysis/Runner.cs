@@ -24,6 +24,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         private static void RunTest(Mode mode, int cacheSize)
         {
+            Console.WriteLine();
             Console.WriteLine("Generating input distribution...");
 
             var (bench, dataConfig, capacity) = ConfigFactory.Create(mode, cacheSize, maxThreads);
