@@ -13,6 +13,13 @@ namespace BitFaster.Caching.Lfu
     /// accumulated count across all values over time, such that a historic popular value will decay to zero frequency
     /// over time if it is not accessed.
     /// </summary>
+    /// <remarks>
+    /// The maximum frequency of an element is limited to 15 (4-bits). Each element is hashed to a 64 byte 'block'
+    /// consisting of 4 segments of 32 4-bit counters. The 64 byte blocks are the same size as x64 L1 cache lines.
+    /// While the blocks are not guaranteed to be aligned, this scheme minimizes L1 cache misses resulting in a
+    /// significant speedup. When supported, a vectorized AVX2 code path provides a further speedup. Together, block 
+    /// and AVX2 are approximately 2x faster than the original implementation.
+    /// </remarks>
     /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
     public class CmSketch<T, I> where I : struct, IsaProbe
@@ -49,7 +56,7 @@ namespace BitFaster.Caching.Lfu
         public int Size => this.size;
 
         /// <summary>
-        /// Estimate the frequency of the specified value.
+        /// Estimate the frequency of the specified value, up to the maximum of 15.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>The estimated frequency of the value.</returns>
@@ -217,6 +224,7 @@ namespace BitFaster.Caching.Lfu
 
             size = (size - (count0 >> 2)) >> 1;
         }
+
 #if !NETSTANDARD2_0
         private unsafe int EstimateFrequencyAvx(T value)
         {
