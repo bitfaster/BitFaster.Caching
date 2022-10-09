@@ -247,7 +247,7 @@ namespace BitFaster.Caching.Lfu
                 index = Avx2.ShiftLeftLogical(index, 2);
 
                 // convert index from int to long via permute
-                Vector256<long> indexLong = Vector256.Create(index, Vector128.Create(0)).AsInt64();
+                Vector256<long> indexLong = Vector256.Create(index, Vector128<int>.Zero).AsInt64();
                 Vector256<int> permuteMask2 = Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7);
                 indexLong = Avx2.PermuteVar8x32(indexLong.AsInt32(), permuteMask2).AsInt64();
                 tableVector = Avx2.ShiftRightLogicalVariable(tableVector, indexLong.AsUInt64());
@@ -259,7 +259,12 @@ namespace BitFaster.Caching.Lfu
                     .AsUInt16();
 
                 // set the zeroed high parts of the long value to ushort.Max
+#if NET6_0
+                count = Avx2.Blend(count, Vector128<ushort>.AllBitsSet, 0b10101010);
+#else
                 count = Avx2.Blend(count, Vector128.Create(ushort.MaxValue), 0b10101010);
+#endif
+
                 return Avx2.MinHorizontal(count).GetElement(0);
             }
         }
@@ -285,7 +290,7 @@ namespace BitFaster.Caching.Lfu
 
                 // j == index
                 index = Avx2.ShiftLeftLogical(index, 2);
-                Vector256<long> offsetLong = Vector256.Create(index, Vector128.Create(0)).AsInt64();
+                Vector256<long> offsetLong = Vector256.Create(index, Vector128<int>.Zero).AsInt64();
 
                 Vector256<int> permuteMask = Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7);
                 offsetLong = Avx2.PermuteVar8x32(offsetLong.AsInt32(), permuteMask).AsInt64();
@@ -309,7 +314,7 @@ namespace BitFaster.Caching.Lfu
                 tablePtr[blockOffset.GetElement(2)] += inc.GetElement(2);
                 tablePtr[blockOffset.GetElement(3)] += inc.GetElement(3);
 
-                Vector256<byte> result = Avx2.CompareEqual(masked.AsByte(), Vector256.Create(0).AsByte());
+                Vector256<byte> result = Avx2.CompareEqual(masked.AsByte(), Vector256<byte>.Zero);
                 bool wasInc = Avx2.MoveMask(result.AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
 
                 if (wasInc && (++size == sampleSize))
@@ -319,5 +324,5 @@ namespace BitFaster.Caching.Lfu
             }
         }
 #endif
-    }
+            }
 }
