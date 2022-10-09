@@ -13,39 +13,62 @@ namespace BitFaster.Caching.Benchmarks.Lfu
     {
         const int sketchSize = 1_048_576;
         const int iterations = 1_048_576;
-        
-        private static CmSketch<int, DisableHardwareIntrinsics> std = new CmSketch<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
-        private static CmSketch<int, DetectIsa> avx = new CmSketch<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
+
+        private CmSketchFlat<int, DisableHardwareIntrinsics> flatStd;
+        private CmSketchFlat<int, DetectIsa> flatAvx;
+
+        private CmSketch<int, DisableHardwareIntrinsics> blockStd;
+        private CmSketch<int, DetectIsa> blockAvx;
+
+        [Params(32_768, 524_288, 8_388_608, 134_217_728)]
+        public int Size { get; set; }
 
         [GlobalSetup]
         public void Setup()
         {
-            for (int i = 0; i < iterations; i++)
-            {
-                if (i % 3 == 0)
-                {
-                    std.Increment(i);
-                    avx.Increment(i);
-                }
-            }
+            flatStd = new CmSketchFlat<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
+            flatAvx = new CmSketchFlat<int, DetectIsa>(Size, EqualityComparer<int>.Default);
+
+            blockStd = new CmSketch<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
+            blockAvx = new CmSketch<int, DetectIsa>(Size, EqualityComparer<int>.Default);
         }
 
         [Benchmark(Baseline = true, OperationsPerInvoke = iterations)]
-        public int EstimateFrequency()
+        public int FrequencyFlat()
         {
             int count = 0;
             for (int i = 0; i < iterations; i++)
-                count += std.EstimateFrequency(i) > std.EstimateFrequency(i + 1) ? 1: 0;
+                count += flatStd.EstimateFrequency(i) > flatStd.EstimateFrequency(i + 1) ? 1: 0;
 
             return count;
         }
 
         [Benchmark(OperationsPerInvoke = iterations)]
-        public int EstimateFrequencyAvx()
+        public int FrequencyFlatAvx()
         {
             int count = 0;
             for (int i = 0; i < iterations; i++)
-                count += avx.EstimateFrequency(i) > avx.EstimateFrequency(i + 1) ? 1 : 0;
+                count += flatAvx.EstimateFrequency(i) > flatAvx.EstimateFrequency(i + 1) ? 1 : 0;
+
+            return count;
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public int FrequencyBlock()
+        {
+            int count = 0;
+            for (int i = 0; i < iterations; i++)
+                count += blockStd.EstimateFrequency(i) > blockStd.EstimateFrequency(i + 1) ? 1 : 0;
+
+            return count;
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public int FrequencyBlockAvx()
+        {
+            int count = 0;
+            for (int i = 0; i < iterations; i++)
+                count += blockAvx.EstimateFrequency(i) > blockAvx.EstimateFrequency(i + 1) ? 1 : 0;
 
             return count;
         }
