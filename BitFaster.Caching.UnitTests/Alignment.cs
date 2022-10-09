@@ -40,7 +40,7 @@ namespace BitFaster.Caching.UnitTests
 
             var resetMaskVector = Vector256.Create(ResetMask);
 
-            fixed (long* tPtr = &table[0])
+            fixed (long* tPtr = table)
             {
                 long* alignedPtr = tPtr;
                 int remainder = 0;
@@ -57,22 +57,22 @@ namespace BitFaster.Caching.UnitTests
 
                 for (; i < c; i += 16)
                 {
-                    Vector256<long> t1 = Avx2.LoadAlignedVector256(alignedPtr + i).AsInt64();
+                    Vector256<long> t1 = Avx2.LoadAlignedVector256(alignedPtr + i);
                     t1 = Avx2.ShiftRightLogical(t1, 1);
                     t1 = Avx2.And(t1, resetMaskVector);
                     Avx2.StoreAligned(alignedPtr + i, t1);
 
-                    Vector256<long> t2 = Avx2.LoadAlignedVector256(alignedPtr + i + 4).AsInt64();
+                    Vector256<long> t2 = Avx2.LoadAlignedVector256(alignedPtr + i + 4);
                     t2 = Avx2.ShiftRightLogical(t2, 1);
                     t2 = Avx2.And(t2, resetMaskVector);
                     Avx2.StoreAligned(alignedPtr + i + 4, t2);
 
-                    Vector256<long> t3 = Avx2.LoadAlignedVector256(alignedPtr + i + 8).AsInt64();
+                    Vector256<long> t3 = Avx2.LoadAlignedVector256(alignedPtr + i + 8);
                     t3 = Avx2.ShiftRightLogical(t3, 1);
                     t3 = Avx2.And(t3, resetMaskVector);
                     Avx2.StoreAligned(alignedPtr + i + 8, t3);
 
-                    Vector256<long> t4 = Avx2.LoadAlignedVector256(alignedPtr + i + 12).AsInt64();
+                    Vector256<long> t4 = Avx2.LoadAlignedVector256(alignedPtr + i + 12);
                     t4 = Avx2.ShiftRightLogical(t4, 1);
                     t4 = Avx2.And(t4, resetMaskVector);
                     Avx2.StoreAligned(alignedPtr + i + 12, t4);
