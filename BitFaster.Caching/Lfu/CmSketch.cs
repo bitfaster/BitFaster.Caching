@@ -265,7 +265,7 @@ namespace BitFaster.Caching.Lfu
                 count = Avx2.Blend(count, Vector128.Create(ushort.MaxValue), 0b10101010);
 #endif
 
-                return Avx2.MinHorizontal(count).GetElement(0);
+                return Avx2.MinHorizontal(count).ToScalar();
             }
         }
 
@@ -309,13 +309,19 @@ namespace BitFaster.Caching.Lfu
                 // Mask to zero out non matches (add zero below) - first operand is NOT then AND result (order matters)
                 inc = Avx2.AndNot(masked, inc);
 
-                tablePtr[blockOffset.GetElement(0)] += inc.GetElement(0);
-                tablePtr[blockOffset.GetElement(1)] += inc.GetElement(1);
-                tablePtr[blockOffset.GetElement(2)] += inc.GetElement(2);
-                tablePtr[blockOffset.GetElement(3)] += inc.GetElement(3);
-
                 Vector256<byte> result = Avx2.CompareEqual(masked.AsByte(), Vector256<byte>.Zero);
+                
+                var incs = stackalloc long[4];
+                var i = stackalloc int[4];
+                Avx2.Store(incs, inc);
+                Avx2.Store(i, blockOffset);
+
                 bool wasInc = Avx2.MoveMask(result.AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
+
+                tablePtr[i[0]] += incs[0];
+                tablePtr[i[1]] += incs[1];
+                tablePtr[i[2]] += incs[2];
+                tablePtr[i[3]] += incs[3];
 
                 if (wasInc && (++size == sampleSize))
                 {
@@ -324,5 +330,5 @@ namespace BitFaster.Caching.Lfu
             }
         }
 #endif
-            }
+    }
 }
