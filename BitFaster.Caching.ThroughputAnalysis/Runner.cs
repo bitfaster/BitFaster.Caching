@@ -40,7 +40,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             exporter.Initialize(cachesToTest);
 
             Console.WriteLine();
-            Console.WriteLine($"Running {mode} with size {cacheSize} over {maxThreads} threads...");
+            Console.WriteLine($"Running {mode} with size {capacity} over {maxThreads} threads...");
             Console.WriteLine();
 
             foreach (int tc in Enumerable.Range(1, maxThreads).ToArray())
