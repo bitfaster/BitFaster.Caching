@@ -8,6 +8,19 @@ using System.Runtime.Intrinsics.X86;
 
 namespace BitFaster.Caching.Lfu
 {
+    /// <inheritdoc/>
+    public sealed class CmSketch<T> : CmSketchCore<T, DetectIsa>
+    {
+        /// <summary>
+        /// Initializes a new instance of the CmSketch class with the specified maximum size and equality comparer.
+        /// </summary>
+        /// <param name="maximumSize">The maximum size.</param>
+        /// <param name="comparer">The equality comparer.</param>
+        public CmSketch(long maximumSize, IEqualityComparer<T> comparer) : base(maximumSize, comparer)
+        {
+        }
+    }
+
     /// <summary>
     /// A probabilistic data structure used to estimate the frequency of a given value. Periodic aging reduces the
     /// accumulated count across all values over time, such that a historic popular value will decay to zero frequency
@@ -22,7 +35,7 @@ namespace BitFaster.Caching.Lfu
     /// </remarks>
     /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    public class CmSketch<T, I> where I : struct, IsaProbe
+    public class CmSketchCore<T, I> where I : struct, IsaProbe
     {
         private static readonly long ResetMask = 0x7777777777777777L;
         private static readonly long OneMask = 0x1111111111111111L;
@@ -39,7 +52,7 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <param name="maximumSize">The maximum size.</param>
         /// <param name="comparer">The equality comparer.</param>
-        public CmSketch(long maximumSize, IEqualityComparer<T> comparer)
+        public CmSketchCore(long maximumSize, IEqualityComparer<T> comparer)
         {
             EnsureCapacity(maximumSize);
             this.comparer = comparer;

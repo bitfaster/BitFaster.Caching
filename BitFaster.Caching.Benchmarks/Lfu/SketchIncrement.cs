@@ -13,8 +13,8 @@ namespace BitFaster.Caching.Benchmarks.Lfu
     {
         const int sketchSize = 1_048_576;
         const int iterations = 1_048_576;
-        private static CmSketch<int, DisableHardwareIntrinsics> std = new CmSketch<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
-        private static CmSketch<int, DetectIsa> avx = new CmSketch<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
+        private static CmSketchCore<int, DisableHardwareIntrinsics> std = new CmSketchCore<int, DisableHardwareIntrinsics>(sketchSize, EqualityComparer<int>.Default);
+        private static CmSketchCore<int, DetectIsa> avx = new CmSketchCore<int, DetectIsa>(sketchSize, EqualityComparer<int>.Default);
 
         [Benchmark(Baseline = true, OperationsPerInvoke = iterations)]
         public void Inc()
