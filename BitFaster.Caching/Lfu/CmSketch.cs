@@ -254,7 +254,7 @@ namespace BitFaster.Caching.Lfu
             Vector128<int> blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
             blockOffset = Avx2.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
 
-            fixed (long* tablePtr = &table[0])
+            fixed (long* tablePtr = table)
             {
                 Vector256<long> tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
                 index = Avx2.ShiftLeftLogical(index, 2);
@@ -297,7 +297,7 @@ namespace BitFaster.Caching.Lfu
             Vector128<int> blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
             blockOffset = Avx2.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
 
-            fixed (long* tablePtr = &table[0])
+            fixed (long* tablePtr = table)
             {
                 Vector256<long> tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
 
@@ -322,13 +322,13 @@ namespace BitFaster.Caching.Lfu
                 // Mask to zero out non matches (add zero below) - first operand is NOT then AND result (order matters)
                 inc = Avx2.AndNot(masked, inc);
 
+                Vector256<byte> result = Avx2.CompareEqual(masked.AsByte(), Vector256<byte>.Zero);
+                bool wasInc = Avx2.MoveMask(result.AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
+
                 tablePtr[blockOffset.GetElement(0)] += inc.GetElement(0);
                 tablePtr[blockOffset.GetElement(1)] += inc.GetElement(1);
                 tablePtr[blockOffset.GetElement(2)] += inc.GetElement(2);
                 tablePtr[blockOffset.GetElement(3)] += inc.GetElement(3);
-
-                Vector256<byte> result = Avx2.CompareEqual(masked.AsByte(), Vector256<byte>.Zero);
-                bool wasInc = Avx2.MoveMask(result.AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
 
                 if (wasInc && (++size == sampleSize))
                 {
@@ -337,5 +337,5 @@ namespace BitFaster.Caching.Lfu
             }
         }
 #endif
-            }
+    }
 }
