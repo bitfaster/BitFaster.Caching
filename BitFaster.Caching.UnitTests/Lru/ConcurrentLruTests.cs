@@ -748,6 +748,21 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenItemUpdatedEventIsUnregisteredEventIsNotFired()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
+
+            lruEvents.Events.Value.ItemUpdated += OnLruItemUpdated;
+            lruEvents.Events.Value.ItemUpdated -= OnLruItemUpdated;
+
+            lruEvents.AddOrUpdate(1, 2);
+            lruEvents.AddOrUpdate(1, 2);
+            lruEvents.AddOrUpdate(1, 2);
+
+            updatedItems.Count.Should().Be(0);
+        }
+
+        [Fact]
         public void WhenCacheIsEmptyClearIsNoOp()
         {
             lru.Clear();
