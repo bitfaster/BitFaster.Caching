@@ -10,6 +10,16 @@ namespace BitFaster.Caching.UnitTests
     public class ScopedTests
     {
         [Fact]
+        public void WhenScopeIsCreatedThenScopeDisposedValueIsDisposed()
+        {
+            var disposable = new Disposable();
+            var scope = new Scoped<Disposable>(disposable);
+
+            scope.Dispose();
+            disposable.IsDisposed.Should().BeTrue();
+        }
+
+        [Fact]
         public void WhenScopeIsCreatedThenScopeDisposedLifetimeDisposesValue()
         {
             var disposable = new Disposable();
