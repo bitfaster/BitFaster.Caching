@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
-using BitFaster.Caching.Buffers;
-using BitFaster.Caching.Lfu;
 
 namespace BitFaster.Caching.Atomic
 {
