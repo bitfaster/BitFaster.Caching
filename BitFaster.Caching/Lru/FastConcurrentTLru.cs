@@ -5,7 +5,7 @@ using System.Diagnostics;
 namespace BitFaster.Caching.Lru
 {
     ///<inheritdoc/>
-    [DebuggerTypeProxy(typeof(LruDebugView<,>))]
+    [DebuggerTypeProxy(typeof(CacheDebugView<,>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class FastConcurrentTLru<K, V> : ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TLruLongTicksPolicy<K, V>, NoTelemetryPolicy<K, V>>
     {

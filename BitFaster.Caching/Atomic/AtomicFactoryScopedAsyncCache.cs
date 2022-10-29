@@ -12,6 +12,7 @@ namespace BitFaster.Caching.Atomic
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
+    [DebuggerTypeProxy(typeof(ScopedAsyncCacheDebugView<,>))]
     [DebuggerDisplay("Count = {Count}")]
     public sealed class AtomicFactoryScopedAsyncCache<K, V> : IScopedAsyncCache<K, V> where V : IDisposable
     {
