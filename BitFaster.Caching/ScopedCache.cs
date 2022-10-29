@@ -13,6 +13,7 @@ namespace BitFaster.Caching
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
+    [DebuggerTypeProxy(typeof(ScopedCacheDebugView<,>))]
     [DebuggerDisplay("Count = {Count}")]
     public sealed class ScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
     {

@@ -2,7 +2,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
+using BitFaster.Caching.Buffers;
+using BitFaster.Caching.Lfu;
 
 namespace BitFaster.Caching.Atomic
 {
@@ -11,6 +14,7 @@ namespace BitFaster.Caching.Atomic
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
+    [DebuggerTypeProxy(typeof(AtomicFactoryAsyncCache<,>.AsyncCacheDebugView))]
     [DebuggerDisplay("Count = {Count}")]
     public sealed class AtomicFactoryAsyncCache<K, V> : IAsyncCache<K, V>
     {
@@ -132,6 +136,34 @@ namespace BitFaster.Caching.Atomic
             {
                 return new ItemUpdatedEventArgs<K, V>(inner.Key, inner.OldValue.ValueIfCreated, inner.NewValue.ValueIfCreated);
             }
+        }
+
+        [ExcludeFromCodeCoverage]
+        internal class AsyncCacheDebugView
+        {
+            private readonly IAsyncCache<K, V> cache;
+
+            public AsyncCacheDebugView(IAsyncCache<K, V> cache)
+            {
+                this.cache = cache;
+            }
+
+            public KeyValuePair<K, V>[] Items
+            {
+                get
+                {
+                    var items = new KeyValuePair<K, V>[cache.Count];
+
+                    int index = 0;
+                    foreach (var kvp in cache)
+                    {
+                        items[index++] = kvp;
+                    }
+                    return items;
+                }
+            }
+
+            public ICacheMetrics Metrics => cache.Metrics.Value;
         }
     }
 }
