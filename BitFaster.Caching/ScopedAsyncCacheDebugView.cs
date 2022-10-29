@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace BitFaster.Caching
 {
+    [ExcludeFromCodeCoverage]
     internal class ScopedAsyncCacheDebugView<K, V> where V : IDisposable
     {
         private readonly IScopedAsyncCache<K, V> cache;
