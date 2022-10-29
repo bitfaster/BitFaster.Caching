@@ -22,6 +22,9 @@ namespace BitFaster.Caching.Lru
         public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
 
         ///<inheritdoc/>
+        public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated;
+
+        ///<inheritdoc/>
         public double HitRatio => Total == 0 ? 0 : (double)Hits / (double)Total;
 
         ///<inheritdoc/>
@@ -64,9 +67,12 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
-        public void OnItemUpdated(K key, V value)
+        public void OnItemUpdated(K key, V oldValue, V newValue)
         {
             this.updatedCount.Increment();
+
+            // passing 'this' as source boxes the struct, and is anyway the wrong object
+            this.ItemUpdated?.Invoke(this.eventSource, new ItemUpdatedEventArgs<K, V>(key, oldValue, newValue));
         }
 
         ///<inheritdoc/>
