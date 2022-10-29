@@ -281,7 +281,7 @@ namespace BitFaster.Caching.Lru
                         V oldValue = existing.Value;
                         existing.Value = value;
                         this.itemPolicy.Update(existing);
-                        this.telemetryPolicy.OnItemUpdated(existing.Key, existing.Value);
+                        this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
                         Disposer<V>.Dispose(oldValue);
 
                         return true;
@@ -713,6 +713,12 @@ namespace BitFaster.Caching.Lru
             {
                 add { this.lru.telemetryPolicy.ItemRemoved += value; }
                 remove { this.lru.telemetryPolicy.ItemRemoved -= value; }
+            }
+
+            public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
+            {
+                add { this.lru.telemetryPolicy.ItemUpdated += value; }
+                remove { this.lru.telemetryPolicy.ItemUpdated -= value; }
             }
 
             public void Trim(int itemCount)

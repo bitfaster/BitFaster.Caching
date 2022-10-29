@@ -1,8 +1,6 @@
 ﻿using FluentAssertions;
 using BitFaster.Caching.Lru;
-using System;
 using System.Collections.Generic;
-using System.Text;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
@@ -66,7 +64,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemUpdatedIncrementUpdatedCount()
         {
-            telemetryPolicy.OnItemUpdated(1, 2);
+            telemetryPolicy.OnItemUpdated(1, 2, 3);
 
             telemetryPolicy.Updated.Should().Be(1);
         }
@@ -112,6 +110,36 @@ namespace BitFaster.Caching.UnitTests.Lru
             telemetryPolicy.ItemRemoved += (source, args) => eventSourceList.Add(source);
 
             telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Evicted);
+
+            eventSourceList.Should().HaveCount(1);
+            eventSourceList[0].Should().Be(this);
+        }
+
+        [Fact]
+        public void WhenOnItemUpdatedInvokedEventIsFired()
+        {
+            List<ItemUpdatedEventArgs<int, int>> eventList = new();
+
+            telemetryPolicy.ItemUpdated += (source, args) => eventList.Add(args);
+
+            telemetryPolicy.OnItemUpdated(1, 2, 3);
+
+            eventList.Should().HaveCount(1);
+            eventList[0].Key.Should().Be(1);
+            eventList[0].OldValue.Should().Be(2);
+            eventList[0].NewValue.Should().Be(3);
+        }
+
+        [Fact]
+        public void WhenEventSourceIsSetItemUpdatedEventUsesSource()
+        {
+            List<object> eventSourceList = new();
+
+            telemetryPolicy.SetEventSource(this);
+
+            telemetryPolicy.ItemUpdated += (source, args) => eventSourceList.Add(source);
+
+            telemetryPolicy.OnItemUpdated(1, 2, 3);
 
             eventSourceList.Should().HaveCount(1);
             eventSourceList[0].Should().Be(this);

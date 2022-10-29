@@ -1,8 +1,5 @@
 ﻿using FluentAssertions;
 using BitFaster.Caching.Lru;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
@@ -62,7 +59,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void OnItemUpdatedIsNoOp()
         {
-            counter.Invoking(c => c.OnItemUpdated(1, 2)).Should().NotThrow();
+            counter.Invoking(c => c.OnItemUpdated(1, 2, 3)).Should().NotThrow();
         }
 
         [Fact]
@@ -72,13 +69,24 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void RegisterEventHandlerIsNoOp()
+        public void RegisterRemovedEventHandlerIsNoOp()
         {
             counter.ItemRemoved += OnItemRemoved;
             counter.ItemRemoved -= OnItemRemoved;
         }
 
+        [Fact]
+        public void RegisterUpdateEventHandlerIsNoOp()
+        {
+            counter.ItemUpdated += OnItemUpdated;
+            counter.ItemUpdated -= OnItemUpdated;
+        }
+
         private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
+        {
+        }
+
+        private void OnItemUpdated(object sender, ItemUpdatedEventArgs<int, int> e)
         {
         }
     }

@@ -1,9 +1,7 @@
-﻿using System;
+﻿
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
 
@@ -15,6 +13,7 @@ namespace BitFaster.Caching.UnitTests
         protected readonly IScopedCache<int, Disposable> cache;
 
         protected List<ItemRemovedEventArgs<int, Scoped<Disposable>>> removedItems = new();
+        protected List<ItemUpdatedEventArgs<int, Scoped<Disposable>>> updatedItems = new();
 
         protected ScopedCacheTestBase(IScopedCache<int, Disposable> cache)
         {
@@ -48,7 +47,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public void WhenEventHandlerIsRegisteredItIsFired()
+        public void WhenRemovedEventHandlerIsRegisteredItIsFired()
         {
             this.cache.Events.Value.ItemRemoved += OnItemRemoved;
 
@@ -56,6 +55,17 @@ namespace BitFaster.Caching.UnitTests
             this.cache.TryRemove(1);
 
             this.removedItems.First().Key.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenUpdatedEventHandlerIsRegisteredItIsFired()
+        {
+            this.cache.Events.Value.ItemUpdated += OnItemUpdated;
+
+            this.cache.AddOrUpdate(1, new Disposable());
+            this.cache.AddOrUpdate(1, new Disposable());
+
+            this.updatedItems.First().Key.Should().Be(1);
         }
 
         [Fact]
@@ -219,6 +229,11 @@ namespace BitFaster.Caching.UnitTests
         protected void OnItemRemoved(object sender, ItemRemovedEventArgs<int, Scoped<Disposable>> e)
         {
             this.removedItems.Add(e);
+        }
+
+        protected void OnItemUpdated(object sender, ItemUpdatedEventArgs<int, Scoped<Disposable>> e)
+        {
+            this.updatedItems.Add(e);
         }
     }
 }

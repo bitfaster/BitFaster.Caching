@@ -127,6 +127,11 @@ namespace BitFaster.Caching.Atomic
             {
                 return new ItemRemovedEventArgs<K, V>(inner.Key, inner.Value.ValueIfCreated, inner.Reason);
             }
+
+            protected override ItemUpdatedEventArgs<K, V> TranslateOnUpdated(ItemUpdatedEventArgs<K, AsyncAtomicFactory<K, V>> inner)
+            {
+                return new ItemUpdatedEventArgs<K, V>(inner.Key, inner.OldValue.ValueIfCreated, inner.NewValue.ValueIfCreated);
+            }
         }
     }
 }
