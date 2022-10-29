@@ -38,6 +38,14 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
+        public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
+        {
+            // no-op, nothing is registered
+            add { }
+            remove { }
+        }
+
+        ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncrementMiss()
         {
@@ -57,7 +65,7 @@ namespace BitFaster.Caching.Lru
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void OnItemUpdated(K key, V value)
+        public void OnItemUpdated(K key, V oldValue, V value)
         {
         }
 

@@ -1,13 +1,12 @@
 ﻿using FluentAssertions;
 using BitFaster.Caching.Lru;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
-using System.Collections;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -23,10 +22,16 @@ namespace BitFaster.Caching.UnitTests.Lru
         private ValueFactory valueFactory = new ValueFactory();
 
         private List<ItemRemovedEventArgs<int, int>> removedItems = new List<ItemRemovedEventArgs<int, int>>();
+        private List<ItemUpdatedEventArgs<int, int>> updatedItems = new List<ItemUpdatedEventArgs<int, int>>();
 
         private void OnLruItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
         {
             removedItems.Add(e);
+        }
+
+        private void OnLruItemUpdated(object sender, ItemUpdatedEventArgs<int, int> e)
+        {
+            updatedItems.Add(e);
         }
 
         public ConcurrentLruTests(ITestOutputHelper testOutputHelper)
@@ -706,6 +711,55 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.HotCount.Should().Be(3);
             lru.WarmCount.Should().Be(1); // items must have been enqueued and cycled for one of them to reach the warm queue
+        }
+
+        [Fact]
+        public void WhenItemExistsAddOrUpdateFiresUpdateEvent()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default);
+            lruEvents.Events.Value.ItemUpdated += OnLruItemUpdated;
+
+            lruEvents.AddOrUpdate(1, 2);
+            lruEvents.AddOrUpdate(2, 3);
+
+            lruEvents.AddOrUpdate(1, 3);
+
+            this.updatedItems.Count.Should().Be(1);
+            this.updatedItems[0].Key.Should().Be(1);
+            this.updatedItems[0].OldValue.Should().Be(2);
+            this.updatedItems[0].NewValue.Should().Be(3);
+        }
+
+        [Fact]
+        public void WhenItemExistsTryUpdateFiresUpdateEvent()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default);
+            lruEvents.Events.Value.ItemUpdated += OnLruItemUpdated;
+
+            lruEvents.AddOrUpdate(1, 2);
+            lruEvents.AddOrUpdate(2, 3);
+
+            lruEvents.TryUpdate(1, 3);
+
+            this.updatedItems.Count.Should().Be(1);
+            this.updatedItems[0].Key.Should().Be(1);
+            this.updatedItems[0].OldValue.Should().Be(2);
+            this.updatedItems[0].NewValue.Should().Be(3);
+        }
+
+        [Fact]
+        public void WhenItemUpdatedEventIsUnregisteredEventIsNotFired()
+        {
+            var lruEvents = new ConcurrentLru<int, int>(1, 6, EqualityComparer<int>.Default);
+
+            lruEvents.Events.Value.ItemUpdated += OnLruItemUpdated;
+            lruEvents.Events.Value.ItemUpdated -= OnLruItemUpdated;
+
+            lruEvents.AddOrUpdate(1, 2);
+            lruEvents.AddOrUpdate(1, 2);
+            lruEvents.AddOrUpdate(1, 2);
+
+            updatedItems.Count.Should().Be(0);
         }
 
         [Fact]

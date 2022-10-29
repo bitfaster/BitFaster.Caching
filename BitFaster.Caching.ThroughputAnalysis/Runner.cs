@@ -24,6 +24,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         private static void RunTest(Mode mode, int cacheSize)
         {
+            Console.WriteLine();
             Console.WriteLine("Generating input distribution...");
 
             var (bench, dataConfig, capacity) = ConfigFactory.Create(mode, cacheSize, maxThreads);
@@ -39,7 +40,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             exporter.Initialize(cachesToTest);
 
             Console.WriteLine();
-            Console.WriteLine($"Running {mode} with size {cacheSize} over {maxThreads} threads...");
+            Console.WriteLine($"Running {mode} with size {capacity} over {maxThreads} threads...");
             Console.WriteLine();
 
             foreach (int tc in Enumerable.Range(1, maxThreads).ToArray())
