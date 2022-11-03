@@ -17,8 +17,8 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private CmSketchFlat<int, DisableHardwareIntrinsics> flatStd;
         private CmSketchFlat<int, DetectIsa> flatAvx;
 
-        private CmSketch<int, DisableHardwareIntrinsics> blockStd;
-        private CmSketch<int, DetectIsa> blockAvx;
+        private CmSketchCore<int, DisableHardwareIntrinsics> blockStd;
+        private CmSketchCore<int, DetectIsa> blockAvx;
 
         [Params(32_768, 524_288, 8_388_608, 134_217_728)]
         public int Size { get; set; }
@@ -29,8 +29,8 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             flatStd = new CmSketchFlat<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
             flatAvx = new CmSketchFlat<int, DetectIsa>(Size, EqualityComparer<int>.Default);
 
-            blockStd = new CmSketch<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
-            blockAvx = new CmSketch<int, DetectIsa>(Size, EqualityComparer<int>.Default);
+            blockStd = new CmSketchCore<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
+            blockAvx = new CmSketchCore<int, DetectIsa>(Size, EqualityComparer<int>.Default);
         }
 
         [Benchmark(Baseline = true, OperationsPerInvoke = iterations)]

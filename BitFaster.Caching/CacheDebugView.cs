@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections;
+﻿
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace BitFaster.Caching.Lru
+namespace BitFaster.Caching
 {
     [ExcludeFromCodeCoverage]
-    internal class LruDebugView<K, V>
+    internal class CacheDebugView<K, V>
     {
         private readonly ICache<K, V> cache;
 
-        public LruDebugView(ICache<K, V> cache)
+        public CacheDebugView(ICache<K, V> cache)
         {
             if (cache is null)
             {

@@ -18,6 +18,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         private readonly AtomicFactoryCache<int, int> cache = new(new ConcurrentLru<int, AtomicFactory<int, int>>(capacity));
 
         private List<ItemRemovedEventArgs<int, int>> removedItems = new();
+        private List<ItemUpdatedEventArgs<int, int>> updatedItems = new();
 
         [Fact]
         public void WhenInnerCacheIsNullCtorThrows()
@@ -54,7 +55,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public void WhenEventHandlerIsRegisteredItIsFired()
+        public void WhenRemovedEventHandlerIsRegisteredItIsFired()
         {
             this.cache.Events.Value.ItemRemoved += OnItemRemoved;
 
@@ -62,6 +63,19 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.cache.TryRemove(1);
 
             this.removedItems.First().Key.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenUpdatedEventHandlerIsRegisteredItIsFired()
+        {
+            this.cache.Events.Value.ItemUpdated += OnItemUpdated;
+
+            this.cache.AddOrUpdate(1, 2);
+            this.cache.AddOrUpdate(1, 3);
+
+            this.updatedItems.First().Key.Should().Be(1);
+            this.updatedItems.First().OldValue.Should().Be(2);
+            this.updatedItems.First().NewValue.Should().Be(3);
         }
 
         [Fact]
@@ -192,6 +206,11 @@ namespace BitFaster.Caching.UnitTests.Atomic
         private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
         {
             this.removedItems.Add(e);
+        }
+
+        private void OnItemUpdated(object sender, ItemUpdatedEventArgs<int, int> e)
+        {
+            this.updatedItems.Add(e);
         }
     }
 }

@@ -67,5 +67,21 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             cache.Events.HasValue.Should().BeFalse();
         }
+
+        // Infer identified AddOrUpdate and TryUpdate as resource leaks. This test verifies correct disposal.
+        [Fact]
+        public void WhenEntryIsUpdatedOldEntryIsDisposed()
+        {
+            var disposable1 = new Disposable();
+            var disposable2 = new Disposable();
+
+            this.cache.AddOrUpdate(1, disposable1);
+
+            this.cache.TryUpdate(1, disposable2).Should().BeTrue();
+            disposable1.IsDisposed.Should().BeTrue();
+
+            this.cache.TryUpdate(1, new Disposable()).Should().BeTrue();
+            disposable2.IsDisposed.Should().BeTrue();
+        }
     }
 }

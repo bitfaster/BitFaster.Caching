@@ -30,8 +30,9 @@ namespace BitFaster.Caching.Lru
         /// Register the update of an item.
         /// </summary>
         /// <param name="key">The key.</param>
-        /// <param name="value">The value.</param>
-        void OnItemUpdated(K key, V value);
+        /// <param name="oldValue">The old value.</param>
+        /// <param name="value">The new value.</param>
+        void OnItemUpdated(K key, V oldValue, V value);
 
         /// <summary>
         /// Set the event source for any events that are fired.

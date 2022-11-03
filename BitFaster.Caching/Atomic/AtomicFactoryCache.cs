@@ -10,6 +10,7 @@ namespace BitFaster.Caching.Atomic
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
+    [DebuggerTypeProxy(typeof(CacheDebugView<,>))]
     [DebuggerDisplay("Count = {Count}")]
     public sealed class AtomicFactoryCache<K, V> : ICache<K, V>
     {
@@ -125,6 +126,11 @@ namespace BitFaster.Caching.Atomic
             protected override ItemRemovedEventArgs<K, V> TranslateOnRemoved(ItemRemovedEventArgs<K, AtomicFactory<K, V>> inner)
             {
                 return new ItemRemovedEventArgs<K, V>(inner.Key, inner.Value.ValueIfCreated, inner.Reason);
+            }
+
+            protected override ItemUpdatedEventArgs<K, V> TranslateOnUpdated(ItemUpdatedEventArgs<K, AtomicFactory<K, V>> inner)
+            {
+                return new ItemUpdatedEventArgs<K, V>(inner.Key, inner.OldValue.ValueIfCreated, inner.NewValue.ValueIfCreated);
             }
         }
     }

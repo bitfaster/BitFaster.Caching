@@ -11,6 +11,7 @@ namespace BitFaster.Caching.Atomic
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
+    [DebuggerTypeProxy(typeof(ScopedCacheDebugView<,>))]
     [DebuggerDisplay("Count = {Count}")]
     public sealed class AtomicFactoryScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
     {
@@ -141,6 +142,11 @@ namespace BitFaster.Caching.Atomic
             protected override ItemRemovedEventArgs<K, Scoped<V>> TranslateOnRemoved(ItemRemovedEventArgs<K, ScopedAtomicFactory<K, V>> inner)
             {
                 return new ItemRemovedEventArgs<K, Scoped<V>>(inner.Key, inner.Value.ScopeIfCreated, inner.Reason);
+            }
+
+            protected override ItemUpdatedEventArgs<K, Scoped<V>> TranslateOnUpdated(ItemUpdatedEventArgs<K, ScopedAtomicFactory<K, V>> inner)
+            {
+                return new ItemUpdatedEventArgs<K, Scoped<V>>(inner.Key, inner.OldValue.ScopeIfCreated, inner.NewValue.ScopeIfCreated);
             }
         }
     }
