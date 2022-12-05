@@ -30,7 +30,7 @@ namespace BitFaster.Caching.Benchmarks
     //| ExtensionsMemoryCacheGet |  93.188 ns | 0.2321 ns | 0.2171 ns | 11.85 |    0.07 |      78 B | 0.0055 |      24 B |
     [SimpleJob(RuntimeMoniker.Net48)]
     [SimpleJob(RuntimeMoniker.Net60)]
-    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
+    //[DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser(displayGenColumns: false)]
     // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/
     // [ThreadingDiagnoser] // Requires .NET Core

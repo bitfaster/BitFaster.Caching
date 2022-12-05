@@ -1,6 +1,7 @@
 ﻿namespace BitFaster.Caching.Lfu
 {
-    internal sealed class LfuNode<K, V>
+    // TODO: was sealed - is perf worse? (likely yes due to array covariant checks)
+    internal class LfuNode<K, V>
     {
         internal LfuNodeList<K, V> list;
         internal LfuNode<K, V> next;
