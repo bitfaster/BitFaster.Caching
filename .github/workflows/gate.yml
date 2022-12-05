@@ -71,7 +71,7 @@ jobs:
       uses: coverallsapp/github-action@master   
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }} 
-        path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.info
+        path-to-lcov: /Users/runner/work/BitFaster.Caching/BitFaster.Caching/BitFaster.Caching.UnitTests/coverage.json
         flag-name: mac
         parallel: true
     - name: Generate unit test report
