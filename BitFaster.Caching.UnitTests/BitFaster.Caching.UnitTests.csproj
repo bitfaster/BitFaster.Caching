@@ -24,8 +24,4 @@
     <ProjectReference Include="..\BitFaster.Caching\BitFaster.Caching.csproj" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <CollectCoverage>true</CollectCoverage>
-    <CoverletOutputFormat>lcov</CoverletOutputFormat>
-  </PropertyGroup>
 </Project>
