@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.13.2" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.3" />
     <PackageReference Include="ConsoleTables" Version="2.4.2" />
     <PackageReference Include="CsvHelper" Version="30.0.1" />
     <PackageReference Include="EasyConsole" Version="1.1.0">
