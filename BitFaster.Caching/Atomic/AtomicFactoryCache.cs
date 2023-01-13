@@ -73,10 +73,6 @@ namespace BitFaster.Caching.Atomic
         // options
         // 1. create atomically, only add to cache afterwards
         //      - increases dictionary operations from 2 to 6 for the success case.
-        // 2. eager create wrapper, delete wrapper on exception
-        //      - potential race if there is interleaved fail then success, will evict items to add then remove the exception item
-        // 3. some other lock strategy
-
         ///<inheritdoc/>
         //public V GetOrAdd(K key, Func<K, V> valueFactory)
         //{
@@ -101,6 +97,12 @@ namespace BitFaster.Caching.Atomic
         //        return value;
         //    } // 5
         //}
+
+        // 2. eager create wrapper, ignore wrapper on exception
+        //      - potential race if there is interleaved fail then success, will evict items to add then remove the exception item
+
+        // 3. eager create wrapper, ignore wrapper if value not created
+        //      - need a way to filter out of public interface
 
         ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)

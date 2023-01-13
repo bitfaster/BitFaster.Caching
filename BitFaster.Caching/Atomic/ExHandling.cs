@@ -9,12 +9,14 @@ namespace BitFaster.Caching.Atomic
     {
         internal static int EnumerateCount(IEnumerator enumerator)
         {
-            int i = 0;
+            int count = 0;
             while (enumerator.MoveNext())
             {
-                i++;
+                count++;
             }
-            return i;
+            return count;
         }
+
+        // TODO: how to filter keys?
     }
 }
