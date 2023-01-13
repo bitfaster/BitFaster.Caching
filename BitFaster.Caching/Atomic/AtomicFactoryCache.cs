@@ -17,9 +17,6 @@ namespace BitFaster.Caching.Atomic
         private readonly ICache<K, AtomicFactory<K, V>> cache;
         private readonly Optional<ICacheEvents<K, V>> events;
 
-        // single instance of what is being created - this becomes unbounded
-        private readonly SingletonCache<K, AtomicFactory<K, V>> singleton = new SingletonCache<K, AtomicFactory<K, V>>();
-
         /// <summary>
         /// Initializes a new instance of the ScopedCache class with the specified inner cache.
         /// </summary>
