@@ -17,6 +17,9 @@ namespace BitFaster.Caching.Atomic
         private readonly ICache<K, AtomicFactory<K, V>> cache;
         private readonly Optional<ICacheEvents<K, V>> events;
 
+        // single instance of what is being created - this becomes unbounded
+        private readonly SingletonCache<K, AtomicFactory<K, V>> singleton = new SingletonCache<K, AtomicFactory<K, V>>();
+
         /// <summary>
         /// Initializes a new instance of the ScopedCache class with the specified inner cache.
         /// </summary>
@@ -41,7 +44,7 @@ namespace BitFaster.Caching.Atomic
         }
 
         ///<inheritdoc/>
-        public int Count => this.cache.Count;
+        public int Count => ExHandling.EnumerateCount(this.GetEnumerator());
 
         ///<inheritdoc/>
         public Optional<ICacheMetrics> Metrics => this.cache.Metrics;
@@ -66,6 +69,38 @@ namespace BitFaster.Caching.Atomic
         {
             this.cache.Clear();
         }
+
+        // options
+        // 1. create atomically, only add to cache afterwards
+        //      - increases dictionary operations from 2 to 6 for the success case.
+        // 2. eager create wrapper, delete wrapper on exception
+        //      - potential race if there is interleaved fail then success, will evict items to add then remove the exception item
+        // 3. some other lock strategy
+
+        ///<inheritdoc/>
+        //public V GetOrAdd(K key, Func<K, V> valueFactory)
+        //{
+        //    if (this.cache.TryGet(key, out var atomicFactory)) // 1
+        //    {
+        //        return atomicFactory.GetValue(key, valueFactory);
+        //    }
+
+        //    // this can be a race - you can exit the if statement after factory holder is disposed
+        //    using (var factoryHolder = singleton.Acquire(key)) // 2
+        //    {
+        //        // double check to prevent race
+        //        if (this.cache.TryGet(key, out var atomicFactory)) // 3
+        //        {
+        //            return atomicFactory.GetValue(key, valueFactory);
+        //        }
+
+        //        V value = factoryHolder.Value.GetValue(key, valueFactory);
+
+        //        this.cache.GetOrAdd(key, _ => factoryHolder.Value); // 4
+
+        //        return value;
+        //    } // 5
+        //}
 
         ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
@@ -107,7 +142,10 @@ namespace BitFaster.Caching.Atomic
         {
             foreach (var kvp in this.cache)
             {
-                yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.ValueIfCreated);
+                if (kvp.Value.IsValueCreated)
+                {
+                    yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.ValueIfCreated);
+                }
             }
         }
 

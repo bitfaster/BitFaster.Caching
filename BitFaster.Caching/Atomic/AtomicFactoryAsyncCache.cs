@@ -43,7 +43,7 @@ namespace BitFaster.Caching.Atomic
         }
 
         ///<inheritdoc/>
-        public int Count => cache.Count;
+        public int Count => ExHandling.EnumerateCount(this.GetEnumerator());
 
         ///<inheritdoc/>
         public Optional<ICacheMetrics> Metrics => cache.Metrics;
@@ -109,7 +109,10 @@ namespace BitFaster.Caching.Atomic
         {
             foreach (var kvp in this.cache)
             {
-                yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.ValueIfCreated);
+                if (kvp.Value.IsValueCreated)
+                { 
+                    yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.ValueIfCreated); 
+                }
             }
         }
 

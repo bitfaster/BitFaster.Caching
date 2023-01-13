@@ -50,6 +50,8 @@ namespace BitFaster.Caching.Atomic
             scope = new Scoped<V>(value);
         }
 
+        public bool IsScopeCreated => initializer == null;
+
         /// <summary>
         /// Gets the scope if it has been initialized, else default.
         /// </summary>
