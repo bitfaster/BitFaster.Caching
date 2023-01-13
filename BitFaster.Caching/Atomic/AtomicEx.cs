@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text;
 
 namespace BitFaster.Caching.Atomic
@@ -20,7 +21,9 @@ namespace BitFaster.Caching.Atomic
 
         internal static ICollection<K> FilterKeys<K, V>(IEnumerable<KeyValuePair<K, V>> kvps, Func<V, bool> filter)
         {
-            List<K> keys = new List<K>();
+            // Here we will double enumerate the kvps list. Alternative is to lazy init the size which will keep resizing
+            // the List, and spam allocs if the list is long.
+            List<K> keys = new List<K>(kvps.Count());
 
             foreach (var kvp in kvps)
             {
