@@ -83,5 +83,42 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.cache.TryUpdate(1, new Disposable()).Should().BeTrue();
             disposable2.IsDisposed.Should().BeTrue();
         }
+
+        [Fact]
+        public void WhenFactoryThrowsEmptyValueIsNotCounted()
+        {
+            try
+            {
+                cache.ScopedGetOrAdd(1, _ => throw new Exception());
+            }
+            catch { }
+
+            cache.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenFactoryThrowsEmptyValueIsNotEnumerable()
+        {
+            try
+            {
+                cache.ScopedGetOrAdd(1, k => throw new Exception());
+            }
+            catch { }
+
+            // IEnumerable.Count() instead of Count property
+            cache.Count().Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenFactoryThrowsEmptyKeyIsNotEnumerable()
+        {
+            try
+            {
+                cache.ScopedGetOrAdd(1, k => throw new Exception());
+            }
+            catch { }
+
+            cache.Keys.Count().Should().Be(0);
+        }
     }
 }

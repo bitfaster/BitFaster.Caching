@@ -42,7 +42,7 @@ namespace BitFaster.Caching.Atomic
         }
 
         ///<inheritdoc/>
-        public int Count => this.cache.Count;
+        public int Count => AtomicEx.EnumerateCount(this.GetEnumerator());
 
         ///<inheritdoc/>
         public Optional<ICacheMetrics> Metrics => this.cache.Metrics;
@@ -54,7 +54,7 @@ namespace BitFaster.Caching.Atomic
         public CachePolicy Policy => this.cache.Policy;
 
         ///<inheritdoc/>
-        public ICollection<K> Keys => this.cache.Keys;
+        public ICollection<K> Keys => AtomicEx.FilterKeys<K, ScopedAtomicFactory<K, V>>(this.cache, v => v.IsScopeCreated);
 
         ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
@@ -123,7 +123,10 @@ namespace BitFaster.Caching.Atomic
         {
             foreach (var kvp in this.cache)
             {
-                yield return new KeyValuePair<K, Scoped<V>>(kvp.Key, kvp.Value.ScopeIfCreated);
+                if (kvp.Value.IsScopeCreated)
+                { 
+                    yield return new KeyValuePair<K, Scoped<V>>(kvp.Key, kvp.Value.ScopeIfCreated); 
+                }
             }
         }
 

@@ -203,6 +203,43 @@ namespace BitFaster.Caching.UnitTests.Atomic
             enumerable.Should().BeEquivalentTo(new[] { new KeyValuePair<int, int>(1, 1), new KeyValuePair<int, int>(2, 2) });
         }
 
+        [Fact]
+        public void WhenFactoryThrowsEmptyValueIsNotCounted()
+        {
+            try
+            {
+                cache.GetOrAdd(1, _ => throw new Exception());
+            }
+            catch { }
+
+            cache.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenFactoryThrowsEmptyValueIsNotEnumerable()
+        {
+            try
+            {
+                cache.GetOrAdd(1, k => throw new Exception());
+            }
+            catch { }
+
+            // IEnumerable.Count() instead of Count property
+            cache.Count().Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenFactoryThrowsEmptyKeyIsNotEnumerable()
+        {
+            try
+            {
+                cache.GetOrAdd(1, k => throw new Exception());
+            }
+            catch { }
+
+            cache.Keys.Count().Should().Be(0);
+        }
+
         private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
         {
             this.removedItems.Add(e);

@@ -26,7 +26,7 @@ namespace BitFaster.Caching.Atomic
     ///    </item>
     ///</list>
     /// </remarks>
-    [DebuggerDisplay("IsValueCreated={initializer == null}, Value={ScopeIfCreated}")]
+    [DebuggerDisplay("IsScopeCreated={initializer == null}, Value={ScopeIfCreated}")]
     public sealed class ScopedAtomicFactory<K, V> : IScoped<V>, IDisposable where V : IDisposable
     {
         private Scoped<V> scope;
@@ -49,6 +49,11 @@ namespace BitFaster.Caching.Atomic
         {
             scope = new Scoped<V>(value);
         }
+
+        /// <summary>
+        /// Gets a value indicating whether the scope has been initialized.
+        /// </summary>
+        public bool IsScopeCreated => initializer == null;
 
         /// <summary>
         /// Gets the scope if it has been initialized, else default.
