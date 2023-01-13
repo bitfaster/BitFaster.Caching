@@ -95,5 +95,30 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             cache.Count.Should().Be(0);
         }
+
+        [Fact]
+        public void WhenFactoryThrowsEmptyValueIsNotEnumerable()
+        {
+            try
+            {
+                cache.ScopedGetOrAdd(1, k => throw new Exception());
+            }
+            catch { }
+
+            // IEnumerable.Count() instead of Count property
+            cache.Count().Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenFactoryThrowsEmptyKeyIsNotEnumerable()
+        {
+            try
+            {
+                cache.ScopedGetOrAdd(1, k => throw new Exception());
+            }
+            catch { }
+
+            cache.Keys.Count().Should().Be(0);
+        }
     }
 }

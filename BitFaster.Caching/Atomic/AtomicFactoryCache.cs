@@ -44,7 +44,7 @@ namespace BitFaster.Caching.Atomic
         }
 
         ///<inheritdoc/>
-        public int Count => ExHandling.EnumerateCount(this.GetEnumerator());
+        public int Count => AtomicEx.EnumerateCount(this.GetEnumerator());
 
         ///<inheritdoc/>
         public Optional<ICacheMetrics> Metrics => this.cache.Metrics;
@@ -53,7 +53,7 @@ namespace BitFaster.Caching.Atomic
         public Optional<ICacheEvents<K, V>> Events => this.events;
 
         ///<inheritdoc/>
-        public ICollection<K> Keys => this.cache.Keys;
+        public ICollection<K> Keys => AtomicEx.FilterKeys<K, AtomicFactory<K, V>>(this.cache, v => v.IsValueCreated);
 
         ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;
@@ -69,40 +69,6 @@ namespace BitFaster.Caching.Atomic
         {
             this.cache.Clear();
         }
-
-        // options
-        // 1. create atomically, only add to cache afterwards
-        //      - increases dictionary operations from 2 to 6 for the success case.
-        ///<inheritdoc/>
-        //public V GetOrAdd(K key, Func<K, V> valueFactory)
-        //{
-        //    if (this.cache.TryGet(key, out var atomicFactory)) // 1
-        //    {
-        //        return atomicFactory.GetValue(key, valueFactory);
-        //    }
-
-        //    // this can be a race - you can exit the if statement after factory holder is disposed
-        //    using (var factoryHolder = singleton.Acquire(key)) // 2
-        //    {
-        //        // double check to prevent race
-        //        if (this.cache.TryGet(key, out var atomicFactory)) // 3
-        //        {
-        //            return atomicFactory.GetValue(key, valueFactory);
-        //        }
-
-        //        V value = factoryHolder.Value.GetValue(key, valueFactory);
-
-        //        this.cache.GetOrAdd(key, _ => factoryHolder.Value); // 4
-
-        //        return value;
-        //    } // 5
-        //}
-
-        // 2. eager create wrapper, ignore wrapper on exception
-        //      - potential race if there is interleaved fail then success, will evict items to add then remove the exception item
-
-        // 3. eager create wrapper, ignore wrapper if value not created
-        //      - need a way to filter out of public interface
 
         ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)

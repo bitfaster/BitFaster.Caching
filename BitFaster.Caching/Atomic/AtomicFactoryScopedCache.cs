@@ -42,7 +42,7 @@ namespace BitFaster.Caching.Atomic
         }
 
         ///<inheritdoc/>
-        public int Count => ExHandling.EnumerateCount(this.GetEnumerator());
+        public int Count => AtomicEx.EnumerateCount(this.GetEnumerator());
 
         ///<inheritdoc/>
         public Optional<ICacheMetrics> Metrics => this.cache.Metrics;
@@ -54,7 +54,7 @@ namespace BitFaster.Caching.Atomic
         public CachePolicy Policy => this.cache.Policy;
 
         ///<inheritdoc/>
-        public ICollection<K> Keys => this.cache.Keys;
+        public ICollection<K> Keys => AtomicEx.FilterKeys<K, ScopedAtomicFactory<K, V>>(this.cache, v => v.IsScopeCreated);
 
         ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)

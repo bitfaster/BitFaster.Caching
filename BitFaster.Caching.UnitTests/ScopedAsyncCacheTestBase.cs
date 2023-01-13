@@ -240,6 +240,31 @@ namespace BitFaster.Caching.UnitTests
             cache.Count.Should().Be(0);
         }
 
+        [Fact]
+        public async Task WhenFactoryThrowsEmptyValueIsNotEnumerable()
+        {
+            try
+            {
+                await cache.ScopedGetOrAddAsync(1, k => throw new ArithmeticException());
+            }
+            catch { }
+
+            // IEnumerable.Count() instead of Count property
+            cache.Count().Should().Be(0);
+        }
+
+        [Fact]
+        public async Task WhenFactoryThrowsEmptyKeyIsNotEnumerable()
+        {
+            try
+            {
+                await cache.ScopedGetOrAddAsync(1, k => throw new ArithmeticException());
+            }
+            catch { }
+
+            cache.Keys.Count().Should().Be(0);
+        }
+
         protected void OnItemRemoved(object sender, ItemRemovedEventArgs<int, Scoped<Disposable>> e)
         {
             this.removedItems.Add(e);
