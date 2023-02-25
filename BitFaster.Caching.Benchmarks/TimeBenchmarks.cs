@@ -5,7 +5,7 @@ using BenchmarkDotNet.Jobs;
 
 namespace BitFaster.Caching.Benchmarks
 {
-    [SimpleJob(RuntimeMoniker.Net48)]
+   // [SimpleJob(RuntimeMoniker.Net48)]
     [SimpleJob(RuntimeMoniker.Net60)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class TimeBenchmarks
@@ -23,7 +23,13 @@ namespace BitFaster.Caching.Benchmarks
         {
             return Environment.TickCount;
         }
-
+#if NET6_0_OR_GREATER
+        [Benchmark()]
+        public long EnvironmentTickCount64()
+        {
+            return Environment.TickCount64;
+        }
+#endif
         [Benchmark()]
         public long StopWatchGetElapsed()
         {
