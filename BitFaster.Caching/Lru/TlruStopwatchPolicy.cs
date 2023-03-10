@@ -9,7 +9,7 @@ namespace BitFaster.Caching.Lru
     /// recently used items first, and any item that has expired.
     /// </summary>
     /// <remarks>
-    /// This class measures time using stopwatch.
+    /// This class measures time using Stopwatch.GetTimestamp() with a resolution of ~1us.
     /// </remarks>
     [DebuggerDisplay("TTL = {TimeToLive,nq})")]
     public readonly struct TlruStopwatchPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>

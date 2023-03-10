@@ -9,9 +9,9 @@ namespace BitFaster.Caching.Lru
     /// recently used items first, and any item that has expired.
     /// </summary>
     /// <remarks>
-    /// This class measures time using Environment.TickCount, which is significantly faster
-    /// than DateTime.Now. However, if the process runs for longer than 24.8 days, the integer
-    /// value will wrap and time measurement will become invalid.
+    /// This class measures time using Environment.TickCount64, which is significantly faster
+    /// than both Stopwatch.GetTimestamp and DateTime.UtcNow. However, resolution is lower (typically 
+    /// between 10-16ms), vs 1us for Stopwatch.GetTimestamp.
     /// </remarks>
     public readonly struct TLruTickCount64Policy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
