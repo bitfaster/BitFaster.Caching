@@ -2,7 +2,6 @@
 using BitFaster.Caching.Lru;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 using System.Runtime.InteropServices;
@@ -79,7 +78,6 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
-            //var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
             var lruEvents = CreateTLru<int, int>(new EqualCapacityPartition(6), timeToLive);
             lruEvents.Events.Value.ItemRemoved += OnLruItemRemoved;
 
@@ -106,7 +104,6 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemRemovedEventIsUnregisteredEventIsNotFired()
         {
-            //var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
             var lruEvents = CreateTLru<int, int>(new EqualCapacityPartition(6), timeToLive);
             lruEvents.Events.Value.ItemRemoved += OnLruItemRemoved;
             lruEvents.Events.Value.ItemRemoved -= OnLruItemRemoved;
