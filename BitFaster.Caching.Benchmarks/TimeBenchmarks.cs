@@ -25,6 +25,16 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark()]
+        public long EnvironmentTickCount64()
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            return Environment.TickCount64;
+#else
+            return 0;
+#endif
+        }
+
+        [Benchmark()]
         public long StopWatchGetElapsed()
         {
             return sw.ElapsedTicks;

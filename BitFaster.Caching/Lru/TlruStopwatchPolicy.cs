@@ -9,10 +9,10 @@ namespace BitFaster.Caching.Lru
     /// recently used items first, and any item that has expired.
     /// </summary>
     /// <remarks>
-    /// This class measures time using stopwatch.
+    /// This class measures time using Stopwatch.GetTimestamp() with a resolution of ~1us.
     /// </remarks>
     [DebuggerDisplay("TTL = {TimeToLive,nq})")]
-    public readonly struct TLruLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    public readonly struct TlruStopwatchPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         // On some platforms (e.g. MacOS), stopwatch and timespan have different resolution
         private static readonly double stopwatchAdjustmentFactor = Stopwatch.Frequency / (double)TimeSpan.TicksPerSecond;
@@ -22,7 +22,7 @@ namespace BitFaster.Caching.Lru
         /// Initializes a new instance of the TLruLongTicksPolicy class with the specified time to live.
         /// </summary>
         /// <param name="timeToLive">The time to live.</param>
-        public TLruLongTicksPolicy(TimeSpan timeToLive)
+        public TlruStopwatchPolicy(TimeSpan timeToLive)
         {
             this.timeToLive = ToTicks(timeToLive);
         }
