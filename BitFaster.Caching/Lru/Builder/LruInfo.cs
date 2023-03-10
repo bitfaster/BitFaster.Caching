@@ -14,5 +14,9 @@ namespace BitFaster.Caching.Lru.Builder
         public bool WithMetrics { get; set; } = false;
 
         public IEqualityComparer<K> KeyComparer { get; set; } = EqualityComparer<K>.Default;
+
+#if NETCOREAPP3_0_OR_GREATER
+        public bool WithHighResolutionTime { get; set; } = false;
+#endif
     }
 }

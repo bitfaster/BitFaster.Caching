@@ -53,6 +53,33 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Policy.Eviction.Value.Capacity.Should().Be(128);
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        [Fact]
+        public void TestHighResClockTLru()
+        {
+            ICache<int, int> lru = new ConcurrentLruBuilder<int, int>()
+                 .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                 .WithHighResolutionClock()
+                 .Build();
+
+            lru.Should().BeOfType<ConcurrentLruCore<int, int, LongTickCountLruItem<int, int>, TlruStopwatchPolicy<int, int>, NoTelemetryPolicy<int, int>>>();
+            lru.Policy.Eviction.Value.Capacity.Should().Be(128);
+        }
+
+        [Fact]
+        public void TestHighResClockMetricsTLru()
+        {
+            ICache<int, int> lru = new ConcurrentLruBuilder<int, int>()
+                 .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                 .WithHighResolutionClock()
+                 .WithMetrics()
+                 .Build();
+
+            lru.Should().BeOfType<ConcurrentLruCore<int, int, LongTickCountLruItem<int, int>, TlruStopwatchPolicy<int, int>, TelemetryPolicy<int, int>>>();
+            lru.Policy.Eviction.Value.Capacity.Should().Be(128);
+        }
+#endif
+
         [Fact]
         public void AsAsyncTestFastLru()
         {
@@ -97,7 +124,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Should().BeOfType<ConcurrentTLru<int, int>>();
             lru.Policy.Eviction.Value.Capacity.Should().Be(128);
         }
-
 
         [Fact]
         public void TestComparer()
