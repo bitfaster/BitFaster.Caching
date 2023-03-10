@@ -58,8 +58,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestHighResClockTLru()
         {
             ICache<int, int> lru = new ConcurrentLruBuilder<int, int>()
-                 .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
-                 .WithHighResolutionClock()
+                 .WithExpireAfterWrite(TimeSpan.FromMilliseconds(10))
                  .Build();
 
             lru.Should().BeOfType<ConcurrentLruCore<int, int, LongTickCountLruItem<int, int>, TlruStopwatchPolicy<int, int>, NoTelemetryPolicy<int, int>>>();
@@ -70,8 +69,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestHighResClockMetricsTLru()
         {
             ICache<int, int> lru = new ConcurrentLruBuilder<int, int>()
-                 .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
-                 .WithHighResolutionClock()
+                 .WithExpireAfterWrite(TimeSpan.FromMilliseconds(10))
                  .WithMetrics()
                  .Build();
 

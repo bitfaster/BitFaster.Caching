@@ -79,25 +79,16 @@ namespace BitFaster.Caching.Lru.Builder
         public TBuilder WithExpireAfterWrite(TimeSpan expiration)
         {
             this.info.TimeToExpireAfterWrite = expiration;
-            return this as TBuilder;
-        }
 
 #if NETCOREAPP3_0_OR_GREATER
-        /// <summary>
-        /// Use the high resolution clock for time based expiry. The high resolution clock incurs a performance penalty, but item expiry time is more precise.
-        /// </summary>
-        /// <remarks>
-        /// The high resolution clock should be used when items must be expired faster than 16ms.
-        /// The default clock is based on Environment.TickCount64, which has a resolution of around 16ms.
-        /// The high resolution clock is based on Stopwatch.GetTimestamp() which has a resolution of around 1us.
-        /// </remarks>
-        /// <returns>A ConcurrentLruBuilder</returns>
-        public TBuilder WithHighResolutionClock()
-        {
-            this.info.WithHighResolutionTime = true;
+            // if the expiration time is less than 2x default precision, switch to high resolution clock automatically.
+            if (expiration < TimeSpan.FromMilliseconds(32))
+            {
+                this.info.WithHighResolutionTime = true;
+            }
+#endif
             return this as TBuilder;
         }
-#endif
 
         /// <summary>
         /// Builds a cache configured via the method calls invoked on the builder instance.
