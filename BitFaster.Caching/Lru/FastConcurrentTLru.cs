@@ -7,7 +7,7 @@ namespace BitFaster.Caching.Lru
     ///<inheritdoc/>
     [DebuggerTypeProxy(typeof(CacheDebugView<,>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
-    public sealed class FastConcurrentTLru<K, V> : ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TLruLongTicksPolicy<K, V>, NoTelemetryPolicy<K, V>>
+    public sealed class FastConcurrentTLru<K, V> : ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TlruStopwatchPolicy<K, V>, NoTelemetryPolicy<K, V>>
     {
         /// <summary>
         /// Initializes a new instance of the FastConcurrentTLru class with the specified capacity and time to live that has the default 
@@ -16,7 +16,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="capacity">The maximum number of elements that the FastConcurrentTLru can contain.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public FastConcurrentTLru(int capacity, TimeSpan timeToLive)
-            : base(Defaults.ConcurrencyLevel, new FavorWarmPartition(capacity), EqualityComparer<K>.Default, new TLruLongTicksPolicy<K, V>(timeToLive), default)
+            : base(Defaults.ConcurrencyLevel, new FavorWarmPartition(capacity), EqualityComparer<K>.Default, new TlruStopwatchPolicy<K, V>(timeToLive), default)
         {
         }
 
@@ -29,7 +29,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="comparer">The IEqualityComparer implementation to use when comparing keys.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public FastConcurrentTLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer, TimeSpan timeToLive)
-            : base(concurrencyLevel, new FavorWarmPartition(capacity), comparer, new TLruLongTicksPolicy<K, V>(timeToLive), default)
+            : base(concurrencyLevel, new FavorWarmPartition(capacity), comparer, new TlruStopwatchPolicy<K, V>(timeToLive), default)
         {
         }
 
@@ -42,7 +42,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="comparer">The IEqualityComparer implementation to use when comparing keys.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public FastConcurrentTLru(int concurrencyLevel, ICapacityPartition capacity, IEqualityComparer<K> comparer, TimeSpan timeToLive)
-            : base(concurrencyLevel, capacity, comparer, new TLruLongTicksPolicy<K, V>(timeToLive), default)
+            : base(concurrencyLevel, capacity, comparer, new TlruStopwatchPolicy<K, V>(timeToLive), default)
         {
         }
     }

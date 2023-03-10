@@ -10,9 +10,9 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class TLruTicksPolicyTests
+    public class TLruTickCount64PolicyTests
     {
-        private readonly TLruTicksPolicy<int, int> policy = new TLruTicksPolicy<int, int>(TimeSpan.FromSeconds(10));
+        private readonly TLruTickCount64Policy<int, int> policy = new TLruTickCount64Policy<int, int>(TimeSpan.FromSeconds(10));
 
         [Fact]
         public void TimeToLiveShouldBeTenSecs()
@@ -34,7 +34,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            item.TickCount.Should().BeCloseTo(Environment.TickCount, 20);
+            item.TickCount.Should().BeCloseTo(Environment.TickCount64, 20);
         }
 
         [Fact]
@@ -65,7 +65,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsExpiredShouldDiscardIsTrue()
         {
             var item = this.policy.CreateItem(1, 2);
-            item.TickCount = Environment.TickCount - (int)TimeSpan.FromSeconds(11).ToEnvTicks();
+            item.TickCount = Environment.TickCount - (int)TimeSpan.FromSeconds(11).ToEnvTick64();
 
             this.policy.ShouldDiscard(item).Should().BeTrue();
         }
@@ -74,7 +74,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsNotExpiredShouldDiscardIsFalse()
         {
             var item = this.policy.CreateItem(1, 2);
-            item.TickCount = Environment.TickCount - (int)TimeSpan.FromSeconds(9).ToEnvTicks();
+            item.TickCount = Environment.TickCount - (int)TimeSpan.FromSeconds(9).ToEnvTick64();
 
             this.policy.ShouldDiscard(item).Should().BeFalse();
         }
@@ -121,7 +121,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.policy.RouteCold(item).Should().Be(expectedDestination);
         }
 
-        private TickCountLruItem<int, int> CreateItem(bool wasAccessed, bool isExpired)
+        private LongTickCountLruItem<int, int> CreateItem(bool wasAccessed, bool isExpired)
         {
             var item = this.policy.CreateItem(1, 2);
 
@@ -129,23 +129,10 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             if (isExpired)
             {
-                item.TickCount = Environment.TickCount - TimeSpan.FromSeconds(11).ToEnvTicks();
+                item.TickCount = Environment.TickCount - TimeSpan.FromSeconds(11).ToEnvTick64();
             }
 
             return item;
-        }
-    }
-
-    public static class TimeSpanExtensions
-    {
-        public static int ToEnvTicks(this TimeSpan ts)
-        {
-            return (int)ts.TotalMilliseconds;
-        }
-
-        public static long ToEnvTick64(this TimeSpan ts)
-        {
-            return (long)ts.TotalMilliseconds;
         }
     }
 }
