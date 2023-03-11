@@ -2,18 +2,17 @@
 using BitFaster.Caching.Lru;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 using System.Runtime.InteropServices;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class ConcurrentTLruTests
+    public abstract class ConcurrentTLruTests
     {
         private readonly TimeSpan timeToLive = TimeSpan.FromMilliseconds(10);
         private readonly ICapacityPartition capacity = new EqualCapacityPartition(9);
-        private ConcurrentTLru<int, string> lru;
+        private ICache<int, string> lru;
 
         private ValueFactory valueFactory = new ValueFactory();
 
@@ -27,33 +26,11 @@ namespace BitFaster.Caching.UnitTests.Lru
             removedItems.Add(e);
         }
 
+        protected abstract ICache<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive);
+
         public ConcurrentTLruTests()
         {
-            lru = new ConcurrentTLru<int, string>(1, capacity, EqualityComparer<int>.Default, timeToLive);
-        }
-
-        [Fact]
-        public void ConstructWithDefaultCtorReturnsCapacity()
-        {
-            var x = new ConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
-
-            x.Capacity.Should().Be(3);
-        }
-
-        [Fact]
-        public void ConstructCapacityCtorReturnsCapacity()
-        {
-            var x = new ConcurrentTLru<int, int>(1, 3, EqualityComparer<int>.Default, TimeSpan.FromSeconds(1));
-
-            x.Capacity.Should().Be(3);
-        }
-
-        [Fact]
-        public void ConstructPartitionCtorReturnsCapacity()
-        {
-            var x = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(3), EqualityComparer<int>.Default, TimeSpan.FromSeconds(1));
-
-            x.Capacity.Should().Be(3);
+            lru = CreateTLru<int, string>(capacity, timeToLive);
         }
 
         [Fact]
@@ -101,7 +78,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
-            var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
+            var lruEvents = CreateTLru<int, int>(new EqualCapacityPartition(6), timeToLive);
             lruEvents.Events.Value.ItemRemoved += OnLruItemRemoved;
 
             // First 6 adds
@@ -127,7 +104,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemRemovedEventIsUnregisteredEventIsNotFired()
         {
-            var lruEvents = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(6), EqualityComparer<int>.Default, timeToLive);
+            var lruEvents = CreateTLru<int, int>(new EqualCapacityPartition(6), timeToLive);
             lruEvents.Events.Value.ItemRemoved += OnLruItemRemoved;
             lruEvents.Events.Value.ItemRemoved -= OnLruItemRemoved;
 
@@ -195,9 +172,49 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             await Task.Delay(timeToLive * ttlWaitMlutiplier);
 
-            lru.Trim(1);
+            lru.Policy.Eviction.Value.Trim(1);
 
             lru.Count.Should().Be(0);
+        }
+    }
+
+    public class ConcurrentTLruDefaultClockTests : ConcurrentTLruTests
+    {
+        protected override ICache<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive)
+        {
+             return new ConcurrentTLru<K, V>(1, capacity, EqualityComparer<K>.Default, timeToLive);
+        }
+
+        [Fact]
+        public void ConstructWithDefaultCtorReturnsCapacity()
+        {
+            var x = new ConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
+
+            x.Capacity.Should().Be(3);
+        }
+
+        [Fact]
+        public void ConstructCapacityCtorReturnsCapacity()
+        {
+            var x = new ConcurrentTLru<int, int>(1, 3, EqualityComparer<int>.Default, TimeSpan.FromSeconds(1));
+
+            x.Capacity.Should().Be(3);
+        }
+
+        [Fact]
+        public void ConstructPartitionCtorReturnsCapacity()
+        {
+            var x = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(3), EqualityComparer<int>.Default, TimeSpan.FromSeconds(1));
+
+            x.Capacity.Should().Be(3);
+        }
+    }
+
+    public class ConcurrentTLruHighResClockTests : ConcurrentTLruTests
+    {
+        protected override ICache<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive)
+        {
+            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TlruStopwatchPolicy<K, V>, TelemetryPolicy<K, V>>(1, capacity, EqualityComparer<K>.Default, new TlruStopwatchPolicy<K, V>(timeToLive), default);
         }
     }
 }
