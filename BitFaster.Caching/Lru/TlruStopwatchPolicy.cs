@@ -14,6 +14,11 @@ namespace BitFaster.Caching.Lru
     [DebuggerDisplay("TTL = {TimeToLive,nq})")]
     public readonly struct TlruStopwatchPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
+        /// <summary>
+        /// The maximum representable time to live.
+        /// </summary>
+        public static readonly TimeSpan MaxTtl = TimeSpan.FromTicks(TimeSpan.MaxValue.Ticks >> 1); 
+
         // On some platforms (e.g. MacOS), stopwatch and timespan have different resolution
         private static readonly double stopwatchAdjustmentFactor = Stopwatch.Frequency / (double)TimeSpan.TicksPerSecond;
         private readonly long timeToLive;
@@ -128,6 +133,11 @@ namespace BitFaster.Caching.Lru
         /// <returns>The time represented as ticks.</returns>
         public static long ToTicks(TimeSpan timespan)
         {
+            if (timespan > MaxTtl)
+            {
+                timespan = MaxTtl;
+            }
+
             return (long)(timespan.Ticks * stopwatchAdjustmentFactor);
         }
 
