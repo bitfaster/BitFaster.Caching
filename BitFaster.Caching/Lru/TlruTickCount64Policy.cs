@@ -125,16 +125,6 @@ namespace BitFaster.Caching.Lru
 
             return ItemDestination.Remove;
         }
-
-        private static TimeSpan Clamp(double ticks)
-        {
-            if (ticks > long.MaxValue)
-            {
-                return TimeSpan.MaxValue;
-            }
-
-            return TimeSpan.FromMilliseconds(ticks);
-        }
     }
 #endif
 }
