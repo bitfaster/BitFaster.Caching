@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Lru
     /// </remarks>
     public readonly struct TLruTickCount64Policy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
-        private readonly int timeToLive;
+        private readonly long timeToLive;
 
         ///<inheritdoc/>
         public TimeSpan TimeToLive => TimeSpan.FromMilliseconds(timeToLive);
@@ -26,7 +26,13 @@ namespace BitFaster.Caching.Lru
         /// <param name="timeToLive">The time to live.</param>
         public TLruTickCount64Policy(TimeSpan timeToLive)
         {
-            this.timeToLive = (int)timeToLive.TotalMilliseconds;
+            TimeSpan maxRepresentable = TimeSpan.FromTicks(9223372036854769664);
+            if (timeToLive < TimeSpan.Zero || timeToLive > maxRepresentable)
+            {
+                throw new ArgumentOutOfRangeException(nameof(timeToLive), $"Value must greater than zero and less than {maxRepresentable}");
+            }
+
+            this.timeToLive = (long)timeToLive.TotalMilliseconds;
         }
 
         ///<inheritdoc/>
@@ -47,14 +53,14 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(LongTickCountLruItem<K, V> item)
         {
-            item.TickCount = Environment.TickCount;
+            item.TickCount = Environment.TickCount64;
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
-            if (Environment.TickCount - item.TickCount > this.timeToLive)
+            if (Environment.TickCount64 - item.TickCount > this.timeToLive)
             {
                 return true;
             }
@@ -118,6 +124,16 @@ namespace BitFaster.Caching.Lru
             }
 
             return ItemDestination.Remove;
+        }
+
+        private static TimeSpan Clamp(double ticks)
+        {
+            if (ticks > long.MaxValue)
+            {
+                return TimeSpan.MaxValue;
+            }
+
+            return TimeSpan.FromMilliseconds(ticks);
         }
     }
 #endif

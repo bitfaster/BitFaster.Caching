@@ -15,6 +15,30 @@ namespace BitFaster.Caching.UnitTests.Lru
         private readonly TLruTickCount64Policy<int, int> policy = new TLruTickCount64Policy<int, int>(TimeSpan.FromSeconds(10));
 
         [Fact]
+        public void WhenTtlIsTimeSpanMaxThrow()
+        {
+            Action constructor = () => { new TLruTickCount64Policy<int, int>(TimeSpan.MaxValue); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenTtlIsZeroThrow()
+        {
+            Action constructor = () => { new TLruTickCount64Policy<int, int>(TimeSpan.MaxValue); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenTtlIsMaxSetAsMax()
+        {
+            var maxRepresentable = TimeSpan.FromTicks(9223372036854769664);
+            var policy = new TLruTickCount64Policy<int, int>(maxRepresentable);
+            policy.TimeToLive.Should().Be(maxRepresentable);
+        }
+
+        [Fact]
         public void TimeToLiveShouldBeTenSecs()
         {
             this.policy.TimeToLive.Should().Be(TimeSpan.FromSeconds(10));
