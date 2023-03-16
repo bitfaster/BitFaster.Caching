@@ -2,9 +2,6 @@
 using FluentAssertions.Extensions;
 using BitFaster.Caching.Lru;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -25,7 +22,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenTtlIsZeroThrow()
         {
-            Action constructor = () => { new TLruTickCount64Policy<int, int>(TimeSpan.MaxValue); };
+            Action constructor = () => { new TLruTickCount64Policy<int, int>(TimeSpan.Zero); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }

@@ -12,6 +12,31 @@ namespace BitFaster.Caching.UnitTests.Lru
         private readonly TlruStopwatchPolicy<int, int> policy = new TlruStopwatchPolicy<int, int>(TimeSpan.FromSeconds(10));
 
         [Fact]
+        public void WhenTtlIsZeroThrow()
+        {
+            Action constructor = () => { new TlruStopwatchPolicy<int, int>(TimeSpan.Zero); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenTtlIsTimeSpanMaxThrow()
+        {
+            Action constructor = () => { new TlruStopwatchPolicy<int, int>(TimeSpan.MaxValue); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenTtlIsCloseToMaxAllow()
+        {
+            double maxTicks = long.MaxValue / 100.0d;
+            var ttl = TimeSpan.FromTicks((long)maxTicks) - TimeSpan.FromTicks(10);
+
+            new TlruStopwatchPolicy<int, int>(ttl).TimeToLive.Should().BeCloseTo(ttl, TimeSpan.FromTicks(20));
+        }
+
+        [Fact]
         public void TimeToLiveShouldBeTenSecs()
         {
             this.policy.TimeToLive.Should().Be(TimeSpan.FromSeconds(10));
