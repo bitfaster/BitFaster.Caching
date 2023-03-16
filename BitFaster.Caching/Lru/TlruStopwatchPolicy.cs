@@ -14,11 +14,6 @@ namespace BitFaster.Caching.Lru
     [DebuggerDisplay("TTL = {TimeToLive,nq})")]
     public readonly struct TlruStopwatchPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
-        /// <summary>
-        /// The maximum representable time to live.
-        /// </summary>
-        public static readonly TimeSpan MaxTtl = TimeSpan.FromTicks(TimeSpan.MaxValue.Ticks >> 1); 
-
         // On some platforms (e.g. MacOS), stopwatch and timespan have different resolution
         private static readonly double stopwatchAdjustmentFactor = Stopwatch.Frequency / (double)TimeSpan.TicksPerSecond;
         private readonly long timeToLive;
@@ -133,12 +128,21 @@ namespace BitFaster.Caching.Lru
         /// <returns>The time represented as ticks.</returns>
         public static long ToTicks(TimeSpan timespan)
         {
-            if (timespan > MaxTtl)
+            if (timespan <= TimeSpan.Zero)
             {
-                timespan = MaxTtl;
+                Ex.ThrowArgOutOfRange(nameof(timespan), "Value must be greater than zero");
             }
 
-            return (long)(timespan.Ticks * stopwatchAdjustmentFactor);
+            double maxLong = long.MaxValue;
+            double value = timespan.Ticks * stopwatchAdjustmentFactor;
+
+            // this will overflow/wrap - just return max
+            if (value >= maxLong)
+            {
+                return long.MaxValue;
+            }
+
+            return (long)(value);
         }
 
         /// <summary>
@@ -147,8 +151,16 @@ namespace BitFaster.Caching.Lru
         /// <param name="ticks">The time represented as ticks.</param>
         /// <returns>The time represented as a TimeSpan.</returns>
         public static TimeSpan FromTicks(long ticks)
-        { 
-            return TimeSpan.FromTicks((long)(ticks / stopwatchAdjustmentFactor));
+        {
+            double maxLong = long.MaxValue;
+            double value = ticks / stopwatchAdjustmentFactor;
+
+            if (value >= maxLong)
+            {
+                return TimeSpan.MaxValue;
+            }
+
+            return TimeSpan.FromTicks((long)value);
         }
     }
 }

@@ -27,7 +27,7 @@ namespace BitFaster.Caching.Lru
         public TLruTickCount64Policy(TimeSpan timeToLive)
         {
             TimeSpan maxRepresentable = TimeSpan.FromTicks(9223372036854769664);
-            if (timeToLive < TimeSpan.Zero || timeToLive > maxRepresentable)
+            if (timeToLive <= TimeSpan.Zero || timeToLive > maxRepresentable)
             {
                 Ex.ThrowArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {maxRepresentable}");
             }
