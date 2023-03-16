@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
@@ -128,18 +129,15 @@ namespace BitFaster.Caching.Lru
         /// <returns>The time represented as ticks.</returns>
         public static long ToTicks(TimeSpan timespan)
         {
-            if (timespan <= TimeSpan.Zero)
-            {
-                Ex.ThrowArgOutOfRange(nameof(timespan), "Value must be greater than zero");
-            }
+            // mac adjustment factor is 100, giving lowest maximum TTL on mac platform - use same upper limit on all platforms for consistency
+            // this also avoids overflow when multipling long.MaxValue by 1.0
+            double maxTicks = long.MaxValue / 100.0d;
+            double value = timespan.Ticks / stopwatchAdjustmentFactor;
 
-            double maxLong = long.MaxValue;
-            double value = timespan.Ticks * stopwatchAdjustmentFactor;
-
-            // this will overflow/wrap - just return max
-            if (value >= maxLong)
+            if (timespan <= TimeSpan.Zero || value >= maxTicks)
             {
-                return long.MaxValue;
+                TimeSpan maxRepresentable = TimeSpan.FromTicks((long)maxTicks);
+                Ex.ThrowArgOutOfRange(nameof(timespan), $"Value must be greater than zero and less than {maxRepresentable}");
             }
 
             return (long)(value);
@@ -152,14 +150,7 @@ namespace BitFaster.Caching.Lru
         /// <returns>The time represented as a TimeSpan.</returns>
         public static TimeSpan FromTicks(long ticks)
         {
-            double maxLong = long.MaxValue;
             double value = ticks / stopwatchAdjustmentFactor;
-
-            if (value >= maxLong)
-            {
-                return TimeSpan.MaxValue;
-            }
-
             return TimeSpan.FromTicks((long)value);
         }
     }

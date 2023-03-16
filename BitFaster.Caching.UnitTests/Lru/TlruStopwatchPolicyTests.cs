@@ -20,22 +20,20 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void WhenTtlIsMaxDontOverflow()
+        public void WhenTtlIsTimeSpanMaxThrow()
         {
-            var policy = new TlruStopwatchPolicy<int, int>(TimeSpan.MaxValue);
-            policy.TimeToLive.Should().Be(TimeSpan.MaxValue);
+            Action constructor = () => { new TlruStopwatchPolicy<int, int>(TimeSpan.MaxValue); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [Fact]
-        public void TicksPerSec()
+        public void WhenTtlIsCloseToMaxAllow()
         {
-            TimeSpan.TicksPerSecond.Should().Be(1);
-        }
+            double maxTicks = long.MaxValue / 100.0d;
+            var ttl = TimeSpan.FromTicks((long)maxTicks) - TimeSpan.FromTicks(10);
 
-        [Fact]
-        public void Frequency()
-        {
-            Stopwatch.Frequency.Should().Be(1);
+            new TlruStopwatchPolicy<int, int>(ttl).TimeToLive.Should().BeCloseTo(ttl, TimeSpan.FromTicks(20));
         }
 
         [Fact]
