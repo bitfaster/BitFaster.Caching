@@ -27,6 +27,18 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void TicksPerSec()
+        {
+            TimeSpan.TicksPerSecond.Should().Be(1);
+        }
+
+        [Fact]
+        public void Frequency()
+        {
+            Stopwatch.Frequency.Should().Be(1);
+        }
+
+        [Fact]
         public void TimeToLiveShouldBeTenSecs()
         {
             this.policy.TimeToLive.Should().Be(TimeSpan.FromSeconds(10));
