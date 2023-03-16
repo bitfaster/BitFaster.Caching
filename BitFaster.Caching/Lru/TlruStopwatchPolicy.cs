@@ -130,16 +130,15 @@ namespace BitFaster.Caching.Lru
         {
             // mac adjustment factor is 100, giving lowest maximum TTL on mac platform - use same upper limit on all platforms for consistency
             // this also avoids overflow when multipling long.MaxValue by 1.0
-            double maxTicks = long.MaxValue / 100.0d;
-            double value = timespan.Ticks * stopwatchAdjustmentFactor;
+            double maxTicks = long.MaxValue * 0.01d;
 
-            if (timespan <= TimeSpan.Zero || value >= maxTicks)
+            if (timespan <= TimeSpan.Zero || timespan.Ticks >= maxTicks)
             {
                 TimeSpan maxRepresentable = TimeSpan.FromTicks((long)maxTicks);
                 Ex.ThrowArgOutOfRange(nameof(timespan), $"Value must be greater than zero and less than {maxRepresentable}");
             }
 
-            return (long)(value);
+            return (long)(timespan.Ticks * stopwatchAdjustmentFactor);
         }
 
         /// <summary>
