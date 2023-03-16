@@ -150,8 +150,7 @@ namespace BitFaster.Caching.Lru
         /// <returns>The time represented as a TimeSpan.</returns>
         public static TimeSpan FromTicks(long ticks)
         {
-            double value = ticks / stopwatchAdjustmentFactor;
-            return TimeSpan.FromTicks((long)value);
+            return TimeSpan.FromTicks((long)(ticks / stopwatchAdjustmentFactor));
         }
     }
 }
