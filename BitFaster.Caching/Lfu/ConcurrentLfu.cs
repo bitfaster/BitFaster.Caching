@@ -194,6 +194,18 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        private bool TryAdd(K key, LfuNode<K, V> node)
+        {
+            if (this.dictionary.TryAdd(key, node))
+            {
+                AfterWrite(node);
+                return true;
+            }
+
+            Disposer<V>.Dispose(node.Value);
+            return false;
+        }
+
         ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
@@ -205,13 +217,27 @@ namespace BitFaster.Caching.Lfu
                 }
 
                 var node = new LfuNode<K, V>(key, valueFactory(key));
-                if (this.dictionary.TryAdd(key, node))
+                if (this.TryAdd(key, node))
                 {
-                    AfterWrite(node);
                     return node.Value;
                 }
+            }
+        }
 
-                Disposer<V>.Dispose(node.Value);
+        public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+        {
+            while (true)
+            {
+                if (this.TryGet(key, out V value))
+                {
+                    return value;
+                }
+
+                var node = new LfuNode<K, V>(key, valueFactory(key, factoryArgument));
+                if (this.TryAdd(key, node))
+                {
+                    return node.Value;
+                }
             }
         }
 
@@ -226,13 +252,27 @@ namespace BitFaster.Caching.Lfu
                 }
 
                 var node = new LfuNode<K, V>(key, await valueFactory(key).ConfigureAwait(false));
-                if (this.dictionary.TryAdd(key, node))
+                if (this.TryAdd(key, node))
                 {
-                    AfterWrite(node);
                     return node.Value;
                 }
+            }
+        }
 
-                Disposer<V>.Dispose(node.Value);
+        public async ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+        {
+            while (true)
+            {
+                if (this.TryGet(key, out V value))
+                {
+                    return value;
+                }
+
+                var node = new LfuNode<K, V>(key, await valueFactory(key, factoryArgument).ConfigureAwait(false));
+                if (this.TryAdd(key, node))
+                {
+                    return node.Value;
+                }
             }
         }
 

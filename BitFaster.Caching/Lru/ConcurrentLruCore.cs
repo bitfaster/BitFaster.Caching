@@ -179,6 +179,19 @@ namespace BitFaster.Caching.Lru
             return true;
         }
 
+        private bool TryAdd(K key, I newItem)
+        {
+            if (this.dictionary.TryAdd(key, newItem))
+            {
+                this.hotQueue.Enqueue(newItem);
+                Cycle(Interlocked.Increment(ref counter.hot));
+                return true;
+            }
+
+            Disposer<V>.Dispose(newItem.Value);
+            return false;
+        }
+
         ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
@@ -193,14 +206,30 @@ namespace BitFaster.Caching.Lru
                 // This is identical logic in ConcurrentDictionary.GetOrAdd method.
                 var newItem = this.itemPolicy.CreateItem(key, valueFactory(key));
 
-                if (this.dictionary.TryAdd(key, newItem))
+                if (TryAdd(key, newItem))
                 {
-                    this.hotQueue.Enqueue(newItem);
-                    Cycle(Interlocked.Increment(ref counter.hot));
                     return newItem.Value;
                 }
+            }
+        }
 
-                Disposer<V>.Dispose(newItem.Value);
+        public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+        {
+            while (true)
+            {
+                if (this.TryGet(key, out var value))
+                {
+                    return value;
+                }
+
+                // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+                // This is identical logic in ConcurrentDictionary.GetOrAdd method.
+                var newItem = this.itemPolicy.CreateItem(key, valueFactory(key, factoryArgument));
+
+                if (TryAdd(key, newItem))
+                {
+                    return newItem.Value;
+                }
             }
         }
 
@@ -218,14 +247,30 @@ namespace BitFaster.Caching.Lru
                 // This is identical logic in ConcurrentDictionary.GetOrAdd method.
                 var newItem = this.itemPolicy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
 
-                if (this.dictionary.TryAdd(key, newItem))
+                if (TryAdd(key, newItem))
                 {
-                    this.hotQueue.Enqueue(newItem);
-                    Cycle(Interlocked.Increment(ref counter.hot));
                     return newItem.Value;
                 }
+            }
+        }
 
-                Disposer<V>.Dispose(newItem.Value);
+        public async ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+        {
+            while (true)
+            {
+                if (this.TryGet(key, out var value))
+                {
+                    return value;
+                }
+
+                // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+                // This is identical logic in ConcurrentDictionary.GetOrAdd method.
+                var newItem = this.itemPolicy.CreateItem(key, await valueFactory(key, factoryArgument).ConfigureAwait(false));
+
+                if (TryAdd(key, newItem))
+                {
+                    return newItem.Value;
+                }
             }
         }
 
