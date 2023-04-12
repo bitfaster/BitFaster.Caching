@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
+using BitFaster.Caching.Lfu;
 
 namespace BitFaster.Caching.Buffers
 {
@@ -185,6 +186,49 @@ namespace BitFaster.Caching.Buffers
 
             return outCount;
         }
+
+        public int DrainTo(T[] output)
+        { 
+            return DrainTo(new ArraySegment<T>(output));
+        }
+
+#if !NETSTANDARD2_0
+        public int DrainTo(Span<T> output)
+        {
+            int head = Volatile.Read(ref headAndTail.Head);
+            int tail = Volatile.Read(ref headAndTail.Tail);
+            int size = tail - head;
+
+            if (size == 0)
+            {
+                return 0;
+            }
+
+            int outCount = 0;
+
+            do
+            {
+                int index = head & mask;
+
+                T item = Volatile.Read(ref buffer[index]);
+
+                if (item == null)
+                {
+                    // not published yet
+                    break;
+                }
+
+                Volatile.Write(ref buffer[index], null);
+                output[outCount++] = item;
+                head++;
+            }
+            while (head != tail && outCount < output.Length);
+
+            Volatile.Write(ref this.headAndTail.Head, head);
+
+            return outCount;
+        }
+#endif
 
         /// <summary>
         /// Removes all values from the buffer.

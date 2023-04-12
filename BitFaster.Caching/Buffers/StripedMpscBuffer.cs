@@ -68,6 +68,25 @@ namespace BitFaster.Caching.Buffers
             return count;
         }
 
+#if !NETSTANDARD2_0
+
+        public int DrainTo(Span<T> outputBuffer)
+        {
+            var count = 0;
+
+            for (var i = 0; i < buffers.Length; i++)
+            {
+                if (count == outputBuffer.Length)
+                {
+                    break;
+                }
+
+                count += buffers[i].DrainTo(outputBuffer.Slice(count, outputBuffer.Length - count));
+            }
+
+            return count;
+        }
+#endif
         /// <summary>
         /// Tries to add the specified item.
         /// </summary>
