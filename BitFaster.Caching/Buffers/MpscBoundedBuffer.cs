@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using BitFaster.Caching.Lfu;
 
@@ -143,6 +144,20 @@ namespace BitFaster.Caching.Buffers
             return BufferStatus.Success;
         }
 
+#if NETSTANDARD2_0
+        /// <summary>
+        /// Drains the buffer into the specified array.
+        /// </summary>
+        /// <param name="output">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
+        public int DrainTo(T[] output)
+        { 
+            return DrainTo(new ArraySegment<T>(output));
+        }
+
         /// <summary>
         /// Drains the buffer into the specified array segment.
         /// </summary>
@@ -152,48 +167,43 @@ namespace BitFaster.Caching.Buffers
         /// Thread safe for single try take/drain + multiple try add.
         /// </remarks>
         public int DrainTo(ArraySegment<T> output)
-        {
-            int head = Volatile.Read(ref headAndTail.Head);
-            int tail = Volatile.Read(ref headAndTail.Tail);
-            int size = tail - head;
-
-            if (size == 0)
-            {
-                return 0;
-            }
-
-            int outCount = 0;
-
-            do
-            {
-                int index = head & mask;
-
-                T item = Volatile.Read(ref buffer[index]);
-
-                if (item == null)
-                {
-                    // not published yet
-                    break;
-                }
-
-                Volatile.Write(ref buffer[index], null);
-                output.Array[output.Offset + outCount++] = item;
-                head++;
-            }
-            while (head != tail && outCount < output.Count);
-
-            Volatile.Write(ref this.headAndTail.Head, head);
-
-            return outCount;
-        }
-
+#else
+        /// <summary>
+        /// Drains the buffer into the specified array.
+        /// </summary>
+        /// <param name="output">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
         public int DrainTo(T[] output)
-        { 
-            return DrainTo(new ArraySegment<T>(output));
+        {
+            return DrainTo(output.AsSpan());
         }
 
-#if !NETSTANDARD2_0
+        /// <summary>
+        /// Drains the buffer into the specified array segment.
+        /// </summary>
+        /// <param name="output">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
+        public int DrainTo(ArraySegment<T> output)
+        { 
+            return DrainTo(output.AsSpan());
+        }
+
+        /// <summary>
+        /// Drains the buffer into the specified span.
+        /// </summary>
+        /// <param name="output">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
         public int DrainTo(Span<T> output)
+#endif
         {
             int head = Volatile.Read(ref headAndTail.Head);
             int tail = Volatile.Read(ref headAndTail.Tail);
@@ -219,14 +229,39 @@ namespace BitFaster.Caching.Buffers
                 }
 
                 Volatile.Write(ref buffer[index], null);
-                output[outCount++] = item;
+                Write(output, outCount++, item);
                 head++;
             }
-            while (head != tail && outCount < output.Length);
+            while (head != tail && outCount < Length(output));
 
             Volatile.Write(ref this.headAndTail.Head, head);
 
             return outCount;
+        }
+
+#if NETSTANDARD2_0
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Write(ArraySegment<T> output, int index, T item)
+        {
+            output.Array[output.Offset + index] = item;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Length(ArraySegment<T> output)
+        {
+            return output.Count;
+        }
+#else
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Write(Span<T> output, int index, T item)
+        {
+            output[index] = item;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Length(Span<T> output)
+        {
+            return output.Length;
         }
 #endif
 

@@ -50,7 +50,24 @@ namespace BitFaster.Caching.Buffers
         /// <remarks>
         /// Thread safe for single try take/drain + multiple try add.
         /// </remarks>
+#if NETSTANDARD2_0
         public int DrainTo(T[] outputBuffer)
+#else
+        public int DrainTo(T[] outputBuffer)
+        { 
+            return DrainTo(outputBuffer.AsSpan());
+        }
+
+        /// <summary>
+        /// Drains the buffer into the specified array segment.
+        /// </summary>
+        /// <param name="outputBuffer">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
+        public int DrainTo(Span<T> outputBuffer)
+#endif
         {
             var count = 0;
 
@@ -61,32 +78,17 @@ namespace BitFaster.Caching.Buffers
                     break;
                 }
 
+#if NETSTANDARD2_0
                 var segment = new ArraySegment<T>(outputBuffer, count, outputBuffer.Length - count);
+#else
+                var segment = outputBuffer.Slice(count, outputBuffer.Length - count);
+#endif
                 count += buffers[i].DrainTo(segment);
             }
 
             return count;
         }
 
-#if !NETSTANDARD2_0
-
-        public int DrainTo(Span<T> outputBuffer)
-        {
-            var count = 0;
-
-            for (var i = 0; i < buffers.Length; i++)
-            {
-                if (count == outputBuffer.Length)
-                {
-                    break;
-                }
-
-                count += buffers[i].DrainTo(outputBuffer.Slice(count, outputBuffer.Length - count));
-            }
-
-            return count;
-        }
-#endif
         /// <summary>
         /// Tries to add the specified item.
         /// </summary>
