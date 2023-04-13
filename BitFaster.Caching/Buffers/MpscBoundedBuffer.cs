@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace BitFaster.Caching.Buffers
@@ -14,6 +15,7 @@ namespace BitFaster.Caching.Buffers
     {
         private T[] buffer;
         private readonly int mask;
+        private readonly uint umask;
         private PaddedHeadAndTail headAndTail; // mutable struct, don't mark readonly
 
         /// <summary>
@@ -33,6 +35,7 @@ namespace BitFaster.Caching.Buffers
 
             buffer = new T[boundedLength];
             mask = boundedLength - 1;
+            umask = (uint)mask;
         }
 
         /// <summary>
@@ -185,6 +188,163 @@ namespace BitFaster.Caching.Buffers
 
             return outCount;
         }
+
+        #if !NETSTANDARD2_0
+        public int DrainTo(Span<T> output)
+        {
+            uint head = (uint)Volatile.Read(ref headAndTail.Head);
+            uint tail = (uint)Volatile.Read(ref headAndTail.Tail);
+            uint size = tail - head;
+
+            if (size == 0)
+            {
+                return 0;
+            }
+
+            uint outCount = 0;
+
+            do
+            {
+                uint index = head & umask;
+
+                T item = Volatile.Read(ref buffer[index]);
+
+                if (item == null)
+                {
+                    // not published yet
+                    break;
+                }
+
+                Volatile.Write(ref buffer[index], null);
+                output[(int)outCount++] = item;
+                head++;
+            }
+            while (head != tail && outCount < (uint)output.Length);
+
+            Volatile.Write(ref this.headAndTail.Head, (int)head);
+
+            return (int)outCount;
+        }
+#endif
+
+
+
+        ///////////////////////////////////////////////////////
+
+#if NETSTANDARD2_0
+        /// <summary>
+        /// Drains the buffer into the specified array.
+        /// </summary>
+        /// <param name="output">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
+        public int DrainTo2(T[] output)
+        { 
+            return DrainTo2(new ArraySegment<T>(output));
+        }
+
+        /// <summary>
+        /// Drains the buffer into the specified array segment.
+        /// </summary>
+        /// <param name="output">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
+        public int DrainTo2(ArraySegment<T> output)
+#else
+        /// <summary>
+        /// Drains the buffer into the specified array.
+        /// </summary>
+        /// <param name="output">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
+        public int DrainTo2(T[] output)
+        {
+            return DrainTo2(output.AsSpan());
+        }
+
+        /// <summary>
+        /// Drains the buffer into the specified array segment.
+        /// </summary>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
+        public int DrainTo2(ArraySegment<T> output)
+        {
+            return DrainTo2(output.AsSpan());
+        }
+
+        /// <summary>
+        /// Drains the buffer into the specified span.
+        /// </summary>
+        /// <param name="output">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
+        public int DrainTo2(Span<T> output)
+#endif
+        {
+            int head = Volatile.Read(ref headAndTail.Head);
+            int tail = Volatile.Read(ref headAndTail.Tail);
+            int size = tail - head;
+            if (size == 0)
+            {
+                return 0;
+            }
+            int outCount = 0;
+            do
+            {
+                int index = head & mask;
+                T item = Volatile.Read(ref buffer[index]);
+                if (item == null)
+                {
+                    // not published yet
+                    break;
+                }
+
+                Volatile.Write(ref buffer[index], null);
+                Write(output, outCount++, item);
+                head++;
+            }
+            while (outCount < Length(output) && head != tail);
+
+            Volatile.Write(ref this.headAndTail.Head, head);
+
+            return outCount;
+        }
+
+#if NETSTANDARD2_0
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Write(ArraySegment<T> output, int index, T item)
+        {
+            output.Array[output.Offset + index] = item;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Length(ArraySegment<T> output)
+        {
+            return output.Count;
+        }
+#else
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Write(Span<T> output, int index, T item)
+        {
+            output[index] = item;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Length(Span<T> output)
+        {
+            return output.Length;
+        }
+#endif
+
+        ///////////////////////////////////////////////////////
 
         /// <summary>
         /// Removes all values from the buffer.
