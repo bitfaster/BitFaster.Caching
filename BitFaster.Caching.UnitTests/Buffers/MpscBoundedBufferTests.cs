@@ -107,7 +107,23 @@ namespace BitFaster.Caching.UnitTests.Buffers
         }
 
         [Fact]
-        public void WhenBufferContainsItemsDrainTakesItems()
+        public void WhenBufferContainsItemsDrainArrayTakesItems()
+        {
+            buffer.TryAdd("1");
+            buffer.TryAdd("2");
+            buffer.TryAdd("3");
+
+            var outputBuffer = new string[16];
+
+            buffer.DrainTo(outputBuffer).Should().Be(3);
+
+            outputBuffer[0].Should().Be("1");
+            outputBuffer[1].Should().Be("2");
+            outputBuffer[2].Should().Be("3");
+        }
+
+        [Fact]
+        public void WhenBufferContainsItemsDrainSegmentTakesItems()
         {
             buffer.TryAdd("1");
             buffer.TryAdd("2");
