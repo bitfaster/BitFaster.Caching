@@ -454,30 +454,24 @@ namespace BitFaster.Caching.Lfu
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
 
-#if NETSTANDARD2_0
-            var db = this.drainBuffer;
-#else
-            var db = this.drainBuffer.AsSpan();
-#endif
-
             // extract to a buffer before doing book keeping work, ~2x faster
-            int readCount = readBuffer.DrainTo(db);
+            int readCount = readBuffer.DrainTo(this.drainBuffer);
 
             for (int i = 0; i < readCount; i++)
             {
-                this.cmSketch.Increment(db[i].Key);
+                this.cmSketch.Increment(this.drainBuffer[i].Key);
             }
 
             for (int i = 0; i < readCount; i++)
             {
-                OnAccess(db[i]);
+                OnAccess(this.drainBuffer[i]);
             }
 
-            int writeCount = this.writeBuffer.DrainTo(db);
+            int writeCount = this.writeBuffer.DrainTo(new ArraySegment<LfuNode<K, V>>(this.drainBuffer));
 
             for (int i = 0; i < writeCount; i++)
             {
-                OnWrite(db[i]);
+                OnWrite(this.drainBuffer[i]);
             }
 
             // we are done only when both buffers are empty
