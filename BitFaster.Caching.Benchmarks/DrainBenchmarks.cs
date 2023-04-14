@@ -9,7 +9,7 @@ namespace BitFaster.Caching.Benchmarks
     [SimpleJob(RuntimeMoniker.Net48)]
     [SimpleJob(RuntimeMoniker.Net60)]
     [SimpleJob(RuntimeMoniker.Net70)]
-    [DisassemblyDiagnoser(printSource: true, maxDepth: 3)]
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 4)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class DrainBenchmarks
     {
@@ -206,6 +206,16 @@ namespace BitFaster.Caching.Benchmarks
 #if NETCOREAPP3_1_OR_GREATER
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
+        public void DrainArray3()
+        {
+            Add();
+            buffer.DrainTo3(output);
+        }
+
+        [Benchmark()]
+#if NETCOREAPP3_1_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
         public void DrainSpan()
         {
             Add();
@@ -223,6 +233,18 @@ namespace BitFaster.Caching.Benchmarks
             Add();
 #if NETCOREAPP3_1_OR_GREATER
             buffer.DrainTo2(output.AsSpan());
+#endif
+        }
+
+        [Benchmark()]
+#if NETCOREAPP3_1_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
+        public void DrainSpan3()
+        {
+            Add();
+#if NETCOREAPP3_1_OR_GREATER
+            buffer.DrainTo3(output.AsSpan());
 #endif
         }
     }

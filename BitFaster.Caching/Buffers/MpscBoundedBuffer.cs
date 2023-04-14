@@ -189,25 +189,27 @@ namespace BitFaster.Caching.Buffers
             return outCount;
         }
 
-        #if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
         public int DrainTo(Span<T> output)
         {
-            uint head = (uint)Volatile.Read(ref headAndTail.Head);
-            uint tail = (uint)Volatile.Read(ref headAndTail.Tail);
-            uint size = tail - head;
+            int head = Volatile.Read(ref headAndTail.Head);
+            int tail = Volatile.Read(ref headAndTail.Tail);
+            int size = tail - head;
 
             if (size == 0)
             {
                 return 0;
             }
 
-            uint outCount = 0;
+            var localBuffer = buffer.AsSpan();
+
+            int outCount = 0;
 
             do
             {
-                uint index = head & umask;
+                int index = head & mask;
 
-                T item = Volatile.Read(ref buffer[index]);
+                T item = Volatile.Read(ref localBuffer[index]);
 
                 if (item == null)
                 {
@@ -215,15 +217,15 @@ namespace BitFaster.Caching.Buffers
                     break;
                 }
 
-                Volatile.Write(ref buffer[index], null);
-                output[(int)outCount++] = item;
+                Volatile.Write(ref localBuffer[index], null);
+                output[outCount++] = item;
                 head++;
             }
-            while (head != tail && outCount < (uint)output.Length);
+            while (head != tail && outCount < output.Length);
 
-            Volatile.Write(ref this.headAndTail.Head, (int)head);
+            Volatile.Write(ref this.headAndTail.Head, head);
 
-            return (int)outCount;
+            return outCount;
         }
 #endif
 
@@ -289,23 +291,29 @@ namespace BitFaster.Caching.Buffers
         public int DrainTo2(Span<T> output)
 #endif
         {
+            int head = Volatile.Read(ref headAndTail.Head);
+            int tail = Volatile.Read(ref headAndTail.Tail);
+            int size = tail - head;
+
+            if (size == 0)
+            {
+                return 0;
+            }
+
 #if NETSTANDARD2_0
             var localBuffer = buffer;
 #else
             var localBuffer = buffer.AsSpan();
 #endif
-            int head = Volatile.Read(ref headAndTail.Head);
-            int tail = Volatile.Read(ref headAndTail.Tail);
-            int size = tail - head;
-            if (size == 0)
-            {
-                return 0;
-            }
+
             int outCount = 0;
+
             do
             {
                 int index = head & mask;
+
                 T item = Volatile.Read(ref localBuffer[index]);
+
                 if (item == null)
                 {
                     // not published yet
@@ -350,6 +358,55 @@ namespace BitFaster.Caching.Buffers
 #endif
 
         ///////////////////////////////////////////////////////
+
+        public int DrainTo3(T[] output)
+        {
+            return DrainTo3(output.AsSpan());
+        }
+
+#if NETSTANDARD2_0
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal
+#else
+        public
+#endif
+        int DrainTo3(Span<T> output)
+        {
+            int head = Volatile.Read(ref headAndTail.Head);
+            int tail = Volatile.Read(ref headAndTail.Tail);
+            int size = tail - head;
+
+            if (size == 0)
+            {
+                return 0;
+            }
+
+            var localBuffer = buffer.AsSpan();
+
+            int outCount = 0;
+
+            do
+            {
+                int index = head & mask;
+
+                T item = Volatile.Read(ref localBuffer[index]);
+
+                if (item == null)
+                {
+                    // not published yet
+                    break;
+                }
+
+                Volatile.Write(ref localBuffer[index], null);
+                output[outCount++] = item;
+                head++;
+            }
+            while (head != tail && outCount < output.Length);
+
+            Volatile.Write(ref this.headAndTail.Head, head);
+
+            return outCount;
+        }
 
         /// <summary>
         /// Removes all values from the buffer.
