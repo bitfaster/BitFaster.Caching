@@ -311,7 +311,7 @@ namespace BitFaster.Caching.Buffers
                 Write(output, outCount++, item);
                 head++;
             }
-            while (outCount < Length(output) && head != tail);
+            while (head != tail && outCount < Length(output));
 
             Volatile.Write(ref this.headAndTail.Head, head);
 
