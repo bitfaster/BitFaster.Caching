@@ -1,22 +1,24 @@
 ﻿
+using System;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Buffers;
-using BitFaster.Caching.Lfu;
 
 namespace BitFaster.Caching.Benchmarks
 {
     [SimpleJob(RuntimeMoniker.Net48)]
     [SimpleJob(RuntimeMoniker.Net60)]
+    [SimpleJob(RuntimeMoniker.Net70)]
     [DisassemblyDiagnoser(printSource: true, maxDepth: 3)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class DrainBenchmarks
     {
-        private readonly StripedMpscBuffer<string> buffer = new StripedMpscBuffer<string>(1, ConcurrentLfu<int, int>.DefaultBufferSize);
+        private const int bufferSize = 128;
+        private readonly MpscBoundedBuffer<string> buffer = new MpscBoundedBuffer<string>(bufferSize);
 
-        private readonly string[] output = new string[ConcurrentLfu<int, int>.DefaultBufferSize];
+        private readonly string[] output = new string[bufferSize];
 
-        [Benchmark(Baseline = true)]
+        //[Benchmark(Baseline = true)]
         public void Add()
         {
             // 8
@@ -180,11 +182,20 @@ namespace BitFaster.Caching.Benchmarks
             buffer.TryAdd(string.Empty);
         }
 
-        [Benchmark()]
-        public void Drain()
+        [Benchmark(Baseline = true)]
+        public void DrainArray()
         {
             Add();
-            buffer.DrainTo(output);
+            buffer.DrainTo(new ArraySegment<string>(output));
+        }
+
+        [Benchmark()]
+        public void DrainSpan()
+        {
+            Add();
+#if NETCOREAPP3_1_OR_GREATER
+            buffer.DrainTo(output.AsSpan());
+#endif
         }
     }
 }

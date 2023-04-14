@@ -214,13 +214,19 @@ namespace BitFaster.Caching.Buffers
                 return 0;
             }
 
+#if NETSTANDARD2_0
+            var localBuffer = buffer;
+#else
+            var localBuffer = buffer.AsSpan();
+#endif
+
             int outCount = 0;
 
             do
             {
                 int index = head & mask;
 
-                T item = Volatile.Read(ref buffer[index]);
+                T item = Volatile.Read(ref localBuffer[index]);
 
                 if (item == null)
                 {
@@ -228,7 +234,7 @@ namespace BitFaster.Caching.Buffers
                     break;
                 }
 
-                Volatile.Write(ref buffer[index], null);
+                Volatile.Write(ref localBuffer[index], null);
                 Write(output, outCount++, item);
                 head++;
             }
