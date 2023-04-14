@@ -289,6 +289,11 @@ namespace BitFaster.Caching.Buffers
         public int DrainTo2(Span<T> output)
 #endif
         {
+#if NETSTANDARD2_0
+            var localBuffer = buffer;
+#else
+            var localBuffer = buffer.AsSpan();
+#endif
             int head = Volatile.Read(ref headAndTail.Head);
             int tail = Volatile.Read(ref headAndTail.Tail);
             int size = tail - head;
@@ -300,14 +305,14 @@ namespace BitFaster.Caching.Buffers
             do
             {
                 int index = head & mask;
-                T item = Volatile.Read(ref buffer[index]);
+                T item = Volatile.Read(ref localBuffer[index]);
                 if (item == null)
                 {
                     // not published yet
                     break;
                 }
 
-                Volatile.Write(ref buffer[index], null);
+                Volatile.Write(ref localBuffer[index], null);
                 Write(output, outCount++, item);
                 head++;
             }

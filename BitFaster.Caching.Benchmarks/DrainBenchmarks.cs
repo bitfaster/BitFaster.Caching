@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Buffers;
@@ -182,6 +183,9 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark(Baseline =true)]
+#if NETCOREAPP3_1_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
         public void DrainArray()
         {
             Add();
@@ -189,6 +193,9 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark()]
+#if NETCOREAPP3_1_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
         public void DrainArray2()
         {
             Add();
@@ -196,6 +203,9 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark()]
+#if NETCOREAPP3_1_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
         public void DrainSpan()
         {
             Add();
@@ -205,6 +215,9 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark()]
+#if NETCOREAPP3_1_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
         public void DrainSpan2()
         {
             Add();
