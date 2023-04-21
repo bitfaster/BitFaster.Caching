@@ -9,18 +9,18 @@ namespace BitFaster.Caching
     {
         private readonly ArraySegment<T> segment;
 
-        public Span(ref ArraySegment<T> segment)
+        internal Span(ref ArraySegment<T> segment)
         {
             this.segment = segment;
         }
 
-        public int Length 
+        internal int Length 
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => this.segment.Count; 
         }
 
-        public ref T this[int index]
+        internal ref T this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => ref this.segment.Array[segment.Offset + index];
@@ -30,13 +30,13 @@ namespace BitFaster.Caching
     internal static class SpanExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Span<T> AsSpan<T>(this ArraySegment<T> segment)
+        internal static Span<T> AsSpan<T>(this ArraySegment<T> segment)
         {
             return new Span<T>(ref segment);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Span<T> AsSpan<T>(this T[] array)
+        internal static Span<T> AsSpan<T>(this T[] array)
         {
             return new ArraySegment<T>(array).AsSpan();
         }
