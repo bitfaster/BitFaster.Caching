@@ -94,6 +94,9 @@ namespace BitFaster.Caching
         /// </summary>
         /// <param name="inner">The inner arg.</param>
         /// <returns>The translated arg.</returns>
-        protected abstract ItemUpdatedEventArgs<K, TOuter> TranslateOnUpdated(ItemUpdatedEventArgs<K, TInner> inner);
+        protected virtual ItemUpdatedEventArgs<K, TOuter> TranslateOnUpdated(ItemUpdatedEventArgs<K, TInner> inner)
+        {
+            return new ItemUpdatedEventArgs<K, TOuter>(inner.Key, default(TOuter), default(TOuter));
+        }
     }
 }

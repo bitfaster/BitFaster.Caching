@@ -27,9 +27,9 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <!--Package Validation-->
     <EnablePackageValidation>true</EnablePackageValidation>
-    <PackageValidationBaselineVersion>2.1.3</PackageValidationBaselineVersion>
-    <!--FastConcurrentTLru/ConcurrentTLru have illegal base type switching -->
-    <NoWarn >$(NoWarn);CP0007</NoWarn>
+    <PackageValidationBaselineVersion>2.0.0</PackageValidationBaselineVersion>
+    <!--FastConcurrentTLru/ConcurrentTLru have illegal base type switching <NoWarn >$(NoWarn);CP0007</NoWarn>-->
+    
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
