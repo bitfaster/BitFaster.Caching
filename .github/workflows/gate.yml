@@ -24,27 +24,56 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build --configuration Release --no-restore
-    - name: Test
-      run: dotnet test --no-restore --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results.trx"
+    - name: Test .NET Framework
+      run: dotnet test --no-restore --verbosity normal --no-build -f net48 --logger "trx;LogFileName=results4.trx"
+    - name: Test .NET Core 3.1
+      run: dotnet test --no-restore --verbosity normal --no-build -f netcoreapp3.1 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results3.trx"
+    - name: Test .NET 6
+      run: dotnet test --no-restore --verbosity normal --no-build -f net6.0 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results6.trx"
     - name: Publish NuGet artifacts
       uses: actions/upload-artifact@v3
       with:
         name: NuGet package
         path: BitFaster.Caching/bin/Release/
-    - name: Publish coverage report to coveralls.io   
+    - name: Publish net3 coverage report to coveralls.io  
       uses: coverallsapp/github-action@master   
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }} 
-        path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.info
-        flag-name: win
+        path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.netcoreapp3.1.info
+        flag-name: win6
+        parallel: true
+    - name: Publish net6 coverage report to coveralls.io  
+      uses: coverallsapp/github-action@master   
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }} 
+        path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.net6.0.info
+        flag-name: win6
         parallel: true
     - name: Generate unit test report
       uses: phoenix-actions/test-reporting@v8
-      id: unit-test-report-win
+      id: unit-test-report-win48
       if: success() || failure() 
       with:
-        name: test results (win)
-        path: BitFaster.Caching.UnitTests/TestResults/results.trx
+        name: test results (win net4.8)
+        path: BitFaster.Caching.UnitTests/TestResults/results4.trx
+        reporter: dotnet-trx 
+        only-summary: 'true'
+    - name: Generate unit test report
+      uses: phoenix-actions/test-reporting@v8
+      id: unit-test-report-win3
+      if: success() || failure() 
+      with:
+        name: test results (win net3.1)
+        path: BitFaster.Caching.UnitTests/TestResults/results3.trx
+        reporter: dotnet-trx 
+        only-summary: 'true'
+    - name: Generate unit test report
+      uses: phoenix-actions/test-reporting@v8
+      id: unit-test-report-win6
+      if: success() || failure() 
+      with:
+        name: test results (win net6)
+        path: BitFaster.Caching.UnitTests/TestResults/results6.trx
         reporter: dotnet-trx 
         only-summary: 'true'
 
@@ -66,7 +95,7 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Test
-      run: dotnet test --no-restore --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results.trx"
+      run: dotnet test --no-restore --verbosity normal --no-build -f net6.0 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results.trx"
     - name: Publish coverage report to coveralls.io   
       uses: coverallsapp/github-action@master   
       with:
