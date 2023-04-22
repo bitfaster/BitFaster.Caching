@@ -47,7 +47,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(2, "2");
             lru.AddOrUpdate(3, "3");
 
-            await Task.Delay(ttl * 2);
+            await Task.Delay(ttl.MultiplyBy(2));
 
             lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
