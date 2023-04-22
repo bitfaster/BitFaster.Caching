@@ -10,7 +10,11 @@ namespace BitFaster.Caching.Lru.Builder
     {
         internal readonly LruInfo<K> info;
 
-        internal LruBuilderBase(LruInfo<K> info)
+        /// <summary>
+        /// Creates an LruBuilderBase.
+        /// </summary>
+        /// <param name="info">The LRU info</param>
+        protected LruBuilderBase(LruInfo<K> info)
         {
             this.info = info;
         }

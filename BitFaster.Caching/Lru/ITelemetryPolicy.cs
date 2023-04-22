@@ -26,13 +26,15 @@ namespace BitFaster.Caching.Lru
         /// <param name="reason">The reason for removal.</param>
         void OnItemRemoved(K key, V value, ItemRemovedReason reason);
 
+#if NETCOREAPP3_0_OR_GREATER
         /// <summary>
         /// Register the update of an item.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="oldValue">The old value.</param>
         /// <param name="value">The new value.</param>
-        void OnItemUpdated(K key, V oldValue, V value);
+        void OnItemUpdated(K key, V oldValue, V value) {}
+#endif
 
         /// <summary>
         /// Set the event source for any events that are fired.

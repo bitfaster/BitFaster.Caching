@@ -12,9 +12,15 @@ namespace BitFaster.Caching
         /// </summary>
         event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
 
+#if NETCOREAPP3_0_OR_GREATER
         /// <summary>
         /// Occurs when an item is updated.
         /// </summary>
-        event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated;
+        event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
+        {
+            add { }
+            remove { }
+        }
+#endif
     }
 }

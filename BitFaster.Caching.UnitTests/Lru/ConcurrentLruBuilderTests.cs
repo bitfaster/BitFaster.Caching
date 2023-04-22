@@ -61,7 +61,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                  .WithExpireAfterWrite(TimeSpan.FromMilliseconds(10))
                  .Build();
 
-            lru.Should().BeOfType<ConcurrentLruCore<int, int, LongTickCountLruItem<int, int>, TlruStopwatchPolicy<int, int>, NoTelemetryPolicy<int, int>>>();
+            lru.Should().BeOfType<ConcurrentLruCore<int, int, LongTickCountLruItem<int, int>, TLruLongTicksPolicy<int, int>, NoTelemetryPolicy<int, int>>>();
             lru.Policy.Eviction.Value.Capacity.Should().Be(128);
         }
 
@@ -73,7 +73,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                  .WithMetrics()
                  .Build();
 
-            lru.Should().BeOfType<ConcurrentLruCore<int, int, LongTickCountLruItem<int, int>, TlruStopwatchPolicy<int, int>, TelemetryPolicy<int, int>>>();
+            lru.Should().BeOfType<ConcurrentLruCore<int, int, LongTickCountLruItem<int, int>, TLruLongTicksPolicy<int, int>, TelemetryPolicy<int, int>>>();
             lru.Policy.Eviction.Value.Capacity.Should().Be(128);
         }
 #endif

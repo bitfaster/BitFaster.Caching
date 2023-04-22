@@ -59,17 +59,21 @@ namespace BitFaster.Caching
         private void RegisterUpdated(EventHandler<ItemUpdatedEventArgs<K, TOuter>> value)
         {
             itemUpdatedProxy += value;
+#if NETCOREAPP3_0_OR_GREATER
             events.ItemUpdated += OnItemUpdated;
+#endif
         }
 
         private void UnRegisterUpdated(EventHandler<ItemUpdatedEventArgs<K, TOuter>> value)
         {
             this.itemUpdatedProxy -= value;
 
+#if NETCOREAPP3_0_OR_GREATER
             if (this.itemUpdatedProxy == null)
             {
                 this.events.ItemUpdated -= OnItemUpdated;
             }
+#endif
         }
 
         private void OnItemRemoved(object sender, ItemRemovedEventArgs<K, TInner> args)

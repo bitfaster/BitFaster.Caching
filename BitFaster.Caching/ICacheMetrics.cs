@@ -37,9 +37,11 @@ namespace BitFaster.Caching
         /// </summary>
         long Evicted { get; }
 
+#if NETCOREAPP3_0_OR_GREATER
         /// <summary>
         /// Gets the total number of updated items.
         /// </summary>
-        long Updated { get; }
+        long Updated => 0;
+#endif
     }
 }

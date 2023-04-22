@@ -7,11 +7,11 @@ namespace BitFaster.Caching.Lru
     ///<inheritdoc/>
     [DebuggerTypeProxy(typeof(CacheDebugView<,>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
-#if NETCOREAPP3_0_OR_GREATER
-    public sealed class FastConcurrentTLru<K, V> : ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TLruTickCount64Policy<K, V>, NoTelemetryPolicy<K, V>>
-#else
-    public sealed class FastConcurrentTLru<K, V> : ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TlruStopwatchPolicy<K, V>, NoTelemetryPolicy<K, V>>
-#endif
+//#if NETCOREAPP3_0_OR_GREATER
+//    public sealed class FastConcurrentTLru<K, V> : ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TLruTickCount64Policy<K, V>, NoTelemetryPolicy<K, V>>
+//#else
+    public sealed class FastConcurrentTLru<K, V> : ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TLruLongTicksPolicy<K, V>, NoTelemetryPolicy<K, V>>
+//#endif
     {
         /// <summary>
         /// Initializes a new instance of the FastConcurrentTLru class with the specified capacity and time to live that has the default 
@@ -20,11 +20,11 @@ namespace BitFaster.Caching.Lru
         /// <param name="capacity">The maximum number of elements that the FastConcurrentTLru can contain.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public FastConcurrentTLru(int capacity, TimeSpan timeToLive)
-#if NETCOREAPP3_0_OR_GREATER
-            : base(Defaults.ConcurrencyLevel, new FavorWarmPartition(capacity), EqualityComparer<K>.Default, new TLruTickCount64Policy<K, V>(timeToLive), default)
-#else
-            : base(Defaults.ConcurrencyLevel, new FavorWarmPartition(capacity), EqualityComparer<K>.Default, new TlruStopwatchPolicy<K, V>(timeToLive), default)
-#endif
+//#if NETCOREAPP3_0_OR_GREATER
+//            : base(Defaults.ConcurrencyLevel, new FavorWarmPartition(capacity), EqualityComparer<K>.Default, new TLruTickCount64Policy<K, V>(timeToLive), default)
+//#else
+            : base(Defaults.ConcurrencyLevel, new FavorWarmPartition(capacity), EqualityComparer<K>.Default, new TLruLongTicksPolicy<K, V>(timeToLive), default)
+//#endif
         {
         }
 
@@ -37,11 +37,11 @@ namespace BitFaster.Caching.Lru
         /// <param name="comparer">The IEqualityComparer implementation to use when comparing keys.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public FastConcurrentTLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer, TimeSpan timeToLive)
-#if NETCOREAPP3_0_OR_GREATER
-            : base(concurrencyLevel, new FavorWarmPartition(capacity), comparer, new TLruTickCount64Policy<K, V>(timeToLive), default)
-#else
-            : base(concurrencyLevel, new FavorWarmPartition(capacity), comparer, new TlruStopwatchPolicy<K, V>(timeToLive), default)
-#endif
+//#if NETCOREAPP3_0_OR_GREATER
+//            : base(concurrencyLevel, new FavorWarmPartition(capacity), comparer, new TLruTickCount64Policy<K, V>(timeToLive), default)
+//#else
+            : base(concurrencyLevel, new FavorWarmPartition(capacity), comparer, new TLruLongTicksPolicy<K, V>(timeToLive), default)
+//#endif
         {
         }
 
@@ -54,11 +54,11 @@ namespace BitFaster.Caching.Lru
         /// <param name="comparer">The IEqualityComparer implementation to use when comparing keys.</param>
         /// <param name="timeToLive">The time to live for cached values.</param>
         public FastConcurrentTLru(int concurrencyLevel, ICapacityPartition capacity, IEqualityComparer<K> comparer, TimeSpan timeToLive)
-#if NETCOREAPP3_0_OR_GREATER
-             : base(concurrencyLevel, capacity, comparer, new TLruTickCount64Policy<K, V>(timeToLive), default)
-#else
-             : base(concurrencyLevel, capacity, comparer, new TlruStopwatchPolicy<K, V>(timeToLive), default)
-#endif
+//#if NETCOREAPP3_0_OR_GREATER
+//             : base(concurrencyLevel, capacity, comparer, new TLruTickCount64Policy<K, V>(timeToLive), default)
+//#else
+             : base(concurrencyLevel, capacity, comparer, new TLruLongTicksPolicy<K, V>(timeToLive), default)
+//#endif
         {
         }
     }
