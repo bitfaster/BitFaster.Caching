@@ -104,7 +104,7 @@ namespace BitFaster.Caching
         // backcompat: make abstract, remove default no-op impl
         protected virtual ItemUpdatedEventArgs<K, TOuter> TranslateOnUpdated(ItemUpdatedEventArgs<K, TInner> inner)
         {
-            return new ItemUpdatedEventArgs<K, TOuter>(inner.Key, default(TOuter), default(TOuter));
+            return new ItemUpdatedEventArgs<K, TOuter>(inner.Key, default, default);
         }
     }
 }

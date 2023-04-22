@@ -144,5 +144,32 @@ namespace BitFaster.Caching.UnitTests
                 return new ItemUpdatedEventArgs<K, V>(inner.Key, inner.OldValue.ValueIfCreated, inner.NewValue.ValueIfCreated);
             }
         }
+
+        // backcompat: remove (virtual method with default impl only needed for back compat)
+        [Fact]
+        public void WhenUpdatedEventHandlerIsRegisteredAndProxyUsesDefaultUpdateTranslateItIsFired()
+        {
+            var proxy = new EventProxyWithDefault<int, int>(this.testCacheEvents);
+
+            proxy.ItemUpdated += OnItemUpdated;
+
+            this.testCacheEvents.FireUpdated(1, new AtomicFactory<int, int>(2), new AtomicFactory<int, int>(3));
+
+            this.updatedItems.First().Key.Should().Be(1);
+        }
+
+        // backcompat: remove (class uses default TranslateOnUpdated method)
+        private class EventProxyWithDefault<K, V> : CacheEventProxyBase<K, AtomicFactory<K, V>, V>
+        {
+            public EventProxyWithDefault(ICacheEvents<K, AtomicFactory<K, V>> inner)
+                : base(inner)
+            {
+            }
+
+            protected override ItemRemovedEventArgs<K, V> TranslateOnRemoved(ItemRemovedEventArgs<K, AtomicFactory<K, V>> inner)
+            {
+                return new ItemRemovedEventArgs<K, V>(inner.Key, inner.Value.ValueIfCreated, inner.Reason);
+            }
+        }
     }
 }

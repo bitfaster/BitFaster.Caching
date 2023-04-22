@@ -157,6 +157,15 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             return item;
         }
+
+        // backcompat: remove (methods only added for TLruLongTicksPolicy)
+        [Fact]
+        public void CanConvertToAndFromTicks()
+        {
+            var time = TimeSpan.FromSeconds(10);
+            var ticks = TLruLongTicksPolicy<int, int>.ToTicks(time);
+            TLruLongTicksPolicy<int, int>.FromTicks(ticks).Should().Be(time);
+        }
     }
 }
 
