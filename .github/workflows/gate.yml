@@ -55,7 +55,7 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }} 
         path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.netcoreapp3.1.info
-        flag-name: win6
+        flag-name: win3
         parallel: true
 
     - name: Test .NET 6
