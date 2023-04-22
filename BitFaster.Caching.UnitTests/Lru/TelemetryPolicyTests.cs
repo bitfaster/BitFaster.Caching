@@ -2,6 +2,8 @@
 using BitFaster.Caching.Lru;
 using System.Collections.Generic;
 using Xunit;
+using Moq;
+using System;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -144,5 +146,19 @@ namespace BitFaster.Caching.UnitTests.Lru
             eventSourceList.Should().HaveCount(1);
             eventSourceList[0].Should().Be(this);
         }
+
+// backcompat: remove 
+#if NETCOREAPP3_1_OR_GREATER
+        [Fact]
+        public void WhenInterfaceDefaultItemUpdatedRegisteredNoOp()
+        {
+            var policy = new Mock<ITelemetryPolicy<int, int>>();
+            policy.CallBase = true;
+
+            Action act = () => policy.Object.OnItemUpdated(1, 2, 3);
+
+            act.Should().NotThrow();
+        }
+#endif
     }
 }
