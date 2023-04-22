@@ -19,7 +19,9 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: |
+          3.1.x
+          6.0.x
     - name: Install dependencies
       run: dotnet restore
     - name: Build
@@ -104,7 +106,7 @@ jobs:
       uses: coverallsapp/github-action@master   
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }} 
-        path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.info
+        path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.net6.0.info
         flag-name: mac
         parallel: true
     - name: Generate unit test report
