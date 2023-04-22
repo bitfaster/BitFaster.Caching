@@ -1,4 +1,6 @@
-﻿using FluentAssertions;
+﻿#if NETCOREAPP3_1_OR_GREATER
+
+using FluentAssertions;
 using FluentAssertions.Extensions;
 using BitFaster.Caching.Lru;
 using System;
@@ -157,3 +159,5 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
     }
 }
+
+#endif
