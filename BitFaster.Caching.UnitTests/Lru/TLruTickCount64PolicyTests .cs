@@ -166,6 +166,24 @@ namespace BitFaster.Caching.UnitTests.Lru
             var ticks = TLruLongTicksPolicy<int, int>.ToTicks(time);
             TLruLongTicksPolicy<int, int>.FromTicks(ticks).Should().Be(time);
         }
+
+        // backcompat: remove (methods only added for TLruLongTicksPolicy)
+        [Fact]
+        public void WhenTimeLessThanEqualZeroToTicksThrows()
+        {
+            Action toTicks = () => { TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.Zero); };
+
+            toTicks.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        // backcompat: remove (methods only added for TLruLongTicksPolicy)
+        [Fact]
+        public void WhenTimeGreaterThanMaxToTicksThrows()
+        {
+            Action toTicks = () => { TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.MaxValue); };
+
+            toTicks.Should().Throw<ArgumentOutOfRangeException>();
+        }
     }
 }
 
