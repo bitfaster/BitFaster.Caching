@@ -155,7 +155,11 @@ namespace BitFaster.Caching.UnitTests
 
             this.testCacheEvents.FireUpdated(1, new AtomicFactory<int, int>(2), new AtomicFactory<int, int>(3));
 
+#if NETCOREAPP3_0_OR_GREATER
             this.updatedItems.First().Key.Should().Be(1);
+#else
+            this.updatedItems.Should().BeEmpty();
+#endif
         }
 
         // backcompat: remove (class uses default TranslateOnUpdated method)
