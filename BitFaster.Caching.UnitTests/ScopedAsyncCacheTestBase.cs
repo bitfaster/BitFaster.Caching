@@ -59,6 +59,8 @@ namespace BitFaster.Caching.UnitTests
             this.removedItems.First().Key.Should().Be(1);
         }
 
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
         [Fact]
         public void WhenUpdatedEventHandlerIsRegisteredItIsFired()
         {
@@ -69,6 +71,7 @@ namespace BitFaster.Caching.UnitTests
 
             this.updatedItems.First().Key.Should().Be(1);
         }
+#endif
 
         [Fact]
         public void WhenKeyDoesNotExistAddOrUpdateAddsNewItem()
