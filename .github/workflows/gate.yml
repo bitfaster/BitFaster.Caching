@@ -50,7 +50,7 @@ jobs:
         path: BitFaster.Caching.UnitTests/TestResults/results3.trx
         reporter: dotnet-trx 
         only-summary: 'true'
-    - name: Publish coverage report to coveralls.io (3.0)
+    - name: Publish coverage report to coveralls.io (3.1)
       uses: coverallsapp/github-action@master   
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }} 
@@ -58,14 +58,14 @@ jobs:
         flag-name: win3
         parallel: true
 
-    - name: Test .NET 6
+    - name: Test (6.0)
       run: dotnet test --no-restore --verbosity normal -f net6.0 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results6.trx"
     - name: Generate unit test report (6.0)
       uses: phoenix-actions/test-reporting@v8
       id: unit-test-report-win6
       if: success() || failure() 
       with:
-        name: test results (win net6)
+        name: test results (win net6.0)
         path: BitFaster.Caching.UnitTests/TestResults/results6.trx
         reporter: dotnet-trx 
         only-summary: 'true'
@@ -114,7 +114,7 @@ jobs:
       id: unit-test-report-mac
       if: success() || failure() 
       with:
-        name: test results (mac)
+        name: test results (mac net6.0)
         path: BitFaster.Caching.UnitTests/TestResults/results.trx
         reporter: dotnet-trx 
         only-summary: 'true'
