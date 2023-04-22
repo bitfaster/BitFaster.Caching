@@ -286,6 +286,7 @@ namespace BitFaster.Caching.Lru
                         V oldValue = existing.Value;
                         existing.Value = value;
                         this.itemPolicy.Update(existing);
+// backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
                         this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
 #endif
@@ -379,6 +380,7 @@ namespace BitFaster.Caching.Lru
         /// Trim discarded items from all queues.
         /// </summary>
         /// <returns>The number of items removed.</returns>
+        // backcompat: make internal
         protected int TrimAllDiscardedItems()
         {
             int itemsRemoved = 0;
@@ -714,6 +716,7 @@ namespace BitFaster.Caching.Lru
 
             public long Evicted => lru.telemetryPolicy.Evicted;
 
+// backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
             public long Updated => lru.telemetryPolicy.Updated;
 #endif
@@ -726,6 +729,8 @@ namespace BitFaster.Caching.Lru
                 add { this.lru.telemetryPolicy.ItemRemoved += value; }
                 remove { this.lru.telemetryPolicy.ItemRemoved -= value; }
             }
+
+// backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
             public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
             {

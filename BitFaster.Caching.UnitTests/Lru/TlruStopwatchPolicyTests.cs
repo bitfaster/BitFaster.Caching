@@ -7,6 +7,8 @@ using System.Diagnostics;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
+// backcompat: remove conditional compile
+#if !NETCOREAPP3_1_OR_GREATER
     public class TlruStopwatchPolicyTests
     {
         private readonly TLruLongTicksPolicy<int, int> policy = new TLruLongTicksPolicy<int, int>(TimeSpan.FromSeconds(10));
@@ -159,4 +161,5 @@ namespace BitFaster.Caching.UnitTests.Lru
             return item;
         }
     }
+#endif
 }

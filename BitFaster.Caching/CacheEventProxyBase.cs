@@ -59,6 +59,8 @@ namespace BitFaster.Caching
         private void RegisterUpdated(EventHandler<ItemUpdatedEventArgs<K, TOuter>> value)
         {
             itemUpdatedProxy += value;
+
+// backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
             events.ItemUpdated += OnItemUpdated;
 #endif
@@ -68,6 +70,7 @@ namespace BitFaster.Caching
         {
             this.itemUpdatedProxy -= value;
 
+// backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
             if (this.itemUpdatedProxy == null)
             {
@@ -98,6 +101,7 @@ namespace BitFaster.Caching
         /// </summary>
         /// <param name="inner">The inner arg.</param>
         /// <returns>The translated arg.</returns>
+        // backcompat: make abstract, remove default no-op impl
         protected virtual ItemUpdatedEventArgs<K, TOuter> TranslateOnUpdated(ItemUpdatedEventArgs<K, TInner> inner)
         {
             return new ItemUpdatedEventArgs<K, TOuter>(inner.Key, default(TOuter), default(TOuter));

@@ -7,6 +7,7 @@ namespace BitFaster.Caching.Lru.Builder
     /// Parameters for buiding an LRU.
     /// </summary>
     /// <typeparam name="K">The LRU key type</typeparam>
+    // backcompat: make class internal
     public sealed class LruInfo<K>
     {
         /// <summary>
@@ -33,12 +34,5 @@ namespace BitFaster.Caching.Lru.Builder
         /// Gets or sets the KeyComparer.
         /// </summary>
         public IEqualityComparer<K> KeyComparer { get; set; } = EqualityComparer<K>.Default;
-
-#if NETCOREAPP3_0_OR_GREATER
-        /// <summary>
-        /// Gets or sets a value indicating whether to use high resolution time.
-        /// </summary>
-        public bool WithHighResolutionTime { get; set; } = false;
-#endif
     }
 }
