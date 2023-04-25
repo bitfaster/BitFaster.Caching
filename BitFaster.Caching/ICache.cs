@@ -63,9 +63,11 @@ namespace BitFaster.Caching
         /// <param name="value">The new value.</param>
         void AddOrUpdate(K key, V value);
 
+#if NETCOREAPP3_0_OR_GREATER
         /// <summary>
         /// Removes all keys and values from the cache.
         /// </summary>
-        void Clear();
+        void Clear() { }
+#endif
     }
 }
