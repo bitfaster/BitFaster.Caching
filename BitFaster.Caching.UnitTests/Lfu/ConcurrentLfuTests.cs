@@ -44,10 +44,30 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void WhenKeyIsRequestedWithArgItIsCreatedAndCached()
+        {
+            var result1 = cache.GetOrAdd(1, valueFactory.Create, 9);
+            var result2 = cache.GetOrAdd(1, valueFactory.Create, 17);
+
+            valueFactory.timesCalled.Should().Be(1);
+            result1.Should().Be(result2);
+        }
+
+        [Fact]
         public async Task WhenKeyIsRequesteItIsCreatedAndCachedAsync()
         {
             var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
             var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+
+            valueFactory.timesCalled.Should().Be(1);
+            result1.Should().Be(result2);
+        }
+
+        [Fact]
+        public async Task WhenKeyIsRequestedWithArgItIsCreatedAndCachedAsync()
+        {
+            var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync, 9).ConfigureAwait(false);
+            var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync, 17).ConfigureAwait(false);
 
             valueFactory.timesCalled.Should().Be(1);
             result1.Should().Be(result2);
@@ -852,10 +872,22 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 return key;
             }
 
+            public int Create(int key, int arg)
+            {
+                timesCalled++;
+                return key + arg;
+            }
+
             public Task<int> CreateAsync(int key)
             {
                 timesCalled++;
                 return Task.FromResult(key);
+            }
+
+            public Task<int> CreateAsync(int key, int arg)
+            {
+                timesCalled++;
+                return Task.FromResult(key + arg);
             }
         }
     }
