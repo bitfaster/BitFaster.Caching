@@ -194,8 +194,10 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private bool TryAdd(K key, LfuNode<K, V> node)
+        private bool TryAdd(K key, V value)
         {
+            var node = new LfuNode<K, V>(key, value);
+
             if (this.dictionary.TryAdd(key, node))
             {
                 AfterWrite(node);
@@ -216,10 +218,10 @@ namespace BitFaster.Caching.Lfu
                     return value;
                 }
 
-                var node = new LfuNode<K, V>(key, valueFactory(key));
-                if (this.TryAdd(key, node))
+                value = valueFactory(key);
+                if (this.TryAdd(key, value))
                 {
-                    return node.Value;
+                    return value;
                 }
             }
         }
@@ -243,10 +245,10 @@ namespace BitFaster.Caching.Lfu
                     return value;
                 }
 
-                var node = new LfuNode<K, V>(key, valueFactory(key, factoryArgument));
-                if (this.TryAdd(key, node))
+                value = valueFactory(key, factoryArgument);
+                if (this.TryAdd(key, value))
                 {
-                    return node.Value;
+                    return value;
                 }
             }
         }
@@ -261,10 +263,10 @@ namespace BitFaster.Caching.Lfu
                     return value;
                 }
 
-                var node = new LfuNode<K, V>(key, await valueFactory(key).ConfigureAwait(false));
-                if (this.TryAdd(key, node))
+                value = await valueFactory(key).ConfigureAwait(false);
+                if (this.TryAdd(key, value))
                 {
-                    return node.Value;
+                    return value;
                 }
             }
         }
@@ -287,10 +289,10 @@ namespace BitFaster.Caching.Lfu
                     return value;
                 }
 
-                var node = new LfuNode<K, V>(key, await valueFactory(key, factoryArgument).ConfigureAwait(false));
-                if (this.TryAdd(key, node))
+                value = await valueFactory(key, factoryArgument).ConfigureAwait(false);
+                if (this.TryAdd(key, value))
                 {
-                    return node.Value;
+                    return value;
                 }
             }
         }
