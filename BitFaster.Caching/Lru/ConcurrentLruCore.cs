@@ -184,6 +184,21 @@ namespace BitFaster.Caching.Lru
             return true;
         }
 
+        private bool TryAdd(K key, V value)
+        {
+            var newItem = this.itemPolicy.CreateItem(key, value);
+
+            if (this.dictionary.TryAdd(key, newItem))
+            {
+                this.hotQueue.Enqueue(newItem);
+                Cycle(Interlocked.Increment(ref counter.hot));
+                return true;
+            }
+
+            Disposer<V>.Dispose(newItem.Value);
+            return false;
+        }
+
         ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
@@ -195,17 +210,41 @@ namespace BitFaster.Caching.Lru
                 }
 
                 // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-                // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-                var newItem = this.itemPolicy.CreateItem(key, valueFactory(key));
+                value = valueFactory(key);
 
-                if (this.dictionary.TryAdd(key, newItem))
+                if (TryAdd(key, value))
                 {
-                    this.hotQueue.Enqueue(newItem);
-                    Cycle(Interlocked.Increment(ref counter.hot));
-                    return newItem.Value;
+                    return value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
+        /// existing value if the key already exists.
+        /// </summary>
+        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="valueFactory">The factory function used to generate a value for the key.</param>
+        /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
+        /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
+        /// in the cache, or the new value if the key was not in the cache.</returns>
+        public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+        {
+            while (true)
+            {
+                if (this.TryGet(key, out var value))
+                {
+                    return value;
                 }
 
-                Disposer<V>.Dispose(newItem.Value);
+                // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+                value = valueFactory(key, factoryArgument);
+
+                if (TryAdd(key, value))
+                {
+                    return value;
+                }
             }
         }
 
@@ -221,16 +260,40 @@ namespace BitFaster.Caching.Lru
 
                 // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
                 // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-                var newItem = this.itemPolicy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
+                value = await valueFactory(key).ConfigureAwait(false);
 
-                if (this.dictionary.TryAdd(key, newItem))
+                if (TryAdd(key, value))
                 {
-                    this.hotQueue.Enqueue(newItem);
-                    Cycle(Interlocked.Increment(ref counter.hot));
-                    return newItem.Value;
+                    return value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
+        /// existing value if the key already exists.
+        /// </summary>
+        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
+        /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
+        /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
+        public async ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+        {
+            while (true)
+            {
+                if (this.TryGet(key, out var value))
+                {
+                    return value;
                 }
 
-                Disposer<V>.Dispose(newItem.Value);
+                // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+                value = await valueFactory(key, factoryArgument).ConfigureAwait(false);
+
+                if (TryAdd(key, value))
+                {
+                    return value;
+                }
             }
         }
 
