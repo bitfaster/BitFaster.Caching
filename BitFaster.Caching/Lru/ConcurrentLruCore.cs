@@ -184,8 +184,10 @@ namespace BitFaster.Caching.Lru
             return true;
         }
 
-        private bool TryAdd(K key, I newItem)
+        private bool TryAdd(K key, V value)
         {
+            var newItem = this.itemPolicy.CreateItem(key, value);
+
             if (this.dictionary.TryAdd(key, newItem))
             {
                 this.hotQueue.Enqueue(newItem);
@@ -208,12 +210,11 @@ namespace BitFaster.Caching.Lru
                 }
 
                 // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-                // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-                var newItem = this.itemPolicy.CreateItem(key, valueFactory(key));
+                value = valueFactory(key);
 
-                if (TryAdd(key, newItem))
+                if (TryAdd(key, value))
                 {
-                    return newItem.Value;
+                    return value;
                 }
             }
         }
@@ -238,12 +239,11 @@ namespace BitFaster.Caching.Lru
                 }
 
                 // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-                // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-                var newItem = this.itemPolicy.CreateItem(key, valueFactory(key, factoryArgument));
+                value = valueFactory(key, factoryArgument);
 
-                if (TryAdd(key, newItem))
+                if (TryAdd(key, value))
                 {
-                    return newItem.Value;
+                    return value;
                 }
             }
         }
@@ -260,11 +260,11 @@ namespace BitFaster.Caching.Lru
 
                 // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
                 // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-                var newItem = this.itemPolicy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
+                value = await valueFactory(key).ConfigureAwait(false);
 
-                if (TryAdd(key, newItem))
+                if (TryAdd(key, value))
                 {
-                    return newItem.Value;
+                    return value;
                 }
             }
         }
@@ -288,12 +288,11 @@ namespace BitFaster.Caching.Lru
                 }
 
                 // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-                // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-                var newItem = this.itemPolicy.CreateItem(key, await valueFactory(key, factoryArgument).ConfigureAwait(false));
+                value = await valueFactory(key, factoryArgument).ConfigureAwait(false);
 
-                if (TryAdd(key, newItem))
+                if (TryAdd(key, value))
                 {
-                    return newItem.Value;
+                    return value;
                 }
             }
         }
