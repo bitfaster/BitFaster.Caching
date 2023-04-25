@@ -432,6 +432,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.TryGet(-1, out var _).Should().BeFalse();
         }
 
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
         [Fact]
         public void WhenWriteBufferIsFullUpdatesAreDropped()
         {
@@ -453,6 +455,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.Metrics.Value.Updated.Should().Be(bufferSize);
         }
+#endif
 
         [Fact]
         public void EvictionPolicyReturnsCapacity()

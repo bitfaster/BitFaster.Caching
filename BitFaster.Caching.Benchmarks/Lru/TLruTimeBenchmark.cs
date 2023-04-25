@@ -22,9 +22,9 @@ namespace BitFaster.Caching.Benchmarks.Lru
             = new ConcurrentLruCore<int, int, TickCountLruItem<int, int>, TLruTicksPolicy<int, int>, NoTelemetryPolicy<int, int>>
                 (1, new EqualCapacityPartition(3), EqualityComparer<int>.Default, new TLruTicksPolicy<int, int>(TimeSpan.FromSeconds(1)), default);
 
-        private static readonly ConcurrentLruCore<int, int, LongTickCountLruItem<int, int>, TlruStopwatchPolicy<int, int>, NoTelemetryPolicy<int, int>> stopwatchTLru
-            = new ConcurrentLruCore<int, int, LongTickCountLruItem<int, int>, TlruStopwatchPolicy<int, int>, NoTelemetryPolicy<int, int>>
-                (1, new EqualCapacityPartition(3), EqualityComparer<int>.Default, new TlruStopwatchPolicy<int, int>(TimeSpan.FromSeconds(1)), default);
+        private static readonly ConcurrentLruCore<int, int, LongTickCountLruItem<int, int>, TLruLongTicksPolicy<int, int>, NoTelemetryPolicy<int, int>> stopwatchTLru
+            = new ConcurrentLruCore<int, int, LongTickCountLruItem<int, int>, TLruLongTicksPolicy<int, int>, NoTelemetryPolicy<int, int>>
+                (1, new EqualCapacityPartition(3), EqualityComparer<int>.Default, new TLruLongTicksPolicy<int, int>(TimeSpan.FromSeconds(1)), default);
 
         [Benchmark(Baseline = true)]
         public void DateTimeUtcNow()

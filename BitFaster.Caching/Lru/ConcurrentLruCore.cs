@@ -50,9 +50,14 @@ namespace BitFaster.Caching.Lru
         private readonly P itemPolicy;
         private bool isWarm = false;
 
-        // Since T is a struct, making it readonly will force the runtime to make defensive copies
-        // if mutate methods are called. Therefore, field must be mutable to maintain count.
-        private T telemetryPolicy;
+        /// <summary>
+        /// The telemetry policy.
+        /// </summary>
+        /// <remarks>
+        /// Since T is a struct, making it readonly will force the runtime to make defensive copies
+        /// if mutate methods are called. Therefore, field must be mutable to maintain count.
+        /// </remarks>
+        protected T telemetryPolicy;
 
         /// <summary>
         /// Initializes a new instance of the ConcurrentLruCore class with the specified concurrencyLevel, capacity, equality comparer, item policy and telemetry policy.
@@ -281,7 +286,10 @@ namespace BitFaster.Caching.Lru
                         V oldValue = existing.Value;
                         existing.Value = value;
                         this.itemPolicy.Update(existing);
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
                         this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
+#endif
                         Disposer<V>.Dispose(oldValue);
 
                         return true;
@@ -368,7 +376,12 @@ namespace BitFaster.Caching.Lru
             }
         }
 
-        private int TrimAllDiscardedItems()
+        /// <summary>
+        /// Trim discarded items from all queues.
+        /// </summary>
+        /// <returns>The number of items removed.</returns>
+        // backcompat: make internal
+        protected int TrimAllDiscardedItems()
         {
             int itemsRemoved = 0;
 
@@ -703,8 +716,10 @@ namespace BitFaster.Caching.Lru
 
             public long Evicted => lru.telemetryPolicy.Evicted;
 
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
             public long Updated => lru.telemetryPolicy.Updated;
-
+#endif
             public int Capacity => lru.Capacity;
 
             public TimeSpan TimeToLive => lru.itemPolicy.TimeToLive;
@@ -715,12 +730,14 @@ namespace BitFaster.Caching.Lru
                 remove { this.lru.telemetryPolicy.ItemRemoved -= value; }
             }
 
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
             public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
             {
                 add { this.lru.telemetryPolicy.ItemUpdated += value; }
                 remove { this.lru.telemetryPolicy.ItemUpdated -= value; }
             }
-
+#endif
             public void Trim(int itemCount)
             {
                 lru.Trim(itemCount);
