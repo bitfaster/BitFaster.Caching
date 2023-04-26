@@ -1,20 +1,68 @@
-name: Build and Test
+name: Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ v1 ]
   pull_request:
-    branches: [ main ]
+    branches: [ v1 ]
 
 jobs:
-  build:
+  win:
 
     runs-on: windows-latest
 
+    permissions:
+      checks: write
+
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: |
+          3.1.x
+          6.0.x
+    - name: Install dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test --no-restore --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results.trx"
+    - name: Generate unit test report
+      uses: phoenix-actions/test-reporting@v8
+      id: unit-test-report-win6
+      if: success() || failure() 
+      with:
+        name: test results (win)
+        path: BitFaster.Caching.UnitTests/TestResults/results.trx
+        reporter: dotnet-trx 
+        only-summary: 'true'
+    - name: Publish coverage report to coveralls.io
+      uses: coverallsapp/github-action@master   
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }} 
+        path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.info
+        flag-name: win6
+        parallel: true
+
+    - name: Publish NuGet artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: NuGet package
+        path: BitFaster.Caching/bin/Release/
+
+  mac:
+
+    runs-on: macos-latest
+
+    permissions:
+      checks: write
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v2
       with:
         dotnet-version: 6.0.x
     - name: Install dependencies
@@ -22,14 +70,33 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Test
-      run: dotnet test --no-restore --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov
-    - name: Publish NuGet artifacts
-      uses: actions/upload-artifact@v1
-      with:
-        name: NuGet package
-        path: BitFaster.Caching/bin/Release/
+      run: dotnet test --no-restore --verbosity normal /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results.trx"
     - name: Publish coverage report to coveralls.io   
       uses: coverallsapp/github-action@master   
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }} 
-        path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.info 
+        path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.info
+        flag-name: mac
+        parallel: true
+    - name: Generate unit test report
+      uses: phoenix-actions/test-reporting@v8
+      id: unit-test-report-mac
+      if: success() || failure() 
+      with:
+        name: test results (mac net6.0)
+        path: BitFaster.Caching.UnitTests/TestResults/results.trx
+        reporter: dotnet-trx 
+        only-summary: 'true'
+
+  coverage:
+
+    needs: [win, mac]
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
