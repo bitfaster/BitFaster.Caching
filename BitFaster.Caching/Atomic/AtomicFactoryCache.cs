@@ -74,6 +74,12 @@ namespace BitFaster.Caching.Atomic
             return atomicFactory.GetValue(key, valueFactory);
         }
 
+        public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+        {
+            var atomicFactory = cache.GetOrAdd(key, _ => new AtomicFactory<K, V>());
+            return atomicFactory.GetValue(key, valueFactory, factoryArgument);
+        }
+
         ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {

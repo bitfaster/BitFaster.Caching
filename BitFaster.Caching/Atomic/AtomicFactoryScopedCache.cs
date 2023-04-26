@@ -91,6 +91,28 @@ namespace BitFaster.Caching.Atomic
             }
         }
 
+        public Lifetime<V> ScopedGetOrAdd<TArg>(K key, Func<K, TArg, Scoped<V>> valueFactory, TArg factoryArgument)
+        {
+            int c = 0;
+            var spinwait = new SpinWait();
+            while (true)
+            {
+                var scope = cache.GetOrAdd(key, _ => new ScopedAtomicFactory<K, V>());
+
+                if (scope.TryCreateLifetime(key, valueFactory, factoryArgument, out var lifetime))
+                {
+                    return lifetime;
+                }
+
+                spinwait.SpinOnce();
+
+                if (c++ > ScopedCacheDefaults.MaxRetry)
+                {
+                    Ex.ThrowScopedRetryFailure();
+                }
+            }
+        }
+
         ///<inheritdoc/>
         public bool ScopedTryGet(K key, out Lifetime<V> lifetime)
         {

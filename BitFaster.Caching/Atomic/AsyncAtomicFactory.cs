@@ -53,6 +53,16 @@ namespace BitFaster.Caching.Atomic
             return await CreateValueAsync(key, valueFactory).ConfigureAwait(false);
         }
 
+        public async ValueTask<V> GetValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+        {
+            if (initializer == null)
+            {
+                return value;
+            }
+
+            return await CreateValueAsync(key, valueFactory, factoryArgument).ConfigureAwait(false);
+        }
+
         /// <summary>
         /// Gets a value indicating whether the value has been initialized.
         /// </summary>
@@ -81,6 +91,19 @@ namespace BitFaster.Caching.Atomic
             if (init != null)
             {
                 value = await init.CreateValueAsync(key, valueFactory).ConfigureAwait(false);
+                initializer = null;
+            }
+
+            return value;
+        }
+
+        private async ValueTask<V> CreateValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg arg)
+        {
+            var init = initializer;
+
+            if (init != null)
+            {
+                value = await init.CreateValueAsync(key, valueFactory, arg).ConfigureAwait(false);
                 initializer = null;
             }
 
@@ -117,6 +140,69 @@ namespace BitFaster.Caching.Atomic
                 }
 
                 return await synchronizedTask.ConfigureAwait(false);
+            }
+
+            public async ValueTask<V> CreateValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg arg)
+            {
+                var tcs = new TaskCompletionSource<V>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                var synchronizedTask = DoubleCheck(tcs.Task);
+
+                if (ReferenceEquals(synchronizedTask, tcs.Task))
+                {
+                    try
+                    {
+                        var value = await valueFactory(key, arg).ConfigureAwait(false);
+                        tcs.SetResult(value);
+
+                        return value;
+                    }
+                    catch (Exception ex)
+                    {
+                        Volatile.Write(ref isInitialized, false);
+                        tcs.SetException(ex);
+                        throw;
+                    }
+                }
+
+                return await synchronizedTask.ConfigureAwait(false);
+            }
+
+            // TODO: hard to see how to de-dupe the code without introducing a new delegate/closure alloc
+            public async ValueTask<V> CreateValueAsync2<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg arg)
+            {
+                var (ownTcs, synchronizedTask, tcs) = TryCreateTcs();
+
+                if (ownTcs)
+                {
+                    try
+                    {
+                        var value = await valueFactory(key, arg).ConfigureAwait(false);
+                        tcs.SetResult(value);
+                        return value;
+                    }
+                    catch (Exception ex)
+                    {
+                        Fault(tcs, ex);
+                        throw;
+                    }
+                }
+
+                return await synchronizedTask.ConfigureAwait(false);
+            }
+
+            private (bool, Task<V>, TaskCompletionSource<V>) TryCreateTcs()
+            {
+                var tcs = new TaskCompletionSource<V>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var synchronizedTask = DoubleCheck(tcs.Task);
+
+                return (ReferenceEquals(synchronizedTask, tcs.Task), synchronizedTask, tcs);
+            }
+
+            private void Fault(TaskCompletionSource<V> tcs, Exception ex)
+            {
+                Volatile.Write(ref isInitialized, false);
+                tcs.SetException(ex);
             }
 
             private Task<V> DoubleCheck(Task<V> value)

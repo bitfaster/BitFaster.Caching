@@ -76,6 +76,12 @@ namespace BitFaster.Caching.Atomic
             return synchronized.GetValueAsync(key, valueFactory);
         }
 
+        public ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg arg)
+        {
+            var synchronized = cache.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
+            return synchronized.GetValueAsync(key, valueFactory, arg);
+        }
+
         ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {

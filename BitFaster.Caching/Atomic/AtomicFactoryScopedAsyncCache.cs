@@ -93,6 +93,30 @@ namespace BitFaster.Caching.Atomic
             }
         }
 
+        public async ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TArg>(K key, Func<K, TArg, Task<Scoped<V>>> valueFactory, TArg factoryArgument)
+        {
+            int c = 0;
+            var spinwait = new SpinWait();
+            while (true)
+            {
+                var scope = cache.GetOrAdd(key, _ => new ScopedAsyncAtomicFactory<K, V>());
+
+                var result = await scope.TryCreateLifetimeAsync(key, valueFactory, factoryArgument).ConfigureAwait(false);
+
+                if (result.success)
+                {
+                    return result.lifetime;
+                }
+
+                spinwait.SpinOnce();
+
+                if (c++ > ScopedCacheDefaults.MaxRetry)
+                {
+                    Ex.ThrowScopedRetryFailure();
+                }
+            }
+        }
+
         ///<inheritdoc/>
         public bool ScopedTryGet(K key, out Lifetime<V> lifetime)
         {

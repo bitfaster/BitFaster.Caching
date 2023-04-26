@@ -113,6 +113,23 @@ namespace BitFaster.Caching.Atomic
             return scope.TryCreateLifetime(out lifetime);
         }
 
+        public bool TryCreateLifetime<TArg>(K key, Func<K, TArg, Scoped<V>> valueFactory, TArg factoryArgument, out Lifetime<V> lifetime)
+        {
+            if (scope?.IsDisposed ?? false)
+            {
+                lifetime = default;
+                return false;
+            }
+
+            // Create scope EXACTLY once, ref count cas operates over same scope
+            if (initializer != null)
+            {
+                InitializeScope(key, valueFactory, factoryArgument);
+            }
+
+            return scope.TryCreateLifetime(out lifetime);
+        }
+
         private void InitializeScope(K key, Func<K, Scoped<V>> valueFactory)
         {
             var init = initializer;
@@ -120,6 +137,17 @@ namespace BitFaster.Caching.Atomic
             if (init != null)
             {
                 scope = init.CreateScope(key, valueFactory);
+                initializer = null;
+            }
+        }
+
+        private void InitializeScope<TArg>(K key, Func<K, TArg, Scoped<V>> valueFactory, TArg arg)
+        {
+            var init = initializer;
+
+            if (init != null)
+            {
+                scope = init.CreateScope(key, valueFactory, arg);
                 initializer = null;
             }
         }
@@ -161,6 +189,27 @@ namespace BitFaster.Caching.Atomic
                     }
 
                     value = valueFactory(key);
+                    Volatile.Write(ref isInitialized, true);
+
+                    return value;
+                }
+            }
+
+            public Scoped<V> CreateScope<TArg>(K key, Func<K, TArg, Scoped<V>> valueFactory, TArg arg)
+            {
+                if (Volatile.Read(ref isInitialized))
+                {
+                    return value;
+                }
+
+                lock (syncLock)
+                {
+                    if (Volatile.Read(ref isInitialized))
+                    {
+                        return value;
+                    }
+
+                    value = valueFactory(key, arg);
                     Volatile.Write(ref isInitialized, true);
 
                     return value;

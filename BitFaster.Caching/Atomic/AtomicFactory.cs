@@ -52,6 +52,16 @@ namespace BitFaster.Caching.Atomic
             return CreateValue(key, valueFactory);
         }
 
+        public V GetValue<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+        {
+            if (initializer == null)
+            {
+                return value;
+            }
+
+            return CreateValue(key, valueFactory, factoryArgument);
+        }
+
         /// <summary>
         /// Gets a value indicating whether the value has been initialized.
         /// </summary>
@@ -86,6 +96,19 @@ namespace BitFaster.Caching.Atomic
             return value;
         }
 
+        private V CreateValue<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+        {
+            var init = initializer;
+
+            if (init != null)
+            {
+                value = init.CreateValue(key, valueFactory, factoryArgument);
+                initializer = null;
+            }
+
+            return value;
+        }
+
         private class Initializer
         {
             private readonly object syncLock = new object();
@@ -107,6 +130,26 @@ namespace BitFaster.Caching.Atomic
                     }
 
                     value = valueFactory(key);
+                    Volatile.Write(ref isInitialized, true);
+                    return value;
+                }
+            }
+
+            public V CreateValue<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+            {
+                if (Volatile.Read(ref isInitialized))
+                {
+                    return value;
+                }
+
+                lock (syncLock)
+                {
+                    if (Volatile.Read(ref isInitialized))
+                    {
+                        return value;
+                    }
+
+                    value = valueFactory(key, factoryArgument);
                     Volatile.Write(ref isInitialized, true);
                     return value;
                 }
