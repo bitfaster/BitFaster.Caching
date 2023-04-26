@@ -181,11 +181,32 @@ namespace BitFaster.Caching.UnitTests.Lru
             result1.Should().Be(result2);
         }
 
+
+        [Fact]
+        public void WhenKeyIsRequestedWithArgItIsCreatedAndCached()
+        {
+            var result1 = lru.GetOrAdd(1, valueFactory.Create, "x");
+            var result2 = lru.GetOrAdd(1, valueFactory.Create, "y");
+
+            valueFactory.timesCalled.Should().Be(1);
+            result1.Should().Be(result2);
+        }
+
         [Fact]
         public async Task WhenKeyIsRequesteItIsCreatedAndCachedAsync()
         {
             var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
             var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+
+            valueFactory.timesCalled.Should().Be(1);
+            result1.Should().Be(result2);
+        }
+
+        [Fact]
+        public async Task WhenKeyIsRequestedWithArgItIsCreatedAndCachedAsync()
+        {
+            var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync, "x").ConfigureAwait(false);
+            var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync, "y").ConfigureAwait(false);
 
             valueFactory.timesCalled.Should().Be(1);
             result1.Should().Be(result2);
