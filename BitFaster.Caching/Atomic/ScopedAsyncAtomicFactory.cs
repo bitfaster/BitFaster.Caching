@@ -80,7 +80,12 @@ namespace BitFaster.Caching.Atomic
         /// <param name="key">The key associated with the scoped value.</param>
         /// <param name="valueFactory">The value factory to use to create the scoped value when it is not initialized.</param>
         /// <returns>true if the Lifetime was created; otherwise false. If the lifetime was created, the new lifetime is also returned.</returns>
-        public async ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+        public ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+        {
+            return TryCreateLifetimeAsync(key, new ValueFactoryAsync<K, Scoped<V>>(valueFactory));
+        }
+
+        public async ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
         {
             // if disposed, return
             if (scope?.IsDisposed ?? false)
@@ -98,42 +103,13 @@ namespace BitFaster.Caching.Atomic
             return (res, lifetime);
         }
 
-        public async ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync<TArg>(K key, Func<K, TArg, Task<Scoped<V>>> valueFactory, TArg factoryArgument)
-        {
-            // if disposed, return
-            if (scope?.IsDisposed ?? false)
-            {
-                return (false, default);
-            }
-
-            // Create scope EXACTLY once, ref count cas operates over same scope
-            if (initializer != null)
-            {
-                await InitializeScopeAsync(key, valueFactory, factoryArgument).ConfigureAwait(false);
-            }
-
-            bool res = scope.TryCreateLifetime(out var lifetime);
-            return (res, lifetime);
-        }
-
-        private async ValueTask InitializeScopeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+        private async ValueTask InitializeScopeAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
         {
             var init = initializer;
 
             if (init != null)
             {
                 scope = await init.CreateScopeAsync(key, valueFactory).ConfigureAwait(false);
-                initializer = null;
-            }
-        }
-
-        private async ValueTask InitializeScopeAsync<TArg>(K key, Func<K, TArg, Task<Scoped<V>>> valueFactory, TArg factoryArgument)
-        {
-            var init = initializer;
-
-            if (init != null)
-            {
-                scope = await init.CreateScopeAsync(key, valueFactory, factoryArgument).ConfigureAwait(false);
                 initializer = null;
             }
         }
@@ -165,7 +141,7 @@ namespace BitFaster.Caching.Atomic
             private bool isDisposeRequested;
             private Task<Scoped<V>> task;
 
-            public async ValueTask<Scoped<V>> CreateScopeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+            public async ValueTask<Scoped<V>> CreateScopeAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
             {
                 var tcs = new TaskCompletionSource<Scoped<V>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -175,7 +151,7 @@ namespace BitFaster.Caching.Atomic
                 {
                     try
                     {
-                        var scope = await valueFactory(key).ConfigureAwait(false);
+                        var scope = await valueFactory.CreateAsync(key).ConfigureAwait(false);
                         tcs.SetResult(scope);
 
                         Volatile.Write(ref isTaskCompleted, true);
@@ -196,55 +172,6 @@ namespace BitFaster.Caching.Atomic
                 }
 
                 return await synchronizedTask.ConfigureAwait(false);
-            }
-
-            public async ValueTask<Scoped<V>> CreateScopeAsync<TArg>(K key, Func<K, TArg, Task<Scoped<V>>> valueFactory, TArg arg)
-            {
-                var (ownTcs, synchronizedTask, tcs) = TryCreateTcs();
-
-                if (ownTcs)
-                {
-                    try
-                    {
-                        var scope = await valueFactory(key, arg).ConfigureAwait(false);
-                        return SetResult(tcs, scope);
-                    }
-                    catch (Exception ex)
-                    {
-                        Fault(tcs, ex);
-                        throw;
-                    }
-                }
-
-                return await synchronizedTask.ConfigureAwait(false);
-            }
-
-            private Scoped<V> SetResult(TaskCompletionSource<Scoped<V>> tcs, Scoped<V> scope)
-            {
-                tcs.SetResult(scope);
-
-                Volatile.Write(ref isTaskCompleted, true);
-
-                if (Volatile.Read(ref isDisposeRequested))
-                {
-                    scope.Dispose();
-                }
-
-                return scope;
-            }
-
-            private (bool, Task<Scoped<V>>, TaskCompletionSource<Scoped<V>>) TryCreateTcs()
-            {
-                var tcs = new TaskCompletionSource<Scoped<V>>(TaskCreationOptions.RunContinuationsAsynchronously);
-                var synchronizedTask = DoubleCheck(tcs.Task);
-
-                return (ReferenceEquals(synchronizedTask, tcs.Task), synchronizedTask, tcs);
-            }
-
-            private void Fault(TaskCompletionSource<Scoped<V>> tcs, Exception ex)
-            {
-                Volatile.Write(ref isTaskInitialized, false);
-                tcs.SetException(ex);
             }
 
             private Task<Scoped<V>> DoubleCheck(Task<Scoped<V>> value)

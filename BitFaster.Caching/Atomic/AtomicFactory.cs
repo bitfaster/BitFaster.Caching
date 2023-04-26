@@ -49,7 +49,7 @@ namespace BitFaster.Caching.Atomic
                 return value;
             }
 
-            return CreateValue(key, valueFactory);
+            return CreateValue(key, new ValueFactory<K, V>(valueFactory));
         }
 
         public V GetValue<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
@@ -59,7 +59,7 @@ namespace BitFaster.Caching.Atomic
                 return value;
             }
 
-            return CreateValue(key, valueFactory, factoryArgument);
+            return CreateValue(key, new ValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument));
         }
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace BitFaster.Caching.Atomic
             }
         }
 
-        private V CreateValue(K key, Func<K, V> valueFactory)
+        private V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
         {
             var init = initializer;
 
@@ -96,26 +96,13 @@ namespace BitFaster.Caching.Atomic
             return value;
         }
 
-        private V CreateValue<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
-        {
-            var init = initializer;
-
-            if (init != null)
-            {
-                value = init.CreateValue(key, valueFactory, factoryArgument);
-                initializer = null;
-            }
-
-            return value;
-        }
-
         private class Initializer
         {
             private readonly object syncLock = new object();
             private bool isInitialized;
             private V value;
 
-            public V CreateValue(K key, Func<K, V> valueFactory)
+            public V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
             {
                 if (Volatile.Read(ref isInitialized))
                 {
@@ -129,27 +116,7 @@ namespace BitFaster.Caching.Atomic
                         return value;
                     }
 
-                    value = valueFactory(key);
-                    Volatile.Write(ref isInitialized, true);
-                    return value;
-                }
-            }
-
-            public V CreateValue<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
-            {
-                if (Volatile.Read(ref isInitialized))
-                {
-                    return value;
-                }
-
-                lock (syncLock)
-                {
-                    if (Volatile.Read(ref isInitialized))
-                    {
-                        return value;
-                    }
-
-                    value = valueFactory(key, factoryArgument);
+                    value = valueFactory.Create(key);
                     Volatile.Write(ref isInitialized, true);
                     return value;
                 }

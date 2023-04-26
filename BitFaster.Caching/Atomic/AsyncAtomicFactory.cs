@@ -50,7 +50,7 @@ namespace BitFaster.Caching.Atomic
                 return value;
             }
 
-            return await CreateValueAsync(key, valueFactory).ConfigureAwait(false);
+            return await CreateValueAsync(key, new ValueFactoryAsync<K, V>(valueFactory)).ConfigureAwait(false);
         }
 
         public async ValueTask<V> GetValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
@@ -60,7 +60,7 @@ namespace BitFaster.Caching.Atomic
                 return value;
             }
 
-            return await CreateValueAsync(key, valueFactory, factoryArgument).ConfigureAwait(false);
+            return await CreateValueAsync(key, new ValueFactoryAsyncArg<K, TArg, V>(valueFactory, factoryArgument)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -84,7 +84,7 @@ namespace BitFaster.Caching.Atomic
             }
         }
 
-        private async ValueTask<V> CreateValueAsync(K key, Func<K, Task<V>> valueFactory)
+        private async ValueTask<V> CreateValueAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, V>
         {
             var init = initializer;
 
@@ -97,26 +97,13 @@ namespace BitFaster.Caching.Atomic
             return value;
         }
 
-        private async ValueTask<V> CreateValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg arg)
-        {
-            var init = initializer;
-
-            if (init != null)
-            {
-                value = await init.CreateValueAsync(key, valueFactory, arg).ConfigureAwait(false);
-                initializer = null;
-            }
-
-            return value;
-        }
-
         private class Initializer
         {
             private readonly object syncLock = new object();
             private bool isInitialized;
             private Task<V> valueTask;
 
-            public async ValueTask<V> CreateValueAsync(K key, Func<K, Task<V>> valueFactory)
+            public async ValueTask<V> CreateValueAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, V>
             {
                 var tcs = new TaskCompletionSource<V>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -126,7 +113,7 @@ namespace BitFaster.Caching.Atomic
                 {
                     try
                     {
-                        var value = await valueFactory(key).ConfigureAwait(false);
+                        var value = await valueFactory.CreateAsync(key).ConfigureAwait(false);
                         tcs.SetResult(value);
 
                         return value;
@@ -140,69 +127,6 @@ namespace BitFaster.Caching.Atomic
                 }
 
                 return await synchronizedTask.ConfigureAwait(false);
-            }
-
-            public async ValueTask<V> CreateValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg arg)
-            {
-                var tcs = new TaskCompletionSource<V>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-                var synchronizedTask = DoubleCheck(tcs.Task);
-
-                if (ReferenceEquals(synchronizedTask, tcs.Task))
-                {
-                    try
-                    {
-                        var value = await valueFactory(key, arg).ConfigureAwait(false);
-                        tcs.SetResult(value);
-
-                        return value;
-                    }
-                    catch (Exception ex)
-                    {
-                        Volatile.Write(ref isInitialized, false);
-                        tcs.SetException(ex);
-                        throw;
-                    }
-                }
-
-                return await synchronizedTask.ConfigureAwait(false);
-            }
-
-            // TODO: hard to see how to de-dupe the code without introducing a new delegate/closure alloc
-            public async ValueTask<V> CreateValueAsync2<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg arg)
-            {
-                var (ownTcs, synchronizedTask, tcs) = TryCreateTcs();
-
-                if (ownTcs)
-                {
-                    try
-                    {
-                        var value = await valueFactory(key, arg).ConfigureAwait(false);
-                        tcs.SetResult(value);
-                        return value;
-                    }
-                    catch (Exception ex)
-                    {
-                        Fault(tcs, ex);
-                        throw;
-                    }
-                }
-
-                return await synchronizedTask.ConfigureAwait(false);
-            }
-
-            private (bool, Task<V>, TaskCompletionSource<V>) TryCreateTcs()
-            {
-                var tcs = new TaskCompletionSource<V>(TaskCreationOptions.RunContinuationsAsynchronously);
-                var synchronizedTask = DoubleCheck(tcs.Task);
-
-                return (ReferenceEquals(synchronizedTask, tcs.Task), synchronizedTask, tcs);
-            }
-
-            private void Fault(TaskCompletionSource<V> tcs, Exception ex)
-            {
-                Volatile.Write(ref isInitialized, false);
-                tcs.SetException(ex);
             }
 
             private Task<V> DoubleCheck(Task<V> value)

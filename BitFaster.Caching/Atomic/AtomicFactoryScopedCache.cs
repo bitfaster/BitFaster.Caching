@@ -71,27 +71,15 @@ namespace BitFaster.Caching.Atomic
         ///<inheritdoc/>
         public Lifetime<V> ScopedGetOrAdd(K key, Func<K, Scoped<V>> valueFactory)
         {
-            int c = 0;
-            var spinwait = new SpinWait();
-            while (true)
-            {
-                var scope = cache.GetOrAdd(key, _ => new ScopedAtomicFactory<K, V>());
-
-                if (scope.TryCreateLifetime(key, valueFactory, out var lifetime))
-                {
-                    return lifetime;
-                }
-
-                spinwait.SpinOnce();
-
-                if (c++ > ScopedCacheDefaults.MaxRetry)
-                {
-                    Ex.ThrowScopedRetryFailure();
-                }
-            }
+            return ScopedGetOrAdd(key, new ValueFactory<K, Scoped<V>>(valueFactory));
         }
 
         public Lifetime<V> ScopedGetOrAdd<TArg>(K key, Func<K, TArg, Scoped<V>> valueFactory, TArg factoryArgument)
+        {
+            return ScopedGetOrAdd(key, new ValueFactoryArg<K, TArg, Scoped<V>>(valueFactory, factoryArgument));
+        }
+
+        private Lifetime<V> ScopedGetOrAdd<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
         {
             int c = 0;
             var spinwait = new SpinWait();
@@ -99,7 +87,7 @@ namespace BitFaster.Caching.Atomic
             {
                 var scope = cache.GetOrAdd(key, _ => new ScopedAtomicFactory<K, V>());
 
-                if (scope.TryCreateLifetime(key, valueFactory, factoryArgument, out var lifetime))
+                if (scope.TryCreateLifetime(key, valueFactory, out var lifetime))
                 {
                     return lifetime;
                 }
