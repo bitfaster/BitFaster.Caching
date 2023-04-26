@@ -22,6 +22,8 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <AssemblyVersion>1.0.7.0</AssemblyVersion>
     <FileVersion>1.0.7.0</FileVersion>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>1.0.3</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
