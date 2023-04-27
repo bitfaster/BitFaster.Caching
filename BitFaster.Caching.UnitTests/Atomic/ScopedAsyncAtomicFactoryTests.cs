@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
@@ -60,6 +57,38 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             result.r.Should().BeTrue();
             result.l.Value.actualNumber.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task WhenCreateFromFactoryLifetimeContainsValue()
+        {
+            var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>();
+
+            (bool r, Lifetime<IntHolder> l) result = await atomicFactory.TryCreateLifetimeAsync(1, k =>
+            {
+                return Task.FromResult(new Scoped<IntHolder>(new IntHolder() { actualNumber = 2 }));
+            });
+
+            result.r.Should().BeTrue();
+            result.l.Value.actualNumber.Should().Be(2);
+        }
+
+        [Fact]
+        public async Task WhenCreateFromFactoryArgLifetimeContainsValue()
+        {
+            var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>();
+
+            var factory = new ValueFactoryAsyncArg<int, int, Scoped<IntHolder>>(
+                (k, a) =>
+                    {
+                        return Task.FromResult(new Scoped<IntHolder>(new IntHolder() { actualNumber = k + a }));
+                    }, 
+                7);
+
+            (bool r, Lifetime<IntHolder> l) result = await atomicFactory.TryCreateLifetimeAsync(1, factory);
+
+            result.r.Should().BeTrue();
+            result.l.Value.actualNumber.Should().Be(8);
         }
 
         [Fact]
