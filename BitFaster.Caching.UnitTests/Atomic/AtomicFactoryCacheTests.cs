@@ -2,8 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
@@ -52,6 +50,15 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             this.cache.Metrics.Value.Misses.Should().Be(0);
             this.cache.Metrics.Value.Hits.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenItemIsAddedWithArgValueIsCorrect()
+        {
+            this.cache.GetOrAdd(1, (k, a) => k + a, 2);
+
+            this.cache.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be(3);
         }
 
         [Fact]

@@ -49,7 +49,25 @@ namespace BitFaster.Caching.Atomic
                 return value;
             }
 
-            return CreateValue(key, valueFactory);
+            return CreateValue(key, new ValueFactory<K, V>(valueFactory));
+        }
+
+        /// <summary>
+        /// Gets the value. If <see cref="IsValueCreated"/> is false, calling <see cref="GetValue{TArg}"/> will force initialization via the <paramref name="valueFactory"/> parameter.
+        /// </summary>
+        /// <typeparam name="TArg">The type of the value factory argument.</typeparam>
+        /// <param name="key">The key associated with the value.</param>
+        /// <param name="valueFactory">The value factory to use to create the value when it is not initialized.</param>
+        /// <param name="factoryArgument">The value factory argument.</param>
+        /// <returns>The value.</returns>
+        public V GetValue<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+        {
+            if (initializer == null)
+            {
+                return value;
+            }
+
+            return CreateValue(key, new ValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument));
         }
 
         /// <summary>
@@ -73,7 +91,7 @@ namespace BitFaster.Caching.Atomic
             }
         }
 
-        private V CreateValue(K key, Func<K, V> valueFactory)
+        private V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
         {
             var init = initializer;
 
@@ -92,7 +110,7 @@ namespace BitFaster.Caching.Atomic
             private bool isInitialized;
             private V value;
 
-            public V CreateValue(K key, Func<K, V> valueFactory)
+            public V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
             {
                 if (Volatile.Read(ref isInitialized))
                 {
@@ -106,7 +124,7 @@ namespace BitFaster.Caching.Atomic
                         return value;
                     }
 
-                    value = valueFactory(key);
+                    value = valueFactory.Create(key);
                     Volatile.Write(ref isInitialized, true);
                     return value;
                 }

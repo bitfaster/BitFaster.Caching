@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
@@ -41,11 +38,29 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public void WhenValueCreatedWithArgValueReturned()
+        {
+            var a = new AtomicFactory<int, int>();
+            a.GetValue(1, (k, a) => k + a, 7).Should().Be(8);
+
+            a.ValueIfCreated.Should().Be(8);
+            a.IsValueCreated.Should().BeTrue();
+        }
+
+        [Fact]
         public void WhenValueCreatedGetValueReturnsOriginalValue()
         {
             var a = new AtomicFactory<int, int>();
             a.GetValue(1, k => 2);
             a.GetValue(1, k => 3).Should().Be(2);
+        }
+
+        [Fact]
+        public void WhenValueCreatedArgGetValueReturnsOriginalValue()
+        {
+            var a = new AtomicFactory<int, int>();
+            a.GetValue(1, (k, a) => k + a, 7);
+            a.GetValue(1, (k, a) => k + a, 9).Should().Be(8);
         }
 
         [Fact]

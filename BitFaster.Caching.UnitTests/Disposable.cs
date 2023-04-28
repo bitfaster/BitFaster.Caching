@@ -1,15 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using FluentAssertions;
 
 namespace BitFaster.Caching.UnitTests
 {
     public class Disposable : IDisposable
     {
+        public Disposable() { }
+        
+        public Disposable(int state) { this.State = state; }
+
         public bool IsDisposed { get; set; }
+
+        public int State { get; set; }
 
         public void Dispose()
         {

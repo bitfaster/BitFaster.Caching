@@ -47,6 +47,21 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public async Task WhenKeyDoesNotExistGetOrAddArgAddsValueWithArg()
+        {
+            // TODO: move to base when interface supports factory arg
+            var c = this.cache as AtomicFactoryScopedAsyncCache<int, Disposable>;
+
+            await c.ScopedGetOrAddAsync(
+                1,
+                (k, a) => Task.FromResult(new Scoped<Disposable>(new Disposable(a))),
+                2);
+
+            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
+            lifetime.Value.State.Should().Be(2);
+        }
+
+        [Fact]
         public async Task GetOrAddAsyncDisposedScopeThrows()
         {
             var scope = new Scoped<Disposable>(new Disposable());
