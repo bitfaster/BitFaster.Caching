@@ -66,7 +66,7 @@ namespace BitFaster.Caching.Lfu
         public void RemoveFirst()
         {
 #if DEBUG
-            if (head == null) { Ex.ThrowInvalidOp("List is empty."); }
+            if (head == null) { Throw.InvalidOp("List is empty."); }
 #endif
             InternalRemoveNode(head);
         }
@@ -125,12 +125,12 @@ namespace BitFaster.Caching.Lfu
         {
             if (node == null)
             {
-                Ex.ThrowArgNull(ExceptionArgument.node);
+                Throw.ArgNull(ExceptionArgument.node);
             }
 
             if (node.list != null)
             {
-                Ex.ThrowInvalidOp("Node is already attached to a list.");
+                Throw.InvalidOp("Node is already attached to a list.");
             }
         }
 
@@ -139,12 +139,12 @@ namespace BitFaster.Caching.Lfu
         {
             if (node == null)
             {
-                Ex.ThrowArgNull(ExceptionArgument.node);
+                Throw.ArgNull(ExceptionArgument.node);
             }
 
             if (node.list != this)
             {
-                Ex.ThrowInvalidOp("Node is already attached to a different list.");
+                Throw.InvalidOp("Node is already attached to a different list.");
             }
         }
 #endif
