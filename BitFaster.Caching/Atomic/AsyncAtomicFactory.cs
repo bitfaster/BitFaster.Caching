@@ -53,6 +53,14 @@ namespace BitFaster.Caching.Atomic
             return await CreateValueAsync(key, new ValueFactoryAsync<K, V>(valueFactory)).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Gets the value. If <see cref="IsValueCreated"/> is false, calling <see cref="GetValueAsync{TArg}"/> will force initialization via the <paramref name="valueFactory"/> parameter.
+        /// </summary>
+        /// <typeparam name="TArg">The type of the value factory argument.</typeparam>
+        /// <param name="key">The key associated with the value.</param>
+        /// <param name="valueFactory">The value factory to use to create the value when it is not initialized.</param>
+        /// <param name="factoryArgument">The value factory argument.</param>
+        /// <returns>The value.</returns>
         public async ValueTask<V> GetValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
         {
             if (initializer == null)

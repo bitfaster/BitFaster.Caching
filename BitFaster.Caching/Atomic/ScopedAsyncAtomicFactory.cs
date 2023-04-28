@@ -80,11 +80,20 @@ namespace BitFaster.Caching.Atomic
         /// <param name="key">The key associated with the scoped value.</param>
         /// <param name="valueFactory">The value factory to use to create the scoped value when it is not initialized.</param>
         /// <returns>true if the Lifetime was created; otherwise false. If the lifetime was created, the new lifetime is also returned.</returns>
+        // backcompat: remove
         public ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             return TryCreateLifetimeAsync(key, new ValueFactoryAsync<K, Scoped<V>>(valueFactory));
         }
 
+        /// <summary>
+        /// Attempts to create a lifetime for the scoped value. The lifetime guarantees the value is alive until 
+        /// the lifetime is disposed.
+        /// </summary>
+        /// <typeparam name="TFactory">The type of the value factory.</typeparam>
+        /// <param name="key">The key associated with the scoped value.</param>
+        /// <param name="valueFactory">The value factory to use to create the scoped value when it is not initialized.</param>
+        /// <returns>true if the Lifetime was created; otherwise false. If the lifetime was created, the new lifetime is also returned.</returns>
         public async ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
         {
             // if disposed, return
