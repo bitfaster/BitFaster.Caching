@@ -50,7 +50,7 @@ namespace BitFaster.Caching.Atomic
                 return value;
             }
 
-            return await CreateValueAsync(key, new ValueFactoryAsync<K, V>(valueFactory)).ConfigureAwait(false);
+            return await CreateValueAsync(key, new AsyncValueFactory<K, V>(valueFactory)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace BitFaster.Caching.Atomic
                 return value;
             }
 
-            return await CreateValueAsync(key, new ValueFactoryAsyncArg<K, TArg, V>(valueFactory, factoryArgument)).ConfigureAwait(false);
+            return await CreateValueAsync(key, new AsyncValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument)).ConfigureAwait(false);
         }
 
         /// <summary>

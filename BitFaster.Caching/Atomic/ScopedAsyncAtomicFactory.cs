@@ -83,7 +83,7 @@ namespace BitFaster.Caching.Atomic
         // backcompat: remove
         public ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
-            return TryCreateLifetimeAsync(key, new ValueFactoryAsync<K, Scoped<V>>(valueFactory));
+            return TryCreateLifetimeAsync(key, new AsyncValueFactory<K, Scoped<V>>(valueFactory));
         }
 
         /// <summary>

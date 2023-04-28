@@ -71,7 +71,7 @@ namespace BitFaster.Caching.Atomic
         ///<inheritdoc/>
         public async ValueTask<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
-            return await ScopedGetOrAddAsync(key, new ValueFactoryAsync<K, Scoped<V>>(valueFactory)).ConfigureAwait(false);
+            return await ScopedGetOrAddAsync(key, new AsyncValueFactory<K, Scoped<V>>(valueFactory)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace BitFaster.Caching.Atomic
         /// <returns>A task that represents the asynchronous ScopedGetOrAdd operation.</returns>
         public async ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TArg>(K key, Func<K, TArg, Task<Scoped<V>>> valueFactory, TArg factoryArgument)
         {
-            return await ScopedGetOrAddAsync(key, new ValueFactoryAsyncArg<K, TArg, Scoped<V>>(valueFactory, factoryArgument)).ConfigureAwait(false);
+            return await ScopedGetOrAddAsync(key, new AsyncValueFactoryArg<K, TArg, Scoped<V>>(valueFactory, factoryArgument)).ConfigureAwait(false);
         }
 
         private async ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>

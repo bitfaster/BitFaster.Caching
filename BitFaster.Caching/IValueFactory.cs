@@ -89,7 +89,7 @@ namespace BitFaster.Caching
     /// </summary>
     /// <typeparam name="K">The type of the cache key.</typeparam>
     /// <typeparam name="V">The type of the cache value</typeparam>
-    public struct ValueFactoryAsync<K, V> : IAsyncValueFactory<K, V>
+    public struct AsyncValueFactory<K, V> : IAsyncValueFactory<K, V>
     {
         private readonly Func<K, Task<V>> factory;
 
@@ -97,7 +97,7 @@ namespace BitFaster.Caching
         /// Initializes a new ValueFactoryAsync value.
         /// </summary>
         /// <param name="factory">The factory to wrap.</param>
-        public ValueFactoryAsync(Func<K, Task<V>> factory)
+        public AsyncValueFactory(Func<K, Task<V>> factory)
         {
             this.factory = factory;
         }
@@ -115,7 +115,7 @@ namespace BitFaster.Caching
     /// <typeparam name="K">The type of the cache key.</typeparam>
     /// <typeparam name="TArg">The type of the factory argument</typeparam>
     /// <typeparam name="V">The type of the cache value</typeparam>
-    public struct ValueFactoryAsyncArg<K, TArg, V> : IAsyncValueFactory<K, V>
+    public struct AsyncValueFactoryArg<K, TArg, V> : IAsyncValueFactory<K, V>
     {
         private readonly Func<K, TArg, Task<V>> factory;
         private readonly TArg arg;
@@ -125,7 +125,7 @@ namespace BitFaster.Caching
         /// </summary>
         /// <param name="factory">The factory to wrap.</param>
         /// <param name="arg">The argument to pass to the factory.</param>
-        public ValueFactoryAsyncArg(Func<K, TArg, Task<V>> factory, TArg arg)
+        public AsyncValueFactoryArg(Func<K, TArg, Task<V>> factory, TArg arg)
         {
             this.factory = factory;
             this.arg = arg;

@@ -224,9 +224,9 @@ namespace BitFaster.Caching.UnitTests.Atomic
             holder.disposed.Should().BeTrue();
         }
 
-        private static ValueFactoryAsyncArg<int, int, Scoped<IntHolder>> CreateArgFactory(int arg)
+        private static AsyncValueFactoryArg<int, int, Scoped<IntHolder>> CreateArgFactory(int arg)
         {
-            return new ValueFactoryAsyncArg<int, int, Scoped<IntHolder>>(
+            return new AsyncValueFactoryArg<int, int, Scoped<IntHolder>>(
                 (k, a) =>
                 {
                     return Task.FromResult(new Scoped<IntHolder>(new IntHolder() { actualNumber = k + a }));
