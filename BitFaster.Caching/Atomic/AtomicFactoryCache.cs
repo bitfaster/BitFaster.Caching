@@ -25,7 +25,7 @@ namespace BitFaster.Caching.Atomic
         {
             if (cache == null)
             {
-                Ex.ThrowArgNull(ExceptionArgument.cache);
+                Throw.ArgNull(ExceptionArgument.cache);
             }
 
             this.cache = cache;

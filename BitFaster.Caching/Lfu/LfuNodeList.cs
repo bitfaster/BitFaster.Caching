@@ -173,7 +173,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     if (index == 0 || (index == list.Count + 1))
                     {
-                        Ex.ThrowInvalidOp("Out of bounds");
+                        Throw.InvalidOp("Out of bounds");
                     }
 
                     return Current;

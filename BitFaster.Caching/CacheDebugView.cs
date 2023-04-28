@@ -13,7 +13,7 @@ namespace BitFaster.Caching
         {
             if (cache is null)
             {
-                Ex.ThrowArgNull(ExceptionArgument.cache);
+                Throw.ArgNull(ExceptionArgument.cache);
             }
 
             this.cache = cache;

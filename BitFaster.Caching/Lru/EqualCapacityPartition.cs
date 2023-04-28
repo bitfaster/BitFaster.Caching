@@ -38,7 +38,7 @@ namespace BitFaster.Caching.Lru
         {
             if (capacity < 3)
             {
-                Ex.ThrowArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
+                Throw.ArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
             }
 
             int hotCapacity = capacity / 3;
