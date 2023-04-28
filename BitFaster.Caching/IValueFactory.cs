@@ -24,7 +24,7 @@ namespace BitFaster.Caching
     /// <typeparam name="V">The type of the cache value</typeparam>
     public struct ValueFactory<K, V> : IValueFactory<K, V>
     {
-        private Func<K, V> factory;
+        private readonly Func<K, V> factory;
 
         /// <summary>
         /// Initializes a new ValueFactory value.
@@ -50,8 +50,8 @@ namespace BitFaster.Caching
     /// <typeparam name="V">The type of the cache value</typeparam>
     public struct ValueFactoryArg<K, TArg, V> : IValueFactory<K, V>
     {
-        private Func<K, TArg, V> factory;
-        private TArg arg;
+        private readonly Func<K, TArg, V> factory;
+        private readonly TArg arg;
 
         /// <summary>
         /// Initializes a new ValueFactoryArg value.
@@ -91,7 +91,7 @@ namespace BitFaster.Caching
     /// <typeparam name="V">The type of the cache value</typeparam>
     public struct ValueFactoryAsync<K, V> : IAsyncValueFactory<K, V>
     {
-        private Func<K, Task<V>> factory;
+        private readonly Func<K, Task<V>> factory;
 
         /// <summary>
         /// Initializes a new ValueFactoryAsync value.
@@ -117,8 +117,8 @@ namespace BitFaster.Caching
     /// <typeparam name="V">The type of the cache value</typeparam>
     public struct ValueFactoryAsyncArg<K, TArg, V> : IAsyncValueFactory<K, V>
     {
-        private Func<K, TArg, Task<V>> factory;
-        private TArg arg;
+        private readonly Func<K, TArg, Task<V>> factory;
+        private readonly TArg arg;
 
         /// <summary>
         /// Initializes a new ValueFactoryAsyncArg value.
