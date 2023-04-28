@@ -83,4 +83,43 @@ namespace BitFaster.Caching.Benchmarks
             return factory.Create(key);
         }
     }
+
+    [SimpleJob(RuntimeMoniker.Net48)]
+    [SimpleJob(RuntimeMoniker.Net60)]
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 3)]
+    [MemoryDiagnoser(displayGenColumns: false)]
+    [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
+    public class ValueFactoryBigArgBenchmarks
+    {
+        [Benchmark(Baseline = true)]
+        public int Delegate()
+        {
+            Func<int, ValueTuple<long, long, long>, int> valueFactory = (k, v) => k;
+            return valueFactory(1, (0, 1, 2));
+        }
+
+        [Benchmark()]
+        public int ValueFactory()
+        {
+            var valueFactory = new ValueFactoryArg<int, ValueTuple<long, long, long>, int>((k, v) => k , (0, 1, 2));
+            return Invoke<int, int, ValueFactoryArg<int, ValueTuple<long, long, long>, int>>(valueFactory, 1);
+        }
+
+        [Benchmark()]
+        public int ValueFactoryRef()
+        {
+            var valueFactory = new ValueFactoryArg<int, ValueTuple<long, long, long>, int>((k, v) => k, (0, 1, 2));
+            return InvokeRef<int, int, ValueFactoryArg<int, ValueTuple<long, long, long>, int>>(ref valueFactory, 1);
+        }
+
+        private V Invoke<K, V, TFactory>(TFactory factory, K key) where TFactory : struct, IValueFactory<K, V>
+        {
+            return factory.Create(key);
+        }
+
+        private V InvokeRef<K, V, TFactory>(ref TFactory factory, K key) where TFactory : struct, IValueFactory<K, V>
+        {
+            return factory.Create(key);
+        }
+    }
 }
