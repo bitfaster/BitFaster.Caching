@@ -56,6 +56,14 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public async Task WhenValueCreatedArgGetValueReturnsOriginalValue()
+        {
+            var a = new AsyncAtomicFactory<int, int>();
+            await a.GetValueAsync(1, (k, a) => Task.FromResult(k + a), 7);
+            (await a.GetValueAsync(1, (k, a) => Task.FromResult(k + a), 9)).Should().Be(8);
+        }
+
+        [Fact]
         public async Task WhenValueCreateThrowsValueIsNotStored()
         {
             var a = new AsyncAtomicFactory<int, int>();

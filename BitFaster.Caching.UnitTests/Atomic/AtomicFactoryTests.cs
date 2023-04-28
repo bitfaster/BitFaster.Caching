@@ -56,6 +56,14 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public void WhenValueCreatedArgGetValueReturnsOriginalValue()
+        {
+            var a = new AtomicFactory<int, int>();
+            a.GetValue(1, (k, a) => k + a, 7);
+            a.GetValue(1, (k, a) => k + a, 9).Should().Be(8);
+        }
+
+        [Fact]
         public async Task WhenCallersRunConcurrentlyResultIsFromWinner()
         {
             var enter = new ManualResetEvent(false);

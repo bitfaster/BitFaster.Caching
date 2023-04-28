@@ -77,13 +77,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         public async Task WhenCreateFromFactoryArgLifetimeContainsValue()
         {
             var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>();
-
-            var factory = new ValueFactoryAsyncArg<int, int, Scoped<IntHolder>>(
-                (k, a) =>
-                    {
-                        return Task.FromResult(new Scoped<IntHolder>(new IntHolder() { actualNumber = k + a }));
-                    }, 
-                7);
+            var factory = CreateArgFactory(7);
 
             (bool r, Lifetime<IntHolder> l) result = await atomicFactory.TryCreateLifetimeAsync(1, factory);
 
@@ -228,6 +222,16 @@ namespace BitFaster.Caching.UnitTests.Atomic
             result.l.Should().BeNull();
 
             holder.disposed.Should().BeTrue();
+        }
+
+        private static ValueFactoryAsyncArg<int, int, Scoped<IntHolder>> CreateArgFactory(int arg)
+        {
+            return new ValueFactoryAsyncArg<int, int, Scoped<IntHolder>>(
+                (k, a) =>
+                {
+                    return Task.FromResult(new Scoped<IntHolder>(new IntHolder() { actualNumber = k + a }));
+                },
+                arg);
         }
 
         private class IntHolder : IDisposable
