@@ -47,12 +47,12 @@ namespace BitFaster.Caching.Lru
         {
             if (capacity < 3)
             {
-                Ex.ThrowArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
+                Throw.ArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
             }
 
             if (comparer == null)
             {
-                Ex.ThrowArgNull(ExceptionArgument.comparer);
+                Throw.ArgNull(ExceptionArgument.comparer);
             }
 
             this.capacity = capacity;
@@ -113,15 +113,9 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
-        ///<inheritdoc/>
-        public V GetOrAdd(K key, Func<K, V> valueFactory)
+        private bool TryAdd(K key, V value)
         {
-            if (this.TryGet(key, out var value))
-            {
-                return value;
-            }
-
-            var node = new LinkedListNode<LruItem>(new LruItem(key, valueFactory(key)));
+            var node = new LinkedListNode<LruItem>(new LruItem(key, value));
 
             if (this.dictionary.TryAdd(key, node))
             {
@@ -152,10 +146,55 @@ namespace BitFaster.Caching.Lru
                     Disposer<V>.Dispose(removed.Value.Value);
                 }
 
-                return node.Value.Value;
+                return true;
+            }
+
+            return false;
+        }
+
+        ///<inheritdoc/>
+        public V GetOrAdd(K key, Func<K, V> valueFactory)
+        {
+            if (this.TryGet(key, out var value))
+            {
+                return value;
+            }
+
+            value = valueFactory(key);
+
+            if (TryAdd(key, value))
+            {
+                return value;
             }
 
             return this.GetOrAdd(key, valueFactory);
+        }
+
+        /// <summary>
+        /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
+        /// existing value if the key already exists.
+        /// </summary>
+        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="valueFactory">The factory function used to generate a value for the key.</param>
+        /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
+        /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
+        /// in the cache, or the new value if the key was not in the cache.</returns>
+        public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+        {
+            if (this.TryGet(key, out var value))
+            {
+                return value;
+            }
+
+            value = valueFactory(key, factoryArgument);
+
+            if (TryAdd(key, value))
+            {
+                return value;
+            }
+
+            return this.GetOrAdd(key, valueFactory, factoryArgument);
         }
 
         ///<inheritdoc/>
@@ -166,41 +205,40 @@ namespace BitFaster.Caching.Lru
                 return value;
             }
 
-            var node = new LinkedListNode<LruItem>(new LruItem(key, await valueFactory(key)));
+            value = await valueFactory(key);
 
-            if (this.dictionary.TryAdd(key, node))
+            if (TryAdd(key, value))
             {
-                LinkedListNode<LruItem> first = null;
-
-                lock (this.linkedList)
-                {
-                    if (linkedList.Count >= capacity)
-                    {
-                        first = linkedList.First;
-                        linkedList.RemoveFirst();
-                    }
-
-                    linkedList.AddLast(node);
-                }
-
-                // Remove from the dictionary outside the lock. This means that the dictionary at this moment
-                // contains an item that is not in the linked list. If another thread fetches this item, 
-                // LockAndMoveToEnd will ignore it, since it is detached. This means we potentially 'lose' an 
-                // item just as it was about to move to the back of the LRU list and be preserved. The next request
-                // for the same key will be a miss. Dictionary and list are eventually consistent.
-                // However, all operations inside the lock are extremely fast, so contention is minimized.
-                if (first != null)
-                {
-                    dictionary.TryRemove(first.Value.Key, out var removed);
-
-                    Interlocked.Increment(ref this.metrics.evictedCount);
-                    Disposer<V>.Dispose(removed.Value.Value);
-                }
-
-                return node.Value.Value;
+                return value;
             }
 
             return await this.GetOrAddAsync(key, valueFactory);
+        }
+
+        /// <summary>
+        /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
+        /// existing value if the key already exists.
+        /// </summary>
+        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
+        /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
+        /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
+        public async ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+        {
+            if (this.TryGet(key, out var value))
+            {
+                return value;
+            }
+
+            value = await valueFactory(key, factoryArgument);
+
+            if (TryAdd(key, value))
+            {
+                return value;
+            }
+
+            return await this.GetOrAddAsync(key, valueFactory, factoryArgument);
         }
 
         ///<inheritdoc/>
@@ -315,7 +353,7 @@ namespace BitFaster.Caching.Lru
         {
             if (itemCount < 1 || itemCount > this.capacity)
             {
-                Ex.ThrowArgOutOfRange(nameof(itemCount), "itemCount must be greater than or equal to one, and less than the capacity of the cache.");
+                Throw.ArgOutOfRange(nameof(itemCount), "itemCount must be greater than or equal to one, and less than the capacity of the cache.");
             }
 
             for (int i = 0; i < itemCount; i++)

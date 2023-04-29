@@ -122,7 +122,7 @@ namespace BitFaster.Caching.Lfu
         {
             if (capacity < 3)
             {
-                Ex.ThrowArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
+                Throw.ArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
             }
 
             int window = capacity - (int)(mainPercentage * capacity);

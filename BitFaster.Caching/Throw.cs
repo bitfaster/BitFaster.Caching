@@ -5,20 +5,20 @@ using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching
 {
-    internal static class Ex
+    internal static class Throw
     {
-        public static void ThrowArgNull(ExceptionArgument arg) => throw CreateArgumentNullException(arg);
+        public static void ArgNull(ExceptionArgument arg) => throw CreateArgumentNullException(arg);
 
-        public static void ThrowArgOutOfRange(string paramName) => throw CreateArgumentOutOfRangeException(paramName);
+        public static void ArgOutOfRange(string paramName) => throw CreateArgumentOutOfRangeException(paramName);
 
-        public static void ThrowArgOutOfRange(string paramName, string message) => throw CreateArgumentOutOfRangeException(paramName, message);
+        public static void ArgOutOfRange(string paramName, string message) => throw CreateArgumentOutOfRangeException(paramName, message);
 
         [ExcludeFromCodeCoverage]
-        public static void ThrowInvalidOp(string message) => throw CreateInvalidOperationException(message);
+        public static void InvalidOp(string message) => throw CreateInvalidOperationException(message);
 
-        public static void ThrowScopedRetryFailure() => throw CreateScopedRetryFailure();
+        public static void ScopedRetryFailure() => throw CreateScopedRetryFailure();
 
-        public static void ThrowDisposed<T>() => throw CreateObjectDisposedException<T>();
+        public static void Disposed<T>() => throw CreateObjectDisposedException<T>();
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static ArgumentNullException CreateArgumentNullException(ExceptionArgument arg) => new ArgumentNullException(GetArgumentString(arg));

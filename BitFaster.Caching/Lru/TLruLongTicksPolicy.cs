@@ -4,6 +4,8 @@ using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
 {
+// backcompat: remove conditional compile
+#if !NETCOREAPP3_0_OR_GREATER
     /// <summary>
     /// Time aware Least Recently Used (TLRU) is a variant of LRU which discards the least 
     /// recently used items first, and any item that has expired.
@@ -12,17 +14,16 @@ namespace BitFaster.Caching.Lru
     /// This class measures time using Stopwatch.GetTimestamp() with a resolution of ~1us.
     /// </remarks>
     [DebuggerDisplay("TTL = {TimeToLive,nq})")]
-    public readonly struct TlruStopwatchPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    // backcompat: rename to TlruStopwatchPolicy
+    public readonly struct TLruLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
-        // On some platforms (e.g. MacOS), stopwatch and timespan have different resolution
-        private static readonly double stopwatchAdjustmentFactor = Stopwatch.Frequency / (double)TimeSpan.TicksPerSecond;
         private readonly long timeToLive;
 
         /// <summary>
         /// Initializes a new instance of the TLruLongTicksPolicy class with the specified time to live.
         /// </summary>
         /// <param name="timeToLive">The time to live.</param>
-        public TlruStopwatchPolicy(TimeSpan timeToLive)
+        public TLruLongTicksPolicy(TimeSpan timeToLive)
         {
             this.timeToLive = ToTicks(timeToLive);
         }
@@ -128,17 +129,7 @@ namespace BitFaster.Caching.Lru
         /// <returns>The time represented as ticks.</returns>
         public static long ToTicks(TimeSpan timespan)
         {
-            // mac adjustment factor is 100, giving lowest maximum TTL on mac platform - use same upper limit on all platforms for consistency
-            // this also avoids overflow when multipling long.MaxValue by 1.0
-            double maxTicks = long.MaxValue * 0.01d;
-
-            if (timespan <= TimeSpan.Zero || timespan.Ticks >= maxTicks)
-            {
-                TimeSpan maxRepresentable = TimeSpan.FromTicks((long)maxTicks);
-                Ex.ThrowArgOutOfRange(nameof(timespan), $"Value must be greater than zero and less than {maxRepresentable}");
-            }
-
-            return (long)(timespan.Ticks * stopwatchAdjustmentFactor);
+            return StopwatchTickConverter.ToTicks(timespan);
         }
 
         /// <summary>
@@ -148,7 +139,8 @@ namespace BitFaster.Caching.Lru
         /// <returns>The time represented as a TimeSpan.</returns>
         public static TimeSpan FromTicks(long ticks)
         {
-            return TimeSpan.FromTicks((long)(ticks / stopwatchAdjustmentFactor));
+            return StopwatchTickConverter.FromTicks(ticks);
         }
     }
+#endif
 }

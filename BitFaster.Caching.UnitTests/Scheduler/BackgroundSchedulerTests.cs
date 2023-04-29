@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Scheduler;
@@ -36,8 +33,8 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         {
             bool run = false;
 
-            TaskCompletionSource tcs = new TaskCompletionSource();
-            scheduler.Run(() => { Volatile.Write(ref run, true); tcs.SetResult(); });
+            var tcs = new TaskCompletionSource<bool>();
+            scheduler.Run(() => { Volatile.Write(ref run, true); tcs.SetResult(true); });
             await tcs.Task;
 
             Volatile.Read(ref run).Should().BeTrue();
@@ -58,8 +55,8 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         [Fact]
         public async Task WhenWorkThrowsLastExceptionIsPopulated()
         {
-            TaskCompletionSource tcs = new TaskCompletionSource();
-            scheduler.Run(() => { tcs.SetResult();  throw new InvalidCastException(); });
+            var tcs = new TaskCompletionSource<bool>();
+            scheduler.Run(() => { tcs.SetResult(true);  throw new InvalidCastException(); });
 
             await tcs.Task;
             await scheduler.WaitForExceptionAsync();
@@ -71,14 +68,14 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         [Fact]
         public void WhenBacklogExceededTasksAreDropped()
         {
-            TaskCompletionSource tcs = new TaskCompletionSource();
+            var tcs = new TaskCompletionSource<bool>();
 
             for (int i = 0; i < BackgroundThreadScheduler.MaxBacklog * 2; i++)
             {
                 scheduler.Run(() => { tcs.Task.Wait(); });
             }
 
-            tcs.SetResult();
+            tcs.SetResult(true);
 
             scheduler.RunCount.Should().BeCloseTo(BackgroundThreadScheduler.MaxBacklog, 1);
         }

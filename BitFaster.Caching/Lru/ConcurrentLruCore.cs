@@ -50,9 +50,14 @@ namespace BitFaster.Caching.Lru
         private readonly P itemPolicy;
         private bool isWarm = false;
 
-        // Since T is a struct, making it readonly will force the runtime to make defensive copies
-        // if mutate methods are called. Therefore, field must be mutable to maintain count.
-        private T telemetryPolicy;
+        /// <summary>
+        /// The telemetry policy.
+        /// </summary>
+        /// <remarks>
+        /// Since T is a struct, making it readonly will force the runtime to make defensive copies
+        /// if mutate methods are called. Therefore, field must be mutable to maintain count.
+        /// </remarks>
+        protected T telemetryPolicy;
 
         /// <summary>
         /// Initializes a new instance of the ConcurrentLruCore class with the specified concurrencyLevel, capacity, equality comparer, item policy and telemetry policy.
@@ -72,12 +77,12 @@ namespace BitFaster.Caching.Lru
         {
             if (capacity == null)
             {
-                Ex.ThrowArgNull(ExceptionArgument.capacity);
+                Throw.ArgNull(ExceptionArgument.capacity);
             }
 
             if (comparer == null)
             {
-                Ex.ThrowArgNull(ExceptionArgument.comparer);
+                Throw.ArgNull(ExceptionArgument.comparer);
             }
 
             capacity.Validate();
@@ -179,6 +184,21 @@ namespace BitFaster.Caching.Lru
             return true;
         }
 
+        private bool TryAdd(K key, V value)
+        {
+            var newItem = this.itemPolicy.CreateItem(key, value);
+
+            if (this.dictionary.TryAdd(key, newItem))
+            {
+                this.hotQueue.Enqueue(newItem);
+                Cycle(Interlocked.Increment(ref counter.hot));
+                return true;
+            }
+
+            Disposer<V>.Dispose(newItem.Value);
+            return false;
+        }
+
         ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
@@ -190,17 +210,41 @@ namespace BitFaster.Caching.Lru
                 }
 
                 // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
-                // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-                var newItem = this.itemPolicy.CreateItem(key, valueFactory(key));
+                value = valueFactory(key);
 
-                if (this.dictionary.TryAdd(key, newItem))
+                if (TryAdd(key, value))
                 {
-                    this.hotQueue.Enqueue(newItem);
-                    Cycle(Interlocked.Increment(ref counter.hot));
-                    return newItem.Value;
+                    return value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
+        /// existing value if the key already exists.
+        /// </summary>
+        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="valueFactory">The factory function used to generate a value for the key.</param>
+        /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
+        /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
+        /// in the cache, or the new value if the key was not in the cache.</returns>
+        public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+        {
+            while (true)
+            {
+                if (this.TryGet(key, out var value))
+                {
+                    return value;
                 }
 
-                Disposer<V>.Dispose(newItem.Value);
+                // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+                value = valueFactory(key, factoryArgument);
+
+                if (TryAdd(key, value))
+                {
+                    return value;
+                }
             }
         }
 
@@ -216,16 +260,40 @@ namespace BitFaster.Caching.Lru
 
                 // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
                 // This is identical logic in ConcurrentDictionary.GetOrAdd method.
-                var newItem = this.itemPolicy.CreateItem(key, await valueFactory(key).ConfigureAwait(false));
+                value = await valueFactory(key).ConfigureAwait(false);
 
-                if (this.dictionary.TryAdd(key, newItem))
+                if (TryAdd(key, value))
                 {
-                    this.hotQueue.Enqueue(newItem);
-                    Cycle(Interlocked.Increment(ref counter.hot));
-                    return newItem.Value;
+                    return value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
+        /// existing value if the key already exists.
+        /// </summary>
+        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
+        /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
+        /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
+        public async ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+        {
+            while (true)
+            {
+                if (this.TryGet(key, out var value))
+                {
+                    return value;
                 }
 
-                Disposer<V>.Dispose(newItem.Value);
+                // The value factory may be called concurrently for the same key, but the first write to the dictionary wins.
+                value = await valueFactory(key, factoryArgument).ConfigureAwait(false);
+
+                if (TryAdd(key, value))
+                {
+                    return value;
+                }
             }
         }
 
@@ -281,7 +349,10 @@ namespace BitFaster.Caching.Lru
                         V oldValue = existing.Value;
                         existing.Value = value;
                         this.itemPolicy.Update(existing);
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
                         this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
+#endif
                         Disposer<V>.Dispose(oldValue);
 
                         return true;
@@ -348,7 +419,7 @@ namespace BitFaster.Caching.Lru
 
             if (itemCount < 1 || itemCount > capacity)
             {
-                Ex.ThrowArgOutOfRange(nameof(itemCount), "itemCount must be greater than or equal to one, and less than the capacity of the cache.");
+                Throw.ArgOutOfRange(nameof(itemCount), "itemCount must be greater than or equal to one, and less than the capacity of the cache.");
             }
 
             // clamp itemCount to number of items actually in the cache
@@ -368,7 +439,12 @@ namespace BitFaster.Caching.Lru
             }
         }
 
-        private int TrimAllDiscardedItems()
+        /// <summary>
+        /// Trim discarded items from all queues.
+        /// </summary>
+        /// <returns>The number of items removed.</returns>
+        // backcompat: make internal
+        protected int TrimAllDiscardedItems()
         {
             int itemsRemoved = 0;
 
@@ -703,8 +779,10 @@ namespace BitFaster.Caching.Lru
 
             public long Evicted => lru.telemetryPolicy.Evicted;
 
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
             public long Updated => lru.telemetryPolicy.Updated;
-
+#endif
             public int Capacity => lru.Capacity;
 
             public TimeSpan TimeToLive => lru.itemPolicy.TimeToLive;
@@ -715,12 +793,14 @@ namespace BitFaster.Caching.Lru
                 remove { this.lru.telemetryPolicy.ItemRemoved -= value; }
             }
 
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
             public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
             {
                 add { this.lru.telemetryPolicy.ItemUpdated += value; }
                 remove { this.lru.telemetryPolicy.ItemUpdated -= value; }
             }
-
+#endif
             public void Trim(int itemCount)
             {
                 lru.Trim(itemCount);

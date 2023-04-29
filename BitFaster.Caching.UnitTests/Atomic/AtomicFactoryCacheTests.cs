@@ -2,8 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
@@ -55,6 +53,15 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public void WhenItemIsAddedWithArgValueIsCorrect()
+        {
+            this.cache.GetOrAdd(1, (k, a) => k + a, 2);
+
+            this.cache.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be(3);
+        }
+
+        [Fact]
         public void WhenRemovedEventHandlerIsRegisteredItIsFired()
         {
             this.cache.Events.Value.ItemRemoved += OnItemRemoved;
@@ -65,6 +72,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.removedItems.First().Key.Should().Be(1);
         }
 
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
         [Fact]
         public void WhenUpdatedEventHandlerIsRegisteredItIsFired()
         {
@@ -77,7 +86,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.updatedItems.First().OldValue.Should().Be(2);
             this.updatedItems.First().NewValue.Should().Be(3);
         }
-
+#endif
         [Fact]
         public void WhenNoInnerEventsNoOuterEvents()
         {

@@ -10,7 +10,12 @@ namespace BitFaster.Caching.Lru.Builder
     {
         internal readonly LruInfo<K> info;
 
-        internal LruBuilderBase(LruInfo<K> info)
+        /// <summary>
+        /// Creates an LruBuilderBase.
+        /// </summary>
+        /// <param name="info">The LRU info</param>
+        // backcompat: make internal
+        protected LruBuilderBase(LruInfo<K> info)
         {
             this.info = info;
         }
@@ -79,14 +84,6 @@ namespace BitFaster.Caching.Lru.Builder
         public TBuilder WithExpireAfterWrite(TimeSpan expiration)
         {
             this.info.TimeToExpireAfterWrite = expiration;
-
-#if NETCOREAPP3_0_OR_GREATER
-            // if the expiration time is less than 2x default precision, switch to high resolution clock automatically.
-            if (expiration < TimeSpan.FromMilliseconds(32))
-            {
-                this.info.WithHighResolutionTime = true;
-            }
-#endif
             return this as TBuilder;
         }
 

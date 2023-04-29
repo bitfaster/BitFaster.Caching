@@ -80,7 +80,21 @@ namespace BitFaster.Caching.Atomic
         /// <param name="key">The key associated with the scoped value.</param>
         /// <param name="valueFactory">The value factory to use to create the scoped value when it is not initialized.</param>
         /// <returns>true if the Lifetime was created; otherwise false. If the lifetime was created, the new lifetime is also returned.</returns>
-        public async ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+        // backcompat: remove
+        public ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+        {
+            return TryCreateLifetimeAsync(key, new AsyncValueFactory<K, Scoped<V>>(valueFactory));
+        }
+
+        /// <summary>
+        /// Attempts to create a lifetime for the scoped value. The lifetime guarantees the value is alive until 
+        /// the lifetime is disposed.
+        /// </summary>
+        /// <typeparam name="TFactory">The type of the value factory.</typeparam>
+        /// <param name="key">The key associated with the scoped value.</param>
+        /// <param name="valueFactory">The value factory to use to create the scoped value when it is not initialized.</param>
+        /// <returns>true if the Lifetime was created; otherwise false. If the lifetime was created, the new lifetime is also returned.</returns>
+        public async ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
         {
             // if disposed, return
             if (scope?.IsDisposed ?? false)
@@ -98,7 +112,7 @@ namespace BitFaster.Caching.Atomic
             return (res, lifetime);
         }
 
-        private async ValueTask InitializeScopeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+        private async ValueTask InitializeScopeAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
         {
             var init = initializer;
 
@@ -136,7 +150,7 @@ namespace BitFaster.Caching.Atomic
             private bool isDisposeRequested;
             private Task<Scoped<V>> task;
 
-            public async ValueTask<Scoped<V>> CreateScopeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+            public async ValueTask<Scoped<V>> CreateScopeAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
             {
                 var tcs = new TaskCompletionSource<Scoped<V>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -146,7 +160,7 @@ namespace BitFaster.Caching.Atomic
                 {
                     try
                     {
-                        var scope = await valueFactory(key).ConfigureAwait(false);
+                        var scope = await valueFactory.CreateAsync(key).ConfigureAwait(false);
                         tcs.SetResult(scope);
 
                         Volatile.Write(ref isTaskCompleted, true);

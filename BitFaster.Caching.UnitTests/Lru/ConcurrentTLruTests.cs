@@ -58,7 +58,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
-            await Task.Delay(timeToLive * ttlWaitMlutiplier);
+            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
 
             lru.TryGet(1, out var value).Should().BeFalse();
         }
@@ -68,7 +68,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
-            await Task.Delay(timeToLive * ttlWaitMlutiplier);
+            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
 
             lru.TryUpdate(1, "3");
 
@@ -134,7 +134,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(8, "8");
             lru.AddOrUpdate(9, "9");
 
-            await Task.Delay(timeToLive * ttlWaitMlutiplier);
+            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
 
             lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
@@ -152,7 +152,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(5, "5");
             lru.AddOrUpdate(6, "6");
 
-            await Task.Delay(timeToLive * ttlWaitMlutiplier);
+            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
 
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
@@ -170,7 +170,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(2, "2");
             lru.AddOrUpdate(3, "3");
 
-            await Task.Delay(timeToLive * ttlWaitMlutiplier);
+            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
 
             lru.Policy.Eviction.Value.Trim(1);
 
@@ -182,7 +182,8 @@ namespace BitFaster.Caching.UnitTests.Lru
     {
         protected override ICache<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive)
         {
-             return new ConcurrentTLru<K, V>(1, capacity, EqualityComparer<K>.Default, timeToLive);
+            // backcompat: use TLruTickCount64Policy
+            return new ConcurrentTLru<K, V>(1, capacity, EqualityComparer<K>.Default, timeToLive);
         }
 
         [Fact]
@@ -214,7 +215,8 @@ namespace BitFaster.Caching.UnitTests.Lru
     {
         protected override ICache<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive)
         {
-            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TlruStopwatchPolicy<K, V>, TelemetryPolicy<K, V>>(1, capacity, EqualityComparer<K>.Default, new TlruStopwatchPolicy<K, V>(timeToLive), default);
+            // backcompat: use TlruStopwatchPolicy
+            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TLruLongTicksPolicy<K, V>, TelemetryPolicy<K, V>>(1, capacity, EqualityComparer<K>.Default, new TLruLongTicksPolicy<K, V>(timeToLive), default);
         }
     }
 }

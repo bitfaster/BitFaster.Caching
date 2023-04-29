@@ -1,5 +1,6 @@
-﻿using FluentAssertions;
-using FluentAssertions.Extensions;
+﻿#if NETCOREAPP3_1_OR_GREATER
+
+using FluentAssertions;
 using BitFaster.Caching.Lru;
 using System;
 using System.Threading.Tasks;
@@ -9,12 +10,13 @@ namespace BitFaster.Caching.UnitTests.Lru
 {
     public class TLruTickCount64PolicyTests
     {
-        private readonly TLruTickCount64Policy<int, int> policy = new TLruTickCount64Policy<int, int>(TimeSpan.FromSeconds(10));
+        // backcompat: change type to TLruTickCount64Policy
+        private readonly TLruLongTicksPolicy<int, int> policy = new TLruLongTicksPolicy<int, int>(TimeSpan.FromSeconds(10));
 
         [Fact]
         public void WhenTtlIsTimeSpanMaxThrow()
         {
-            Action constructor = () => { new TLruTickCount64Policy<int, int>(TimeSpan.MaxValue); };
+            Action constructor = () => { new TLruLongTicksPolicy<int, int>(TimeSpan.MaxValue); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
@@ -22,7 +24,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenTtlIsZeroThrow()
         {
-            Action constructor = () => { new TLruTickCount64Policy<int, int>(TimeSpan.Zero); };
+            Action constructor = () => { new TLruLongTicksPolicy<int, int>(TimeSpan.Zero); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
@@ -31,7 +33,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenTtlIsMaxSetAsMax()
         {
             var maxRepresentable = TimeSpan.FromTicks(9223372036854769664);
-            var policy = new TLruTickCount64Policy<int, int>(maxRepresentable);
+            var policy = new TLruLongTicksPolicy<int, int>(maxRepresentable);
             policy.TimeToLive.Should().Be(maxRepresentable);
         }
 
@@ -155,5 +157,34 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             return item;
         }
+
+        // backcompat: remove (methods only added for TLruLongTicksPolicy)
+        [Fact]
+        public void CanConvertToAndFromTicks()
+        {
+            var time = TimeSpan.FromSeconds(10);
+            var ticks = TLruLongTicksPolicy<int, int>.ToTicks(time);
+            TLruLongTicksPolicy<int, int>.FromTicks(ticks).Should().Be(time);
+        }
+
+        // backcompat: remove (methods only added for TLruLongTicksPolicy)
+        [Fact]
+        public void WhenTimeLessThanEqualZeroToTicksThrows()
+        {
+            Action toTicks = () => { TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.Zero); };
+
+            toTicks.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        // backcompat: remove (methods only added for TLruLongTicksPolicy)
+        [Fact]
+        public void WhenTimeGreaterThanMaxToTicksThrows()
+        {
+            Action toTicks = () => { TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.MaxValue); };
+
+            toTicks.Should().Throw<ArgumentOutOfRangeException>();
+        }
     }
 }
+
+#endif

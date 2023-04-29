@@ -51,5 +51,19 @@ namespace BitFaster.Caching.UnitTests
 
             await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
         }
+
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+        [Fact]
+        public async Task GetOrAddAsyncArgDisposedScopeThrows()
+        {
+            var scope = new Scoped<Disposable>(new Disposable());
+            scope.Dispose();
+
+            Func<Task> getOrAdd = async () => { await this.cache.ScopedGetOrAddAsync(1, (k, a) => Task.FromResult(scope), 2); };
+
+            await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
+        }
+#endif
     }
 }

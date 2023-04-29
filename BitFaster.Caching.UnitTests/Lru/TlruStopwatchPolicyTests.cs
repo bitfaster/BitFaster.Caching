@@ -7,14 +7,16 @@ using System.Diagnostics;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
+// backcompat: remove conditional compile
+#if !NETCOREAPP3_1_OR_GREATER
     public class TlruStopwatchPolicyTests
     {
-        private readonly TlruStopwatchPolicy<int, int> policy = new TlruStopwatchPolicy<int, int>(TimeSpan.FromSeconds(10));
+        private readonly TLruLongTicksPolicy<int, int> policy = new TLruLongTicksPolicy<int, int>(TimeSpan.FromSeconds(10));
 
         [Fact]
         public void WhenTtlIsZeroThrow()
         {
-            Action constructor = () => { new TlruStopwatchPolicy<int, int>(TimeSpan.Zero); };
+            Action constructor = () => { new TLruLongTicksPolicy<int, int>(TimeSpan.Zero); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
@@ -22,7 +24,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenTtlIsTimeSpanMaxThrow()
         {
-            Action constructor = () => { new TlruStopwatchPolicy<int, int>(TimeSpan.MaxValue); };
+            Action constructor = () => { new TLruLongTicksPolicy<int, int>(TimeSpan.MaxValue); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
@@ -33,7 +35,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             double maxTicks = long.MaxValue / 100.0d;
             var ttl = TimeSpan.FromTicks((long)maxTicks) - TimeSpan.FromTicks(10);
 
-            new TlruStopwatchPolicy<int, int>(ttl).TimeToLive.Should().BeCloseTo(ttl, TimeSpan.FromTicks(20));
+            new TLruLongTicksPolicy<int, int>(ttl).TimeToLive.Should().BeCloseTo(ttl, TimeSpan.FromTicks(20));
         }
 
         [Fact]
@@ -89,7 +91,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsExpiredShouldDiscardIsTrue()
         {
             var item = this.policy.CreateItem(1, 2);
-            item.TickCount = Stopwatch.GetTimestamp() - TlruStopwatchPolicy<int, int>.ToTicks(TimeSpan.FromSeconds(11));
+            item.TickCount = Stopwatch.GetTimestamp() - TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.FromSeconds(11));
 
             this.policy.ShouldDiscard(item).Should().BeTrue();
         }
@@ -98,7 +100,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsNotExpiredShouldDiscardIsFalse()
         {
             var item = this.policy.CreateItem(1, 2);
-            item.TickCount = Stopwatch.GetTimestamp() - TlruStopwatchPolicy<int, int>.ToTicks(TimeSpan.FromSeconds(9));
+            item.TickCount = Stopwatch.GetTimestamp() - TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.FromSeconds(9));
 
             this.policy.ShouldDiscard(item).Should().BeFalse();
         }
@@ -153,10 +155,11 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             if (isExpired)
             {
-                item.TickCount = Stopwatch.GetTimestamp() - TlruStopwatchPolicy<int, int>.ToTicks(TimeSpan.FromSeconds(11));
+                item.TickCount = Stopwatch.GetTimestamp() - TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.FromSeconds(11));
             }
 
             return item;
         }
     }
+#endif
 }

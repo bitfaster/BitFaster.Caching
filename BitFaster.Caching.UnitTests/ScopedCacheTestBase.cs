@@ -57,6 +57,8 @@ namespace BitFaster.Caching.UnitTests
             this.removedItems.First().Key.Should().Be(1);
         }
 
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
         [Fact]
         public void WhenUpdatedEventHandlerIsRegisteredItIsFired()
         {
@@ -67,6 +69,7 @@ namespace BitFaster.Caching.UnitTests
 
             this.updatedItems.First().Key.Should().Be(1);
         }
+#endif
 
         [Fact]
         public void WhenKeyDoesNotExistAddOrUpdateAddsNewItem()
@@ -77,6 +80,21 @@ namespace BitFaster.Caching.UnitTests
             this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
             lifetime.Value.Should().Be(d);
         }
+
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+        [Fact]
+        public void WhenKeyDoesNotExistGetOrAddArgAddsValueWithArg()
+        {
+            this.cache.ScopedGetOrAdd(
+                1,
+                (k, a) => new Scoped<Disposable>(new Disposable(a)),
+                2);
+
+            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
+            lifetime.Value.State.Should().Be(2);
+        }
+#endif
 
         [Fact]
         public void WhenKeyExistsAddOrUpdateUpdatesExistingItem()

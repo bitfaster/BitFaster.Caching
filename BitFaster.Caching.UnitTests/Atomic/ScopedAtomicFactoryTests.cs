@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
 using Xunit;
@@ -43,6 +39,22 @@ namespace BitFaster.Caching.UnitTests.Atomic
             sa.TryCreateLifetime(1, k => new Scoped<Disposable>(new Disposable()), out var lifetime2).Should().BeTrue();
 
             lifetime2.Value.Should().Be(expectedDisposable);
+        }
+
+        [Fact]
+        public void WhenInitializedWithFactoryArgValueIsCached()
+        {
+            var expectedDisposable = new Disposable();
+            var sa = new ScopedAtomicFactory<int, Disposable>();
+
+            var factory1 = new ValueFactoryArg<int, int, Scoped<Disposable>>((k, v) => { expectedDisposable.State = v; return new Scoped<Disposable>(expectedDisposable); }, 1);
+            var factory2 = new ValueFactoryArg<int, int, Scoped<Disposable>>((k, v) => { expectedDisposable.State = v; return new Scoped<Disposable>(expectedDisposable); }, 2);
+
+            sa.TryCreateLifetime(1, factory1, out var lifetime1).Should().BeTrue();
+            sa.TryCreateLifetime(1, factory2, out var lifetime2).Should().BeTrue();
+
+            lifetime2.Value.Should().Be(expectedDisposable);
+            lifetime2.Value.State.Should().Be(1);
         }
 
         [Fact]

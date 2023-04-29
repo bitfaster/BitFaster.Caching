@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace BitFaster.Caching
 {
     /// <summary>
@@ -37,9 +32,12 @@ namespace BitFaster.Caching
         /// </summary>
         long Evicted { get; }
 
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
         /// <summary>
         /// Gets the total number of updated items.
         /// </summary>
-        long Updated { get; }
+        long Updated => 0;
+#endif
     }
 }

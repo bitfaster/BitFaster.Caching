@@ -41,14 +41,6 @@ namespace BitFaster.Caching.Lru
         {
             switch (info)
             {
-#if NETCOREAPP3_0_OR_GREATER
-                case LruInfo<K> i when i.WithMetrics && i.TimeToExpireAfterWrite.HasValue && i.WithHighResolutionTime:
-                    return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TlruStopwatchPolicy<K, V>, TelemetryPolicy<K, V>>(
-                        info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new TlruStopwatchPolicy<K, V>(info.TimeToExpireAfterWrite.Value), default);
-                case LruInfo<K> i when !i.WithMetrics && i.TimeToExpireAfterWrite.HasValue && i.WithHighResolutionTime:
-                    return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TlruStopwatchPolicy<K, V>, NoTelemetryPolicy<K, V>>(
-                        info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new TlruStopwatchPolicy<K, V>(info.TimeToExpireAfterWrite.Value), default);
-#endif
                 case LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue:
                     return new ConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer);
                 case LruInfo<K> i when i.WithMetrics && i.TimeToExpireAfterWrite.HasValue:

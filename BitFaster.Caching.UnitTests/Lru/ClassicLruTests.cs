@@ -181,11 +181,32 @@ namespace BitFaster.Caching.UnitTests.Lru
             result1.Should().Be(result2);
         }
 
+
+        [Fact]
+        public void WhenKeyIsRequestedWithArgItIsCreatedAndCached()
+        {
+            var result1 = lru.GetOrAdd(1, valueFactory.Create, "x");
+            var result2 = lru.GetOrAdd(1, valueFactory.Create, "y");
+
+            valueFactory.timesCalled.Should().Be(1);
+            result1.Should().Be(result2);
+        }
+
         [Fact]
         public async Task WhenKeyIsRequesteItIsCreatedAndCachedAsync()
         {
             var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
             var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+
+            valueFactory.timesCalled.Should().Be(1);
+            result1.Should().Be(result2);
+        }
+
+        [Fact]
+        public async Task WhenKeyIsRequestedWithArgItIsCreatedAndCachedAsync()
+        {
+            var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync, "x").ConfigureAwait(false);
+            var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync, "y").ConfigureAwait(false);
 
             valueFactory.timesCalled.Should().Be(1);
             result1.Should().Be(result2);
@@ -373,6 +394,16 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenKeyDoesNotExistTryUpdateReturnsFalse()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryUpdate(2, "3").Should().BeFalse();
+        }
+
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+        [Fact]
         public void WhenKeyExistsTryUpdateIncrementsUpdateCount()
         {
             lru.GetOrAdd(1, valueFactory.Create);
@@ -380,14 +411,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.TryUpdate(1, "2").Should().BeTrue();
 
             lru.Metrics.Value.Updated.Should().Be(1);
-        }
-
-        [Fact]
-        public void WhenKeyDoesNotExistTryUpdateReturnsFalse()
-        {
-            lru.GetOrAdd(1, valueFactory.Create);
-
-            lru.TryUpdate(2, "3").Should().BeFalse();
         }
 
         [Fact]
@@ -399,6 +422,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.Metrics.Value.Updated.Should().Be(0);
         }
+#endif
 
         [Fact]
         public void WhenKeyDoesNotExistAddOrUpdateAddsNewItem()
