@@ -77,12 +77,12 @@ namespace BitFaster.Caching.Lru
         {
             if (capacity == null)
             {
-                Ex.ThrowArgNull(ExceptionArgument.capacity);
+                Throw.ArgNull(ExceptionArgument.capacity);
             }
 
             if (comparer == null)
             {
-                Ex.ThrowArgNull(ExceptionArgument.comparer);
+                Throw.ArgNull(ExceptionArgument.comparer);
             }
 
             capacity.Validate();
@@ -419,7 +419,7 @@ namespace BitFaster.Caching.Lru
 
             if (itemCount < 1 || itemCount > capacity)
             {
-                Ex.ThrowArgOutOfRange(nameof(itemCount), "itemCount must be greater than or equal to one, and less than the capacity of the cache.");
+                Throw.ArgOutOfRange(nameof(itemCount), "itemCount must be greater than or equal to one, and less than the capacity of the cache.");
             }
 
             // clamp itemCount to number of items actually in the cache

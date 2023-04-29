@@ -32,7 +32,7 @@ namespace BitFaster.Caching.Lru
             TimeSpan maxRepresentable = TimeSpan.FromTicks(9223372036854769664);
             if (timeToLive <= TimeSpan.Zero || timeToLive > maxRepresentable)
             {
-                Ex.ThrowArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {maxRepresentable}");
+                Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {maxRepresentable}");
             }
 
             this.timeToLive = (long)timeToLive.TotalMilliseconds;
