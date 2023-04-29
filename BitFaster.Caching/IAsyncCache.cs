@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace BitFaster.Caching
@@ -54,6 +52,20 @@ namespace BitFaster.Caching
         /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
         /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
         ValueTask<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory);
+
+        // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
+        /// existing value if the key already exists.
+        /// </summary>
+        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
+        /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
+        /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
+        ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument) => this.GetOrAddAsync(key, k => valueFactory(k, factoryArgument)); 
+#endif
 
         /// <summary>
         /// Attempts to remove the value that has the specified key.

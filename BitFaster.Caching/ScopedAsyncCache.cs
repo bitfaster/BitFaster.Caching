@@ -85,6 +85,40 @@ namespace BitFaster.Caching
             }
         }
 
+// backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Adds a key/scoped value pair to the cache if the key does not already exist. Returns a lifetime for either 
+        /// the new value, or the existing value if the key already exists.
+        /// </summary>
+        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="valueFactory">The factory function used to asynchronously generate a scoped value for the key.</param>
+        /// <param name="factoryArgument"></param>
+        /// <returns>A task that represents the asynchronous ScopedGetOrAdd operation.</returns>
+        public async ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TArg>(K key, Func<K, TArg, Task<Scoped<V>>> valueFactory, TArg factoryArgument)
+        {
+            int c = 0;
+            var spinwait = new SpinWait();
+            while (true)
+            {
+                var scope = await cache.GetOrAddAsync(key, valueFactory, factoryArgument);
+
+                if (scope.TryCreateLifetime(out var lifetime))
+                {
+                    return lifetime;
+                }
+
+                spinwait.SpinOnce();
+
+                if (c++ > ScopedCacheDefaults.MaxRetry)
+                {
+                    Throw.ScopedRetryFailure();
+                }
+            }
+        }
+#endif
+
         ///<inheritdoc/>
         public bool ScopedTryGet(K key, out Lifetime<V> lifetime)
         {

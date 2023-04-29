@@ -63,11 +63,32 @@ namespace BitFaster.Caching
         ///<inheritdoc/>
         public Lifetime<V> ScopedGetOrAdd(K key, Func<K, Scoped<V>> valueFactory)
         {
+            return ScopedGetOrAdd(key, new ValueFactory<K, Scoped<V>>(valueFactory));
+        }
+
+        /// <summary>
+        /// Adds a key/scoped value pair to the cache if the key does not already exist. Returns a lifetime for either 
+        /// the new value, or the existing value if the key already exists.
+        /// </summary>
+        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="valueFactory">The factory function used to generate a scoped value for the key.</param>
+        /// <param name="factoryArgument"></param>
+        /// <returns>The lifetime for the value associated with the key. The lifetime will be either reference the 
+        /// existing value for the key if the key is already in the cache, or the new value if the key was not in 
+        /// the cache.</returns>
+        public Lifetime<V> ScopedGetOrAdd<TArg>(K key, Func<K, TArg, Scoped<V>> valueFactory, TArg factoryArgument)
+        {
+            return ScopedGetOrAdd(key, new ValueFactoryArg<K, TArg, Scoped<V>>(valueFactory, factoryArgument));
+        }
+
+        private Lifetime<V> ScopedGetOrAdd<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
+        {
             int c = 0;
             var spinwait = new SpinWait();
             while (true)
             {
-                var scope = cache.GetOrAdd(key, k => valueFactory(k));
+                var scope = cache.GetOrAdd(key, k => valueFactory.Create(k));
 
                 if (scope.TryCreateLifetime(out var lifetime))
                 {
