@@ -80,7 +80,6 @@ namespace BitFaster.Caching.UnitTests
                 return lifetime;
             };
 
-            //Func<int, Func<int, Task<int>>, ValueTask<int>> evaluate = (k, f) => new ValueTask<int>(f(k));
             cache
                 .Setup(c => c.ScopedGetOrAddAsync(It.IsAny<int>(), It.IsAny<Func<int, Task<Scoped<Disposable>>>>()))
                 .Returns(evaluate);
