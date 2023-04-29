@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
@@ -68,7 +65,7 @@ namespace BitFaster.Caching
         /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
         /// in the cache, or the new value if the key was not in the cache.</returns>
-        V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument) { throw new NotImplementedException();  }
+        V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument) => this.GetOrAdd(key, k => valueFactory(k, factoryArgument));
 #endif
 
         /// <summary>

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace BitFaster.Caching
@@ -66,7 +64,7 @@ namespace BitFaster.Caching
         /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
         /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
         /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
-        ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument) { throw new NotImplementedException(); }
+        ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument) => this.GetOrAddAsync(key, k => valueFactory(k, factoryArgument)); 
 #endif
 
         /// <summary>

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace BitFaster.Caching
@@ -71,7 +69,7 @@ namespace BitFaster.Caching
         /// <param name="valueFactory">The factory function used to asynchronously generate a scoped value for the key.</param>
         /// <param name="factoryArgument"></param>
         /// <returns>A task that represents the asynchronous ScopedGetOrAdd operation.</returns>
-        ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TArg>(K key, Func<K, TArg, Task<Scoped<V>>> valueFactory, TArg factoryArgument) { throw new NotImplementedException();  }
+        ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TArg>(K key, Func<K, TArg, Task<Scoped<V>>> valueFactory, TArg factoryArgument) => this.ScopedGetOrAddAsync(key, (k) => valueFactory(k, factoryArgument));
 #endif
 
         /// <summary>

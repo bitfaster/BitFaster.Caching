@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
@@ -75,7 +72,7 @@ namespace BitFaster.Caching
         /// <returns>The lifetime for the value associated with the key. The lifetime will be either reference the 
         /// existing value for the key if the key is already in the cache, or the new value if the key was not in 
         /// the cache.</returns>
-        Lifetime<V> ScopedGetOrAdd<TArg>(K key, Func<K, TArg, Scoped<V>> valueFactory, TArg factoryArgument) { throw new NotImplementedException(); }
+        Lifetime<V> ScopedGetOrAdd<TArg>(K key, Func<K, TArg, Scoped<V>> valueFactory, TArg factoryArgument) => this.ScopedGetOrAdd(key, k => valueFactory(k, factoryArgument));
 #endif
 
         /// <summary>
