@@ -62,6 +62,22 @@ namespace BitFaster.Caching
         /// the cache.</returns>
         Lifetime<V> ScopedGetOrAdd(K key, Func<K, Scoped<V>> valueFactory);
 
+        // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Adds a key/scoped value pair to the cache if the key does not already exist. Returns a lifetime for either 
+        /// the new value, or the existing value if the key already exists.
+        /// </summary>
+        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="valueFactory">The factory function used to generate a scoped value for the key.</param>
+        /// <param name="factoryArgument"></param>
+        /// <returns>The lifetime for the value associated with the key. The lifetime will be either reference the 
+        /// existing value for the key if the key is already in the cache, or the new value if the key was not in 
+        /// the cache.</returns>
+        Lifetime<V> ScopedGetOrAdd<TArg>(K key, Func<K, TArg, Scoped<V>> valueFactory, TArg factoryArgument) { throw new NotImplementedException(); }
+#endif
+
         /// <summary>
         /// Attempts to remove the value that has the specified key.
         /// </summary>
