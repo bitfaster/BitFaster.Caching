@@ -30,7 +30,7 @@ jobs:
     - name: Test (4.8)
       run: dotnet test --no-restore --verbosity normal -f net48 --logger "trx;LogFileName=results4.trx"
     - name: Generate unit test report (4.8)
-      uses: phoenix-actions/test-reporting@v11
+      uses: phoenix-actions/test-reporting@v12
       id: unit-test-report-win48
       if: success() || failure() 
       with:
@@ -42,7 +42,7 @@ jobs:
     - name: Test (3.1)
       run: dotnet test --no-restore --verbosity normal -f netcoreapp3.1 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results3.trx"
     - name: Generate unit test report (3.1)
-      uses: phoenix-actions/test-reporting@v11
+      uses: phoenix-actions/test-reporting@v12
       id: unit-test-report-win3
       if: success() || failure() 
       with:
@@ -61,7 +61,7 @@ jobs:
     - name: Test (6.0)
       run: dotnet test --no-restore --verbosity normal -f net6.0 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results6.trx"
     - name: Generate unit test report (6.0)
-      uses: phoenix-actions/test-reporting@v11
+      uses: phoenix-actions/test-reporting@v12
       id: unit-test-report-win6
       if: success() || failure() 
       with:
@@ -110,7 +110,7 @@ jobs:
         flag-name: mac
         parallel: true
     - name: Generate unit test report
-      uses: phoenix-actions/test-reporting@v11
+      uses: phoenix-actions/test-reporting@v12
       id: unit-test-report-mac
       if: success() || failure() 
       with:
