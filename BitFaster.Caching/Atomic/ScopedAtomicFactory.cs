@@ -96,9 +96,25 @@ namespace BitFaster.Caching.Atomic
         /// <param name="valueFactory">The value factory to use to create the scoped value when it is not initialized.</param>
         /// <param name="lifetime">When this method returns, contains the Lifetime that was created, or the default value of the type if the operation failed.</param>
         /// <returns>true if the Lifetime was created; otherwise false.</returns>
+        // backcompat: remove
         public bool TryCreateLifetime(K key, Func<K, Scoped<V>> valueFactory, out Lifetime<V> lifetime)
         {
-            if(scope?.IsDisposed ?? false)
+            // backcompat
+            return TryCreateLifetime(key, new ValueFactory<K, Scoped<V>>(valueFactory), out lifetime);
+        }
+
+        /// <summary>
+        /// Attempts to create a lifetime for the scoped value. The lifetime guarantees the value is alive until 
+        /// the lifetime is disposed.
+        /// </summary>
+        /// <typeparam name="TFactory">The type of the value factory.</typeparam>
+        /// <param name="key">The key associated with the scoped value.</param>
+        /// <param name="valueFactory">The value factory to use to create the scoped value when it is not initialized.</param>
+        /// <param name="lifetime">When this method returns, contains the Lifetime that was created, or the default value of the type if the operation failed.</param>
+        /// <returns>true if the Lifetime was created; otherwise false.</returns>
+        public bool TryCreateLifetime<TFactory>(K key, TFactory valueFactory, out Lifetime<V> lifetime) where TFactory : struct, IValueFactory<K, Scoped<V>>
+        {
+            if (scope?.IsDisposed ?? false)
             {
                 lifetime = default;
                 return false;
@@ -113,7 +129,7 @@ namespace BitFaster.Caching.Atomic
             return scope.TryCreateLifetime(out lifetime);
         }
 
-        private void InitializeScope(K key, Func<K, Scoped<V>> valueFactory)
+        private void InitializeScope<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
         {
             var init = initializer;
 
@@ -146,7 +162,7 @@ namespace BitFaster.Caching.Atomic
             private bool isInitialized;
             private Scoped<V> value;
 
-            public Scoped<V> CreateScope(K key, Func<K, Scoped<V>> valueFactory)
+            public Scoped<V> CreateScope<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
             {
                 if (Volatile.Read(ref isInitialized))
                 {
@@ -160,7 +176,7 @@ namespace BitFaster.Caching.Atomic
                         return value;
                     }
 
-                    value = valueFactory(key);
+                    value = valueFactory.Create(key);
                     Volatile.Write(ref isInitialized, true);
 
                     return value;

@@ -27,7 +27,7 @@ namespace BitFaster.Caching.Atomic
         {
             if (cache == null)
             {
-                Ex.ThrowArgNull(ExceptionArgument.cache);
+                Throw.ArgNull(ExceptionArgument.cache);
             }
 
             this.cache = cache;
@@ -71,6 +71,25 @@ namespace BitFaster.Caching.Atomic
         ///<inheritdoc/>
         public async ValueTask<Lifetime<V>> ScopedGetOrAddAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
+            return await ScopedGetOrAddAsync(key, new AsyncValueFactory<K, Scoped<V>>(valueFactory)).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Adds a key/scoped value pair to the cache if the key does not already exist. Returns a lifetime for either 
+        /// the new value, or the existing value if the key already exists.
+        /// </summary>
+        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="valueFactory">The factory function used to asynchronously generate a scoped value for the key.</param>
+        /// <param name="factoryArgument"></param>
+        /// <returns>A task that represents the asynchronous ScopedGetOrAdd operation.</returns>
+        public async ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TArg>(K key, Func<K, TArg, Task<Scoped<V>>> valueFactory, TArg factoryArgument)
+        {
+            return await ScopedGetOrAddAsync(key, new AsyncValueFactoryArg<K, TArg, Scoped<V>>(valueFactory, factoryArgument)).ConfigureAwait(false);
+        }
+
+        private async ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
+        {
             int c = 0;
             var spinwait = new SpinWait();
             while (true)
@@ -88,7 +107,7 @@ namespace BitFaster.Caching.Atomic
 
                 if (c++ > ScopedCacheDefaults.MaxRetry)
                 {
-                    Ex.ThrowScopedRetryFailure();
+                    Throw.ScopedRetryFailure();
                 }
             }
         }

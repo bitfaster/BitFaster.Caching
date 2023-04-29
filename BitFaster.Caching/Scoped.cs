@@ -70,7 +70,7 @@ namespace BitFaster.Caching
         {
             if (!TryCreateLifetime(out var lifetime))
             {
-                Ex.ThrowDisposed<T>();
+                Throw.Disposed<T>();
             }
 
             return lifetime;
@@ -127,7 +127,7 @@ namespace BitFaster.Caching
             {
                 if (scoped is null)
                 {
-                    Ex.ThrowArgNull(ExceptionArgument.scoped);
+                    Throw.ArgNull(ExceptionArgument.scoped);
                 }
 
                 this.scoped = scoped;

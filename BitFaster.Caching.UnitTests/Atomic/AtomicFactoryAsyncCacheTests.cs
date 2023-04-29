@@ -55,6 +55,15 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public async Task WhenItemIsAddedWithArgValueIsCorrect()
+        {
+            await this.cache.GetOrAddAsync(1, (k, a) => Task.FromResult(k + a), 2);
+
+            this.cache.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be(3);
+        }
+
+        [Fact]
         public void WhenNoInnerEventsNoOuterEvents()
         {
             var inner = new Mock<ICache<int, AsyncAtomicFactory<int, int>>>();

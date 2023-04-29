@@ -17,7 +17,7 @@ namespace BitFaster.Caching.Lru
             if (timespan <= TimeSpan.Zero || timespan.Ticks >= maxTicks)
             {
                 TimeSpan maxRepresentable = TimeSpan.FromTicks((long)maxTicks);
-                Ex.ThrowArgOutOfRange(nameof(timespan), $"Value must be greater than zero and less than {maxRepresentable}");
+                Throw.ArgOutOfRange(nameof(timespan), $"Value must be greater than zero and less than {maxRepresentable}");
             }
 
             return (long)(timespan.Ticks * stopwatchAdjustmentFactor);

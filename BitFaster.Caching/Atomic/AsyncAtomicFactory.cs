@@ -50,7 +50,25 @@ namespace BitFaster.Caching.Atomic
                 return value;
             }
 
-            return await CreateValueAsync(key, valueFactory).ConfigureAwait(false);
+            return await CreateValueAsync(key, new AsyncValueFactory<K, V>(valueFactory)).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Gets the value. If <see cref="IsValueCreated"/> is false, calling <see cref="GetValueAsync{TArg}"/> will force initialization via the <paramref name="valueFactory"/> parameter.
+        /// </summary>
+        /// <typeparam name="TArg">The type of the value factory argument.</typeparam>
+        /// <param name="key">The key associated with the value.</param>
+        /// <param name="valueFactory">The value factory to use to create the value when it is not initialized.</param>
+        /// <param name="factoryArgument">The value factory argument.</param>
+        /// <returns>The value.</returns>
+        public async ValueTask<V> GetValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+        {
+            if (initializer == null)
+            {
+                return value;
+            }
+
+            return await CreateValueAsync(key, new AsyncValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -74,7 +92,7 @@ namespace BitFaster.Caching.Atomic
             }
         }
 
-        private async ValueTask<V> CreateValueAsync(K key, Func<K, Task<V>> valueFactory)
+        private async ValueTask<V> CreateValueAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, V>
         {
             var init = initializer;
 
@@ -93,7 +111,7 @@ namespace BitFaster.Caching.Atomic
             private bool isInitialized;
             private Task<V> valueTask;
 
-            public async ValueTask<V> CreateValueAsync(K key, Func<K, Task<V>> valueFactory)
+            public async ValueTask<V> CreateValueAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, V>
             {
                 var tcs = new TaskCompletionSource<V>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -103,7 +121,7 @@ namespace BitFaster.Caching.Atomic
                 {
                     try
                     {
-                        var value = await valueFactory(key).ConfigureAwait(false);
+                        var value = await valueFactory.CreateAsync(key).ConfigureAwait(false);
                         tcs.SetResult(value);
 
                         return value;

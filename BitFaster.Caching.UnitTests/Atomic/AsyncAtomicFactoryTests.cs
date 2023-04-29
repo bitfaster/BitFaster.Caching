@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
@@ -41,11 +38,29 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public async Task WhenValueCreatedWithArgValueReturned()
+        {
+            var a = new AsyncAtomicFactory<int, int>();
+            (await a.GetValueAsync(1, (k, a) => Task.FromResult(k + a), 7)).Should().Be(8);
+
+            a.ValueIfCreated.Should().Be(8);
+            a.IsValueCreated.Should().BeTrue();
+        }
+
+        [Fact]
         public async Task WhenValueCreatedGetValueReturnsOriginalValue()
         {
             var a = new AsyncAtomicFactory<int, int>();
             await a.GetValueAsync(1, k => Task.FromResult(2));
             (await a.GetValueAsync(1, k => Task.FromResult(3))).Should().Be(2);
+        }
+
+        [Fact]
+        public async Task WhenValueCreatedArgGetValueReturnsOriginalValue()
+        {
+            var a = new AsyncAtomicFactory<int, int>();
+            await a.GetValueAsync(1, (k, a) => Task.FromResult(k + a), 7);
+            (await a.GetValueAsync(1, (k, a) => Task.FromResult(k + a), 9)).Should().Be(8);
         }
 
         [Fact]
