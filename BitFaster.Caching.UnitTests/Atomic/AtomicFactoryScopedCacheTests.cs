@@ -46,20 +46,20 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
         }
 
-        [Fact]
-        public void WhenKeyDoesNotExistGetOrAddArgAddsValueWithArg()
-        {
-            // TODO: move to base when interface supports factory arg
-            var c = this.cache as AtomicFactoryScopedCache<int, Disposable>;
+        //[Fact]
+        //public void WhenKeyDoesNotExistGetOrAddArgAddsValueWithArg()
+        //{
+        //    // TODO: move to base when interface supports factory arg
+        //    var c = this.cache as AtomicFactoryScopedCache<int, Disposable>;
 
-            c.ScopedGetOrAdd(
-                1, 
-                (k, a) => new Scoped<Disposable>(new Disposable(a)), 
-                2);
+        //    c.ScopedGetOrAdd(
+        //        1, 
+        //        (k, a) => new Scoped<Disposable>(new Disposable(a)), 
+        //        2);
 
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
-            lifetime.Value.State.Should().Be(2);
-        }
+        //    this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
+        //    lifetime.Value.State.Should().Be(2);
+        //}
 
         [Fact]
         public void GetOrAddDisposedScopeThrows()

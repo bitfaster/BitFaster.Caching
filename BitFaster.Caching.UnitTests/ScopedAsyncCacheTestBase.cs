@@ -83,6 +83,20 @@ namespace BitFaster.Caching.UnitTests
             lifetime.Value.Should().Be(d);
         }
 
+        // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+        [Fact]
+        public async Task WhenKeyDoesNotExistGetOrAddArgAddsValueWithArg()
+        {
+            await this.cache.ScopedGetOrAddAsync(
+                1,
+                (k, a) => Task.FromResult(new Scoped<Disposable>(new Disposable(a))),
+                2);
+
+            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
+            lifetime.Value.State.Should().Be(2);
+        }
+#endif
         [Fact]
         public void WhenKeyExistsAddOrUpdateUpdatesExistingItem()
         {
