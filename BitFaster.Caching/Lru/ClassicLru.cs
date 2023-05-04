@@ -21,9 +21,9 @@ namespace BitFaster.Caching.Lru
     {
         private readonly int capacity;
         private readonly ConcurrentDictionary<K, LinkedListNode<LruItem>> dictionary;
-        private readonly LinkedList<LruItem> linkedList = new LinkedList<LruItem>();
+        private readonly LinkedList<LruItem> linkedList = new();
 
-        private readonly CacheMetrics metrics = new CacheMetrics();
+        private readonly CacheMetrics metrics = new();
         private readonly CachePolicy policy;
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace BitFaster.Caching.Lru
 
             this.capacity = capacity;
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, this.capacity + 1, comparer);
-            this.policy = new CachePolicy(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
+            this.policy = new(new(this), Optional<ITimePolicy>.None());
         }
 
         ///<inheritdoc/>

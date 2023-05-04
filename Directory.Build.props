@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
   <PropertyGroup>
+    <LangVersion>9.0</LangVersion>
   	<!-- Work around generated csproj can't find the signing key. -->
     <!-- https://github.com/dotnet/BenchmarkDotNet/issues/836 -->
     <AssemblyOriginatorKeyFile Condition="EXISTS('..\BitFaster.snk')">..\BitFaster.snk</AssemblyOriginatorKeyFile>
