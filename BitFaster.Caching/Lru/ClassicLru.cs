@@ -57,7 +57,7 @@ namespace BitFaster.Caching.Lru
 
             this.capacity = capacity;
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, this.capacity + 1, comparer);
-            this.policy = new(new(this), Optional<ITimePolicy>.None());
+            this.policy = new CachePolicy(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
         }
 
         ///<inheritdoc/>
@@ -67,7 +67,7 @@ namespace BitFaster.Caching.Lru
         public int Capacity => this.capacity;
 
         ///<inheritdoc/>
-        public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(this.metrics);
+        public Optional<ICacheMetrics> Metrics => new(this.metrics);
 
         ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();

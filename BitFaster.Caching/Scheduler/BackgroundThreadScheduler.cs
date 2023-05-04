@@ -22,13 +22,12 @@ namespace BitFaster.Caching.Scheduler
         public const int MaxBacklog = 16;
 
         private int count;
-        private readonly CancellationTokenSource cts = new CancellationTokenSource();
-        private readonly SemaphoreSlim semaphore = new SemaphoreSlim(0, MaxBacklog);
-        private readonly MpmcBoundedBuffer<Action> work = new MpmcBoundedBuffer<Action>(MaxBacklog);
+        private readonly CancellationTokenSource cts = new();
+        private readonly SemaphoreSlim semaphore = new(0, MaxBacklog);
+        private readonly MpmcBoundedBuffer<Action> work = new(MaxBacklog);
 
         private Optional<Exception> lastException = Optional<Exception>.None();
-
-        TaskCompletionSource<bool> completion = new TaskCompletionSource<bool>();
+        readonly TaskCompletionSource<bool> completion = new();
 
         /// <summary>
         /// Initializes a new instance of the BackgroundThreadScheduler class.

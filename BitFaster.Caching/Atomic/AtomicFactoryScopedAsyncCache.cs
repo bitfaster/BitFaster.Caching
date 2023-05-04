@@ -96,11 +96,11 @@ namespace BitFaster.Caching.Atomic
             {
                 var scope = cache.GetOrAdd(key, _ => new ScopedAsyncAtomicFactory<K, V>());
 
-                var result = await scope.TryCreateLifetimeAsync(key, valueFactory).ConfigureAwait(false);
+                var (success, lifetime) = await scope.TryCreateLifetimeAsync(key, valueFactory).ConfigureAwait(false);
 
-                if (result.success)
+                if (success)
                 {
-                    return result.lifetime;
+                    return lifetime;
                 }
 
                 spinwait.SpinOnce();
