@@ -58,7 +58,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             Parallel.ForEach(Enumerable.Range(0, threadCount), i =>
             {
-                samples[i] = Enumerable.Range(i * maxSamples, sampleCount).Cast<long>().ToArray();
+                samples[i] = Enumerable.Range(i * maxSamples, sampleCount).Select(i => (long)i).ToArray();
             });
         }
 
