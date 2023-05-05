@@ -11,6 +11,6 @@ namespace BitFaster.Caching.Lru
             get { return Environment.ProcessorCount; }
         }
 
-        public static readonly TimeSpan Infinite = new TimeSpan(0, 0, 0, 0, -1);
+        public static readonly TimeSpan Infinite = new(0, 0, 0, 0, -1);
     }
 }

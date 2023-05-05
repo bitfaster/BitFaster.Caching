@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netcoreapp3.1;net6.0</TargetFrameworks>
+    <LangVersion>9.0</LangVersion>
     <Authors>Alex Peck</Authors>
     <Company />
     <Product>BitFaster.Caching</Product>

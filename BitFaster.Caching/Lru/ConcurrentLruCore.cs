@@ -108,10 +108,10 @@ namespace BitFaster.Caching.Lru
         public int Capacity => this.capacity.Hot + this.capacity.Warm + this.capacity.Cold;
 
         ///<inheritdoc/>
-        public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(new Proxy(this));
+        public Optional<ICacheMetrics> Metrics => new(new Proxy(this));
 
         ///<inheritdoc/>
-        public Optional<ICacheEvents<K, V>> Events => new Optional<ICacheEvents<K, V>>(new Proxy(this));
+        public Optional<ICacheEvents<K, V>> Events => new(new Proxy(this));
 
         ///<inheritdoc/>
         public CachePolicy Policy => CreatePolicy(this);
