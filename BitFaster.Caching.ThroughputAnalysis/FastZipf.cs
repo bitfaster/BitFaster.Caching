@@ -26,6 +26,13 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             double num2 = 1.0 / SpecialFunctions.GeneralHarmonic(n, s);
 
+            // Precompute pow for all i, take reciprocal so that we can multiply instead of divide inside the loop
+            double[] rpows = new double[n+1];
+            for (int i = 0; i <= n; i++)
+            {
+                rpows[i] = 1.0d / Math.Pow(i, s);
+            }
+
             Parallel.ForEach(Enumerable.Range(0, samples.Length), (x, j) =>
             {
                 double num3 = 0.0;
@@ -33,7 +40,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
                 for (i = 1; i <= n; i++)
                 {
-                    num3 += num2 / Math.Pow(i, s);
+                    num3 += num2 * rpows[i]; // Math.Pow(i, s);
                     if (num3 >= num[x])
                     {
                         break;
