@@ -13,13 +13,13 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         int Samples { get; }
 
-        int[] GetTestData(int threadId);
+        long[] GetTestData(int threadId);
     }
 
     public class ZipfConfig : IThroughputBenchConfig
     {
         private int iterations;
-        private int[] samples;
+        private long[] samples;
 
         public ZipfConfig(int iterations, int sampleCount, double s, int n)
         {
@@ -32,7 +32,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public int Samples => samples.Length;
 
-        public int[] GetTestData(int threadId)
+        public long[] GetTestData(int threadId)
         {
             return samples;
         }
@@ -42,7 +42,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
     {
         private int iterations;
 
-        private int[][] samples;
+        private long[][] samples;
 
         const int maxSamples = 10_000_000;
 
@@ -54,11 +54,11 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
 
             this.iterations = iterations;
-            samples = new int[threadCount][];
+            samples = new long[threadCount][];
 
             Parallel.ForEach(Enumerable.Range(0, threadCount), i =>
             {
-                samples[i] = Enumerable.Range(i * maxSamples, sampleCount).ToArray();
+                samples[i] = Enumerable.Range(i * maxSamples, sampleCount).Cast<long>().ToArray();
             });
         }
 
@@ -66,7 +66,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public int Samples => samples[0].Length;
 
-        public int[] GetTestData(int threadId)
+        public long[] GetTestData(int threadId)
         {
             return samples[threadId];
         }

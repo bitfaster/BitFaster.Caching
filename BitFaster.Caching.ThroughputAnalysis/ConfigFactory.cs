@@ -51,7 +51,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             _ => cacheSize
         };
 
-        private static void EvictionInit(ICache<int, int> cache)
+        private static void EvictionInit(ICache<long, int> cache)
         {
             Parallel.ForEach(Enumerable.Range(0, cache.Policy.Eviction.Value.Capacity).Select(i => -i), i =>
             {
