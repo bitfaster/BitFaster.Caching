@@ -87,7 +87,7 @@ namespace BitFaster.Caching.Counters
         /// The base value used mainly when there is no contention, but also as a fallback 
         /// during table initialization races. Updated via CAS.
         /// </summary>
-        protected PaddedLong @base = new PaddedLong();
+        protected PaddedLong @base = new();
         
         /// <summary>
         /// When non-null, size is a power of 2.

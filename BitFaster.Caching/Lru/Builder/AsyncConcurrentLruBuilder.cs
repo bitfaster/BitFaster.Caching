@@ -16,17 +16,13 @@ namespace BitFaster.Caching.Lru.Builder
         ///<inheritdoc/>
         public override IAsyncCache<K, V> Build()
         {
-            switch (info)
+            return info switch
             {
-                case LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue:
-                    return new ConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer);
-                case LruInfo<K> i when i.WithMetrics && i.TimeToExpireAfterWrite.HasValue:
-                    return new ConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value);
-                case LruInfo<K> i when i.TimeToExpireAfterWrite.HasValue:
-                    return new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value);
-                default:
-                    return new FastConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer);
-            }
+                LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue => new ConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
+                LruInfo<K> i when i.WithMetrics && i.TimeToExpireAfterWrite.HasValue => new ConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
+                LruInfo<K> i when i.TimeToExpireAfterWrite.HasValue => new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
+                _ => new FastConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
+            };
         }
     }
 }
