@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netcoreapp3.1;net6.0</TargetFrameworks>
+    <LangVersion>9.0</LangVersion>
     <Authors>Alex Peck</Authors>
     <Company />
     <Product>BitFaster.Caching</Product>
@@ -25,7 +26,6 @@
     <FileVersion>2.2.0.0</FileVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <LangVersion>9.0</LangVersion>
     <!--Package Validation-->
     <EnablePackageValidation>true</EnablePackageValidation>
     <PackageValidationBaselineVersion>2.2.0</PackageValidationBaselineVersion>    
