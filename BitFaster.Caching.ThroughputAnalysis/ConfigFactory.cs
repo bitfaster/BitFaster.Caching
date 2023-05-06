@@ -22,7 +22,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                     return (new ReadThroughputBenchmark(), new ZipfConfig(iterations, samples, s, n), cacheSize);
                 case Mode.ReadWrite:
                     // cache holds 10% of all items
-                    cacheSize = cacheSize / 10;
+                    cacheSize /= 10;
                     return (new ReadThroughputBenchmark(), new ZipfConfig(iterations, samples, s, n), cacheSize);
                 case Mode.Update:
                     return (new UpdateThroughputBenchmark(), new ZipfConfig(iterations, samples, s, n), cacheSize);
@@ -51,7 +51,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             _ => cacheSize
         };
 
-        private static void EvictionInit(ICache<int, int> cache)
+        private static void EvictionInit(ICache<long, int> cache)
         {
             Parallel.ForEach(Enumerable.Range(0, cache.Policy.Eviction.Value.Capacity).Select(i => -i), i =>
             {
