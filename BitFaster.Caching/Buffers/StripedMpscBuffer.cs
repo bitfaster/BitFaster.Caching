@@ -43,14 +43,31 @@ namespace BitFaster.Caching.Buffers
         public int Capacity => buffers.Length * buffers[0].Capacity;
 
         /// <summary>
-        /// Drains the buffer into the specified array segment.
+        /// Drains the buffer into the specified array.
         /// </summary>
         /// <param name="outputBuffer">The output buffer</param>
         /// <returns>The number of items written to the output buffer.</returns>
         /// <remarks>
         /// Thread safe for single try take/drain + multiple try add.
         /// </remarks>
+#if NETSTANDARD2_0
         public int DrainTo(T[] outputBuffer)
+#else
+        public int DrainTo(T[] outputBuffer)
+        { 
+            return DrainTo(outputBuffer.AsSpan());
+        }
+
+        /// <summary>
+        /// Drains the buffer into the specified span.
+        /// </summary>
+        /// <param name="outputBuffer">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
+        public int DrainTo(Span<T> outputBuffer)
+#endif
         {
             var count = 0;
 
@@ -61,7 +78,8 @@ namespace BitFaster.Caching.Buffers
                     break;
                 }
 
-                var segment = new ArraySegment<T>(outputBuffer, count, outputBuffer.Length - count);
+                var segment = outputBuffer.Slice(count, outputBuffer.Length - count);
+
                 count += buffers[i].DrainTo(segment);
             }
 

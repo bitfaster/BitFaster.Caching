@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
+using BitFaster.Caching.Lfu;
 
 namespace BitFaster.Caching.Buffers
 {
@@ -142,6 +144,9 @@ namespace BitFaster.Caching.Buffers
             return BufferStatus.Success;
         }
 
+        // On NETSTANDARD2_0 all code paths are internally based on ArraySegment<T>.
+        // After NETSTANDARD2_0, all code paths are internally based on Span<T>.
+#if NETSTANDARD2_0
         /// <summary>
         /// Drains the buffer into the specified array segment.
         /// </summary>
@@ -151,6 +156,41 @@ namespace BitFaster.Caching.Buffers
         /// Thread safe for single try take/drain + multiple try add.
         /// </remarks>
         public int DrainTo(ArraySegment<T> output)
+#else
+        /// <summary>
+        /// Drains the buffer into the specified array segment.
+        /// </summary>
+        /// <param name="output">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
+        public int DrainTo(ArraySegment<T> output)
+        { 
+            return DrainTo(output.AsSpan());
+        }
+
+        /// <summary>
+        /// Drains the buffer into the specified span.
+        /// </summary>
+        /// <param name="output">The output buffer</param>
+        /// <returns>The number of items written to the output buffer.</returns>
+        /// <remarks>
+        /// Thread safe for single try take/drain + multiple try add.
+        /// </remarks>
+        public int DrainTo(Span<T> output)
+#endif
+        {
+            return DrainToImpl(output);
+        }
+
+        // use an outer wrapper method to force the JIT to inline the inner adaptor methods
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NETSTANDARD2_0
+        private int DrainToImpl(ArraySegment<T> output)
+#else
+        private int DrainToImpl(Span<T> output)
+#endif
         {
             int head = Volatile.Read(ref headAndTail.Head);
             int tail = Volatile.Read(ref headAndTail.Tail);
@@ -161,13 +201,15 @@ namespace BitFaster.Caching.Buffers
                 return 0;
             }
 
+            var localBuffer = buffer.AsSpanOrArray();
+
             int outCount = 0;
 
             do
             {
                 int index = head & mask;
 
-                T item = Volatile.Read(ref buffer[index]);
+                T item = Volatile.Read(ref localBuffer[index]);
 
                 if (item == null)
                 {
@@ -175,16 +217,42 @@ namespace BitFaster.Caching.Buffers
                     break;
                 }
 
-                Volatile.Write(ref buffer[index], null);
-                output.Array[output.Offset + outCount++] = item;
+                Volatile.Write(ref localBuffer[index], null);
+                Write(output, outCount++, item);
                 head++;
             }
-            while (head != tail && outCount < output.Count);
+            while (head != tail && outCount < Length(output));
 
             Volatile.Write(ref this.headAndTail.Head, head);
 
             return outCount;
         }
+
+#if NETSTANDARD2_0
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Write(ArraySegment<T> output, int index, T item)
+        {
+            output.Array[output.Offset + index] = item;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Length(ArraySegment<T> output)
+        {
+            return output.Count;
+        }
+#else
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Write(Span<T> output, int index, T item)
+        {
+            output[index] = item;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Length(Span<T> output)
+        {
+            return output.Length;
+        }
+#endif
 
         /// <summary>
         /// Removes all values from the buffer.
