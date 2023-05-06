@@ -515,7 +515,8 @@ namespace BitFaster.Caching.Lfu
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
 
-            var buffer = this.drainBuffer.WrapAsSpan();
+            // Note: this is only Span on .NET Core 3.1+, else Wrap is no-op and it is still an array
+            var buffer = this.drainBuffer.AsSpanOrArray();
 
             // extract to a buffer before doing book keeping work, ~2x faster
             int readCount = readBuffer.DrainTo(buffer);
@@ -530,7 +531,7 @@ namespace BitFaster.Caching.Lfu
                 OnAccess(buffer[i]);
             }
 
-            int writeCount = this.writeBuffer.DrainTo(buffer.WrapAsSegment());
+            int writeCount = this.writeBuffer.DrainTo(buffer.AsSpanOrSegment());
 
             for (int i = 0; i < writeCount; i++)
             {

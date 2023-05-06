@@ -201,7 +201,7 @@ namespace BitFaster.Caching.Buffers
                 return 0;
             }
 
-            var localBuffer = buffer.WrapAsSpan();
+            var localBuffer = buffer.AsSpanOrArray();
 
             int outCount = 0;
 

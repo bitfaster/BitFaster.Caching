@@ -8,13 +8,13 @@ namespace BitFaster.Caching.Buffers
     {
 #if NETSTANDARD2_0
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static T[] WrapAsSpan<T>(this T[] array)
+        internal static T[] AsSpanOrArray<T>(this T[] array)
         { 
             return array;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static ArraySegment<T> WrapAsSegment<T>(this T[] array)
+        internal static ArraySegment<T> AsSpanOrSegment<T>(this T[] array)
         {
             return new ArraySegment<T>(array);
         }
@@ -26,13 +26,13 @@ namespace BitFaster.Caching.Buffers
         }
 #else
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static Span<T> WrapAsSpan<T>(this T[] array)
+        internal static Span<T> AsSpanOrArray<T>(this T[] array)
         { 
             return array.AsSpan();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static Span<T> WrapAsSegment<T>(this Span<T> span)
+        internal static Span<T> AsSpanOrSegment<T>(this Span<T> span)
         {
             return span;
         }
