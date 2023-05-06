@@ -515,11 +515,7 @@ namespace BitFaster.Caching.Lfu
         {
             this.drainStatus.Set(DrainStatus.ProcessingToIdle);
 
-#if NETSTANDARD2_0
-            var buffer = this.drainBuffer;
-#else
-            var buffer = this.drainBuffer.AsSpan();
-#endif
+            var buffer = this.drainBuffer.WrapAsSpan();
 
             // extract to a buffer before doing book keeping work, ~2x faster
             int readCount = readBuffer.DrainTo(buffer);
@@ -534,11 +530,7 @@ namespace BitFaster.Caching.Lfu
                 OnAccess(buffer[i]);
             }
 
-#if NETSTANDARD2_0
-            int writeCount = this.writeBuffer.DrainTo(new ArraySegment<LfuNode<K, V>>(buffer));
-#else
-            int writeCount = this.writeBuffer.DrainTo(buffer);
-#endif
+            int writeCount = this.writeBuffer.DrainTo(buffer.WrapAsSegment());
 
             for (int i = 0; i < writeCount; i++)
             {

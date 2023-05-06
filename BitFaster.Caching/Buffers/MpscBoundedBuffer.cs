@@ -201,11 +201,7 @@ namespace BitFaster.Caching.Buffers
                 return 0;
             }
 
-#if NETSTANDARD2_0
-            var localBuffer = buffer;
-#else
-            var localBuffer = buffer.AsSpan();
-#endif
+            var localBuffer = buffer.WrapAsSpan();
 
             int outCount = 0;
 

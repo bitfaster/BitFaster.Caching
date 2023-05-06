@@ -106,6 +106,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
             buffer.DrainTo(output).Should().Be(0);
         }
 
+#if NETCOREAPP3_0_OR_GREATER
         [Fact]
         public void WhenBufferContainsItemsDrainArrayTakesItems()
         {
@@ -115,12 +116,13 @@ namespace BitFaster.Caching.UnitTests.Buffers
 
             var outputBuffer = new string[16];
 
-            buffer.DrainTo(outputBuffer).Should().Be(3);
+            buffer.DrainTo(outputBuffer.AsSpan()).Should().Be(3);
 
             outputBuffer[0].Should().Be("1");
             outputBuffer[1].Should().Be("2");
             outputBuffer[2].Should().Be("3");
         }
+#endif
 
         [Fact]
         public void WhenBufferContainsItemsDrainSegmentTakesItems()
