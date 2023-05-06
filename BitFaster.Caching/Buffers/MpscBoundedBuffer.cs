@@ -144,6 +144,8 @@ namespace BitFaster.Caching.Buffers
             return BufferStatus.Success;
         }
 
+        // On NETSTANDARD2_0 all code paths are internally based on ArraySegment<T>.
+        // After NETSTANDARD2_0, all code paths are internally based on Span<T>.
 #if NETSTANDARD2_0
         /// <summary>
         /// Drains the buffer into the specified array.
@@ -203,6 +205,17 @@ namespace BitFaster.Caching.Buffers
         /// Thread safe for single try take/drain + multiple try add.
         /// </remarks>
         public int DrainTo(Span<T> output)
+#endif
+        {
+            return DrainToImpl(output);
+        }
+
+        // use an outer wrapper method to force the JIT to inline the inner adaptor methods
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NETSTANDARD2_0
+        private int DrainToImpl(ArraySegment<T> output)
+#else
+        private int DrainToImpl(Span<T> output)
 #endif
         {
             int head = Volatile.Read(ref headAndTail.Head);
