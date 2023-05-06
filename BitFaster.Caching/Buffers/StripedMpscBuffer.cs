@@ -43,7 +43,7 @@ namespace BitFaster.Caching.Buffers
         public int Capacity => buffers.Length * buffers[0].Capacity;
 
         /// <summary>
-        /// Drains the buffer into the specified array segment.
+        /// Drains the buffer into the specified array.
         /// </summary>
         /// <param name="outputBuffer">The output buffer</param>
         /// <returns>The number of items written to the output buffer.</returns>
@@ -59,7 +59,7 @@ namespace BitFaster.Caching.Buffers
         }
 
         /// <summary>
-        /// Drains the buffer into the specified array segment.
+        /// Drains the buffer into the specified span.
         /// </summary>
         /// <param name="outputBuffer">The output buffer</param>
         /// <returns>The number of items written to the output buffer.</returns>
