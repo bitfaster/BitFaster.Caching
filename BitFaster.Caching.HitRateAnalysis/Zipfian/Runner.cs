@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.ThroughputAnalysis;
-using MathNet.Numerics;
-using MathNet.Numerics.Distributions;
 
 namespace BitFaster.Caching.HitRateAnalysis.Zipfian
 {
@@ -65,7 +61,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
             });
 
             List<AnalysisResult> results = new List<AnalysisResult>();
-            int func(long x) => (int)x;
+            static int func(long x) => (int)x;
 
             foreach (var a in analysis)
             {
