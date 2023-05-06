@@ -148,19 +148,6 @@ namespace BitFaster.Caching.Buffers
         // After NETSTANDARD2_0, all code paths are internally based on Span<T>.
 #if NETSTANDARD2_0
         /// <summary>
-        /// Drains the buffer into the specified array.
-        /// </summary>
-        /// <param name="output">The output buffer</param>
-        /// <returns>The number of items written to the output buffer.</returns>
-        /// <remarks>
-        /// Thread safe for single try take/drain + multiple try add.
-        /// </remarks>
-        public int DrainTo(T[] output)
-        { 
-            return DrainTo(new ArraySegment<T>(output));
-        }
-
-        /// <summary>
         /// Drains the buffer into the specified array segment.
         /// </summary>
         /// <param name="output">The output buffer</param>
@@ -170,19 +157,6 @@ namespace BitFaster.Caching.Buffers
         /// </remarks>
         public int DrainTo(ArraySegment<T> output)
 #else
-        /// <summary>
-        /// Drains the buffer into the specified array.
-        /// </summary>
-        /// <param name="output">The output buffer</param>
-        /// <returns>The number of items written to the output buffer.</returns>
-        /// <remarks>
-        /// Thread safe for single try take/drain + multiple try add.
-        /// </remarks>
-        public int DrainTo(T[] output)
-        {
-            return DrainTo(output.AsSpan());
-        }
-
         /// <summary>
         /// Drains the buffer into the specified array segment.
         /// </summary>
