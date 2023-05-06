@@ -18,6 +18,12 @@ namespace BitFaster.Caching.Buffers
         {
             return new ArraySegment<T>(array);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static ArraySegment<T> Slice<T>(this T[] array, int start, int length)
+        {
+            return new ArraySegment<T>(array, start, length);
+        }
 #else
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Span<T> WrapAsSpan<T>(this T[] array)

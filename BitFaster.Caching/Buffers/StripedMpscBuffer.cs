@@ -78,11 +78,8 @@ namespace BitFaster.Caching.Buffers
                     break;
                 }
 
-#if NETSTANDARD2_0
-                var segment = new ArraySegment<T>(outputBuffer, count, outputBuffer.Length - count);
-#else
                 var segment = outputBuffer.Slice(count, outputBuffer.Length - count);
-#endif
+
                 count += buffers[i].DrainTo(segment);
             }
 
