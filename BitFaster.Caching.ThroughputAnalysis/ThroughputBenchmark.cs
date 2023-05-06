@@ -13,9 +13,9 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public abstract class ThroughputBenchmarkBase
     {
-        public Action<ICache<int, int>> Initialize { get; set; }
+        public Action<ICache<long, int>> Initialize { get; set; }
 
-        public double Run(int warmup, int runs, int threads, IThroughputBenchConfig config, ICache<int, int> cache)
+        public double Run(int warmup, int runs, int threads, IThroughputBenchConfig config, ICache<long, int> cache)
         {
             double[] results = new double[warmup + runs];
 
@@ -31,7 +31,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             return AverageLast(results, runs) / oneMillion;
         }
 
-        protected abstract double Run(int threads, IThroughputBenchConfig config, ICache<int, int> cache);
+        protected abstract double Run(int threads, IThroughputBenchConfig config, ICache<long, int> cache);
 
         private static double AverageLast(double[] results, int count)
         {
@@ -47,12 +47,12 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class ReadThroughputBenchmark : ThroughputBenchmarkBase
     {
-        protected override double Run(int threads, IThroughputBenchConfig config, ICache<int, int> cache)
+        protected override double Run(int threads, IThroughputBenchConfig config, ICache<long, int> cache)
         {
-            Action<int> action = index => 
+            void action(int index)
             {
-                int[] samples = config.GetTestData(index);
-                Func<int, int> func = x => x;
+                long[] samples = config.GetTestData(index);
+                int func(long x) => (int)x;
 
                 for (int i = 0; i < config.Iterations; i++)
                 {
@@ -61,7 +61,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                         cache.GetOrAdd(samples[s], func);
                     }
                 }
-            };
+            }
 
             var time = ParallelBenchmark.Run(action, threads);
 
@@ -72,20 +72,20 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class UpdateThroughputBenchmark : ThroughputBenchmarkBase
     {
-        protected override double Run(int threads, IThroughputBenchConfig config, ICache<int, int> cache)
+        protected override double Run(int threads, IThroughputBenchConfig config, ICache<long, int> cache)
         {
-            Action<int> action = index =>
+            void action(int index)
             {
-                int[] samples = config.GetTestData(index);
+                long[] samples = config.GetTestData(index);
 
                 for (int i = 0; i < config.Iterations; i++)
                 {
                     for (int s = 0; s < samples.Length; s++)
                     {
-                        cache.AddOrUpdate(samples[s], samples[s]);
+                        cache.AddOrUpdate(samples[s], (int)samples[s]);
                     }
                 }
-            };
+            }
 
             var time = ParallelBenchmark.Run(action, threads);
 

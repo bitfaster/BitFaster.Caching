@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.ThroughputAnalysis;
-using MathNet.Numerics;
-using MathNet.Numerics.Distributions;
 
 namespace BitFaster.Caching.HitRateAnalysis.Zipfian
 {
@@ -54,7 +50,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
                 }
             }
 
-            int[][] zipdfDistribution = new int[sValues.Length][];
+            long[][] zipdfDistribution = new long[sValues.Length][];
 
             Parallel.ForEach(sValuesIndex, index =>
             {
@@ -65,7 +61,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
             });
 
             List<AnalysisResult> results = new List<AnalysisResult>();
-            Func<int, int> func = x => x;
+            static int func(long x) => (int)x;
 
             foreach (var a in analysis)
             {
@@ -73,15 +69,15 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
 
                 int cacheSize = (int)(a.N * a.CacheSizePercent);
 
-                var concurrentLru = new ConcurrentLru<int, int>(1, cacheSize, EqualityComparer<int>.Default);
-                var classicLru = new ClassicLru<int, int>(1, cacheSize, EqualityComparer<int>.Default);
-                var memCache = new MemoryCacheAdaptor<int, int>(cacheSize);
-                var concurrentLfu = new ConcurrentLfu<int, int>(cacheSize);
+                var concurrentLru = new ConcurrentLru<long, int>(1, cacheSize, EqualityComparer<long>.Default);
+                var classicLru = new ClassicLru<long, int>(1, cacheSize, EqualityComparer<long>.Default);
+                var memCache = new MemoryCacheAdaptor<long, int>(cacheSize);
+                var concurrentLfu = new ConcurrentLfu<long, int>(cacheSize);
 
-                var concurrentLruScan = new ConcurrentLru<int, int>(1, cacheSize, EqualityComparer<int>.Default);
-                var classicLruScan = new ClassicLru<int, int>(1, cacheSize, EqualityComparer<int>.Default);
-                var memCacheScan = new MemoryCacheAdaptor<int, int>(cacheSize);
-                var concurrentLfuScan = new ConcurrentLfu<int, int>(cacheSize);
+                var concurrentLruScan = new ConcurrentLru<long, int>(1, cacheSize, EqualityComparer<long>.Default);
+                var classicLruScan = new ClassicLru<long, int>(1, cacheSize, EqualityComparer<long>.Default);
+                var memCacheScan = new MemoryCacheAdaptor<long, int>(cacheSize);
+                var concurrentLfuScan = new ConcurrentLfu<long, int>(cacheSize);
 
                 var d = a.s == 0.5 ? 0 : 1;
 
