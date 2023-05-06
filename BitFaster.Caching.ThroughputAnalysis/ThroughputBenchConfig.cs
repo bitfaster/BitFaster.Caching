@@ -18,8 +18,8 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class ZipfConfig : IThroughputBenchConfig
     {
-        private int iterations;
-        private long[] samples;
+        private readonly int iterations;
+        private readonly long[] samples;
 
         public ZipfConfig(int iterations, int sampleCount, double s, int n)
         {
@@ -40,9 +40,9 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class EvictionConfig : IThroughputBenchConfig
     {
-        private int iterations;
+        private readonly int iterations;
 
-        private long[][] samples;
+        private readonly long[][] samples;
 
         const int maxSamples = 10_000_000;
 
@@ -50,7 +50,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
         {
             if (sampleCount > maxSamples)
             {
-                throw new ArgumentOutOfRangeException("Sample count too large, will result in overlap");
+                throw new ArgumentOutOfRangeException(nameof(sampleCount), "Sample count too large, will result in overlap");
             }
 
             this.iterations = iterations;

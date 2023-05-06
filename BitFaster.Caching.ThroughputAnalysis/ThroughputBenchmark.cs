@@ -49,10 +49,10 @@ namespace BitFaster.Caching.ThroughputAnalysis
     {
         protected override double Run(int threads, IThroughputBenchConfig config, ICache<long, int> cache)
         {
-            Action<int> action = index => 
+            void action(int index)
             {
                 long[] samples = config.GetTestData(index);
-                Func<long, int> func = x => (int)x;
+                int func(long x) => (int)x;
 
                 for (int i = 0; i < config.Iterations; i++)
                 {
@@ -61,7 +61,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                         cache.GetOrAdd(samples[s], func);
                     }
                 }
-            };
+            }
 
             var time = ParallelBenchmark.Run(action, threads);
 
@@ -74,7 +74,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
     {
         protected override double Run(int threads, IThroughputBenchConfig config, ICache<long, int> cache)
         {
-            Action<int> action = index =>
+            void action(int index)
             {
                 long[] samples = config.GetTestData(index);
 
@@ -85,7 +85,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                         cache.AddOrUpdate(samples[s], (int)samples[s]);
                     }
                 }
-            };
+            }
 
             var time = ParallelBenchmark.Run(action, threads);
 

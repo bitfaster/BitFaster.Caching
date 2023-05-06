@@ -18,7 +18,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class FastConcurrentLruFactory : ICacheFactory
     {
-        private int capacity;
+        private readonly int capacity;
 
         public FastConcurrentLruFactory(int capacity)
         {
@@ -39,7 +39,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class ConcurrentLruFactory : ICacheFactory
     {
-        private int capacity;
+        private readonly int capacity;
 
         public ConcurrentLruFactory(int capacity)
         {
@@ -60,7 +60,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class MemoryCacheFactory : ICacheFactory
     {
-        private int capacity;
+        private readonly int capacity;
 
         public MemoryCacheFactory(int capacity)
         {
@@ -81,7 +81,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class ConcurrentLfuFactory : ICacheFactory
     {
-        private int capacity;
+        private readonly int capacity;
 
         public ConcurrentLfuFactory(int capacity)
         {
@@ -107,7 +107,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class ClassicLruFactory : ICacheFactory
     {
-        private int capacity;
+        private readonly int capacity;
 
         public ClassicLruFactory(int capacity)
         {

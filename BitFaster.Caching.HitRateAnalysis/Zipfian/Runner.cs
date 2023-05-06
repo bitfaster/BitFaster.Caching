@@ -65,7 +65,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Zipfian
             });
 
             List<AnalysisResult> results = new List<AnalysisResult>();
-            Func<long, int> func = x => (int)x;
+            int func(long x) => (int)x;
 
             foreach (var a in analysis)
             {

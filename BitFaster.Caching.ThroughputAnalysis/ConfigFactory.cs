@@ -22,7 +22,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                     return (new ReadThroughputBenchmark(), new ZipfConfig(iterations, samples, s, n), cacheSize);
                 case Mode.ReadWrite:
                     // cache holds 10% of all items
-                    cacheSize = cacheSize / 10;
+                    cacheSize /= 10;
                     return (new ReadThroughputBenchmark(), new ZipfConfig(iterations, samples, s, n), cacheSize);
                 case Mode.Update:
                     return (new UpdateThroughputBenchmark(), new ZipfConfig(iterations, samples, s, n), cacheSize);
