@@ -144,7 +144,7 @@ namespace BitFaster.Caching.Atomic
 
         private class Initializer
         {
-            private readonly object syncLock = new object();
+            private readonly object syncLock = new();
             private bool isTaskInitialized;
             private bool isTaskCompleted;
             private bool isDisposeRequested;

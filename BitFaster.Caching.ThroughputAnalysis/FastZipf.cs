@@ -1,54 +1,84 @@
 ﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
-using MathNet.Numerics;
 
 namespace BitFaster.Caching.ThroughputAnalysis
 {
-    // produces the same output as MathNet.Numerics Zipf.Samples(random, samples[], s, n)
-    // but about 20x faster.
+    /// <summary>
+    /// Generates an approximate Zipf distribution. Previous method was 20x faster than MathNet.Numerics, but could only generate 250 samples/sec.
+    /// This approximate method can generate > 1,000,000 samples/sec.
+    /// </summary>
     public class FastZipf
     {
-        static Random srandom = new Random(666);
+        private static readonly Random srandom = new(666);
 
-        public static int[] Generate(Random random, int sampleCount, double s, int n)
+        /// <summary>
+        /// Generate a zipf distribution.
+        /// </summary>
+        /// <param name="random">The random number generator to use.</param>
+        /// <param name="sampleCount">The number of samples.</param>
+        /// <param name="s">The skew. s=0 is a uniform distribution. As s increases, high-rank items become rapidly more likely than the rare low-ranked items.</param>
+        /// <param name="n">N: the cardinality. The total number of items.</param>
+        /// <returns>A zipf distribution.</returns>
+        public static long[] Generate(Random random, int sampleCount, double s, int n)
         {
-            double[] num = new double[sampleCount];
-            int[] samples = new int[sampleCount];
+            ZipfRejectionSampler sampler = new ZipfRejectionSampler(random, n, s);
 
+            long[] samples = new long[sampleCount];
             for (int i = 0; i < sampleCount; i++)
             {
-                while (num[i] == 0.0)
-                {
-                    num[i] = random.NextDouble();
-                }
+                samples[i] = sampler.Sample();
             }
-
-            double num2 = 1.0 / SpecialFunctions.GeneralHarmonic(n, s);
-
-            Parallel.ForEach(Enumerable.Range(0, samples.Length), (x, j) =>
-            {
-                double num3 = 0.0;
-                int i;
-
-                for (i = 1; i <= n; i++)
-                {
-                    num3 += num2 / Math.Pow(i, s);
-                    if (num3 >= num[x])
-                    {
-                        break;
-                    }
-                }
-
-                samples[x] = i;
-            });
 
             return samples;
         }
 
-        public static int[] Generate(int sampleCount, double s, int n)
+        /// <summary>
+        /// Generate a zipf distribution.
+        /// </summary>
+        /// <param name="sampleCount">The number of samples.</param>
+        /// <param name="s">The skew. s=0 is a uniform distribution. As s increases, high-rank items become rapidly more likely than the rare low-ranked items.</param>
+        /// <param name="n">N: the cardinality. The total number of items.</param>
+        /// <returns>A zipf distribution.</returns>
+        public static long[] Generate(int sampleCount, double s, int n)
         {
             return Generate(srandom, sampleCount, s, n);
+        }
+    }
+
+    // https://jasoncrease.medium.com/rejection-sampling-the-zipf-distribution-6b359792cffa
+    public class ZipfRejectionSampler
+    {
+        private readonly Random _rand;
+        private readonly double _skew;
+        private readonly double _t;
+
+        public ZipfRejectionSampler(Random random, long N, double skew)
+        {
+            _rand = random;
+            _skew = skew;
+            _t = (Math.Pow(N, 1 - skew) - skew) / (1 - skew);
+        }
+
+        public long Sample()
+        {
+            while (true)
+            {
+                double invB = bInvCdf(_rand.NextDouble());
+                long sampleX = (long)(invB + 1);
+                double yRand = _rand.NextDouble();
+                double ratioTop = Math.Pow(sampleX, -_skew);
+                double ratioBottom = sampleX <= 1 ? 1 / _t : Math.Pow(invB, -_skew) / _t;
+                double rat = (ratioTop) / (ratioBottom * _t);
+
+                if (yRand < rat)
+                    return sampleX;
+            }
+        }
+        private double bInvCdf(double p)
+        {
+            if (p * _t <= 1)
+                return p * _t;
+            else
+                return Math.Pow((p * _t) * (1 - _skew) + _skew, 1 / (1 - _skew));
         }
     }
 }

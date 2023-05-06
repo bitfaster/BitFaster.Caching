@@ -55,7 +55,7 @@ namespace BitFaster.Caching.Lfu
         private readonly StripedMpscBuffer<LfuNode<K, V>> readBuffer;
         private readonly MpscBoundedBuffer<LfuNode<K, V>> writeBuffer;
 
-        private readonly CacheMetrics metrics = new CacheMetrics();
+        private readonly CacheMetrics metrics = new();
 
         private readonly CmSketch<K> cmSketch;
 
@@ -65,8 +65,8 @@ namespace BitFaster.Caching.Lfu
 
         private readonly LfuCapacityPartition capacity;
 
-        private readonly DrainStatus drainStatus = new DrainStatus();
-        private readonly object maintenanceLock = new object();
+        private readonly DrainStatus drainStatus = new();
+        private readonly object maintenanceLock = new();
 
         private readonly IScheduler scheduler;
 
@@ -119,13 +119,13 @@ namespace BitFaster.Caching.Lfu
         public int Capacity => this.capacity.Capacity;
 
         ///<inheritdoc/>
-        public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(this.metrics);
+        public Optional<ICacheMetrics> Metrics => new(this.metrics);
 
         ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
 
         ///<inheritdoc/>
-        public CachePolicy Policy => new CachePolicy(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
+        public CachePolicy Policy => new(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
         ///<inheritdoc/>
         public ICollection<K> Keys => this.dictionary.Keys;
@@ -592,10 +592,7 @@ namespace BitFaster.Caching.Lfu
             // not be added back into the LRU.
             if (node.WasRemoved)
             {
-                if (node.list != null)
-                {
-                    node.list.Remove(node);
-                }
+                node.list?.Remove(node);
 
                 if (!node.WasDeleted)
                 {
@@ -668,10 +665,7 @@ namespace BitFaster.Caching.Lfu
                 var node = this.windowLru.First;
                 this.windowLru.RemoveFirst();
 
-                if (first == null)
-                {
-                    first = node;
-                }
+                first ??= node;
 
                 this.probationLru.AddLast(node);
                 node.Position = Position.Probation;
@@ -809,18 +803,13 @@ namespace BitFaster.Caching.Lfu
             public bool ShouldDrain(bool delayable)
             {
                 int status = Volatile.Read(ref this.drainStatus.Value);
-                switch (status)
+                return status switch
                 {
-                    case Idle:
-                        return !delayable;
-                    case Required:
-                        return true;
-                    case ProcessingToIdle:
-                    case ProcessingToRequired:
-                        return false;
-                    default:
-                        return false; // not reachable
-                }
+                    Idle => !delayable,
+                    Required => true,
+                    ProcessingToIdle or ProcessingToRequired => false,
+                    _ => false,// not reachable
+                };
             }
 
             public void Set(int newStatus)
@@ -861,7 +850,7 @@ namespace BitFaster.Caching.Lfu
         internal class CacheMetrics : ICacheMetrics
         {
             public long requestHitCount;
-            public Counter requestMissCount = new Counter();
+            public Counter requestMissCount = new();
             public long updatedCount;
             public long evictedCount;
 

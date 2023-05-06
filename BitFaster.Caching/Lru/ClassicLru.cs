@@ -21,9 +21,9 @@ namespace BitFaster.Caching.Lru
     {
         private readonly int capacity;
         private readonly ConcurrentDictionary<K, LinkedListNode<LruItem>> dictionary;
-        private readonly LinkedList<LruItem> linkedList = new LinkedList<LruItem>();
+        private readonly LinkedList<LruItem> linkedList = new();
 
-        private readonly CacheMetrics metrics = new CacheMetrics();
+        private readonly CacheMetrics metrics = new();
         private readonly CachePolicy policy;
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace BitFaster.Caching.Lru
         public int Capacity => this.capacity;
 
         ///<inheritdoc/>
-        public Optional<ICacheMetrics> Metrics => new Optional<ICacheMetrics>(this.metrics);
+        public Optional<ICacheMetrics> Metrics => new(this.metrics);
 
         ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();

@@ -29,12 +29,14 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             var (bench, dataConfig, capacity) = ConfigFactory.Create(mode, cacheSize, maxThreads);
 
-            var cachesToTest = new List<ICacheFactory>();
-            cachesToTest.Add(new ClassicLruFactory(capacity));
-            cachesToTest.Add(new MemoryCacheFactory(capacity));
-            cachesToTest.Add(new FastConcurrentLruFactory(capacity));
-            cachesToTest.Add(new ConcurrentLruFactory(capacity));
-            cachesToTest.Add(new ConcurrentLfuFactory(capacity));
+            var cachesToTest = new List<ICacheFactory>
+            {
+                new ClassicLruFactory(capacity),
+                new MemoryCacheFactory(capacity),
+                new FastConcurrentLruFactory(capacity),
+                new ConcurrentLruFactory(capacity),
+                new ConcurrentLfuFactory(capacity)
+            };
 
             var exporter = new Exporter(maxThreads);
             exporter.Initialize(cachesToTest);
@@ -57,7 +59,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                     (sched as IDisposable)?.Dispose();
 
                     cacheConfig.DataRow[tc.ToString()] = thru.ToString();
-                    Console.WriteLine($"{cacheConfig.Name} ({tc.ToString("00")}) {FormatThroughput(thru)} million ops/sec");
+                    Console.WriteLine($"{cacheConfig.Name} ({tc:00}) {FormatThroughput(thru)} million ops/sec");
                 }
             }
 
