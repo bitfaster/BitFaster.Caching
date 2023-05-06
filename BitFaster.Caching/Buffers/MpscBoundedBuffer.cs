@@ -255,6 +255,7 @@ namespace BitFaster.Caching.Buffers
         /// <remarks>
         /// Thread safe for single try take/drain + multiple try add.
         /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int DrainTo2(ArraySegment<T> output)
 #else
         /// <summary>
@@ -288,6 +289,7 @@ namespace BitFaster.Caching.Buffers
         /// <remarks>
         /// Thread safe for single try take/drain + multiple try add.
         /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int DrainTo2(Span<T> output)
 #endif
         {
