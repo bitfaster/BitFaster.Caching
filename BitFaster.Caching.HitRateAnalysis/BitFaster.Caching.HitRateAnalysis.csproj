@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -24,7 +24,7 @@
         <NoWarn>NU1701</NoWarn>
     </PackageReference>
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.1" />
+      <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>
