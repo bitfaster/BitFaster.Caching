@@ -522,7 +522,7 @@ namespace BitFaster.Caching.Lru
             {
                 (var dest, var count) = CycleHot(hotCount);
 
-                int maxAttempts = this.capacity.Cold + 1;
+                int maxAttempts = this.capacity.Cold + 2;
                 int attempts = 0;
 
                 while (attempts++ < maxAttempts)

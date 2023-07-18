@@ -355,7 +355,9 @@ namespace BitFaster.Caching.UnitTests.Lru
             private readonly List<object[]> _data = new List<object[]>
             {
                 new object[] { new EqualCapacityPartition(hotCap + warmCap + coldCap) },
-                //new object[] { new FavorWarmPartition(128, 0.6) },
+                new object[] { new FavorWarmPartition(128) },
+                new object[] { new FavorWarmPartition(256) },
+                new object[] { new FavorWarmPartition(128, 0.6) },
                 new object[] { new FavorWarmPartition(256, 0.6) },
             };
 
