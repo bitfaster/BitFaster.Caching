@@ -350,6 +350,44 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
         }
 
+        public class KeysInOrderTestDataGenerator : IEnumerable<object[]>
+        {
+            private readonly List<object[]> _data = new List<object[]>
+            {
+                new object[] { new EqualCapacityPartition(hotCap + warmCap + coldCap) },
+                //new object[] { new FavorWarmPartition(128, 0.6) },
+                new object[] { new FavorWarmPartition(256, 0.6) },
+            };
+
+            public IEnumerator<object[]> GetEnumerator() => _data.GetEnumerator();
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        [Theory]
+        [ClassData(typeof(KeysInOrderTestDataGenerator))]
+        public void WhenKeysAreContinuouslyRequestedInTheOrderTheyAreAddedCountIsBounded2(ICapacityPartition p)
+        {
+            // use default partition
+            int capacity = p.Hot + p.Cold + p.Warm;
+            lru = new ConcurrentLru<int, string>(capacity, p, EqualityComparer<int>.Default);
+            for (int i = 0; i < capacity + 10; i++)
+            {
+                lru.GetOrAdd(i, valueFactory.Create);
+
+                // Touch all items already cached in hot, warm and cold.
+                // This is worst case scenario, since we touch them in the exact order they
+                // were added.
+                for (int j = 0; j < i; j++)
+                {
+                    lru.GetOrAdd(j, valueFactory.Create);
+                }
+
+                testOutputHelper.WriteLine($"Total: {lru.Count} Hot: {lru.HotCount} Warm: {lru.WarmCount} Cold: {lru.ColdCount}");
+                lru.Count.Should().BeLessOrEqualTo(capacity + 9);
+            }
+        }
+
         [Fact]
         public void WhenValueIsNotTouchedAndExpiresFromHotValueIsBumpedToCold()
         {
