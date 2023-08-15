@@ -645,7 +645,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private (ItemDestination, int) CycleWarmUnchecked(ItemRemovedReason removedReason)
         {
-            Interlocked.Decrement(ref this.counter.warm);
+            int wc = Interlocked.Decrement(ref this.counter.warm);
 
             if (this.warmQueue.TryDequeue(out var item))
             {
@@ -654,7 +654,7 @@ namespace BitFaster.Caching.Lru
                 // When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
                 // This only happens when hit rate is high, in which case we can consider all items relatively equal in
                 // terms of which was least recently used.
-                if (where == ItemDestination.Warm && Volatile.Read(ref this.counter.warm) <= this.capacity.Warm)
+                if (where == ItemDestination.Warm && wc <= this.capacity.Warm)
                 {
                     return (ItemDestination.Warm, this.Move(item, where, removedReason));
                 }
@@ -689,7 +689,7 @@ namespace BitFaster.Caching.Lru
             {
                 var where = this.itemPolicy.RouteCold(item);
 
-                if (where == ItemDestination.Warm && Volatile.Read(ref this.counter.warm) <= this.capacity.Warm)
+                if (where == ItemDestination.Warm && Volatile.Read(ref this.counter.warm) < this.capacity.Warm)
                 {
                     return (ItemDestination.Warm, this.Move(item, where, removedReason));
                 }

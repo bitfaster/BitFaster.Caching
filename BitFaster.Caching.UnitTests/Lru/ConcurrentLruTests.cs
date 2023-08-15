@@ -355,10 +355,15 @@ namespace BitFaster.Caching.UnitTests.Lru
             private readonly List<object[]> _data = new List<object[]>
             {
                 new object[] { new EqualCapacityPartition(hotCap + warmCap + coldCap) },
+                new object[] { new EqualCapacityPartition(128) },
+                new object[] { new EqualCapacityPartition(256) },
+                new object[] { new EqualCapacityPartition(1024) },
                 new object[] { new FavorWarmPartition(128) },
                 new object[] { new FavorWarmPartition(256) },
+                new object[] { new FavorWarmPartition(1024) },
                 new object[] { new FavorWarmPartition(128, 0.6) },
                 new object[] { new FavorWarmPartition(256, 0.6) },
+                new object[] { new FavorWarmPartition(1024, 0.6) },
             };
 
             public IEnumerator<object[]> GetEnumerator() => _data.GetEnumerator();
@@ -370,9 +375,11 @@ namespace BitFaster.Caching.UnitTests.Lru
         [ClassData(typeof(KeysInOrderTestDataGenerator))]
         public void WhenKeysAreContinuouslyRequestedInTheOrderTheyAreAddedCountIsBounded2(ICapacityPartition p)
         {
-            // use default partition
             int capacity = p.Hot + p.Cold + p.Warm;
             lru = new ConcurrentLru<int, string>(capacity, p, EqualityComparer<int>.Default);
+
+            testOutputHelper.WriteLine($"Capacity: {lru.Capacity} (Hot: {p.Hot} Warm: {p.Warm} Cold: {p.Cold})");
+
             for (int i = 0; i < capacity + 10; i++)
             {
                 lru.GetOrAdd(i, valueFactory.Create);
@@ -386,7 +393,9 @@ namespace BitFaster.Caching.UnitTests.Lru
                 }
 
                 testOutputHelper.WriteLine($"Total: {lru.Count} Hot: {lru.HotCount} Warm: {lru.WarmCount} Cold: {lru.ColdCount}");
-                lru.Count.Should().BeLessOrEqualTo(capacity + 9);
+
+                // both warm and cold queues can have off by 1, so we consider overflow of 2 acceptable
+                lru.Count.Should().BeLessOrEqualTo(capacity + 2);
             }
         }
 
