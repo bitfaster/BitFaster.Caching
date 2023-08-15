@@ -522,7 +522,7 @@ namespace BitFaster.Caching.Lru
             {
                 (var dest, var count) = CycleHot(hotCount);
 
-                int maxAttempts = this.capacity.Cold + 2;
+                int maxAttempts = 5;
                 int attempts = 0;
 
                 while (attempts++ < maxAttempts)
@@ -555,6 +555,14 @@ namespace BitFaster.Caching.Lru
 
                         break;
                     }
+                }
+
+                if (attempts == maxAttempts && dest != ItemDestination.Remove)
+                {
+                    // If we get here, we have cycled the queues multiple times and still have not removed an item.
+                    // This can happen if the cache is full of items that are not discardable. In this case, we simply
+                    // discard the coldest item to avoid unbounded growth.
+                    TryRemoveCold(ItemRemovedReason.Evicted);
                 }
             }
             else
