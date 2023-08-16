@@ -541,13 +541,14 @@ namespace BitFaster.Caching.Lru
                         // Attempt to recover. It is possible that multiple threads read the same queue count here,
                         // so this process has races that could reduce cache size below capacity. This manifests
                         // in 'off by one' which is considered harmless.
-                        (dest, count) = CycleWarm(Volatile.Read(ref counter.warm));
+
+                        (dest, count) = CycleCold(Volatile.Read(ref counter.cold));
                         if (dest != ItemDestination.Remove)
                         {
                             continue;
                         }
 
-                        (dest, count) = CycleCold(Volatile.Read(ref counter.cold));
+                        (dest, count) = CycleWarm(Volatile.Read(ref counter.warm));
                         if (dest != ItemDestination.Remove)
                         {
                             continue;
@@ -557,12 +558,18 @@ namespace BitFaster.Caching.Lru
                     }
                 }
 
+                // If we get here, we have cycled the queues multiple times and still have not removed an item.
+                // This can happen if the cache is full of items that are not discardable. In this case, we simply
+                // discard the coldest item to avoid unbounded growth.
                 if (attempts == maxAttempts && dest != ItemDestination.Remove)
                 {
-                    // If we get here, we have cycled the queues multiple times and still have not removed an item.
-                    // This can happen if the cache is full of items that are not discardable. In this case, we simply
-                    // discard the coldest item to avoid unbounded growth.
-                    TryRemoveCold(ItemRemovedReason.Evicted);
+                    // if an item was last moved into warm, move the last warm item to cold to prevent an infinite cycle
+                    if (dest == ItemDestination.Warm)
+                    {
+                        LastWarmToCold();
+                    }
+
+                    RemoveCold(ItemRemovedReason.Evicted);
                 }
             }
             else
@@ -570,6 +577,20 @@ namespace BitFaster.Caching.Lru
                 // fill up the warm queue with new items until warm is full.
                 // else during warmup the cache will only use the hot + cold queues until any item is requested twice.
                 CycleDuringWarmup(hotCount);
+            }
+        }
+
+        private void LastWarmToCold()
+        {
+            Interlocked.Decrement(ref this.counter.warm);
+
+            if (this.hotQueue.TryDequeue(out var item))
+            {
+                this.Move(item, ItemDestination.Cold, ItemRemovedReason.Evicted);
+            }
+            else
+            {
+                Interlocked.Increment(ref this.counter.warm);
             }
         }
 
@@ -689,7 +710,7 @@ namespace BitFaster.Caching.Lru
             {
                 var where = this.itemPolicy.RouteCold(item);
 
-                if (where == ItemDestination.Warm && Volatile.Read(ref this.counter.warm) < this.capacity.Warm)
+                if (where == ItemDestination.Warm && Volatile.Read(ref this.counter.warm) <= this.capacity.Warm)
                 {
                     return (ItemDestination.Warm, this.Move(item, where, removedReason));
                 }
@@ -702,6 +723,20 @@ namespace BitFaster.Caching.Lru
             else
             {
                 return (ItemDestination.Cold, Interlocked.Increment(ref this.counter.cold));
+            }
+        }
+
+        private void RemoveCold(ItemRemovedReason removedReason) 
+        {
+            Interlocked.Decrement(ref this.counter.cold);
+
+            if (this.coldQueue.TryDequeue(out var item))
+            {
+                 this.Move(item, ItemDestination.Remove, removedReason);
+            }
+            else
+            {
+                Interlocked.Increment(ref this.counter.cold);
             }
         }
 
