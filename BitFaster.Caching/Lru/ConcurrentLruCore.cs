@@ -561,7 +561,7 @@ namespace BitFaster.Caching.Lru
                 // If we get here, we have cycled the queues multiple times and still have not removed an item.
                 // This can happen if the cache is full of items that are not discardable. In this case, we simply
                 // discard the coldest item to avoid unbounded growth.
-                if (/*attempts == maxAttempts &&*/ dest != ItemDestination.Remove)
+                if (dest != ItemDestination.Remove)
                 {
                     // if an item was last moved into warm, move the last warm item to cold to prevent enlarging warm
                     if (dest == ItemDestination.Warm)
