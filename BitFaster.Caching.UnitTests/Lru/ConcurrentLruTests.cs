@@ -522,7 +522,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.TryGet(0, out var value).Should().BeFalse();
         }
 
-        // logic change means that touched item can no longer return to warm from cold
         [Fact]
         public void WhenValueIsTouchedAndExpiresFromWarmValueIsBumpedBackIntoWarm()
         {
