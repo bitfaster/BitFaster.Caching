@@ -563,7 +563,7 @@ namespace BitFaster.Caching.Lru
                 // discard the coldest item to avoid unbounded growth.
                 if (attempts == maxAttempts && dest != ItemDestination.Remove)
                 {
-                    // if an item was last moved into warm, move the last warm item to cold to prevent an infinite cycle
+                    // if an item was last moved into warm, move the last warm item to cold to prevent enlarging warm
                     if (dest == ItemDestination.Warm)
                     {
                         LastWarmToCold();
