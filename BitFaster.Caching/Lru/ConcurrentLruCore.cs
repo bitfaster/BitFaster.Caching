@@ -557,40 +557,12 @@ namespace BitFaster.Caching.Lru
                         break;
                     }
                 }
-
-                // If we get here, we have cycled the queues multiple times and still have not removed an item.
-                // This can happen if the cache is full of items that are not discardable. In this case, we simply
-                // discard the coldest item to avoid unbounded growth.
-                if (attempts == maxAttempts && dest != ItemDestination.Remove)
-                {
-                    // if an item was last moved into warm, move the last warm item to cold to prevent enlarging warm
-                    if (dest == ItemDestination.Warm)
-                    {
-                        LastWarmToCold();
-                    }
-
-                    RemoveCold(ItemRemovedReason.Evicted);
-                }
             }
             else
             {
                 // fill up the warm queue with new items until warm is full.
                 // else during warmup the cache will only use the hot + cold queues until any item is requested twice.
                 CycleDuringWarmup(hotCount);
-            }
-        }
-
-        private void LastWarmToCold()
-        {
-            Interlocked.Decrement(ref this.counter.warm);
-
-            if (this.hotQueue.TryDequeue(out var item))
-            {
-                this.Move(item, ItemDestination.Cold, ItemRemovedReason.Evicted);
-            }
-            else
-            {
-                Interlocked.Increment(ref this.counter.warm);
             }
         }
 
@@ -723,20 +695,6 @@ namespace BitFaster.Caching.Lru
             else
             {
                 return (ItemDestination.Cold, Interlocked.Increment(ref this.counter.cold));
-            }
-        }
-
-        private void RemoveCold(ItemRemovedReason removedReason) 
-        {
-            Interlocked.Decrement(ref this.counter.cold);
-
-            if (this.coldQueue.TryDequeue(out var item))
-            {
-                 this.Move(item, ItemDestination.Remove, removedReason);
-            }
-            else
-            {
-                Interlocked.Increment(ref this.counter.cold);
             }
         }
 
