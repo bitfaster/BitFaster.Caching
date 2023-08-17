@@ -541,13 +541,14 @@ namespace BitFaster.Caching.Lru
                         // Attempt to recover. It is possible that multiple threads read the same queue count here,
                         // so this process has races that could reduce cache size below capacity. This manifests
                         // in 'off by one' which is considered harmless.
-                        (dest, count) = CycleWarm(Volatile.Read(ref counter.warm));
+
+                        (dest, count) = CycleCold(Volatile.Read(ref counter.cold));
                         if (dest != ItemDestination.Remove)
                         {
                             continue;
                         }
 
-                        (dest, count) = CycleCold(Volatile.Read(ref counter.cold));
+                        (dest, count) = CycleWarm(Volatile.Read(ref counter.warm));
                         if (dest != ItemDestination.Remove)
                         {
                             continue;
@@ -637,7 +638,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private (ItemDestination, int) CycleWarmUnchecked(ItemRemovedReason removedReason)
         {
-            Interlocked.Decrement(ref this.counter.warm);
+            int wc = Interlocked.Decrement(ref this.counter.warm);
 
             if (this.warmQueue.TryDequeue(out var item))
             {
@@ -646,7 +647,7 @@ namespace BitFaster.Caching.Lru
                 // When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
                 // This only happens when hit rate is high, in which case we can consider all items relatively equal in
                 // terms of which was least recently used.
-                if (where == ItemDestination.Warm && Volatile.Read(ref this.counter.warm) <= this.capacity.Warm)
+                if (where == ItemDestination.Warm && wc <= this.capacity.Warm)
                 {
                     return (ItemDestination.Warm, this.Move(item, where, removedReason));
                 }
