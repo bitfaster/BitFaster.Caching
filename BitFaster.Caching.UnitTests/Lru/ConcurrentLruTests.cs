@@ -364,7 +364,6 @@ namespace BitFaster.Caching.UnitTests.Lru
                 new object[] { new FavorWarmPartition(128, 0.6) },
                 new object[] { new FavorWarmPartition(256, 0.6) },
                 new object[] { new FavorWarmPartition(1024, 0.6) },
-               // new object[] { new FavorWarmPartition(16384, 0.6) },
             };
 
             public IEnumerator<object[]> GetEnumerator() => _data.GetEnumerator();
