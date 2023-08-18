@@ -25,7 +25,7 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Debug --no-restore
 
     - name: Test (4.8)
       run: dotnet test --no-restore --verbosity normal -f net48 --logger "trx;LogFileName=results4.trx"
@@ -81,7 +81,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: NuGet package
-        path: BitFaster.Caching/bin/Release/
+        path: BitFaster.Caching/bin/Debug/
 
   mac:
 
@@ -99,7 +99,7 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Debug --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal -f net6.0 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results.trx"
     - name: Publish coverage report to coveralls.io   
