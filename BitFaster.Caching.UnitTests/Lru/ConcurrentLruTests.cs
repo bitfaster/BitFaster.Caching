@@ -1127,6 +1127,26 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
         }
 
+        [Fact]
+        public async Task WhenItemsAreScannedInParallel3()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () => {
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        lru.TryUpdate(i + 1, i.ToString());
+                        lru.GetOrAdd(i + 1, i => i.ToString());
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
+
+                lru.Count.Should().BeLessThanOrEqualTo(9);
+            }
+        }
+
         private void Warmup()
         {
             lru.GetOrAdd(-1, valueFactory.Create);
