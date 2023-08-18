@@ -584,7 +584,7 @@ namespace BitFaster.Caching.Lru
         {
             Interlocked.Decrement(ref this.counter.warm);
 
-            if (this.hotQueue.TryDequeue(out var item))
+            if (this.warmQueue.TryDequeue(out var item))
             {
                 this.Move(item, ItemDestination.Cold, ItemRemovedReason.Evicted);
             }
