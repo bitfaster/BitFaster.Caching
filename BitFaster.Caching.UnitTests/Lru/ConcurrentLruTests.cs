@@ -364,8 +364,6 @@ namespace BitFaster.Caching.UnitTests.Lru
                 new object[] { new FavorWarmPartition(128, 0.6) },
                 new object[] { new FavorWarmPartition(256, 0.6) },
                 new object[] { new FavorWarmPartition(1024, 0.6) },
-                //new object[] { new FavorWarmPartition(10*1024, 0.6) },
-                //new object[] { new FavorWarmPartition(100*1024, 0.6) },
             };
 
             public IEnumerator<object[]> GetEnumerator() => _data.GetEnumerator();
@@ -393,13 +391,9 @@ namespace BitFaster.Caching.UnitTests.Lru
                 {
                     lru.GetOrAdd(j, valueFactory.Create);
                 }
-            }
 
-            // For larger cache sizes, I have observed capacity + 5. This is linked to the number of attempts.
-            // This is clearly a bug that needs further investigation, but considered not harmful at this point
-            // since growth is bounded, we just allow 4 more items than we should in the absolute worst case.
-            testOutputHelper.WriteLine($"Total: {lru.Count} Hot: {lru.HotCount} Warm: {lru.WarmCount} Cold: {lru.ColdCount}");
-            lru.Count.Should().BeLessOrEqualTo(capacity + 1);
+                lru.Count.Should().BeLessOrEqualTo(capacity + 1, $"Total: {lru.Count} Hot: {lru.HotCount} Warm: {lru.WarmCount} Cold: {lru.ColdCount}");
+            }
         }
 
         [Fact]
