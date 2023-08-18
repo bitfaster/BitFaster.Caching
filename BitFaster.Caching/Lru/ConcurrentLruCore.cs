@@ -542,13 +542,13 @@ namespace BitFaster.Caching.Lru
                         // so this process has races that could reduce cache size below capacity. This manifests
                         // in 'off by one' which is considered harmless.
 
-                        (dest, count) = CycleWarm(Volatile.Read(ref counter.cold));
+                        (dest, count) = CycleCold(Volatile.Read(ref counter.cold));
                         if (dest != ItemDestination.Remove)
                         {
                             continue;
                         }
 
-                        (dest, count) = CycleCold(Volatile.Read(ref counter.warm));
+                        (dest, count) = CycleWarm(Volatile.Read(ref counter.warm));
                         if (dest != ItemDestination.Remove)
                         {
                             continue;
