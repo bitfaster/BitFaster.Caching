@@ -1108,6 +1108,27 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public async Task WhenItemsAreScannedInParallelCapacityIsNotExceeded2()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () => {
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        // use the arg overload
+                        lru.GetOrAdd(i + 1, (i, s) => i.ToString(), "Foo");
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
+
+                // allow +/- 1 variance for capacity
+                lru.Count.Should().BeCloseTo(9, 1);
+            }
+        }
+
+        [Fact]
         public async Task WhenItemsAreScannedInParallel2()
         {
             for (int i = 0; i < 10; i++)
@@ -1136,6 +1157,26 @@ namespace BitFaster.Caching.UnitTests.Lru
                     for (int i = 0; i < 100000; i++)
                     {
                         lru.TryUpdate(i + 1, i.ToString());
+                        lru.GetOrAdd(i + 1, i => i.ToString());
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
+
+                lru.Count.Should().BeLessThanOrEqualTo(9);
+            }
+        }
+
+        [Fact]
+        public async Task WhenItemsAreScannedInParallel4()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () => {
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        lru.AddOrUpdate(i + 1, i.ToString());
                         lru.GetOrAdd(i + 1, i => i.ToString());
                     }
                 });
