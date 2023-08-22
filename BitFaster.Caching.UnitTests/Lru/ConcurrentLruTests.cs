@@ -1245,25 +1245,25 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.coldQueue.Count.Should().Be(cache.ColdCount, "cold queue has a corrupted count");
 
             // cache contents must be consistent with queued items
-            ValidateQueue(cache, this.hotQueue);
-            ValidateQueue(cache, this.warmQueue);
-            ValidateQueue(cache, this.coldQueue);
+            ValidateQueue(cache, this.hotQueue, "hot");
+            ValidateQueue(cache, this.warmQueue, "warm");
+            ValidateQueue(cache, this.coldQueue, "cold");
 
             // cache must be within capacity
             cache.Count.Should().BeLessThanOrEqualTo(cache.Capacity + 1, "capacity out of valid range");
         }
 
-        private static void ValidateQueue(ConcurrentLruCore<K, V, I, P, T> cache, ConcurrentQueue<I> queue)
+        private static void ValidateQueue(ConcurrentLruCore<K, V, I, P, T> cache, ConcurrentQueue<I> queue, string queueName)
         {
             foreach (var item in queue)
             {
                 if (item.WasRemoved)
                 {
-                    cache.TryGet(item.Key, out var value).Should().BeFalse();
+                    cache.TryGet(item.Key, out var value).Should().BeFalse($"{queueName} removed item {item.Key} was not removed");
                 }
                 else
                 {
-                    cache.TryGet(item.Key, out var value).Should().BeTrue();
+                    cache.TryGet(item.Key, out var value).Should().BeTrue($"{queueName} item {item.Key} was not present");
                 }
             }
         }
