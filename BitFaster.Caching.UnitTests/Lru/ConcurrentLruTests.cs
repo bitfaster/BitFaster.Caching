@@ -1112,6 +1112,27 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public async Task WhenSoakConcurrentGetAsyncCacheEndsInConsistentState()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.RunAsync(4, async () => {
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        await lru.GetOrAddAsync(i + 1, i => Task.FromResult(i.ToString()));
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
+
+                // allow +/- 1 variance for capacity
+                lru.Count.Should().BeCloseTo(9, 1);
+                RunIntegrityCheck();
+            }
+        }
+
+        [Fact]
         public async Task WhenSoakConcurrentGetWithArgCacheEndsInConsistentState()
         {
             for (int i = 0; i < 10; i++)
@@ -1121,6 +1142,28 @@ namespace BitFaster.Caching.UnitTests.Lru
                     {
                         // use the arg overload
                         lru.GetOrAdd(i + 1, (i, s) => i.ToString(), "Foo");
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
+
+                // allow +/- 1 variance for capacity
+                lru.Count.Should().BeCloseTo(9, 1);
+                RunIntegrityCheck();
+            }
+        }
+
+        [Fact]
+        public async Task WhenSoakConcurrentGetAsyncWithArgCacheEndsInConsistentState()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.RunAsync(4, async () => {
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        // use the arg overload
+                        await lru.GetOrAddAsync(i + 1, (i, s) => Task.FromResult(i.ToString()), "Foo");
                     }
                 });
 
@@ -1259,16 +1302,15 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 if (item.WasRemoved)
                 {
-                    // TODO: it is possible for the queues to contain 2 instances of the same key/item. One that was removed, and one that was added after the other was removed.
-                    // In this case, the dictionary may contain the value.
+                    // It is possible for the queues to contain 2 (or more) instances of the same key/item. One that was removed,
+                    // and one that was added after the other was removed.
+                    // In this case, the dictionary may contain the value only if the queues contain an entry for that key marked as WasRemoved == false.
                     if (cache.TryGet(item.Key, out var value))
                     {
-                        hotQueue.Union(warmQueue).Union(coldQueue).Any(i => i.Key.Equals(item.Key) && !i.WasRemoved).Should().BeTrue($"{queueName} removed item {item.Key} was not removed");
+                        hotQueue.Union(warmQueue).Union(coldQueue)
+                            .Any(i => i.Key.Equals(item.Key) && !i.WasRemoved)
+                            .Should().BeTrue($"{queueName} removed item {item.Key} was not removed");
                     }
-
-                    //cache.TryGet(item.Key, out var value).Should().BeFalse($"{queueName} removed item {item.Key} was not removed");
-
-
                 }
                 else
                 {
