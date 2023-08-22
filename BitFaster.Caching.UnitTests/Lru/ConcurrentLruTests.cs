@@ -1091,7 +1091,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenItemsAreScannedInParallelCapacityIsNotExceeded()
+        public async Task WhenSoakConcurrentGetCacheEndsInConsistentState()
         {
             for (int i = 0; i < 10; i++)
             { 
@@ -1112,7 +1112,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenItemsAreScannedInParallelCapacityIsNotExceeded2()
+        public async Task WhenSoakConcurrentGetWithArgCacheEndsInConsistentState()
         {
             for (int i = 0; i < 10; i++)
             {
@@ -1134,7 +1134,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenItemsAreScannedInParallel2()
+        public async Task WhenSoakConcurrentGetAndRemoveCacheEndsInConsistentState()
         {
             for (int i = 0; i < 10; i++)
             {
@@ -1154,7 +1154,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenItemsAreScannedInParallel3()
+        public async Task WhenSoakConcurrentGetAndUpdateCacheEndsInConsistentState()
         {
             for (int i = 0; i < 10; i++)
             {
@@ -1174,7 +1174,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenItemsAreScannedInParallel4()
+        public async Task WhenSoakConcurrentGetAndAddCacheEndsInConsistentState()
         {
             for (int i = 0; i < 10; i++)
             {
@@ -1253,16 +1253,22 @@ namespace BitFaster.Caching.UnitTests.Lru
             cache.Count.Should().BeLessThanOrEqualTo(cache.Capacity + 1, "capacity out of valid range");
         }
 
-        private static void ValidateQueue(ConcurrentLruCore<K, V, I, P, T> cache, ConcurrentQueue<I> queue, string queueName)
+        private void ValidateQueue(ConcurrentLruCore<K, V, I, P, T> cache, ConcurrentQueue<I> queue, string queueName)
         {
             foreach (var item in queue)
             {
                 if (item.WasRemoved)
                 {
-                    cache.TryGet(item.Key, out var value).Should().BeFalse($"{queueName} removed item {item.Key} was not removed");
-
                     // TODO: it is possible for the queues to contain 2 instances of the same key/item. One that was removed, and one that was added after the other was removed.
                     // In this case, the dictionary may contain the value.
+                    if (cache.TryGet(item.Key, out var value))
+                    {
+                        hotQueue.Union(warmQueue).Union(coldQueue).Any(i => i.Key.Equals(item.Key) && !i.WasRemoved).Should().BeTrue($"{queueName} removed item {item.Key} was not removed");
+                    }
+
+                    //cache.TryGet(item.Key, out var value).Should().BeFalse($"{queueName} removed item {item.Key} was not removed");
+
+
                 }
                 else
                 {
