@@ -7,6 +7,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using System.Collections.Concurrent;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -1104,6 +1107,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                 // allow +/- 1 variance for capacity
                 lru.Count.Should().BeCloseTo(9, 1);
+                RunIntegrityCheck();
             }
         }
 
@@ -1125,6 +1129,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                 // allow +/- 1 variance for capacity
                 lru.Count.Should().BeCloseTo(9, 1);
+                RunIntegrityCheck();
             }
         }
 
@@ -1144,7 +1149,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 this.testOutputHelper.WriteLine($"{lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
                 this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
-                lru.Count.Should().BeLessThanOrEqualTo(9);
+                RunIntegrityCheck();
             }
         }
 
@@ -1164,7 +1169,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 this.testOutputHelper.WriteLine($"{lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
                 this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
-                lru.Count.Should().BeLessThanOrEqualTo(9);
+                RunIntegrityCheck();
             }
         }
 
@@ -1184,7 +1189,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 this.testOutputHelper.WriteLine($"{lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
                 this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
-                lru.Count.Should().BeLessThanOrEqualTo(9);
+                RunIntegrityCheck();
             }
         }
 
@@ -1199,6 +1204,68 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(-7, valueFactory.Create);
             lru.GetOrAdd(-8, valueFactory.Create);
             lru.GetOrAdd(-9, valueFactory.Create);
+        }
+
+        private void RunIntegrityCheck()
+        {
+            new ConcurrentLruIntegrityChecker<int, string, LruItem<int, string>, LruPolicy<int, string>, TelemetryPolicy<int, string>>(this.lru).Validate();
+        }
+    }
+
+    public class ConcurrentLruIntegrityChecker<K, V, I, P, T>
+        where I : LruItem<K, V>
+        where P : struct, IItemPolicy<K, V, I>
+        where T : struct, ITelemetryPolicy<K, V>
+    {
+        private readonly ConcurrentLruCore<K, V, I, P, T> cache;
+        
+        private readonly ConcurrentQueue<I> hotQueue;
+        private readonly ConcurrentQueue<I> warmQueue;
+        private readonly ConcurrentQueue<I> coldQueue;
+
+        private static FieldInfo hotQueueField = typeof(ConcurrentLruCore<K, V, I, P, T>).GetField("hotQueue", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo warmQueueField = typeof(ConcurrentLruCore<K, V, I, P, T>).GetField("warmQueue", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo coldQueueField = typeof(ConcurrentLruCore<K, V, I, P, T>).GetField("coldQueue", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        public ConcurrentLruIntegrityChecker(ConcurrentLruCore<K, V, I, P, T> cache)
+        {
+            this.cache = cache;
+
+            // get queues via reflection
+            this.hotQueue = (ConcurrentQueue<I>)hotQueueField.GetValue(cache);
+            this.warmQueue = (ConcurrentQueue<I>)warmQueueField.GetValue(cache);
+            this.coldQueue = (ConcurrentQueue<I>)coldQueueField.GetValue(cache);
+        }
+
+        public void Validate()
+        {
+            // queue counters must be consistent with queues
+            this.hotQueue.Count.Should().Be(cache.HotCount, "hot queue has a corrupted count");
+            this.warmQueue.Count.Should().Be(cache.WarmCount, "warm queue has a corrupted count");
+            this.coldQueue.Count.Should().Be(cache.ColdCount, "cold queue has a corrupted count");
+
+            // cache contents must be consistent with queued items
+            ValidateQueue(cache, this.hotQueue);
+            ValidateQueue(cache, this.warmQueue);
+            ValidateQueue(cache, this.coldQueue);
+
+            // cache must be within capacity
+            cache.Count.Should().BeLessThanOrEqualTo(cache.Capacity + 1, "capacity out of valid range");
+        }
+
+        private static void ValidateQueue(ConcurrentLruCore<K, V, I, P, T> cache, ConcurrentQueue<I> queue)
+        {
+            foreach (var item in queue)
+            {
+                if (item.WasRemoved)
+                {
+                    cache.TryGet(item.Key, out var value).Should().BeFalse();
+                }
+                else
+                {
+                    cache.TryGet(item.Key, out var value).Should().BeTrue();
+                }
+            }
         }
     }
 }
