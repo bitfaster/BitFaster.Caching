@@ -1260,6 +1260,9 @@ namespace BitFaster.Caching.UnitTests.Lru
                 if (item.WasRemoved)
                 {
                     cache.TryGet(item.Key, out var value).Should().BeFalse($"{queueName} removed item {item.Key} was not removed");
+
+                    // TODO: it is possible for the queues to contain 2 instances of the same key/item. One that was removed, and one that was added after the other was removed.
+                    // In this case, the dictionary may contain the value.
                 }
                 else
                 {
