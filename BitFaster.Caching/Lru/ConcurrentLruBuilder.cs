@@ -1,4 +1,5 @@
 ﻿
+using System.Diagnostics.CodeAnalysis;
 using BitFaster.Caching.Lru.Builder;
 
 namespace BitFaster.Caching.Lru
@@ -37,6 +38,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
+        [ExcludeFromCodeCoverage]
         public override ICache<K, V> Build()
         {
             return info switch
