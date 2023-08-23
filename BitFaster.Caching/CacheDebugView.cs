@@ -12,9 +12,7 @@ namespace BitFaster.Caching
         public CacheDebugView(ICache<K, V> cache)
         {
             if (cache is null)
-            {
                 Throw.ArgNull(ExceptionArgument.cache);
-            }
 
             this.cache = cache;
         }

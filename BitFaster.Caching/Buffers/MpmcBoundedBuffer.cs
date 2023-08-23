@@ -24,9 +24,7 @@ namespace BitFaster.Caching.Buffers
         public MpmcBoundedBuffer(int boundedLength)
         {
             if (boundedLength < 0)
-            {
                 Throw.ArgOutOfRange(nameof(boundedLength));
-            }
 
             // must be power of 2 to use & slotsMask instead of %
             boundedLength = BitOps.CeilingPowerOfTwo(boundedLength);

@@ -54,14 +54,10 @@ namespace BitFaster.Caching.Lru
         private static (int hot, int warm, int cold) ComputeQueueCapacity(int capacity, double warmRatio)
         {
             if (capacity < 3)
-            {
                 Throw.ArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
-            }
 
             if (warmRatio <= 0.0 || warmRatio >= 1.0)
-            {
                 Throw.ArgOutOfRange(nameof(warmRatio), "warmRatio must be between 0.0 and 1.0");
-            }
 
             int warm2 = (int)(capacity * warmRatio);
             int hot2 = (capacity - warm2) / 2;
