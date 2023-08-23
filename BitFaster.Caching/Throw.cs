@@ -9,8 +9,14 @@ namespace BitFaster.Caching
     {
         public static void ArgNull(ExceptionArgument arg) => throw CreateArgumentNullException(arg);
 
+#if NETCOREAPP3_0_OR_GREATER
+        [DoesNotReturn]
+#endif
         public static void ArgOutOfRange(string paramName) => throw CreateArgumentOutOfRangeException(paramName);
 
+#if NETCOREAPP3_0_OR_GREATER
+        [DoesNotReturn]
+#endif
         public static void ArgOutOfRange(string paramName, string message) => throw CreateArgumentOutOfRangeException(paramName, message);
 
         [ExcludeFromCodeCoverage]
