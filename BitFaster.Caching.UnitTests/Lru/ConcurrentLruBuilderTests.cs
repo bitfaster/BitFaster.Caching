@@ -1,17 +1,28 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
 using Xunit;
+using System.Reflection;
+using BitFaster.Caching.Lru.Builder;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
     public class ConcurrentLruBuilderTests
     {
+        [Fact]
+        public void WhenLruInfoIsNull()
+        {
+            Type type = typeof(ConcurrentLruBuilder<int, int>);
+            
+            ConstructorInfo ctor = type.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(LruInfo<int>) }, null);
+            var builder = (ConcurrentLruBuilder<int, int>)ctor.Invoke(new object[] { null });
+
+            Action build = () => { builder.Build(); };
+
+            build.Should().Throw<NullReferenceException>();
+        }
+
         [Fact]
         public void TestFastLru()
         {
