@@ -38,7 +38,6 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
-        [ExcludeFromCodeCoverage]
         public override ICache<K, V> Build()
         {
             return info switch
