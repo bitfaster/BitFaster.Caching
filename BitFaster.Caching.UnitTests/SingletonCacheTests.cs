@@ -10,6 +10,25 @@ namespace BitFaster.Caching.UnitTests
     public class SingletonCacheTests
     {
         [Fact]
+        public void WhenItemAddedAndRemovedCounIsCorrect()
+        {
+            var cache = new SingletonCache<int, object>();
+            cache.Count.Should().Be(0);
+
+            var lifetime1 = cache.Acquire(1);
+            cache.Count.Should().Be(1);
+
+            var lifetime2 = cache.Acquire(2);
+            cache.Count.Should().Be(2);
+
+            lifetime1.Dispose();
+            cache.Count.Should().Be(1);
+
+            lifetime2.Dispose();
+            cache.Count.Should().Be(0);
+        }
+
+        [Fact]
         public void AcquireWithSameKeyUsingCustomComparerReturnsSameLifetime()
         {
             var cache = new SingletonCache<string, object>(1, 3, StringComparer.OrdinalIgnoreCase);
@@ -171,6 +190,27 @@ namespace BitFaster.Caching.UnitTests
             }));
 
             await Task.WhenAll(tasks);
+        }
+
+        [Fact]
+        public async Task WhenSoakConcurrentGetCacheEndsInConsistentState()
+        {
+            var cache = new SingletonCache<int, DisposeTest>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () => {
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        using (var handle = cache.Acquire(i))
+                        {
+                            handle.Value.ThrowIfDisposed();
+                        }
+                    }
+                });
+
+                cache.Count.Should().Be(0);
+            }
         }
 
         public class DisposeTest : IDisposable

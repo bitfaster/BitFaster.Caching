@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace BitFaster.Caching
 {
@@ -35,6 +36,11 @@ namespace BitFaster.Caching
         {
             this.cache = new ConcurrentDictionary<TKey, ReferenceCount<TValue>>(concurrencyLevel, capacity, comparer);
         }
+
+        /// <summary>
+        /// Gets the number of items currently held in the cache.
+        /// </summary>
+        public int Count => this.cache.Skip(0).Count();
 
         /// <summary>
         /// Acquire a singleton value for the specified key. The lifetime guarantees the value is alive and is a singleton 
