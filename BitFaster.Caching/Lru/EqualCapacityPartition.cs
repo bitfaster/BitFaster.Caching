@@ -37,9 +37,7 @@ namespace BitFaster.Caching.Lru
         private static (int hot, int warm, int cold) ComputeQueueCapacity(int capacity)
         {
             if (capacity < 3)
-            {
                 Throw.ArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
-            }
 
             int hotCapacity = capacity / 3;
             int warmCapacity = capacity / 3;

@@ -26,9 +26,7 @@ namespace BitFaster.Caching.Atomic
         public AtomicFactoryAsyncCache(ICache<K, AsyncAtomicFactory<K, V>> cache)
         {
             if (cache == null)
-            {
                 Throw.ArgNull(ExceptionArgument.cache);
-            }
 
             this.cache = cache;
 

@@ -15,19 +15,13 @@ namespace BitFaster.Caching.Lru
         public static void Validate(this ICapacityPartition capacity)
         {
             if (capacity.Cold < 1)
-            { 
                 Throw.ArgOutOfRange(nameof(capacity.Cold));
-            }
 
             if (capacity.Warm < 1)
-            {
                 Throw.ArgOutOfRange(nameof(capacity.Warm));
-            }
 
             if (capacity.Hot < 1)
-            {
                 Throw.ArgOutOfRange(nameof(capacity.Hot));
-            }
         }
     }
 }

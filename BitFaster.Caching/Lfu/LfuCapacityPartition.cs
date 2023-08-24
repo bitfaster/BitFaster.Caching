@@ -121,9 +121,7 @@ namespace BitFaster.Caching.Lfu
         private static (int window, int mainProtected, int mainProbation) ComputeQueueCapacity(int capacity, double mainPercentage)
         {
             if (capacity < 3)
-            {
                 Throw.ArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
-            }
 
             int window = capacity - (int)(mainPercentage * capacity);
             int mainProtected = (int)(0.8 * (capacity - window));

@@ -12,9 +12,7 @@ namespace BitFaster.Caching
         public ScopedCacheDebugView(IScopedCache<K, V> cache)
         {
             if (cache is null)
-            {
                 Throw.ArgNull(ExceptionArgument.cache);
-            }
 
             this.cache = cache;
         }

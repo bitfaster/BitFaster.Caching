@@ -25,9 +25,7 @@ namespace BitFaster.Caching.Atomic
         public AtomicFactoryScopedCache(ICache<K, ScopedAtomicFactory<K, V>> cache)
         {
             if (cache == null)
-            {
                 Throw.ArgNull(ExceptionArgument.cache);
-            }
 
             this.cache = cache;
             
@@ -106,9 +104,7 @@ namespace BitFaster.Caching.Atomic
                 spinwait.SpinOnce();
 
                 if (c++ > ScopedCacheDefaults.MaxRetry)
-                {
                     Throw.ScopedRetryFailure();
-                }
             }
         }
 

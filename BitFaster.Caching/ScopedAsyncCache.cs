@@ -28,9 +28,7 @@ namespace BitFaster.Caching
         public ScopedAsyncCache(IAsyncCache<K, Scoped<V>> cache)
         {
             if (cache == null)
-            {
                 Throw.ArgNull(ExceptionArgument.cache);
-            }
 
             this.cache = cache;
         }
@@ -79,9 +77,7 @@ namespace BitFaster.Caching
                 spinwait.SpinOnce();
 
                 if (c++ > ScopedCacheDefaults.MaxRetry)
-                {
                     Throw.ScopedRetryFailure();
-                }
             }
         }
 
@@ -112,9 +108,7 @@ namespace BitFaster.Caching
                 spinwait.SpinOnce();
 
                 if (c++ > ScopedCacheDefaults.MaxRetry)
-                {
                     Throw.ScopedRetryFailure();
-                }
             }
         }
 #endif

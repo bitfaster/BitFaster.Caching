@@ -76,14 +76,10 @@ namespace BitFaster.Caching.Lru
             T telemetryPolicy)
         {
             if (capacity == null)
-            {
                 Throw.ArgNull(ExceptionArgument.capacity);
-            }
 
             if (comparer == null)
-            {
                 Throw.ArgNull(ExceptionArgument.comparer);
-            }
 
             capacity.Validate();
             this.capacity = capacity;
@@ -418,9 +414,7 @@ namespace BitFaster.Caching.Lru
             int capacity = this.Capacity;
 
             if (itemCount < 1 || itemCount > capacity)
-            {
                 Throw.ArgOutOfRange(nameof(itemCount), "itemCount must be greater than or equal to one, and less than the capacity of the cache.");
-            }
 
             // clamp itemCount to number of items actually in the cache
             itemCount = Math.Min(itemCount, this.HotCount + this.WarmCount + this.ColdCount);

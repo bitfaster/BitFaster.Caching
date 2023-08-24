@@ -46,14 +46,10 @@ namespace BitFaster.Caching.Lru
         public ClassicLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer)
         {
             if (capacity < 3)
-            {
                 Throw.ArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
-            }
 
             if (comparer == null)
-            {
                 Throw.ArgNull(ExceptionArgument.comparer);
-            }
 
             this.capacity = capacity;
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, this.capacity + 1, comparer);

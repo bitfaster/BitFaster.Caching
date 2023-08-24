@@ -124,28 +124,20 @@ namespace BitFaster.Caching.Lfu
         internal static void ValidateNewNode(LfuNode<K, V> node)
         {
             if (node == null)
-            {
                 Throw.ArgNull(ExceptionArgument.node);
-            }
 
             if (node.list != null)
-            {
                 Throw.InvalidOp("Node is already attached to a list.");
-            }
         }
 
         [ExcludeFromCodeCoverage]
         internal void ValidateNode(LfuNode<K, V> node)
         {
             if (node == null)
-            {
                 Throw.ArgNull(ExceptionArgument.node);
-            }
 
             if (node.list != this)
-            {
                 Throw.InvalidOp("Node is already attached to a different list.");
-            }
         }
 #endif
 
@@ -172,9 +164,7 @@ namespace BitFaster.Caching.Lfu
                 get
                 {
                     if (index == 0 || (index == list.Count + 1))
-                    {
                         Throw.InvalidOp("Out of bounds");
-                    }
 
                     return Current;
                 }
