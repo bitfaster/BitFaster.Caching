@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 
@@ -11,7 +12,7 @@ namespace BitFaster.Caching.Atomic
     /// <typeparam name="K">The type of the key.</typeparam>
     /// <typeparam name="V">The type of the value.</typeparam>
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
-    public sealed class AtomicFactory<K, V>
+    public sealed class AtomicFactory<K, V> : IEquatable<AtomicFactory<K, V>>
     {
         private Initializer initializer;
 
@@ -102,6 +103,23 @@ namespace BitFaster.Caching.Atomic
             }
 
             return value;
+        }
+
+        ///<inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as AtomicFactory<K, V>);
+        }
+
+        ///<inheritdoc/>
+        public bool Equals(AtomicFactory<K, V> other)
+        {
+            if (other is null || !IsValueCreated || !other.IsValueCreated)
+            {
+                return false;
+            }
+
+            return EqualityComparer<V>.Default.Equals(ValueIfCreated, other.ValueIfCreated);
         }
 
         private class Initializer

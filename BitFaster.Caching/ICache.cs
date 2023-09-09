@@ -67,9 +67,20 @@ namespace BitFaster.Caching
         /// in the cache, or the new value if the key was not in the cache.</returns>
         V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument) => this.GetOrAdd(key, k => valueFactory(k, factoryArgument));
 
-        bool TryRemove(K key, out V value);
+        /// <summary>
+        /// Attempts to remove and return the value that has the specified key.
+        /// </summary>
+        /// <param name="key">The key of the element to remove.</param>
+        /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
+        /// <returns>true if the object was removed successfully; otherwise, false.</returns>
+        bool TryRemove(K key, out V value) => throw new NotSupportedException();
 
-        bool TryRemove(KeyValuePair<K, V> item);
+        /// <summary>
+        /// Attempts to remove 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        bool TryRemove(KeyValuePair<K, V> item) => throw new NotSupportedException();
 #endif
 
         /// <summary>
