@@ -67,9 +67,9 @@ namespace BitFaster.Caching
         /// in the cache, or the new value if the key was not in the cache.</returns>
         V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument) => this.GetOrAdd(key, k => valueFactory(k, factoryArgument));
 
-        //bool TryRemove(K key, out V value);
+        bool TryRemove(K key, out V value);
 
-        //bool TryRemove(KeyValuePair<K, V> item);
+        bool TryRemove(KeyValuePair<K, V> item);
 #endif
 
         /// <summary>

@@ -237,6 +237,16 @@ namespace BitFaster.Caching.Lru
             return await this.GetOrAddAsync(key, valueFactory, factoryArgument);
         }
 
+        public bool TryRemove(KeyValuePair<K, V> item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool TryRemove(K key, out V value)
+        {
+            throw new NotImplementedException();
+        }
+
         ///<inheritdoc/>
         public bool TryRemove(K key)
         {

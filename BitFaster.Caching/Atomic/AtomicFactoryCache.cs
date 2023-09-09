@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq.Expressions;
 
 namespace BitFaster.Caching.Atomic
 {
@@ -103,6 +104,37 @@ namespace BitFaster.Caching.Atomic
             value = default;
             return false;
         }
+
+        // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+        ///<inheritdoc/>
+        ///<remarks>
+        ///If the value factory is still executing, returns false.
+        ///</remarks>
+        public bool TryRemove(KeyValuePair<K, V> item)
+        {
+            // TODO: AtomicFactory must be comparable via EqualityComparer<V>.Default
+            var kvp = new KeyValuePair<K, AtomicFactory<K, V>>(item.Key, new AtomicFactory<K, V>(item.Value));
+
+            return cache.TryRemove(kvp);
+        }
+
+        ///<inheritdoc/>
+        /// <remarks>
+        /// If the value factory is still executing, the default value will be returned.
+        /// </remarks>
+        public bool TryRemove(K key, out V value)
+        {
+            if (cache.TryRemove(key, out var atomic))
+            {
+                value = atomic.ValueIfCreated;
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+#endif
 
         ///<inheritdoc/>
         public bool TryRemove(K key)
