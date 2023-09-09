@@ -91,6 +91,15 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public void WhenNotRemovedValueIsDefault()
+        {
+            this.cache.AddOrUpdate(1, 1);
+            this.cache.TryRemove(2, out var value);
+
+            value.Should().Be(0);
+        }
+
+        [Fact]
         public void WhenRemoveKeyValueAndValueDoesntMatchDontRemove()
         {
             this.cache.AddOrUpdate(1, 1);
