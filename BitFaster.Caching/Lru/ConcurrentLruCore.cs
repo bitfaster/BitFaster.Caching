@@ -293,13 +293,18 @@ namespace BitFaster.Caching.Lru
             }
         }
 
-        ///<inheritdoc/>
-        public bool TryRemove(K key)
+        private bool TryRemoveInternal(K key, V value, bool matchValue, out V oldValue)
         {
             while (true)
-            { 
+            {
                 if (this.dictionary.TryGetValue(key, out var existing))
                 {
+                    if (matchValue & !EqualityComparer<V>.Default.Equals(existing.Value, value))
+                    {
+                        oldValue = default;
+                        return false;
+                    }
+
                     var kvp = new KeyValuePair<K, I>(key, existing);
 
                     // hidden atomic remove
@@ -309,27 +314,45 @@ namespace BitFaster.Caching.Lru
                         // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
                         // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
                         // from the queue.
-                        existing.WasAccessed = false;
-                        existing.WasRemoved = true;
+                        kvp.Value.WasAccessed = false;
+                        kvp.Value.WasRemoved = true;
 
-                        this.telemetryPolicy.OnItemRemoved(existing.Key, existing.Value, ItemRemovedReason.Removed);
+                        this.telemetryPolicy.OnItemRemoved(kvp.Key, kvp.Value.Value, ItemRemovedReason.Removed);
 
                         // serialize dispose (common case dispose not thread safe)
-                        lock (existing)
+                        lock (kvp.Value)
                         {
-                            Disposer<V>.Dispose(existing.Value);
+                            Disposer<V>.Dispose(kvp.Value.Value);
                         }
 
+                        oldValue = existing.Value;
                         return true;
                     }
 
                     // it existed, but we couldn't remove - this means value was replaced afer the TryGetValue (a race), try again
                 }
                 else
-                { 
+                {
+                    oldValue = default;
                     return false;
                 }
             }
+        }
+
+        public bool TryRemove(KeyValuePair<K, V> item)
+        {
+            return TryRemoveInternal(item.Key, item.Value, matchValue: true, out V _);
+        }
+
+        public bool TryRemove(K key, out V value)
+        {
+            return TryRemoveInternal(key, default, matchValue: false, out value);
+        }
+
+        ///<inheritdoc/>
+        public bool TryRemove(K key)
+        {
+            return TryRemoveInternal(key, default, matchValue: false, out _);
         }
 
         ///<inheritdoc/>
