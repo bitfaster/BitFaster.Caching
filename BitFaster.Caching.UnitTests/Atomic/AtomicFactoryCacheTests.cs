@@ -13,10 +13,17 @@ namespace BitFaster.Caching.UnitTests.Atomic
     public class AtomicFactoryCacheTests
     {
         private const int capacity = 6;
-        private readonly AtomicFactoryCache<int, int> cache = new(new ConcurrentLru<int, AtomicFactory<int, int>>(capacity));
+        private readonly ConcurrentLru<int, AtomicFactory<int, int>> innerCache;
+        private readonly AtomicFactoryCache<int, int> cache;
 
         private List<ItemRemovedEventArgs<int, int>> removedItems = new();
         private List<ItemUpdatedEventArgs<int, int>> updatedItems = new();
+
+        public AtomicFactoryCacheTests()
+        {
+            innerCache = new ConcurrentLru<int, AtomicFactory<int, int>>(capacity);
+            cache = new(innerCache);
+        }
 
         [Fact]
         public void WhenInnerCacheIsNullCtorThrows()
@@ -91,10 +98,20 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public void WhenRemoveKeyValueAndValueDoesMatchRemove()
+        public void WhenRemoveKeyValueAndValueDoesMatchThenRemove()
         {
             this.cache.AddOrUpdate(1, 1);
             this.cache.TryRemove(new KeyValuePair<int, int>(1, 1)).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenRemoveKeyValueAndValueIsNotCreatedDoesNotRemove()
+        {
+            // seed the inner cache with an not yet created value
+            this.innerCache.AddOrUpdate(1, new AtomicFactory<int, int>());
+
+            // try to remove with the default value (0)
+            this.cache.TryRemove(new KeyValuePair<int, int>(1, 0)).Should().BeFalse();
         }
 
         [Fact]
