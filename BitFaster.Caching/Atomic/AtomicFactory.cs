@@ -122,6 +122,17 @@ namespace BitFaster.Caching.Atomic
             return EqualityComparer<V>.Default.Equals(ValueIfCreated, other.ValueIfCreated);
         }
 
+        ///<inheritdoc/>
+        public override int GetHashCode()
+        {
+            if (!IsValueCreated)
+            {
+                return 0;
+            }
+
+            return ValueIfCreated.GetHashCode();
+        }
+
         private class Initializer
         {
             private readonly object syncLock = new();

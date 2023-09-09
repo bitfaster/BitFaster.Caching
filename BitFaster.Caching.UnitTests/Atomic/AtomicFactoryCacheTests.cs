@@ -72,8 +72,31 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.removedItems.First().Key.Should().Be(1);
         }
 
-// backcompat: remove conditional compile
+        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
+        [Fact]
+        public void WhenRemovedValueIsReturned()
+        {
+            this.cache.AddOrUpdate(1, 1);
+            this.cache.TryRemove(1, out var value);
+
+            value.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenRemoveKeyValueAndValueDoesntMatchDontRemove()
+        {
+            this.cache.AddOrUpdate(1, 1);
+            this.cache.TryRemove(new KeyValuePair<int, int>(1, 2)).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenRemoveKeyValueAndValueDoesMatchRemove()
+        {
+            this.cache.AddOrUpdate(1, 1);
+            this.cache.TryRemove(new KeyValuePair<int, int>(1, 1)).Should().BeTrue();
+        }
+
         [Fact]
         public void WhenUpdatedEventHandlerIsRegisteredItIsFired()
         {

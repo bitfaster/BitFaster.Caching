@@ -76,10 +76,10 @@ namespace BitFaster.Caching
         bool TryRemove(K key, out V value) => throw new NotSupportedException();
 
         /// <summary>
-        /// Attempts to remove 
+        /// Attempts to remove the specified key value pair.
         /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// <param name="item">The item to remove.</param>
+        /// <returns>true if the item was removed successfully; otherwise, false.</returns>
         bool TryRemove(KeyValuePair<K, V> item) => throw new NotSupportedException();
 #endif
 
