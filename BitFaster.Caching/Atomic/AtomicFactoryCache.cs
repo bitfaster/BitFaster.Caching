@@ -113,9 +113,7 @@ namespace BitFaster.Caching.Atomic
         ///</remarks>
         public bool TryRemove(KeyValuePair<K, V> item)
         {
-            // TODO: AtomicFactory must be comparable via EqualityComparer<V>.Default
             var kvp = new KeyValuePair<K, AtomicFactory<K, V>>(item.Key, new AtomicFactory<K, V>(item.Value));
-
             return cache.TryRemove(kvp);
         }
 

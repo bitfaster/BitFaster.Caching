@@ -292,68 +292,64 @@ namespace BitFaster.Caching.Lru
                 }
             }
         }
-
-        private bool TryRemoveInternal(K key, V value, bool matchValue, out V oldValue)
-        {
-            while (true)
-            {
-                if (this.dictionary.TryGetValue(key, out var existing))
-                {
-                    if (matchValue & !EqualityComparer<V>.Default.Equals(existing.Value, value))
-                    {
-                        oldValue = default;
-                        return false;
-                    }
-
-                    var kvp = new KeyValuePair<K, I>(key, existing);
-
-                    // hidden atomic remove
-                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
-                    if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
-                    {
-                        // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
-                        // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
-                        // from the queue.
-                        kvp.Value.WasAccessed = false;
-                        kvp.Value.WasRemoved = true;
-
-                        this.telemetryPolicy.OnItemRemoved(kvp.Key, kvp.Value.Value, ItemRemovedReason.Removed);
-
-                        // serialize dispose (common case dispose not thread safe)
-                        lock (kvp.Value)
-                        {
-                            Disposer<V>.Dispose(kvp.Value.Value);
-                        }
-
-                        oldValue = existing.Value;
-                        return true;
-                    }
-
-                    // it existed, but we couldn't remove - this means value was replaced afer the TryGetValue (a race), try again
-                }
-                else
-                {
-                    oldValue = default;
-                    return false;
-                }
-            }
-        }
-
+        
         public bool TryRemove(KeyValuePair<K, V> item)
         {
-            return TryRemoveInternal(item.Key, item.Value, matchValue: true, out V _);
+            if (this.dictionary.TryGetValue(item.Key, out var existing))
+            {
+                if (EqualityComparer<V>.Default.Equals(existing.Value, item.Value))
+                {
+                    var kvp = new KeyValuePair<K, I>(item.Key, existing);
+
+                    if (this.dictionary.TryRemove(kvp))
+                    {
+                        OnRemove(item.Key, kvp.Value);
+                        return true;
+                    }
+                }
+
+                // it existed, but we couldn't remove - this means value was replaced afer the TryGetValue (a race)
+            }
+
+            return false;
         }
 
         public bool TryRemove(K key, out V value)
         {
-            return TryRemoveInternal(key, default, matchValue: false, out value);
+            if (this.dictionary.TryRemove(key, out var item))
+            {
+                OnRemove(key, item);
+                value = item.Value;
+                return true;
+            }
+
+            value = default;
+            return false;
         }
 
         ///<inheritdoc/>
         public bool TryRemove(K key)
         {
-            return TryRemoveInternal(key, default, matchValue: false, out _);
+            return TryRemove(key, out _);
         }
+
+        private void OnRemove(K key, I item)
+        {
+            // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
+            // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
+            // from the queue.
+            item.WasAccessed = false;
+            item.WasRemoved = true;
+
+            this.telemetryPolicy.OnItemRemoved(key, item.Value, ItemRemovedReason.Removed);
+
+            // serialize dispose (common case dispose not thread safe)
+            lock (item.Value)
+            {
+                Disposer<V>.Dispose(item.Value);
+            }
+        }
+
 
         ///<inheritdoc/>
         ///<remarks>Note: Calling this method does not affect LRU order.</remarks>
