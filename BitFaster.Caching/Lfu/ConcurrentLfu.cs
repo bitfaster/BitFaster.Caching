@@ -320,25 +320,42 @@ namespace BitFaster.Caching.Lfu
 
         public bool TryRemove(KeyValuePair<K, V> item)
         {
-            throw new NotImplementedException();
+            if (this.dictionary.TryGetValue(item.Key, out var node))
+            {
+                if (EqualityComparer<V>.Default.Equals(node.Value, item.Value))
+                {
+                    var kvp = new KeyValuePair<K, LfuNode<K,V>>(item.Key, node);
+
+                    if (this.dictionary.TryRemove(kvp))
+                    {
+                        node.WasRemoved = true;
+                        AfterWrite(node);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         public bool TryRemove(K key, out V value)
-        {
-            throw new NotImplementedException();
-        }
-
-        ///<inheritdoc/>
-        public bool TryRemove(K key)
         {
             if (this.dictionary.TryRemove(key, out var node))
             {
                 node.WasRemoved = true;
                 AfterWrite(node);
+                value = node.Value;
                 return true;
             }
 
+            value = default;
             return false;
+        }
+
+        ///<inheritdoc/>
+        public bool TryRemove(K key)
+        {
+            return this.TryRemove(key, out var _);
         }
 
         ///<inheritdoc/>

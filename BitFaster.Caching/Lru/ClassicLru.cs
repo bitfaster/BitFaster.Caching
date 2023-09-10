@@ -239,39 +239,60 @@ namespace BitFaster.Caching.Lru
 
         public bool TryRemove(KeyValuePair<K, V> item)
         {
-            throw new NotImplementedException();
+            if (this.dictionary.TryGetValue(item.Key, out var node))
+            {
+                if (EqualityComparer<V>.Default.Equals(node.Value.Value, item.Value))
+                {
+                    var kvp = new KeyValuePair<K, LinkedListNode<LruItem>>(item.Key, node);
+
+                    if (this.dictionary.TryRemove(kvp))
+                    {
+                        OnRemove(node);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         public bool TryRemove(K key, out V value)
         {
-            throw new NotImplementedException();
+            if (dictionary.TryRemove(key, out var node))
+            {
+                OnRemove(node);
+                value = node.Value.Value;
+                return true;
+            }
+
+            value = default;
+            return false;
+
         }
 
         ///<inheritdoc/>
         public bool TryRemove(K key)
         {
-            if (dictionary.TryRemove(key, out var node))
+            return TryRemove(key, out var _);
+        }
+
+        private void OnRemove(LinkedListNode<LruItem> node)
+        {
+            // If the node has already been removed from the list, ignore.
+            // E.g. thread A reads x from the dictionary. Thread B adds a new item, removes x from 
+            // the List & Dictionary. Now thread A will try to move x to the end of the list.
+            if (node.List != null)
             {
-                // If the node has already been removed from the list, ignore.
-                // E.g. thread A reads x from the dictionary. Thread B adds a new item, removes x from 
-                // the List & Dictionary. Now thread A will try to move x to the end of the list.
-                if (node.List != null)
+                lock (this.linkedList)
                 {
-                    lock (this.linkedList)
+                    if (node.List != null)
                     {
-                        if (node.List != null)
-                        {
-                            linkedList.Remove(node);
-                        }
+                        linkedList.Remove(node);
                     }
                 }
-
-                Disposer<V>.Dispose(node.Value.Value);
-
-                return true;
             }
 
-            return false;
+            Disposer<V>.Dispose(node.Value.Value);
         }
 
         ///<inheritdoc/>
