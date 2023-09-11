@@ -237,6 +237,11 @@ namespace BitFaster.Caching.Lru
             return await this.GetOrAddAsync(key, valueFactory, factoryArgument);
         }
 
+        /// <summary>
+        /// Attempts to remove the specified key value pair.
+        /// </summary>
+        /// <param name="item">The item to remove.</param>
+        /// <returns>true if the item was removed successfully; otherwise, false.</returns>
         public bool TryRemove(KeyValuePair<K, V> item)
         {
             if (this.dictionary.TryGetValue(item.Key, out var node))
@@ -260,6 +265,12 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
+        /// <summary>
+        /// Attempts to remove and return the value that has the specified key.
+        /// </summary>
+        /// <param name="key">The key of the element to remove.</param>
+        /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
+        /// <returns>true if the object was removed successfully; otherwise, false.</returns>
         public bool TryRemove(K key, out V value)
         {
             if (dictionary.TryRemove(key, out var node))
