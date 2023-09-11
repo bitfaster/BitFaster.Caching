@@ -1197,6 +1197,26 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public async Task WhenSoakConcurrentGetAndRemoveKvpCacheEndsInConsistentState()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () => {
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        lru.TryRemove(new KeyValuePair<int, string>(i + 1, (i + 1).ToString()));
+                        lru.GetOrAdd(i + 1, i => i.ToString());
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
+
+                RunIntegrityCheck();
+            }
+        }
+
+        [Fact]
         public async Task WhenSoakConcurrentGetAndUpdateCacheEndsInConsistentState()
         {
             for (int i = 0; i < 10; i++)

@@ -363,6 +363,24 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenItemExistsTryRemovesItemAndReturnsTrue()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryRemove(new KeyValuePair<int, string>(1, "1")).Should().BeTrue();
+            lru.TryGet(1, out var value).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenTryRemoveKvpDoesntMatchItemNotRemovedAndReturnsFalse()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryRemove(new KeyValuePair<int, string>(1, "2")).Should().BeFalse();
+            lru.TryGet(1, out var value).Should().BeTrue();
+        }
+
+        [Fact]
         public void WhenItemIsRemovedItIsDisposed()
         {
             var lruOfDisposable = new ClassicLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
