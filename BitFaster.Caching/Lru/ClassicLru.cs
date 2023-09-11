@@ -245,7 +245,11 @@ namespace BitFaster.Caching.Lru
                 {
                     var kvp = new KeyValuePair<K, LinkedListNode<LruItem>>(item.Key, node);
 
+#if NET6_0_OR_GREATER
                     if (this.dictionary.TryRemove(kvp))
+#else
+                    if (((ICollection<KeyValuePair<K, LinkedListNode<LruItem>>>)this.dictionary).Remove(kvp))
+#endif
                     {
                         OnRemove(node);
                         return true;

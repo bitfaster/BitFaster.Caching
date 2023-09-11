@@ -300,8 +300,11 @@ namespace BitFaster.Caching.Lru
                 if (EqualityComparer<V>.Default.Equals(existing.Value, item.Value))
                 {
                     var kvp = new KeyValuePair<K, I>(item.Key, existing);
-
+#if NET6_0_OR_GREATER
                     if (this.dictionary.TryRemove(kvp))
+#else
+                    if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
+#endif
                     {
                         OnRemove(item.Key, kvp.Value);
                         return true;

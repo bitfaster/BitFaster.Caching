@@ -326,7 +326,11 @@ namespace BitFaster.Caching.Lfu
                 {
                     var kvp = new KeyValuePair<K, LfuNode<K,V>>(item.Key, node);
 
+#if NET6_0_OR_GREATER
                     if (this.dictionary.TryRemove(kvp))
+#else
+                    if (((ICollection<KeyValuePair<K, LfuNode<K, V>>>)this.dictionary).Remove(kvp))
+#endif
                     {
                         node.WasRemoved = true;
                         AfterWrite(node);
