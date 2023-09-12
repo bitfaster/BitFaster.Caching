@@ -582,12 +582,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void WhenKeyIsRemovedItIsRemoved()
+        public void WhenKeyExistsTryRemoveRemovesItem()
         {
             cache.GetOrAdd(1, k => k);
 
             cache.TryRemove(1).Should().BeTrue();
-            cache.TryGet(1, out var value).Should().BeFalse();
+            cache.TryGet(1, out _).Should().BeFalse();
         }
 
         [Fact]
@@ -600,16 +600,16 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void WhenItemIsRemovedItIsRemoved()
+        public void WhenItemExistsTryRemoveRemovesItem()
         {
             cache.GetOrAdd(1, k => k);
 
             cache.TryRemove(new KeyValuePair<int, int>(1, 1)).Should().BeTrue();
-            cache.TryGet(1, out var value).Should().BeFalse();
+            cache.TryGet(1, out _).Should().BeFalse();
         }
 
         [Fact]
-        public void WhenItemDoesntMatchItIsNotRemoved()
+        public void WhenItemDoesntMatchTryRemoveDoesNotRemove()
         {
             cache.GetOrAdd(1, k => k);
 
