@@ -237,31 +237,78 @@ namespace BitFaster.Caching.Lru
             return await this.GetOrAddAsync(key, valueFactory, factoryArgument);
         }
 
-        ///<inheritdoc/>
-        public bool TryRemove(K key)
+        /// <summary>
+        /// Attempts to remove the specified key value pair.
+        /// </summary>
+        /// <param name="item">The item to remove.</param>
+        /// <returns>true if the item was removed successfully; otherwise, false.</returns>
+        public bool TryRemove(KeyValuePair<K, V> item)
         {
-            if (dictionary.TryRemove(key, out var node))
+            if (this.dictionary.TryGetValue(item.Key, out var node))
             {
-                // If the node has already been removed from the list, ignore.
-                // E.g. thread A reads x from the dictionary. Thread B adds a new item, removes x from 
-                // the List & Dictionary. Now thread A will try to move x to the end of the list.
-                if (node.List != null)
+                if (EqualityComparer<V>.Default.Equals(node.Value.Value, item.Value))
                 {
-                    lock (this.linkedList)
+                    var kvp = new KeyValuePair<K, LinkedListNode<LruItem>>(item.Key, node);
+
+#if NET6_0_OR_GREATER
+                    if (this.dictionary.TryRemove(kvp))
+#else
+                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                    if (((ICollection<KeyValuePair<K, LinkedListNode<LruItem>>>)this.dictionary).Remove(kvp))
+#endif
                     {
-                        if (node.List != null)
-                        {
-                            linkedList.Remove(node);
-                        }
+                        OnRemove(node);
+                        return true;
                     }
                 }
-
-                Disposer<V>.Dispose(node.Value.Value);
-
-                return true;
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Attempts to remove and return the value that has the specified key.
+        /// </summary>
+        /// <param name="key">The key of the element to remove.</param>
+        /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
+        /// <returns>true if the object was removed successfully; otherwise, false.</returns>
+        public bool TryRemove(K key, out V value)
+        {
+            if (dictionary.TryRemove(key, out var node))
+            {
+                OnRemove(node);
+                value = node.Value.Value;
+                return true;
+            }
+
+            value = default;
+            return false;
+
+        }
+
+        ///<inheritdoc/>
+        public bool TryRemove(K key)
+        {
+            return TryRemove(key, out var _);
+        }
+
+        private void OnRemove(LinkedListNode<LruItem> node)
+        {
+            // If the node has already been removed from the list, ignore.
+            // E.g. thread A reads x from the dictionary. Thread B adds a new item, removes x from 
+            // the List & Dictionary. Now thread A will try to move x to the end of the list.
+            if (node.List != null)
+            {
+                lock (this.linkedList)
+                {
+                    if (node.List != null)
+                    {
+                        linkedList.Remove(node);
+                    }
+                }
+            }
+
+            Disposer<V>.Dispose(node.Value.Value);
         }
 
         ///<inheritdoc/>

@@ -64,6 +64,58 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public void WhenValueNotCreatedHashCodeIsZero()
+        {
+            new AtomicFactory<int, int>()
+                .GetHashCode()
+                .Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenValueCreatedHashCodeIsValueHashCode()
+        {
+            new AtomicFactory<int, int>(1)
+                .GetHashCode()
+                .Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenValueNotCreatedEqualsFalse()
+        {
+            var a = new AtomicFactory<int, int>();
+            var b = new AtomicFactory<int, int>();
+
+            a.Equals(b).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenOtherValueNotCreatedEqualsFalse()
+        {
+            var a = new AtomicFactory<int, int>(1);
+            var b = new AtomicFactory<int, int>();
+
+            a.Equals(b).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenArgNullEqualsFalse()
+        {
+            new AtomicFactory<int, int>(1)
+                .Equals(null)
+                .Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenArgObjectValuesAreSameEqualsTrue()
+        {
+            object other = new AtomicFactory<int, int>(1);
+
+            new AtomicFactory<int, int>(1)
+                .Equals(other)
+                .Should().BeTrue();
+        }
+
+        [Fact]
         public async Task WhenCallersRunConcurrentlyResultIsFromWinner()
         {
             var enter = new ManualResetEvent(false);

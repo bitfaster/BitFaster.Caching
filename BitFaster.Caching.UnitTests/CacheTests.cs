@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
@@ -25,6 +26,28 @@ namespace BitFaster.Caching.UnitTests
                 1, 
                 (k, a) => k + a, 
                 2).Should().Be(3);
+        }
+
+        [Fact]
+        public void WhenCacheInterfaceDefaultTryRemoveKeyThrows()
+        {
+            var cache = new Mock<ICache<int, int>>();
+            cache.CallBase = true;
+
+            Action tryRemove = () => { cache.Object.TryRemove(1, out var value); };
+
+            tryRemove.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
+        public void WhenCacheInterfaceDefaultTryRemoveKeyValueThrows()
+        {
+            var cache = new Mock<ICache<int, int>>();
+            cache.CallBase = true;
+
+            Action tryRemove = () => { cache.Object.TryRemove(new KeyValuePair<int, int>(1, 1)); };
+
+            tryRemove.Should().Throw<NotSupportedException>();
         }
 
         [Fact]
