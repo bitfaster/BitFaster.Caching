@@ -318,17 +318,60 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        ///<inheritdoc/>
-        public bool TryRemove(K key)
+        /// <summary>
+        /// Attempts to remove the specified key value pair.
+        /// </summary>
+        /// <param name="item">The item to remove.</param>
+        /// <returns>true if the item was removed successfully; otherwise, false.</returns>
+        public bool TryRemove(KeyValuePair<K, V> item)
+        {
+            if (this.dictionary.TryGetValue(item.Key, out var node))
+            {
+                if (EqualityComparer<V>.Default.Equals(node.Value, item.Value))
+                {
+                    var kvp = new KeyValuePair<K, LfuNode<K,V>>(item.Key, node);
+
+#if NET6_0_OR_GREATER
+                    if (this.dictionary.TryRemove(kvp))
+#else
+                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                    if (((ICollection<KeyValuePair<K, LfuNode<K, V>>>)this.dictionary).Remove(kvp))
+#endif
+                    {
+                        node.WasRemoved = true;
+                        AfterWrite(node);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Attempts to remove and return the value that has the specified key.
+        /// </summary>
+        /// <param name="key">The key of the element to remove.</param>
+        /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
+        /// <returns>true if the object was removed successfully; otherwise, false.</returns>
+        public bool TryRemove(K key, out V value)
         {
             if (this.dictionary.TryRemove(key, out var node))
             {
                 node.WasRemoved = true;
                 AfterWrite(node);
+                value = node.Value;
                 return true;
             }
 
+            value = default;
             return false;
+        }
+
+        ///<inheritdoc/>
+        public bool TryRemove(K key)
+        {
+            return this.TryRemove(key, out var _);
         }
 
         ///<inheritdoc/>

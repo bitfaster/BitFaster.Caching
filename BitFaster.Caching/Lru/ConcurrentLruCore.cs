@@ -293,44 +293,78 @@ namespace BitFaster.Caching.Lru
             }
         }
 
+        /// <summary>
+        /// Attempts to remove the specified key value pair.
+        /// </summary>
+        /// <param name="item">The item to remove.</param>
+        /// <returns>true if the item was removed successfully; otherwise, false.</returns>
+        public bool TryRemove(KeyValuePair<K, V> item)
+        {
+            if (this.dictionary.TryGetValue(item.Key, out var existing))
+            {
+                if (EqualityComparer<V>.Default.Equals(existing.Value, item.Value))
+                {
+                    var kvp = new KeyValuePair<K, I>(item.Key, existing);
+#if NET6_0_OR_GREATER
+                    if (this.dictionary.TryRemove(kvp))
+#else
+                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                    if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
+#endif
+                    {
+                        OnRemove(item.Key, kvp.Value);
+                        return true;
+                    }
+                }
+
+                // it existed, but we couldn't remove - this means value was replaced afer the TryGetValue (a race)
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Attempts to remove and return the value that has the specified key.
+        /// </summary>
+        /// <param name="key">The key of the element to remove.</param>
+        /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
+        /// <returns>true if the object was removed successfully; otherwise, false.</returns>
+        public bool TryRemove(K key, out V value)
+        {
+            if (this.dictionary.TryRemove(key, out var item))
+            {
+                OnRemove(key, item);
+                value = item.Value;
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
         ///<inheritdoc/>
         public bool TryRemove(K key)
         {
-            while (true)
-            { 
-                if (this.dictionary.TryGetValue(key, out var existing))
-                {
-                    var kvp = new KeyValuePair<K, I>(key, existing);
+            return TryRemove(key, out _);
+        }
 
-                    // hidden atomic remove
-                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
-                    if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
-                    {
-                        // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
-                        // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
-                        // from the queue.
-                        existing.WasAccessed = false;
-                        existing.WasRemoved = true;
+        private void OnRemove(K key, I item)
+        {
+            // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
+            // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
+            // from the queue.
+            item.WasAccessed = false;
+            item.WasRemoved = true;
 
-                        this.telemetryPolicy.OnItemRemoved(existing.Key, existing.Value, ItemRemovedReason.Removed);
+            this.telemetryPolicy.OnItemRemoved(key, item.Value, ItemRemovedReason.Removed);
 
-                        // serialize dispose (common case dispose not thread safe)
-                        lock (existing)
-                        {
-                            Disposer<V>.Dispose(existing.Value);
-                        }
-
-                        return true;
-                    }
-
-                    // it existed, but we couldn't remove - this means value was replaced afer the TryGetValue (a race), try again
-                }
-                else
-                { 
-                    return false;
-                }
+            // serialize dispose (common case dispose not thread safe)
+            lock (item.Value)
+            {
+                Disposer<V>.Dispose(item.Value);
             }
         }
+
 
         ///<inheritdoc/>
         ///<remarks>Note: Calling this method does not affect LRU order.</remarks>
