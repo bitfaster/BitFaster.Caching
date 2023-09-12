@@ -591,6 +591,15 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void WhenKeyExistsTryRemoveReturnsValue()
+        {
+            cache.GetOrAdd(1, valueFactory.Create);
+
+            cache.TryRemove(1, out var value).Should().BeTrue();
+            value.Should().Be(1);
+        }
+
+        [Fact]
         public void WhenItemIsRemovedItIsRemoved()
         {
             cache.GetOrAdd(1, k => k);

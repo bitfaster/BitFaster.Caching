@@ -637,6 +637,15 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenKeyExistsTryRemoveReturnsValue()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryRemove(1, out var value).Should().BeTrue();
+            value.Should().Be("1");
+        }
+
+        [Fact]
         public void WhenItemIsRemovedItIsDisposed()
         {
             var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
