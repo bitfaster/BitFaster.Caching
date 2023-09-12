@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace BitFaster.Caching.Atomic
 {
@@ -28,6 +29,29 @@ namespace BitFaster.Caching.Atomic
             if (ret && output.IsValueCreated)
             {
                 value = output.ValueIfCreated;
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        public static bool TryRemove<K, V>(this ConcurrentDictionary<K, AtomicFactory<K, V>> cache, KeyValuePair<K, V> item)
+        {
+            var kvp = new KeyValuePair<K, AtomicFactory<K, V>>(item.Key, new AtomicFactory<K, V>(item.Value));
+#if NET6_0_OR_GREATER
+            return cache.TryRemove(kvp);
+#else
+            // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+            return ((ICollection<KeyValuePair<K, AtomicFactory<K, V>>>)cache).Remove(kvp);
+#endif
+        }
+
+        public static bool TryRemove<K, V>(this ConcurrentDictionary<K, AtomicFactory<K, V>> cache, K key, out V value)
+        {
+            if (cache.TryRemove(key, out var atomic))
+            {
+                value = atomic.ValueIfCreated;
                 return true;
             }
 
