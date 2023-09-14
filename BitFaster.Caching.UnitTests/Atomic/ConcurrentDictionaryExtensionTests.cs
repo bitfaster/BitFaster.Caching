@@ -30,6 +30,12 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public void WhenKeyDoesNotExistTryGetReturnsFalse()
+        {
+            dictionary.TryGetValue(1, out _).Should().BeFalse();
+        }
+
+        [Fact]
         public void WhenItemIsAddedItCanBeRemovedByKey()
         {
             dictionary.GetOrAdd(1, k => k);
@@ -45,6 +51,12 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             dictionary.TryRemove(new KeyValuePair<int, int>(1, 1)).Should().BeTrue();
             dictionary.TryGetValue(1, out _).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenKeyDoesNotExistTryRemoveReturnsFalse()
+        {
+            dictionary.TryRemove(1, out int _).Should().BeFalse();
         }
     }
 }
