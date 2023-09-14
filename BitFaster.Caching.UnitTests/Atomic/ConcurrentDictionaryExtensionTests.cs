@@ -32,7 +32,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         [Fact]
         public void WhenKeyDoesNotExistTryGetReturnsFalse()
         {
-            dictionary.TryGetValue(1, out _).Should().BeFalse();
+            dictionary.TryGetValue(1, out int _).Should().BeFalse();
         }
 
         [Fact]
