@@ -68,14 +68,14 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         [Fact]
         public void WhenBacklogExceededTasksAreDropped()
         {
-            var tcs = new TaskCompletionSource<bool>();
+            var mre = new ManualResetEvent(false);
 
             for (int i = 0; i < BackgroundThreadScheduler.MaxBacklog * 2; i++)
             {
-                scheduler.Run(() => { tcs.Task.Wait(); });
+                scheduler.Run(() => { mre.WaitOne(); });
             }
 
-            tcs.SetResult(true);
+            mre.Set();
 
             scheduler.RunCount.Should().BeCloseTo(BackgroundThreadScheduler.MaxBacklog, 1);
         }
