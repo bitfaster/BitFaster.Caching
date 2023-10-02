@@ -677,64 +677,34 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WhenClearedCacheIsEmpty()
         {
-            int key = 0;
-            const int count = 20;
+            cache.GetOrAdd(1, k => k);
+            cache.GetOrAdd(2, k => k);
 
-            for (int j = 0; j < 100;  j++) 
-            { 
-                cache = new ConcurrentLfu<int, int>(1, count, new NullScheduler(), EqualityComparer<int>.Default);
+            cache.Clear();
 
-                for (int i = 0; i < count; i++)
-                {
-                    cache.GetOrAdd(key++, k => k);
-                }
-
-                cache.Count.Should().Be(count);
-
-                cache.Clear();
-
-                cache.Count.Should().Be(0);
-                cache.TryGet(1, out var _).Should().BeFalse();
-            }
+            cache.Count.Should().Be(0);
+            cache.TryGet(1, out var _).Should().BeFalse();
         }
 
         [Fact]
-        public async Task TestClear()
+        public void WhenBackgroundMaintenanceRepeatedReadThenClearResultsInEmpty()
         {
-            var cache = new ConcurrentLfuBuilder<string, string>()
-                .WithScheduler(new BackgroundThreadScheduler())
-                .WithCapacity(40)
-                .WithAtomicGetOrAdd()
-                .AsAsyncCache()
-                .Build();
+            cache = new ConcurrentLfu<int, int>(1, 40, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
 
-            var emptyCount = 0;
+            var overflow = 0;
             for (var a = 0; a < 200; a++)
             {
-                for (var i = 0; i < 10; i++)
+                for (var i = 0; i < 40; i++)
                 {
-                    var str = "a" + i;
-                    await getOrAdd(str);
+                    cache.GetOrAdd(i, k => k);
                 }
 
                 cache.Clear();
-                //cache.Clear(); // attempt to trigger maintenance after previous clear operation
-
-                if (cache.Count != 0)
-                {
-                    emptyCount += cache.Count;
-                    emptyCount += cache.Count;
-                }
-
-                
+                overflow += cache.Count;
             }
 
-            emptyCount.Should().Be(0);
-
-            async Task getOrAdd(string key)
-            {
-                await cache.GetOrAddAsync(key, Task.FromResult);
-            }
+            // there should be no iteration of the loop where count != 0
+            overflow.Should().Be(0);
         }
 
         [Fact]
