@@ -195,8 +195,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public async Task WhenKeyIsRequesteItIsCreatedAndCachedAsync()
         {
-            var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
-            var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+            var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync);
+            var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync);
 
             valueFactory.timesCalled.Should().Be(1);
             result1.Should().Be(result2);
@@ -205,8 +205,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public async Task WhenKeyIsRequestedWithArgItIsCreatedAndCachedAsync()
         {
-            var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync, "x").ConfigureAwait(false);
-            var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync, "y").ConfigureAwait(false);
+            var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync, "x");
+            var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync, "y");
 
             valueFactory.timesCalled.Should().Be(1);
             result1.Should().Be(result2);
@@ -227,8 +227,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public async Task WhenDifferentKeysAreRequesteValueIsCreatedForEachAsync()
         {
-            var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
-            var result2 = await lru.GetOrAddAsync(2, valueFactory.CreateAsync).ConfigureAwait(false);
+            var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync);
+            var result2 = await lru.GetOrAddAsync(2, valueFactory.CreateAsync);
 
             valueFactory.timesCalled.Should().Be(2);
 
