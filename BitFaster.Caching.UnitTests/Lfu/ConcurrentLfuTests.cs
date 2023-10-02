@@ -677,15 +677,64 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WhenClearedCacheIsEmpty()
         {
-            cache.GetOrAdd(1, k => k);
-            cache.GetOrAdd(2, k => k);
-            cache.DoMaintenance();
+            int key = 0;
+            const int count = 20;
 
-            cache.Clear();
-            cache.DoMaintenance();
+            for (int j = 0; j < 100;  j++) 
+            { 
+                cache = new ConcurrentLfu<int, int>(1, count, new NullScheduler(), EqualityComparer<int>.Default);
 
-            cache.Count.Should().Be(0);
-            cache.TryGet(1, out var _).Should().BeFalse();
+                for (int i = 0; i < count; i++)
+                {
+                    cache.GetOrAdd(key++, k => k);
+                }
+
+                cache.Count.Should().Be(count);
+
+                cache.Clear();
+
+                cache.Count.Should().Be(0);
+                cache.TryGet(1, out var _).Should().BeFalse();
+            }
+        }
+
+        [Fact]
+        public async Task TestClear()
+        {
+            var cache = new ConcurrentLfuBuilder<string, string>()
+                .WithScheduler(new BackgroundThreadScheduler())
+                .WithCapacity(40)
+                .WithAtomicGetOrAdd()
+                .AsAsyncCache()
+                .Build();
+
+            var emptyCount = 0;
+            for (var a = 0; a < 200; a++)
+            {
+                for (var i = 0; i < 10; i++)
+                {
+                    var str = "a" + i;
+                    await getOrAdd(str);
+                }
+
+                cache.Clear();
+                //cache.Clear(); // attempt to trigger maintenance after previous clear operation
+
+                if (cache.Count != 0)
+                {
+                    emptyCount += cache.Count;
+                    emptyCount += cache.Count;
+                }
+
+                
+            }
+
+            emptyCount.Should().Be(0);
+
+            async Task getOrAdd(string key)
+            {
+                await cache.GetOrAddAsync(key, Task.FromResult);
+            }
         }
 
         [Fact]
