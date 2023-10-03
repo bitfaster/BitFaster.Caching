@@ -56,8 +56,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public async Task WhenKeyIsRequesteItIsCreatedAndCachedAsync()
         {
-            var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
-            var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+            var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync);
+            var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync);
 
             valueFactory.timesCalled.Should().Be(1);
             result1.Should().Be(result2);
@@ -66,8 +66,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public async Task WhenKeyIsRequestedWithArgItIsCreatedAndCachedAsync()
         {
-            var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync, 9).ConfigureAwait(false);
-            var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync, 17).ConfigureAwait(false);
+            var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync, 9);
+            var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync, 17);
 
             valueFactory.timesCalled.Should().Be(1);
             result1.Should().Be(result2);
