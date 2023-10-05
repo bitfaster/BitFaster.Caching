@@ -430,6 +430,8 @@ namespace BitFaster.Caching.Lru
                 CycleWarmUnchecked(ItemRemovedReason.Cleared);
                 TryRemoveCold(ItemRemovedReason.Cleared);
             }
+
+            Volatile.Write(ref this.isWarm, false);
         }
 
         /// <summary>
