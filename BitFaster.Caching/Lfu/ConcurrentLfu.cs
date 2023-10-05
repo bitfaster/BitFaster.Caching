@@ -426,7 +426,12 @@ namespace BitFaster.Caching.Lfu
 
             while (candidates.Count < itemCount && curr != null)
             {
-                candidates.Add(curr);
+                // LRUs can contain items that are already removed, skip those 
+                if (!curr.WasRemoved)
+                { 
+                    candidates.Add(curr); 
+                }
+
                 curr = curr.Next;
             }
         }

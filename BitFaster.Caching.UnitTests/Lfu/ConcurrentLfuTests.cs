@@ -56,8 +56,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public async Task WhenKeyIsRequesteItIsCreatedAndCachedAsync()
         {
-            var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
-            var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync).ConfigureAwait(false);
+            var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync);
+            var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync);
 
             valueFactory.timesCalled.Should().Be(1);
             result1.Should().Be(result2);
@@ -66,8 +66,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public async Task WhenKeyIsRequestedWithArgItIsCreatedAndCachedAsync()
         {
-            var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync, 9).ConfigureAwait(false);
-            var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync, 17).ConfigureAwait(false);
+            var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync, 9);
+            var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync, 17);
 
             valueFactory.timesCalled.Should().Be(1);
             result1.Should().Be(result2);
@@ -679,13 +679,32 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(2, k => k);
-            cache.DoMaintenance();
 
             cache.Clear();
-            cache.DoMaintenance();
 
             cache.Count.Should().Be(0);
             cache.TryGet(1, out var _).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenBackgroundMaintenanceRepeatedReadThenClearResultsInEmpty()
+        {
+            cache = new ConcurrentLfu<int, int>(1, 40, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
+
+            var overflow = 0;
+            for (var a = 0; a < 200; a++)
+            {
+                for (var i = 0; i < 40; i++)
+                {
+                    cache.GetOrAdd(i, k => k);
+                }
+
+                cache.Clear();
+                overflow += cache.Count;
+            }
+
+            // there should be no iteration of the loop where count != 0
+            overflow.Should().Be(0);
         }
 
         [Fact]
