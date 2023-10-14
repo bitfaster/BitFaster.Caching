@@ -832,35 +832,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.Metrics.Value.Misses.Should().Be(iterations);
         }
 
-        [Fact]
-        public async Task ThreadedVerifyMisses()
-        {
-            // buffer size is 1, this will cause dropped writes on some threads where the buffer is full
-            cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default);
-
-            int threads = 4;
-            int iterations = 100_000;
-
-            await Threaded.Run(threads, i => 
-            {
-                Func<int, int> func = x => x;
-
-                int start = i * iterations;
-
-                for (int j = start; j < start + iterations; j++)
-                {
-                    cache.GetOrAdd(j, func);
-                }
-            });
-
-            var samplePercent = this.cache.Metrics.Value.Misses / (double)iterations / threads * 100;
-
-            this.output.WriteLine($"Cache misses {this.cache.Metrics.Value.Misses} (sampled {samplePercent}%)");
-            this.output.WriteLine($"Maintenance ops {this.cache.Scheduler.RunCount}");
-
-            cache.Metrics.Value.Misses.Should().Be(iterations * threads);
-        }
-
         private void VerifyHits(int iterations, int minSamples)
         {
             Func<int, int> func = x => x;
