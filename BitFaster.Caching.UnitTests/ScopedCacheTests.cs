@@ -56,7 +56,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public async Task WhenSoak2()
+        public async Task WhenSoakScopedGetOrAddValueIsAlwaysAlive()
         {
             for (int i = 0; i < 10; i++)
             {

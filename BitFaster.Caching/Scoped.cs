@@ -82,6 +82,8 @@ namespace BitFaster.Caching
 
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.DecrementCopy(), oldRefCount))
                 {
+                    // Note this.refCount may be stale.
+                    // Old count == 1, thus new ref count is 0, dispose the value.
                     if (oldRefCount.Count == 1)
                     {
                         oldRefCount.Value?.Dispose();
