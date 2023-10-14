@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
+using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -16,6 +17,21 @@ namespace BitFaster.Caching.UnitTests.Buffers
         public MpscBoundedBufferSoakTests(ITestOutputHelper testOutputHelper)
         {
             this.testOutputHelper = testOutputHelper;
+        }
+
+        [Fact]
+        public async Task WhenAddIsContendedBufferCanBeFilled()
+        {
+            var buffer = new MpscBoundedBuffer<string>(1024);
+
+            await Threaded.Run(4, () =>
+            {
+                while (buffer.TryAdd("hello") != BufferStatus.Full)
+                {
+                }
+
+                buffer.Count.Should().Be(1024);
+            });
         }
 
         [Fact]
