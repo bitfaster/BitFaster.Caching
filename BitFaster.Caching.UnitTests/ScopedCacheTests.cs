@@ -65,8 +65,7 @@ namespace BitFaster.Caching.UnitTests
                     {
                         using (var l = this.cache.ScopedGetOrAdd(j, k => new Scoped<Disposable>(new Disposable(k))))
                         {
-                            // somehow, this is returning disposed!?!
-                            l.Value.IsDisposed.Should().BeFalse();
+                            l.Value.IsDisposed.Should().BeFalse($"ref count {l.ReferenceCount}");
                         }
                     }
                 });

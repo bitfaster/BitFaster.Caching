@@ -82,9 +82,9 @@ namespace BitFaster.Caching
 
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.DecrementCopy(), oldRefCount))
                 {
-                    if (this.refCount.Count == 0)
+                    if (oldRefCount.Count == 1)
                     {
-                        this.refCount.Value?.Dispose();
+                        oldRefCount.Value?.Dispose();
                     }
 
                     break;

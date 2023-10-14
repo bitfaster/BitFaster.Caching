@@ -108,27 +108,9 @@ namespace BitFaster.Caching.UnitTests
 
                 scope.IsDisposed.Should().BeFalse();
                 scope.Dispose();
+                scope.TryCreateLifetime(out _).Should().BeFalse();
                 scope.IsDisposed.Should().BeTrue();
             }
         }
-
-        //[Fact]
-        //public async Task WhenSoak2()
-        //{
-        //    var lru = new ConcurrentLruBuilder<int, Disposable>().AsScopedCache().Build();
-
-        //    for (int i = 0; i < 10; i++)
-        //    {
-        //        await Threaded.Run(4, () => {
-        //            for (int i = 0; i < 100000; i++)
-        //            {
-        //                using (var l = lru.ScopedGetOrAdd(i, k => new Scoped<Disposable>(new Disposable(k))))
-        //                {
-        //                    l.Value.IsDisposed.Should().BeFalse();
-        //                }
-        //            }
-        //        });
-        //    }
-        //}
     }
 }
