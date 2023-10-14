@@ -1,7 +1,4 @@
 ﻿using FluentAssertions;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests
@@ -15,6 +12,15 @@ namespace BitFaster.Caching.UnitTests
             var b = a.IncrementCopy().DecrementCopy();
 
             a.Should().Be(b);
+        }
+
+        [Fact]
+        public void WhenOtherIsEqualReferenceEqualsReturnsFalse()
+        {
+            var a = new ReferenceCount<object>(new object());
+            var b = a.IncrementCopy().DecrementCopy();
+
+            a.Should().NotBeSameAs(b);
         }
 
         [Fact]
