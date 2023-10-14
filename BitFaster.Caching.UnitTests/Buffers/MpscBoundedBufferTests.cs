@@ -200,10 +200,14 @@ namespace BitFaster.Caching.UnitTests.Buffers
 
             while (taken < 1024)
             {
+                var spin = new SpinWait();
+
                 if (buffer.TryTake(out var _) == BufferStatus.Success) 
                 {
                     taken++;
                 }
+
+                spin.SpinOnce();
             }
 
             await fill;
