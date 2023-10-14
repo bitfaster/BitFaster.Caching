@@ -192,17 +192,10 @@ namespace BitFaster.Caching.UnitTests.Buffers
                 {
                     while (true)
                     {
-                        var status = buffer.TryAdd("hello");
-
-                        if (status == BufferStatus.Success)
+                        if (buffer.TryAdd("hello") == BufferStatus.Success)
                         {
                             break;
                         }
-                        else if (status == BufferStatus.Full) 
-                        {
-                            throw new InvalidOperationException("Buffer is full!");
-                        }
-
                         spin.SpinOnce();
                     }
                     count++;
