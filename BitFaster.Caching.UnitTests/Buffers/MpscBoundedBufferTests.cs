@@ -13,6 +13,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
 {
     public class MpscBoundedBufferTests
     {
+        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
         private readonly MpscBoundedBuffer<string> buffer = new MpscBoundedBuffer<string>(10);
 
         [Fact]
@@ -173,7 +174,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
             });
         }
 
-        [Fact(Timeout = 5000)]
+        [Fact]
         public async Task WhileBufferIsFilledItemsCanBeTaken()
         {
             var buffer = new MpscBoundedBuffer<string>(1024);
@@ -196,23 +197,26 @@ namespace BitFaster.Caching.UnitTests.Buffers
                 }
             });
 
-            Thread.Yield();
-            int taken = 0;
-
-            while (taken < 1024)
+            var take = Task.Run(() => 
             {
-                var spin = new SpinWait();
-                if (buffer.TryTake(out var _) == BufferStatus.Success) 
-                {
-                    taken++;
-                }
-                spin.SpinOnce();
-            }
+                int taken = 0;
 
-            await fill;
+                while (taken < 1024)
+                {
+                    var spin = new SpinWait();
+                    if (buffer.TryTake(out var _) == BufferStatus.Success)
+                    {
+                        taken++;
+                    }
+                    spin.SpinOnce();
+                }
+            });
+
+            await fill.TimeoutAfter(Timeout, "fill timed out");
+            await take.TimeoutAfter(Timeout, "take timed out");
         }
 
-        [Fact(Timeout = 5000)]
+        [Fact]
         public async Task WhileBufferIsFilledBufferCanBeDrained()
         {
             var buffer = new MpscBoundedBuffer<string>(1024);
@@ -235,15 +239,19 @@ namespace BitFaster.Caching.UnitTests.Buffers
                 }
             });
 
-            int drained = 0;
-            var drainBuffer = new ArraySegment<string>(new string[1024]);
-
-            while (drained < 1024)
+            var drain = Task.Run(() =>
             {
-                drained += buffer.DrainTo(drainBuffer);
-            }
+                int drained = 0;
+                var drainBuffer = new ArraySegment<string>(new string[1024]);
 
-            await fill;
+                while (drained < 1024)
+                {
+                    drained += buffer.DrainTo(drainBuffer);
+                }
+            });
+
+            await fill.TimeoutAfter(Timeout, "fill timed out");
+            await drain.TimeoutAfter(Timeout, "drain timed out");
         }
     }
 }
