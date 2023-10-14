@@ -196,6 +196,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
                 }
             });
 
+            Thread.Yield();
             int taken = 0;
 
             while (taken < 1024)
