@@ -78,7 +78,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
-            var lruEvents = CreateTLru<int, int>(new EqualCapacityPartition(6), timeToLive);
+            var lruEvents = CreateTLru<int, int>(new EqualCapacityPartition(6), TimeSpan.FromSeconds(10));
             lruEvents.Events.Value.ItemRemoved += OnLruItemRemoved;
 
             // First 6 adds
