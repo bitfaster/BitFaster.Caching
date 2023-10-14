@@ -1,19 +1,23 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace BitFaster.Caching.UnitTests.Buffers
 {
     public class MpscBoundedBufferTests
     {
+        private readonly ITestOutputHelper testOutputHelper;
+        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
         private readonly MpscBoundedBuffer<string> buffer = new MpscBoundedBuffer<string>(10);
+
+        public MpscBoundedBufferTests(ITestOutputHelper testOutputHelper)
+        {
+            this.testOutputHelper = testOutputHelper;
+        }
 
         [Fact]
         public void WhenSizeIsLessThan1CtorThrows()
@@ -173,9 +177,11 @@ namespace BitFaster.Caching.UnitTests.Buffers
             });
         }
 
-        [Fact(Timeout = 5000)]
+        [Fact]
         public async Task WhileBufferIsFilledItemsCanBeTaken()
         {
+            this.testOutputHelper.WriteLine($"ProcessorCount={Environment.ProcessorCount}.");
+
             var buffer = new MpscBoundedBuffer<string>(1024);
 
             var fill = Threaded.Run(4, () =>
@@ -196,22 +202,30 @@ namespace BitFaster.Caching.UnitTests.Buffers
                 }
             });
 
-            int taken = 0;
-
-            while (taken < 1024)
+            var take = Task.Run(() => 
             {
-                if (buffer.TryTake(out var _) == BufferStatus.Success) 
-                {
-                    taken++;
-                }
-            }
+                int taken = 0;
 
-            await fill;
+                while (taken < 1024)
+                {
+                    var spin = new SpinWait();
+                    if (buffer.TryTake(out var _) == BufferStatus.Success)
+                    {
+                        taken++;
+                    }
+                    spin.SpinOnce();
+                }
+            });
+
+            await fill.TimeoutAfter(Timeout, $"fill timed out");
+            await take.TimeoutAfter(Timeout, "take timed out");
         }
 
-        [Fact(Timeout = 5000)]
+        [Fact]
         public async Task WhileBufferIsFilledBufferCanBeDrained()
         {
+            this.testOutputHelper.WriteLine($"ProcessorCount={Environment.ProcessorCount}.");
+
             var buffer = new MpscBoundedBuffer<string>(1024);
 
             var fill = Threaded.Run(4, () =>
@@ -232,15 +246,19 @@ namespace BitFaster.Caching.UnitTests.Buffers
                 }
             });
 
-            int drained = 0;
-            var drainBuffer = new ArraySegment<string>(new string[1024]);
-
-            while (drained < 1024)
+            var drain = Task.Run(() =>
             {
-                drained += buffer.DrainTo(drainBuffer);
-            }
+                int drained = 0;
+                var drainBuffer = new ArraySegment<string>(new string[1024]);
 
-            await fill;
+                while (drained < 1024)
+                {
+                    drained += buffer.DrainTo(drainBuffer);
+                }
+            });
+
+            await fill.TimeoutAfter(Timeout, "fill timed out");
+            await drain.TimeoutAfter(Timeout, "drain timed out");
         }
     }
 }

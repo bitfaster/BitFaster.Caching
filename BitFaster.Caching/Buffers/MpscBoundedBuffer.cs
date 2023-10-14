@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using BitFaster.Caching.Lfu;
 
 namespace BitFaster.Caching.Buffers
 {
@@ -97,7 +96,7 @@ namespace BitFaster.Caching.Buffers
 
             if (Interlocked.CompareExchange(ref this.headAndTail.Tail, tail + 1, tail) == tail)
             {
-                int index = (int)(tail & mask);
+                int index = tail & mask;
                 Volatile.Write(ref buffer[index], item);
 
                 return BufferStatus.Success;
