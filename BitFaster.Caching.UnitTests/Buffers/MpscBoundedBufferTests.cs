@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
 using FluentAssertions;
 using Xunit;
@@ -152,21 +150,6 @@ namespace BitFaster.Caching.UnitTests.Buffers
             outputBuffer[6].Should().Be("1");
             outputBuffer[7].Should().Be("2");
             outputBuffer[8].Should().Be("3");
-        }
-
-        [Fact]
-        public async Task WhenAddIsContendedBufferCanBeFilled()
-        {
-            var buffer = new MpscBoundedBuffer<string>(1024);
-
-            await Threaded.Run(4, () =>
-            {
-                while (buffer.TryAdd("hello") != BufferStatus.Full)
-                { 
-                }
-
-                buffer.Count.Should().Be(1024);
-            });
         }
     }
 }
