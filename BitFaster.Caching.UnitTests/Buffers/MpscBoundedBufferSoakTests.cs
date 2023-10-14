@@ -14,6 +14,8 @@ namespace BitFaster.Caching.UnitTests.Buffers
         private readonly ITestOutputHelper testOutputHelper;
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
+        private readonly MpscBoundedBuffer<string> buffer = new MpscBoundedBuffer<string>(1024);
+
         public MpscBoundedBufferSoakTests(ITestOutputHelper testOutputHelper)
         {
             this.testOutputHelper = testOutputHelper;
@@ -22,8 +24,6 @@ namespace BitFaster.Caching.UnitTests.Buffers
         [Fact]
         public async Task WhenAddIsContendedBufferCanBeFilled()
         {
-            var buffer = new MpscBoundedBuffer<string>(1024);
-
             await Threaded.Run(4, () =>
             {
                 while (buffer.TryAdd("hello") != BufferStatus.Full)
@@ -39,25 +39,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
         {
             this.testOutputHelper.WriteLine($"ProcessorCount={Environment.ProcessorCount}.");
 
-            var buffer = new MpscBoundedBuffer<string>(1024);
-
-            var fill = Threaded.Run(4, () =>
-            {
-                var spin = new SpinWait();
-                int count = 0;
-                while (count < 256)
-                {
-                    while (true)
-                    {
-                        if (buffer.TryAdd("hello") == BufferStatus.Success)
-                        {
-                            break;
-                        }
-                        spin.SpinOnce();
-                    }
-                    count++;
-                }
-            });
+            var fill = CreateParallelFill(buffer, threads: 4, itemsPerThread: 256);
 
             var take = Task.Run(() =>
             {
@@ -83,25 +65,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
         {
             this.testOutputHelper.WriteLine($"ProcessorCount={Environment.ProcessorCount}.");
 
-            var buffer = new MpscBoundedBuffer<string>(1024);
-
-            var fill = Threaded.Run(4, () =>
-            {
-                var spin = new SpinWait();
-                int count = 0;
-                while (count < 256)
-                {
-                    while (true)
-                    {
-                        if (buffer.TryAdd("hello") == BufferStatus.Success)
-                        {
-                            break;
-                        }
-                        spin.SpinOnce();
-                    }
-                    count++;
-                }
-            });
+            var fill = CreateParallelFill(buffer, threads: 4, itemsPerThread: 256);
 
             var drain = Task.Run(() =>
             {
@@ -116,6 +80,50 @@ namespace BitFaster.Caching.UnitTests.Buffers
 
             await fill.TimeoutAfter(Timeout, "fill timed out");
             await drain.TimeoutAfter(Timeout, "drain timed out");
+        }
+
+        [Fact]
+        public async Task WhileBufferIsFilledCountCanBeTaken()
+        {
+            this.testOutputHelper.WriteLine($"ProcessorCount={Environment.ProcessorCount}.");
+
+            var fill = CreateParallelFill(buffer, threads:4, itemsPerThread:256);
+
+            var count = Task.Run(() =>
+            {
+                int count = 0;
+
+                while (!fill.IsCompleted)
+                {
+                    int newcount = buffer.Count;
+                    newcount.Should().BeGreaterThanOrEqualTo(count);
+                    count = newcount;
+                }
+            });
+                
+            await fill.TimeoutAfter(Timeout, "fill timed out");
+            await count.TimeoutAfter(Timeout, "count timed out");
+        }
+
+        private Task CreateParallelFill(MpscBoundedBuffer<string> buffer, int threads, int itemsPerThread)
+        { 
+            return Threaded.Run(threads, () =>
+            {
+                var spin = new SpinWait();
+                int count = 0;
+                while (count < itemsPerThread)
+                {
+                    while (true)
+                    {
+                        if (buffer.TryAdd("hello") == BufferStatus.Success)
+                        {
+                            break;
+                        }
+                        spin.SpinOnce();
+                    }
+                    count++;
+                }
+            });
         }
     }
 }
