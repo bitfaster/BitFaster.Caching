@@ -100,7 +100,7 @@ namespace BitFaster.Caching
         /// <returns>true if the value of left is the same as the value of right; otherwise, false.</returns>
         public static bool operator ==(ReferenceCount<TValue> left, ReferenceCount<TValue> right)
         {
-            return EqualityComparer<ReferenceCount<TValue>>.Default.Equals(left, right);
+            return object.ReferenceEquals(left, right);
         }
 
         /// <summary>
