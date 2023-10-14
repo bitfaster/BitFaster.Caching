@@ -13,7 +13,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
 {
     public class MpscBoundedBufferTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(1);
         private readonly MpscBoundedBuffer<string> buffer = new MpscBoundedBuffer<string>(10);
 
         [Fact]
@@ -187,10 +187,17 @@ namespace BitFaster.Caching.UnitTests.Buffers
                 {
                     while (true)
                     {
-                        if (buffer.TryAdd("hello") == BufferStatus.Success)
+                        var status = buffer.TryAdd("hello");
+
+                        if (status == BufferStatus.Success)
                         {
                             break;
                         }
+                        else if (status == BufferStatus.Full) 
+                        {
+                            throw new InvalidOperationException("Buffer is full!");
+                        }
+
                         spin.SpinOnce();
                     }
                     count++;
@@ -212,7 +219,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
                 }
             });
 
-            await fill.TimeoutAfter(Timeout, "fill timed out");
+            await fill.TimeoutAfter(Timeout, $"fill timed out, ProcessorCount={Environment.ProcessorCount}.");
             await take.TimeoutAfter(Timeout, "take timed out");
         }
 
