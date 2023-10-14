@@ -1,20 +1,23 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace BitFaster.Caching.UnitTests.Buffers
 {
     public class MpscBoundedBufferTests
     {
+        private readonly ITestOutputHelper testOutputHelper;
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
         private readonly MpscBoundedBuffer<string> buffer = new MpscBoundedBuffer<string>(10);
+
+        public MpscBoundedBufferTests(ITestOutputHelper testOutputHelper)
+        {
+            this.testOutputHelper = testOutputHelper;
+        }
 
         [Fact]
         public void WhenSizeIsLessThan1CtorThrows()
@@ -177,6 +180,8 @@ namespace BitFaster.Caching.UnitTests.Buffers
         [Fact]
         public async Task WhileBufferIsFilledItemsCanBeTaken()
         {
+            this.testOutputHelper.WriteLine($"ProcessorCount={Environment.ProcessorCount}.");
+
             var buffer = new MpscBoundedBuffer<string>(1024);
 
             var fill = Threaded.Run(4, () =>
@@ -219,13 +224,15 @@ namespace BitFaster.Caching.UnitTests.Buffers
                 }
             });
 
-            await fill.TimeoutAfter(Timeout, $"fill timed out, ProcessorCount={Environment.ProcessorCount}.");
+            await fill.TimeoutAfter(Timeout, $"fill timed out");
             await take.TimeoutAfter(Timeout, "take timed out");
         }
 
         [Fact]
         public async Task WhileBufferIsFilledBufferCanBeDrained()
         {
+            this.testOutputHelper.WriteLine($"ProcessorCount={Environment.ProcessorCount}.");
+
             var buffer = new MpscBoundedBuffer<string>(1024);
 
             var fill = Threaded.Run(4, () =>
