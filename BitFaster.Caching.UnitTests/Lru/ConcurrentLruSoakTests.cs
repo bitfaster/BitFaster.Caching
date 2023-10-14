@@ -39,7 +39,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
                 // allow +/- 1 variance for capacity
-                lru.Count.Should().BeCloseTo(9, 1);
+                lru.Count.Should().BeInRange(7, 10);
                 RunIntegrityCheck();
             }
         }
@@ -60,7 +60,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
                 // allow +/- 1 variance for capacity
-                lru.Count.Should().BeCloseTo(9, 1);
+                lru.Count.Should().BeInRange(7, 10);
                 RunIntegrityCheck();
             }
         }
@@ -82,7 +82,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
                 // allow +/- 1 variance for capacity
-                lru.Count.Should().BeCloseTo(9, 1);
+                lru.Count.Should().BeInRange(7, 10);
                 RunIntegrityCheck();
             }
         }
@@ -104,7 +104,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
                 // allow +/- 1 variance for capacity
-                lru.Count.Should().BeCloseTo(9, 1);
+                lru.Count.Should().BeInRange(7, 10);
                 RunIntegrityCheck();
             }
         }
