@@ -5,11 +5,15 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
+using System.Threading;
+using Xunit.Abstractions;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
     public abstract class ConcurrentTLruTests
     {
+        private readonly ITestOutputHelper testOutputHelper;
         private readonly TimeSpan timeToLive = TimeSpan.FromMilliseconds(10);
         private readonly ICapacityPartition capacity = new EqualCapacityPartition(9);
         private ICache<int, string> lru;
@@ -28,9 +32,10 @@ namespace BitFaster.Caching.UnitTests.Lru
 
         protected abstract ICache<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive);
 
-        public ConcurrentTLruTests()
+        public ConcurrentTLruTests(ITestOutputHelper testOutputHelper)
         {
             lru = CreateTLru<int, string>(capacity, timeToLive);
+            this.testOutputHelper = testOutputHelper;
         }
 
         [Fact]
@@ -144,23 +149,41 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public async Task WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
         {
-            lru.AddOrUpdate(1, "1");
-            lru.AddOrUpdate(2, "2");
-            lru.AddOrUpdate(3, "3");
+            int attempt = 0;
 
-            lru.AddOrUpdate(4, "4");
-            lru.AddOrUpdate(5, "5");
-            lru.AddOrUpdate(6, "6");
+            while (true)
+            {
+                var stopwatch = Stopwatch.StartNew();
 
-            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
+                lru.AddOrUpdate(1, "1");
+                lru.AddOrUpdate(2, "2");
+                lru.AddOrUpdate(3, "3");
 
-            lru.GetOrAdd(1, valueFactory.Create);
-            lru.GetOrAdd(2, valueFactory.Create);
-            lru.GetOrAdd(3, valueFactory.Create);
+                lru.AddOrUpdate(4, "4");
+                lru.AddOrUpdate(5, "5");
+                lru.AddOrUpdate(6, "6");
 
-            lru.Policy.ExpireAfterWrite.Value.TrimExpired();
+                await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
 
-            lru.Count.Should().Be(3);
+                lru.GetOrAdd(1, valueFactory.Create);
+                lru.GetOrAdd(2, valueFactory.Create);
+                lru.GetOrAdd(3, valueFactory.Create);
+
+                lru.Policy.ExpireAfterWrite.Value.TrimExpired();
+
+                // only perform the assert if the test ran end to end within a reasonable amount of time
+                var elapsed = stopwatch.Elapsed;
+                if (elapsed < timeToLive.MultiplyBy(ttlWaitMlutiplier) + timeToLive)
+                {
+                    lru.Count.Should().Be(3);
+                    break;
+                }
+
+                this.testOutputHelper.WriteLine($"attempt {attempt} took {elapsed}, trying again.");
+
+                await Task.Yield();
+                attempt++.Should().BeLessThan(64);
+            }
         }
 
         [Fact]
@@ -180,6 +203,10 @@ namespace BitFaster.Caching.UnitTests.Lru
 
     public class ConcurrentTLruDefaultClockTests : ConcurrentTLruTests
     {
+        public ConcurrentTLruDefaultClockTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+        {
+        }
+
         protected override ICache<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive)
         {
             // backcompat: use TLruTickCount64Policy
@@ -213,6 +240,10 @@ namespace BitFaster.Caching.UnitTests.Lru
 
     public class ConcurrentTLruHighResClockTests : ConcurrentTLruTests
     {
+        public ConcurrentTLruHighResClockTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
+        {
+        }
+
         protected override ICache<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive)
         {
             // backcompat: use TlruStopwatchPolicy

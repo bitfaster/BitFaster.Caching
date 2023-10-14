@@ -9,7 +9,6 @@ using Xunit;
 using Xunit.Abstractions;
 using System.Collections.Concurrent;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
