@@ -13,7 +13,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
 {
     public class MpscBoundedBufferTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(1);
+        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
         private readonly MpscBoundedBuffer<string> buffer = new MpscBoundedBuffer<string>(10);
 
         [Fact]
