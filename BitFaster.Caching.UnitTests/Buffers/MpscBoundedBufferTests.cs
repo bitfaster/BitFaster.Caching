@@ -180,13 +180,19 @@ namespace BitFaster.Caching.UnitTests.Buffers
 
             var fill = Threaded.Run(4, () =>
             {
+                var spin = new SpinWait();
                 int count = 0;
                 while (count < 256)
                 {
-                    if (buffer.TryAdd("hello") == BufferStatus.Success)
+                    while (true)
                     {
-                        count++;
+                        if (buffer.TryAdd("hello") == BufferStatus.Success)
+                        {
+                            break;
+                        }
+                        spin.SpinOnce();
                     }
+                    count++;
                 }
             });
 
@@ -210,13 +216,19 @@ namespace BitFaster.Caching.UnitTests.Buffers
 
             var fill = Threaded.Run(4, () =>
             {
+                var spin = new SpinWait();
                 int count = 0;
                 while (count < 256)
                 {
-                    if (buffer.TryAdd("hello") == BufferStatus.Success)
+                    while (true)
                     {
-                        count++;
+                        if (buffer.TryAdd("hello") == BufferStatus.Success)
+                        {
+                            break;
+                        }
+                        spin.SpinOnce();
                     }
+                    count++;
                 }
             });
 
