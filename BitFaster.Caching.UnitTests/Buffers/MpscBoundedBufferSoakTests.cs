@@ -89,7 +89,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
 
             var fill = CreateParallelFill(buffer, threads:4, itemsPerThread:256);
 
-            var count = Task.Run(() =>
+            var count = Threaded.Run(4, () =>
             {
                 int count = 0;
 
