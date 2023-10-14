@@ -55,7 +55,7 @@ namespace BitFaster.Caching
         private static InvalidOperationException CreateScopedRetryFailure() => new InvalidOperationException(ScopedCacheDefaults.RetryFailureMessage);
         
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static ObjectDisposedException CreateObjectDisposedException<T>() => new ObjectDisposedException(nameof(T));
+        private static ObjectDisposedException CreateObjectDisposedException<T>() => new ObjectDisposedException(typeof(T).Name);
 
         [ExcludeFromCodeCoverage]
         private static string GetArgumentString(ExceptionArgument argument)

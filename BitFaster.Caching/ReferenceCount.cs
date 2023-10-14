@@ -93,21 +93,21 @@ namespace BitFaster.Caching
         }
 
         /// <summary>
-        /// Determines whether two ReferenceCount instances have the same value.
+        /// Determines whether two ReferenceCount instances are the exact same value via a reference equality check.
         /// </summary>
-        /// <param name="left">The left ReferernceCount to compare, or null.</param>
-        /// <param name="right">The right ReferernceCount to compare, or null.</param>
+        /// <param name="left">The left ReferenceCount to compare, or null.</param>
+        /// <param name="right">The right ReferenceCount to compare, or null.</param>
         /// <returns>true if the value of left is the same as the value of right; otherwise, false.</returns>
         public static bool operator ==(ReferenceCount<TValue> left, ReferenceCount<TValue> right)
         {
-            return EqualityComparer<ReferenceCount<TValue>>.Default.Equals(left, right);
+            return object.ReferenceEquals(left, right);
         }
 
         /// <summary>
-        /// Determines whether two ReferenceCount instances have different values.
+        /// Determines whether two ReferenceCount instances are different via a reference equality check.
         /// </summary>
-        /// <param name="left">The left ReferernceCount to compare, or null.</param>
-        /// <param name="right">The right ReferernceCount to compare, or null.</param>
+        /// <param name="left">The left ReferenceCount to compare, or null.</param>
+        /// <param name="right">The right ReferenceCount to compare, or null.</param>
         /// <returns>true if the value of left is different from the value of right; otherwise, false.</returns>
         public static bool operator !=(ReferenceCount<TValue> left, ReferenceCount<TValue> right)
         {

@@ -16,7 +16,7 @@ namespace BitFaster.Caching
     public sealed class Scoped<T> : IScoped<T>, IDisposable where T : IDisposable
     {
         private ReferenceCount<T> refCount;
-        private bool isDisposed;
+        private int disposed = 0;
 
         /// <summary>
         /// Initializes a new Scoped value.
@@ -30,7 +30,7 @@ namespace BitFaster.Caching
         /// <summary>
         /// Gets a value indicating whether the scope is disposed.
         /// </summary>
-        public bool IsDisposed => isDisposed;
+        public bool IsDisposed => Volatile.Read(ref this.disposed) == 1;
 
         /// <summary>
         /// Attempts to create a lifetime for the scoped value. The lifetime guarantees the value is alive until 
@@ -45,7 +45,7 @@ namespace BitFaster.Caching
                 var oldRefCount = this.refCount;
 
                 // If old ref count is 0, the scoped object has been disposed and there was a race.
-                if (this.isDisposed || oldRefCount.Count == 0)
+                if (IsDisposed || oldRefCount.Count == 0)
                 {
                     lifetime = default;
                     return false;
@@ -82,9 +82,11 @@ namespace BitFaster.Caching
 
                 if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.DecrementCopy(), oldRefCount))
                 {
-                    if (this.refCount.Count == 0)
+                    // Note this.refCount may be stale.
+                    // Old count == 1, thus new ref count is 0, dispose the value.
+                    if (oldRefCount.Count == 1)
                     {
-                        this.refCount.Value?.Dispose();
+                        oldRefCount.Value?.Dispose();
                     }
 
                     break;
@@ -98,10 +100,10 @@ namespace BitFaster.Caching
         /// </summary>
         public void Dispose()
         {
-            if (!this.isDisposed)
+            // Dispose exactly once, decrement via dispose exactly once
+            if (Interlocked.CompareExchange(ref this.disposed, 1, 0) == 0)
             {
-                this.DecrementReferenceCount();
-                this.isDisposed = true;
+                DecrementReferenceCount();
             }
         }
 

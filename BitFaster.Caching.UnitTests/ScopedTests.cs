@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Xunit;
+using System.Threading.Tasks;
 
 namespace BitFaster.Caching.UnitTests
 {
@@ -86,6 +87,30 @@ namespace BitFaster.Caching.UnitTests
             lru.TryRemove(1);
 
             valueFactory.Disposable.IsDisposed.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task WhenSoakCreateLifetimeScopeIsDisposedCorrectly()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                var scope = new Scoped<Disposable>(new Disposable(i));
+
+                await Threaded.Run(4, () => {
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        using (var l = scope.CreateLifetime()) 
+                        {
+                            l.Value.IsDisposed.Should().BeFalse();
+                        }
+                    }
+                });
+
+                scope.IsDisposed.Should().BeFalse();
+                scope.Dispose();
+                scope.TryCreateLifetime(out _).Should().BeFalse();
+                scope.IsDisposed.Should().BeTrue();
+            }
         }
     }
 }
