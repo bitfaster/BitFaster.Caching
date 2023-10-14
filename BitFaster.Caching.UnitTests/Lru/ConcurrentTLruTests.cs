@@ -181,7 +181,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                 this.testOutputHelper.WriteLine($"attempt {attempt} took {elapsed}, trying again.");
 
-                await Task.Yield();
+                await Task.Delay(timeToLive);
                 attempt++.Should().BeLessThan(64);
             }
         }
