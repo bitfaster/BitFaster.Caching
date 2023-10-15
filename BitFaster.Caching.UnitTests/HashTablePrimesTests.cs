@@ -65,6 +65,8 @@ namespace BitFaster.Caching.UnitTests
             }
         }
 
+        // Replicates .NET framework ConcurrentDictionary resize logic:
+        // https://github.com/microsoft/referencesource/blob/51cf7850defa8a17d815b4700b67116e3fa283c2/mscorlib/system/collections/Concurrent/ConcurrentDictionary.cs#L1828C29-L1828C29
         private static int NextTableSize(int initial)
         {
             // Double the size of the buckets table and add one, so that we have an odd integer.
