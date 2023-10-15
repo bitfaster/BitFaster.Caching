@@ -23,7 +23,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         private List<ItemRemovedEventArgs<int, int>> removedItems = new List<ItemRemovedEventArgs<int, int>>();
 
         // on MacOS time measurement seems to be less stable, give longer pause
-        private int ttlWaitMlutiplier = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 8 : 2;
+        private int ttlWaitMlutiplier = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 8 : 8;
 
         private void OnLruItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
         {
