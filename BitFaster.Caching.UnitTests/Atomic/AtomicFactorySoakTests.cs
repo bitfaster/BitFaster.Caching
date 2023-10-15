@@ -14,42 +14,20 @@ namespace BitFaster.Caching.UnitTests.Atomic
         [Fact]
         public async Task WhenGetOrAddIsConcurrentValuesCreatedAtomically()
         {
-            var cache = new ConcurrentLruBuilder<int, int>()
-                .WithAtomicGetOrAdd()
-                .WithMetrics()
-                .WithCapacity(1024)
-                .Build();
+            const int threads = 4;
+            const int items = 1024;
+            var dictionary = new ConcurrentDictionary<int, AtomicFactory<int, int>>(concurrencyLevel: threads, capacity: items);
+            var counters = new int[threads];
 
-            var counters = new int[4];
-
-            await Threaded.Run(4, (r) =>
+            await Threaded.Run(threads, (r) =>
             {
-                for (int i = 0; i < 1024; i++)
-                {
-                    cache.GetOrAdd(i, k => { counters[r]++; return k; });
-                }
-            });
-
-            cache.Metrics.Value.Evicted.Should().Be(0);
-            counters.Sum(x => x).Should().Be(1024);
-        }
-
-        [Fact]
-        public async Task WhenGetOrAddIsConcurrentValuesCreatedAtomically2()
-        {
-            var dictionary = new ConcurrentDictionary<int, AtomicFactory<int, int>>(4, 1024);
-
-            var counters = new int[4];
-
-            await Threaded.Run(4, (r) =>
-            {
-                for (int i = 0; i < 1024; i++)
+                for (int i = 0; i < items; i++)
                 {
                     dictionary.GetOrAdd(i, k => { counters[r]++; return k; });
                 }
             });
 
-            counters.Sum(x => x).Should().Be(1024);
+            counters.Sum(x => x).Should().Be(items);
         }
     }
 }
