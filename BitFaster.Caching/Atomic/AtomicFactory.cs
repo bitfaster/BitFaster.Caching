@@ -74,7 +74,7 @@ namespace BitFaster.Caching.Atomic
         /// <summary>
         /// Gets a value indicating whether the value has been initialized.
         /// </summary>
-        public bool IsValueCreated => initializer == null;
+        public bool IsValueCreated => Volatile.Read(ref initializer) == null;
 
         /// <summary>
         /// Gets the value if it has been initialized, else default.
@@ -94,12 +94,12 @@ namespace BitFaster.Caching.Atomic
 
         private V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
         {
-            var init = initializer;
+            var init = Volatile.Read(ref initializer);
 
             if (init != null)
             {
                 value = init.CreateValue(key, valueFactory);
-                initializer = null;
+                Volatile.Write(ref initializer, null); // volatile write must occur after setting value
             }
 
             return value;
@@ -135,18 +135,12 @@ namespace BitFaster.Caching.Atomic
 
         private class Initializer
         {
-            private readonly object syncLock = new();
             private bool isInitialized;
             private V value;
 
             public V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
             {
-                if (Volatile.Read(ref isInitialized))
-                {
-                    return value;
-                }
-
-                lock (syncLock)
+                lock (this)
                 {
                     if (Volatile.Read(ref isInitialized))
                     {
