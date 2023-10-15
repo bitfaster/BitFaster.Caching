@@ -52,8 +52,8 @@ namespace BitFaster.Caching.Lru
                 Throw.ArgNull(ExceptionArgument.comparer);
 
             this.capacity = capacity;
-            int dcap = HashTablePrimes.NextPrimeGreaterThan(capacity);
-            this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, dcap, comparer);
+            int dictionaryCapacity = HashTablePrimes.NextPrimeGreaterThan(capacity);
+            this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, dictionaryCapacity, comparer);
             this.policy = new CachePolicy(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
         }
 
