@@ -14,7 +14,7 @@ namespace BitFaster.Caching.Atomic
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
     public sealed class AtomicFactory<K, V> : IEquatable<AtomicFactory<K, V>>
     {
-        private volatile Initializer initializer;
+        private Initializer initializer;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private V value;
@@ -94,12 +94,12 @@ namespace BitFaster.Caching.Atomic
 
         private V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
         {
-            var init = initializer;
+            var init = Volatile.Read(ref initializer);
 
             if (init != null)
             {
                 value = init.CreateValue(key, valueFactory);
-                initializer = null;
+                Volatile.Write(ref initializer, null);
             }
 
             return value;
