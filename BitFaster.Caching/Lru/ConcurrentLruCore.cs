@@ -88,7 +88,7 @@ namespace BitFaster.Caching.Lru
             this.warmQueue = new ConcurrentQueue<I>();
             this.coldQueue = new ConcurrentQueue<I>();
 
-            int dictionaryCapacity = this.Capacity + 1;
+            int dictionaryCapacity = HashTablePrimes.NextPrimeGreaterThan(this.Capacity);
 
             this.dictionary = new ConcurrentDictionary<K, I>(concurrencyLevel, dictionaryCapacity, comparer);
             this.itemPolicy = itemPolicy;
