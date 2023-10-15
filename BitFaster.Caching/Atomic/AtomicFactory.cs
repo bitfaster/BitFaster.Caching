@@ -14,7 +14,7 @@ namespace BitFaster.Caching.Atomic
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
     public sealed class AtomicFactory<K, V> : IEquatable<AtomicFactory<K, V>>
     {
-        private Initializer initializer;
+        private volatile Initializer initializer;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private V value;
