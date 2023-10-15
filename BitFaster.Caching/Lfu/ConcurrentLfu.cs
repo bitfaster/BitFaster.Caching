@@ -90,6 +90,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="comparer">The equality comparer.</param>
         public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
+            capacity = HashTablePrimes.NextPrimeGreaterThan(capacity);
             this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, capacity, comparer);
 
             // cap concurrency at proc count * 2
