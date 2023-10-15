@@ -84,6 +84,10 @@ namespace BitFaster.Caching.UnitTests
         {
             var factors = Factor(nextSize);
 
+            factors.Remove(1);
+            factors.Remove(nextSize);
+            factors.Sort();
+
             if (factors.Count == 0)
             {
                 return "prime";
@@ -92,6 +96,7 @@ namespace BitFaster.Caching.UnitTests
             return $"has factors {string.Join(", ", factors)}";
         }
 
+        // https://stackoverflow.com/questions/239865/best-way-to-find-all-factors-of-a-given-number
         private static List<int> Factor(int number)
         {
             var factors = new List<int>();
@@ -106,10 +111,6 @@ namespace BitFaster.Caching.UnitTests
                         factors.Add(number / factor);
                 }
             }
-
-            factors.Remove(1);
-            factors.Remove(number);
-            factors.Sort();
 
             return factors;
         }
