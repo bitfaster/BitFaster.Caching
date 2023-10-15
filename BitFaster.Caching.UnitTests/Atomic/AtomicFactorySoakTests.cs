@@ -12,7 +12,11 @@ namespace BitFaster.Caching.UnitTests.Atomic
         [Fact]
         public async Task WhenGetOrAddIsConcurrentValuesCreatedAtomically()
         {
-            var cache = new ConcurrentLruBuilder<int, int>().WithAtomicGetOrAdd().WithCapacity(1024).Build();
+            var cache = new ConcurrentLruBuilder<int, int>()
+                .WithAtomicGetOrAdd()
+                .WithMetrics()
+                .WithCapacity(1024)
+                .Build();
 
             var counters = new int[4];
 
@@ -24,6 +28,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
                 }
             });
 
+            cache.Metrics.Value.Evicted.Should().Be(0);
             counters.Sum(x => x).Should().Be(1024);
         }
     }
