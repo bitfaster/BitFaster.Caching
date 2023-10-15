@@ -29,33 +29,34 @@ namespace BitFaster.Caching.UnitTests
 
         // This test method replicates the hash table sizes that will be computed by ConcurrentDictionary
         // on earlier versions of .NET before prime numbers are used.
-        // 277 prime
-        // 557 prime
-        // 1117 prime
-        // 2237 prime
+        // 277 is prime
+        // 557 is prime
+        // 1117 is prime
+        // 2237 is prime
         // 4477 has factors 11, 37, 121, 407
         // 8957 has factors 13, 53, 169, 689
         // 17917 has factors 19, 23, 41, 437, 779, 943
-        // 35837 prime
+        // 35837 is prime
         // 71677 has factors 229, 313
-        // 143357 prime
+        // 143357 is prime
         // 286717 has factors 163, 1759
-        // 573437 prime
-        // 1146877 prime
-        // 2293757 prime
+        // 573437 is prime
+        // 1146877 is prime
+        // 2293757 is prime
         // 4587517 has factors 11, 103, 1133, 4049, 44539, 417047
-        // 9175037 prime
+        // 9175037 is prime
         // 18350077 has factors 701, 26177
         // 36700157 has factors 13, 23, 299, 122743, 1595659, 2823089
         // 73400317 has factors 4999, 14683
-        // 146800637 prime
+        // 146800637 is prime
         // 293601277 has factors 6113, 48029
         // 587202557 has factors 1877, 312841
         // 1174405117 has factors 10687, 109891
         [Fact(Skip="Not a functional test")]
         public void ComputeHashTableSizes()
         {
-            // candidates: 137, 151, 163, 211
+            // 137 gives a good balance of primes for smaller sizes, and few factors for larger sizes.
+            // Other good candidates: 131, 151, 163, 211
             int size = 137;
             for (int i = 0; i < 23; i++)
             {
@@ -92,7 +93,7 @@ namespace BitFaster.Caching.UnitTests
 
             if (factors.Count == 0)
             {
-                return "prime";
+                return "is prime";
             }
 
             return $"has factors {string.Join(", ", factors)}";
