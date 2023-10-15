@@ -11,7 +11,7 @@ namespace BitFaster.Caching
 #else
         internal static ReadOnlySpan<int> Primes => new int[] {
 #endif
-            7, 11, 17, 23, 29, 37, 47, 59, 71, 89, 107
+            7, 11, 17, 23, 29, 37, 47, 59, 71, 89, 107, 131
         };
 
         internal static int NextPrimeGreaterThan(int min)
@@ -24,7 +24,7 @@ namespace BitFaster.Caching
                 }
             }
 
-            return 131;
+            return 137;
         }
     }
 }
