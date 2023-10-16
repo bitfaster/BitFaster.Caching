@@ -19,11 +19,11 @@ namespace BitFaster.Caching
         }
 
         /// <summary>
-        /// Estimate the size of the ConcurrentDictionary constructor capacity arg to use for the given desired size.
+        /// Estimate the size of the ConcurrentDictionary constructor capacity arg to use for the given desired cache size.
         /// </summary>
         /// <remarks>
         /// To minimize collisions, ideal case is is for ConcurrentDictionary to have a prime number of buckets, and 
-        /// for the bucket count to be about 30% than the cache capacity.
+        /// for the bucket count to be about 30% greater than the cache capacity.
         /// </remarks>
         /// <param name="desiredSize">The desired cache size</param>
         /// <returns>The estimated optimal ConcurrentDictionary capacity</returns>
@@ -46,7 +46,7 @@ namespace BitFaster.Caching
                 }
             }
 
-            // TODO: is this reasonable for large hashtables? Check if it will resize to max array size.
+            // ConcurrentDictionary will resize to max array size after 4x grow calls.
             return 250478587;
         }
 
