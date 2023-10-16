@@ -205,5 +205,5 @@ namespace BitFaster.Caching
                 new KeyValuePair<int, int>(1855979519, 231997439),
                 new KeyValuePair<int, int>(2003828731, 250478587),
             };
-}
+    }
 }
