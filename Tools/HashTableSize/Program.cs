@@ -45,6 +45,7 @@ int count = 0;
 
 foreach (var pair in q)
 {
+    // Need to use MoreLinq Scan() to do this as part of the linq expression
     var diff = (float)pair.Size / lastSize;
     if (diff > 1.04)
     { 
