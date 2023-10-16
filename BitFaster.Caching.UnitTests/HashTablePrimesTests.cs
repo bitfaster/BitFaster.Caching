@@ -20,11 +20,11 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(3, 7)]
         [InlineData(8, 11)]
         [InlineData(12, 17)]
-        [InlineData(132, 137)]
-        [InlineData(500, 137)]
+        [InlineData(196, 197)]
+        [InlineData(500, 197)]
         public void NextPrimeGreaterThan(int input, int nextPrime)
         {
-            HashTablePrimes.NextPrimeGreaterThan(input).Should().Be(nextPrime);
+            HashTableSize.NextPrimeGreaterThan(input).Should().Be(nextPrime);
         }
 
         // This test method replicates the hash table sizes that will be computed by ConcurrentDictionary

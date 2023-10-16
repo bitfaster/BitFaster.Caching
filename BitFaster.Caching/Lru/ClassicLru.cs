@@ -52,7 +52,7 @@ namespace BitFaster.Caching.Lru
                 Throw.ArgNull(ExceptionArgument.comparer);
 
             this.capacity = capacity;
-            int dictionaryCapacity = HashTablePrimes.NextPrimeGreaterThan(capacity);
+            int dictionaryCapacity = HashTableSize.Estimate(capacity);
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, dictionaryCapacity, comparer);
             this.policy = new CachePolicy(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
         }
