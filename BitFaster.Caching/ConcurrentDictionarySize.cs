@@ -46,8 +46,8 @@ namespace BitFaster.Caching
                 }
             }
 
-            // ConcurrentDictionary will resize to max array size after 4x grow calls.
-            return 250478587;
+            // Use largest mapping: ConcurrentDictionary will resize to max array size after 4x grow calls.
+            return SizeMap[SizeMap.Length-1].Value;
         }
 
 #if NETSTANDARD2_0
