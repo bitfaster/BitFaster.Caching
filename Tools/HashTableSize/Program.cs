@@ -6,8 +6,6 @@ var map = new List<KeyValuePair<int, int>>();
 
 foreach (int prime in HashTools.Primes)
 {
-    Console.WriteLine($"Evaluating {prime}...");
-
     int p = prime;
     while (p < int.MaxValue) 
     {
@@ -28,33 +26,38 @@ foreach (int prime in HashTools.Primes)
     }
 }
 
-var q = from s in map
-        where s.Value < s.Key * 0.2
-        where s.Key > 167
-        orderby s.Key
-        group s by s.Key into g
-        select new { Size = g.Key, Start = g.Max(s => HashTools.ChooseInitialSize(s.Key, s.Value)) };
+map = map
+    .Where(m => m.Value < m.Key * 0.2)  // initial values less than 20%
+    .Where(m => m.Key > 167)            // start above 167
+    .OrderBy(m => m.Key)
+    .GroupBy(                           // take the best initial size for each prime
+        m => m.Key,
+        m => m.Value,
+        (size, startSizes) => new KeyValuePair<int, int>
+        ( 
+            size,
+            startSizes.Select(i => HashTools.ChooseInitialSize(size, i)).Max())
+        )
+    .ToList();
 
+// filter the map to successive values with more than a 4% difference (to reduce lookup table size)
+map = map.Take(1).Concat(
+    map
+    .Skip(1)
+    .Select((x, i) => new { x.Key, x.Value, diff = (float)x.Key / map[i].Key })
+    .Where(x => x.diff > 1.04)
+    .Select(x => new KeyValuePair<int, int>(x.Key, x.Value)))
+    .ToList();
 
+// print the declaration of the lookup table to the console
 Console.WriteLine();
-Console.WriteLine($"internal static KeyValuePair<int, int>[] Map = new KeyValuePair<int, int>[{q.Count()}]");
+Console.WriteLine($"internal static KeyValuePair<int, int>[] Map = new KeyValuePair<int, int>[{map.Count}]");
 Console.WriteLine("{");
 
-int lastSize = 1;
-int count = 0;
-
-foreach (var pair in q)
+foreach (var pair in map)
 {
-    // Need to use MoreLinq Scan() to do this as part of the linq expression
-    var diff = (float)pair.Size / lastSize;
-    if (diff > 1.04)
-    { 
-        Console.WriteLine($"    new KeyValuePair<int, int>({pair.Size}, {pair.Start}),");
-        count++;
-    }
-
-    lastSize = pair.Size;
+    Console.WriteLine($"    new KeyValuePair<int, int>({pair.Key}, {pair.Value}),");
 }
 
 Console.WriteLine("};");
-Console.WriteLine(count);
+
