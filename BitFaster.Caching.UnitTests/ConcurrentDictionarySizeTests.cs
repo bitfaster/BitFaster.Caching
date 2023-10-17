@@ -18,7 +18,7 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(8, 11)]
         [InlineData(12, 17)]
         [InlineData(196, 197)]
-        [InlineData(500, 197)]
+        [InlineData(7199369, 7199369)]
         public void NextPrimeGreaterThan(int input, int nextPrime)
         {
             ConcurrentDictionarySize.NextPrimeGreaterThan(input).Should().Be(nextPrime);
