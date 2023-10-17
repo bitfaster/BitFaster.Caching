@@ -114,7 +114,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         ///<inheritdoc/>
-        public int Count => this.dictionary.Count;
+        public int Count => this.dictionary.Skip(0).Count();
 
         ///<inheritdoc/>
         public int Capacity => this.capacity.Capacity;
