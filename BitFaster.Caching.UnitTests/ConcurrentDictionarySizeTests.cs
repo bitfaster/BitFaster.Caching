@@ -31,7 +31,8 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(196, 137)]
         [InlineData(276, 179)]
         [InlineData(330, 221)]
-        [InlineData(2003828731, 250478587)]
+        [InlineData(1553355606, 250478587)] // test larger than last bucket
+        [InlineData(2003828731, 250478587)] // test overflow
         public void Estimate(int input, int nextPrime)
         {
             ConcurrentDictionarySize.Estimate(input).Should().Be(nextPrime);
