@@ -10,11 +10,12 @@ namespace BitFaster.Caching.UnitTests.Atomic
     [Collection("Soak")]
     public class ScopedAtomicFactorySoakTests
     {
+        private const int threads = 4;
+        private const int items = 1024;
+
         [Fact]
         public async Task WhenGetOrAddIsConcurrentValuesCreatedAtomically()
         {
-            const int threads = 4;
-            const int items = 1024;
             var dictionary = new ConcurrentDictionary<int, ScopedAtomicFactory<int, Disposable>>(concurrencyLevel: threads, capacity: items);
             var counters = new int[threads];
 
@@ -45,8 +46,6 @@ namespace BitFaster.Caching.UnitTests.Atomic
         [Fact]
         public async Task WhenGetOrAddAndDisposeIsConcurrentLifetimesAreValid()
         {
-            const int threads = 4;
-            const int items = 1024;
             var dictionary = new ConcurrentDictionary<int, ScopedAtomicFactory<int, Disposable>>(concurrencyLevel: threads, capacity: items);
 
             await Threaded.Run(threads, (r) =>
@@ -72,7 +71,6 @@ namespace BitFaster.Caching.UnitTests.Atomic
                             break;
                         }
                     }
-
                 }
             });
         }
