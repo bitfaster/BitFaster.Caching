@@ -54,7 +54,10 @@ namespace BitFaster.Caching.UnitTests.Atomic
             {
                 for (int i = 0; i < items; i++)
                 {
-                    dictionary.TryRemove(i, out _);
+                    if (dictionary.TryRemove(i, out var d))
+                    {
+                        d.Dispose();
+                    }
 
                     while (true)
                     {
