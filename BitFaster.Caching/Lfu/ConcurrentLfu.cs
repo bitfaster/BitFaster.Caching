@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +14,6 @@ using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 
 #if DEBUG
-using System.Linq;
 using System.Text;
 #endif
 
@@ -113,8 +113,9 @@ namespace BitFaster.Caching.Lfu
             this.drainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
         }
 
+        // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
         ///<inheritdoc/>
-        public int Count => this.dictionary.Count;
+        public int Count => this.dictionary.Skip(0).Count();
 
         ///<inheritdoc/>
         public int Capacity => this.capacity.Capacity;
