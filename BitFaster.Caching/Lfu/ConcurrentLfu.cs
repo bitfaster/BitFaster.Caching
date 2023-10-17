@@ -113,6 +113,7 @@ namespace BitFaster.Caching.Lfu
             this.drainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
         }
 
+        // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
         ///<inheritdoc/>
         public int Count => this.dictionary.Skip(0).Count();
 
