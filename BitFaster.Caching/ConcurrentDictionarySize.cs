@@ -15,7 +15,7 @@ namespace BitFaster.Caching
                 }
             }
 
-            return 7199369;
+            return min;
         }
 
         /// <summary>
