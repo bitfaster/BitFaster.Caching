@@ -23,20 +23,26 @@ namespace BitFaster.Caching
         /// </summary>
         /// <remarks>
         /// To minimize collisions, ideal case is is for ConcurrentDictionary to have a prime number of buckets, and 
-        /// for the bucket count to be about 30% greater than the cache capacity.
+        /// for the bucket count to be about 33% greater than the cache capacity (load factor of 75). 
+        /// See load factor here: https://en.wikipedia.org/wiki/Hash_table
         /// </remarks>
         /// <param name="desiredSize">The desired cache size</param>
         /// <returns>The estimated optimal ConcurrentDictionary capacity</returns>
         internal static int Estimate(int desiredSize)
         {
+            // Size map entries are approx 4% apart in the worst case, so increase by 29% to target 33%.
+            // In practice, this leads to the number of buckets being somewhere between 29% and 40% greater
+            // than cache capacity.
+            desiredSize = (int)(desiredSize * 1.29);
+
             // When small, exact size hashtable to nearest larger prime number
-            if (desiredSize <= 197)
+            if (desiredSize < 197)
             {
                 return NextPrimeGreaterThan(desiredSize);
             }
 
             // When large, size to approx 10% of desired size to save memory. Initial value is chosen such
-            // that 3x ConcurrentDictionary resize operations will select a prime number slightly larger
+            // that 4x ConcurrentDictionary grow operations will select a prime number slightly larger
             // than desired size.
             foreach (var pair in SizeMap)
             {
@@ -47,7 +53,7 @@ namespace BitFaster.Caching
             }
 
             // Use largest mapping: ConcurrentDictionary will resize to max array size after 4x grow calls.
-            return SizeMap[SizeMap.Length-1].Value;
+            return SizeMap[SizeMap.Length - 1].Value;
         }
 
 #if NETSTANDARD2_0

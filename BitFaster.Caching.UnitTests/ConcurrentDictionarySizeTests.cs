@@ -28,9 +28,9 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(3, 7)]
         [InlineData(8, 11)]
         [InlineData(12, 17)]
-        [InlineData(196, 197)]
-        [InlineData(276, 137)]
-        [InlineData(330, 163)]
+        [InlineData(196, 137)]
+        [InlineData(276, 179)]
+        [InlineData(330, 221)]
         [InlineData(2003828731, 250478587)]
         public void Estimate(int input, int nextPrime)
         {
