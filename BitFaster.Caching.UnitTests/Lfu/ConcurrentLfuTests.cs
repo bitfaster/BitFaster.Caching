@@ -9,7 +9,6 @@ using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using BitFaster.Caching.UnitTests.Lru;
 using FluentAssertions;
-using Microsoft.VisualBasic;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -753,12 +752,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
         //Elapsed 411.6918ms - 0.0004116918ns/op
         //Cache hits 1689839 (sampled 16.89839%)
         //Maintenance ops 31
-        [Theory]
-        [Repeat(3)]
-        public void VerifyHitsWithBackgroundScheduler(int iteration)
+        [Fact]
+        public void VerifyHitsWithBackgroundScheduler()
         {
-            this.output.WriteLine($"Iteration {iteration}");
-
             // when running all tests in parallel, sample count drops significantly: set low bar for stability.
             VerifyHits(iterations: 10_000_000, minSamples: 250_000);
         }
