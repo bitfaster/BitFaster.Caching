@@ -136,7 +136,7 @@ namespace BitFaster.Caching.Atomic
             if (init != null)
             {
                 scope = init.CreateScope(key, valueFactory);
-                initializer = null;
+                Volatile.Write(ref initializer, null); // volatile write must occur after setting value
             }
         }
 
@@ -164,11 +164,6 @@ namespace BitFaster.Caching.Atomic
 
             public Scoped<V> CreateScope<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
             {
-                if (Volatile.Read(ref isInitialized))
-                {
-                    return value;
-                }
-
                 lock (syncLock)
                 {
                     if (Volatile.Read(ref isInitialized))
@@ -185,12 +180,6 @@ namespace BitFaster.Caching.Atomic
 
             public Scoped<V> TryCreateDisposedScope()
             {
-                // already exists, return it
-                if (Volatile.Read(ref isInitialized))
-                {
-                    return value;
-                }
-
                 lock (syncLock)
                 {
                     if (Volatile.Read(ref isInitialized))
