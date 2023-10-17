@@ -23,7 +23,7 @@ namespace BitFaster.Caching
         /// </summary>
         /// <remarks>
         /// To minimize collisions, ideal case is is for ConcurrentDictionary to have a prime number of buckets, and 
-        /// for the bucket count to be about 33% greater than the cache capacity (load factor of 75). 
+        /// for the bucket count to be about 33% greater than the cache capacity (load factor of 0.75). 
         /// See load factor here: https://en.wikipedia.org/wiki/Hash_table
         /// </remarks>
         /// <param name="desiredSize">The desired cache size</param>
