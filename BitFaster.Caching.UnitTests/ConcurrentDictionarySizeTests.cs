@@ -33,9 +33,9 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(330, 221)]
         [InlineData(1553355606, 250478587)] // test larger than last SizeMap entry
         [InlineData(2003828731, 250478587)] // test overflow
-        public void Estimate(int input, int nextPrime)
+        public void Estimate(int input, int optimal)
         {
-            ConcurrentDictionarySize.Estimate(input).Should().Be(nextPrime);
+            ConcurrentDictionarySize.Estimate(input).Should().Be(optimal);
         }
     }
 }
