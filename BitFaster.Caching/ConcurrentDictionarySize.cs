@@ -33,23 +33,33 @@ namespace BitFaster.Caching
             // Size map entries are approx 4% apart in the worst case, so increase by 29% to target 33%.
             // In practice, this leads to the number of buckets being somewhere between 29% and 40% greater
             // than cache capacity.
-            desiredSize = (int)(desiredSize * 1.29);
-
-            // When small, exact size hashtable to nearest larger prime number
-            if (desiredSize < 197)
+            try
             {
-                return NextPrimeGreaterThan(desiredSize);
-            }
-
-            // When large, size to approx 10% of desired size to save memory. Initial value is chosen such
-            // that 4x ConcurrentDictionary grow operations will select a prime number slightly larger
-            // than desired size.
-            foreach (var pair in SizeMap)
-            {
-                if (pair.Key > desiredSize)
+                checked
                 {
-                    return pair.Value;
+                    desiredSize = (int)(desiredSize * 1.29);
                 }
+
+                // When small, exact size hashtable to nearest larger prime number
+                if (desiredSize < 197)
+                {
+                    return NextPrimeGreaterThan(desiredSize);
+                }
+
+                // When large, size to approx 10% of desired size to save memory. Initial value is chosen such
+                // that 4x ConcurrentDictionary grow operations will select a prime number slightly larger
+                // than desired size.
+                foreach (var pair in SizeMap)
+                {
+                    if (pair.Key > desiredSize)
+                    {
+                        return pair.Value;
+                    }
+                }
+            }
+            catch (OverflowException)
+            {
+                // return largest
             }
 
             // Use largest mapping: ConcurrentDictionary will resize to max array size after 4x grow calls.
