@@ -41,5 +41,38 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             counters.Sum(x => x).Should().Be(items);
         }
+
+        [Fact]
+        public async Task WhenGetOrAddAndDisposeIsConcurrentValuesCreatedAtomically()
+        {
+            const int threads = 4;
+            const int items = 1024;
+            var dictionary = new ConcurrentDictionary<int, ScopedAtomicFactory<int, Disposable>>(concurrencyLevel: threads, capacity: items);
+            var counters = new int[threads];
+
+            await Threaded.Run(threads, (r) =>
+            {
+                for (int i = 0; i < items; i++)
+                {
+                    dictionary.TryRemove(i, out _);
+
+                    while (true)
+                    {
+                        var scoped = dictionary.GetOrAdd(i, k => new ScopedAtomicFactory<int, Disposable>());
+
+                        if (scoped.TryCreateLifetime(i, k => { counters[r]++; return new Scoped<Disposable>(new Disposable(k)); }, out var lifetime))
+                        {
+                            using (lifetime)
+                            {
+                                lifetime.Value.IsDisposed.Should().BeFalse();
+                            }
+
+                            break;
+                        }
+                    }
+
+                }
+            });
+        }
     }
 }
