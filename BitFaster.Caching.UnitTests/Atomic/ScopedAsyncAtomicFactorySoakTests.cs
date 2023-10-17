@@ -8,7 +8,7 @@ using Xunit;
 namespace BitFaster.Caching.UnitTests.Atomic
 {
     [Collection("Soak")]
-    public class ScopedAtomicFactorySoakTests
+    public class ScopedAsyncAtomicFactorySoakTests
     {
         private const int threads = 4;
         private const int items = 1024;
@@ -16,17 +16,19 @@ namespace BitFaster.Caching.UnitTests.Atomic
         [Fact]
         public async Task WhenGetOrAddIsConcurrentValuesCreatedAtomically()
         {
-            var dictionary = new ConcurrentDictionary<int, ScopedAtomicFactory<int, Disposable>>(concurrencyLevel: threads, capacity: items);
+            var dictionary = new ConcurrentDictionary<int, ScopedAsyncAtomicFactory<int, Disposable>>(concurrencyLevel: threads, capacity: items);
             var counters = new int[threads];
 
-            await Threaded.Run(threads, (r) =>
+            await Threaded.RunAsync(threads, async (r) =>
             {
                 for (int i = 0; i < items; i++)
                 {
                     while (true)
                     {
-                        var scoped = dictionary.GetOrAdd(i, k => new ScopedAtomicFactory<int, Disposable>());
-                        if (scoped.TryCreateLifetime(i, k => { counters[r]++; return new Scoped<Disposable>(new Disposable(k)); }, out var lifetime))
+                        var scope = dictionary.GetOrAdd(i, k => new ScopedAsyncAtomicFactory<int, Disposable>());
+                        var (success, lifetime) = await scope.TryCreateLifetimeAsync(i, k => { counters[r]++; return Task.FromResult(new Scoped<Disposable>(new Disposable(k))); });
+
+                        if (success)
                         {
                             using (lifetime)
                             {
@@ -36,7 +38,6 @@ namespace BitFaster.Caching.UnitTests.Atomic
                             break;
                         }
                     }
-
                 }
             });
 
@@ -46,9 +47,9 @@ namespace BitFaster.Caching.UnitTests.Atomic
         [Fact]
         public async Task WhenGetOrAddAndDisposeIsConcurrentLifetimesAreValid()
         {
-            var dictionary = new ConcurrentDictionary<int, ScopedAtomicFactory<int, Disposable>>(concurrencyLevel: threads, capacity: items);
+            var dictionary = new ConcurrentDictionary<int, ScopedAsyncAtomicFactory<int, Disposable>>(concurrencyLevel: threads, capacity: items);
 
-            await Threaded.Run(threads, (r) =>
+            await Threaded.RunAsync(threads, async (r) =>
             {
                 for (int i = 0; i < items; i++)
                 {
@@ -59,9 +60,10 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
                     while (true)
                     {
-                        var scoped = dictionary.GetOrAdd(i, k => new ScopedAtomicFactory<int, Disposable>());
+                        var scope = dictionary.GetOrAdd(i, k => new ScopedAsyncAtomicFactory<int, Disposable>());
+                        var (success, lifetime) = await scope.TryCreateLifetimeAsync(i, k => { return Task.FromResult(new Scoped<Disposable>(new Disposable(k))); });
 
-                        if (scoped.TryCreateLifetime(i, k => { return new Scoped<Disposable>(new Disposable(k)); }, out var lifetime))
+                        if (success)
                         {
                             using (lifetime)
                             {
