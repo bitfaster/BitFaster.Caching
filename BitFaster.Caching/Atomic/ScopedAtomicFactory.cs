@@ -158,21 +158,20 @@ namespace BitFaster.Caching.Atomic
 
         private class Initializer
         {
-            private readonly object syncLock = new();
             private bool isInitialized;
             private Scoped<V> value;
 
             public Scoped<V> CreateScope<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
             {
-                lock (syncLock)
+                lock (this)
                 {
-                    if (Volatile.Read(ref isInitialized))
+                    if (isInitialized)
                     {
                         return value;
                     }
 
                     value = valueFactory.Create(key);
-                    Volatile.Write(ref isInitialized, true);
+                    isInitialized = true;
 
                     return value;
                 }
@@ -180,9 +179,9 @@ namespace BitFaster.Caching.Atomic
 
             public Scoped<V> TryCreateDisposedScope()
             {
-                lock (syncLock)
+                lock (this)
                 {
-                    if (Volatile.Read(ref isInitialized))
+                    if (isInitialized)
                     {
                         return value;
                     }
@@ -191,7 +190,7 @@ namespace BitFaster.Caching.Atomic
                     var temp = new Scoped<V>(default);
                     temp.Dispose();
                     value = temp;
-                    Volatile.Write(ref isInitialized, true);
+                    isInitialized = true;
 
                     return value;
                 }
