@@ -1131,8 +1131,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(-8, valueFactory.Create);
             lru.GetOrAdd(-9, valueFactory.Create);
         }
-
-
     }
 
     public class ConcurrentLruIntegrityChecker<K, V, I, P, T>
