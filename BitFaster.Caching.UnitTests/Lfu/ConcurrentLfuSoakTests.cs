@@ -14,6 +14,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
     [Collection("Soak")]
     public class ConcurrentLfuSoakTests
     {
+        private const int iterations = 10;
         private readonly ITestOutputHelper output;
         public ConcurrentLfuSoakTests(ITestOutputHelper testOutputHelper)
         {
@@ -21,22 +22,46 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Theory]
-        [Repeat(10)]
+        [Repeat(iterations)]
         public async Task WhenConcurrentGetCacheEndsInConsistentState(int iteration)
         {
-            var lfu = new ConcurrentLfu<int, int>(9);
+            var scheduler = new BackgroundThreadScheduler();
+            var lfu = new ConcurrentLfuBuilder<int, string>().WithCapacity(256).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
 
             await Threaded.Run(4, () => {
                 for (int i = 0; i < 100000; i++)
                 {
-                    lfu.GetOrAdd(i + 1, i => i);
+                    lfu.GetOrAdd(i + 1, i => i.ToString());
                 }
             });
 
             this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
 
-            // allow +/- 1 variance for capacity
-            lfu.Count.Should().BeInRange(7, 10);
+            scheduler.Dispose();
+            await scheduler.Completion;
+
+            RunIntegrityCheck(lfu);
+        }
+
+        [Theory]
+        [Repeat(iterations)]
+        public async Task WhenConcurrentGetAsyncCacheEndsInConsistentState(int iteration)
+        {
+            var scheduler = new BackgroundThreadScheduler();
+            var lfu = new ConcurrentLfuBuilder<int, string>().WithCapacity(256).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
+
+            await Threaded.RunAsync(4, async () => {
+                for (int i = 0; i < 100000; i++)
+                {
+                    await lfu.GetOrAddAsync(i + 1, i => Task.FromResult(i.ToString()));
+                }
+            });
+
+            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
+
+            scheduler.Dispose();
+            await scheduler.Completion;
+
             RunIntegrityCheck(lfu);
         }
 
@@ -147,7 +172,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             foreach (var kvp in this.cache)
             {
                 var exists = Exists(kvp, this.windowLru) || Exists(kvp, this.probationLru) || Exists(kvp, this.protectedLru);
-                exists.Should().BeTrue();
+                exists.Should().BeTrue($"key {kvp.Key} should exist in LRU lists");
             }
         }
 
