@@ -94,12 +94,12 @@ namespace BitFaster.Caching.Atomic
 
         private async ValueTask<V> CreateValueAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, V>
         {
-            var init = initializer;
+            var init = Volatile.Read(ref initializer);
 
             if (init != null)
             {
                 value = await init.CreateValueAsync(key, valueFactory).ConfigureAwait(false);
-                initializer = null;
+                Volatile.Write(ref initializer, null);
             }
 
             return value;
@@ -107,7 +107,6 @@ namespace BitFaster.Caching.Atomic
 
         private class Initializer
         {
-            private readonly object syncLock = new();
             private bool isInitialized;
             private Task<V> valueTask;
 
@@ -145,12 +144,12 @@ namespace BitFaster.Caching.Atomic
                     return valueTask;
                 }
 
-                lock (syncLock)
+                lock (this)
                 {
-                    if (!Volatile.Read(ref isInitialized))
+                    if (!isInitialized)
                     {
                         valueTask = value;
-                        Volatile.Write(ref isInitialized, true);
+                        isInitialized = true;
                     }
                 }
 

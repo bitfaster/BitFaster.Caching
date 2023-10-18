@@ -142,13 +142,13 @@ namespace BitFaster.Caching.Atomic
             {
                 lock (this)
                 {
-                    if (Volatile.Read(ref isInitialized))
+                    if (isInitialized)
                     {
                         return value;
                     }
 
                     value = valueFactory.Create(key);
-                    Volatile.Write(ref isInitialized, true);
+                    isInitialized = true;
                     return value;
                 }
             }
