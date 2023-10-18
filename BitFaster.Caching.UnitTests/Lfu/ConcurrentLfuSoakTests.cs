@@ -109,6 +109,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             await scheduler.Completion;
 
             RunIntegrityCheck(lfu);
+<<<<<<< HEAD
         }
 
         [Theory]
@@ -132,6 +133,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             await scheduler.Completion;
 
             RunIntegrityCheck(lfu);
+=======
+>>>>>>> main
         }
 
         [Fact]
