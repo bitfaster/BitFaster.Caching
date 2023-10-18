@@ -89,8 +89,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Theory]
-        [Repeat(10)]
-        public async Task WhenSoakConcurrentGetAsyncWithArgCacheEndsInConsistentState(int iteration)
+        [Repeat(iterations)]
+        public async Task WhenConcurrentGetAsyncWithArgCacheEndsInConsistentState(int iteration)
         {
             var scheduler = new BackgroundThreadScheduler();
             var lfu = new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
@@ -110,7 +110,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             RunIntegrityCheck(lfu);
         }
-
 
         [Fact]
         public async Task ThreadedVerifyMisses()
