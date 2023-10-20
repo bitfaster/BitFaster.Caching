@@ -22,7 +22,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
         }
 
         [Theory]
-        [Repeat(3)]
+        [Repeat(10)]
         public async Task WhenAddIsContendedBufferCanBeFilled(int iteration)
         {
             this.testOutputHelper.WriteLine($"Iteration {iteration}");
