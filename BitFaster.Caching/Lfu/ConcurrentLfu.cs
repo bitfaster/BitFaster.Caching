@@ -190,7 +190,11 @@ namespace BitFaster.Caching.Lfu
                 TakeCandidatesInLruOrder(this.windowLru, candidates, itemCount);
             }
 
+#if NET6_0_OR_GREATER
+            foreach (var candidate in CollectionsMarshal.AsSpan(candidates))
+#else
             foreach (var candidate in candidates)
+#endif
             {
                 this.TryRemove(candidate.Key);
             }
