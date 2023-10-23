@@ -134,6 +134,52 @@ namespace BitFaster.Caching.UnitTests.Lfu
             RunIntegrityCheck(lfu);
         }
 
+        [Theory]
+        [Repeat(iterations)]
+        public async Task WhenSoakConcurrentGetAndRemoveCacheEndsInConsistentState(int iteration)
+        {
+            var scheduler = new BackgroundThreadScheduler();
+            var lfu = new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
+
+            await Threaded.Run(4, () => {
+                for (int i = 0; i < 100000; i++)
+                {
+                    lfu.TryRemove(i + 1);
+                    lfu.GetOrAdd(i + 1, i => i.ToString());
+                }
+            });
+
+            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
+
+            scheduler.Dispose();
+            await scheduler.Completion;
+
+            RunIntegrityCheck(lfu);
+        }
+
+        [Theory]
+        [Repeat(iterations)]
+        public async Task WhenConcurrentGetAndRemoveKvpCacheEndsInConsistentState(int iteration)
+        {
+            var scheduler = new BackgroundThreadScheduler();
+            var lfu = new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
+
+            await Threaded.Run(4, () => {
+                for (int i = 0; i < 100000; i++)
+                {
+                    lfu.TryRemove(new KeyValuePair<int, string>(i + 1, (i + 1).ToString()));
+                    lfu.GetOrAdd(i + 1, i => i.ToString());
+                }
+            });
+
+            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
+
+            scheduler.Dispose();
+            await scheduler.Completion;
+
+            RunIntegrityCheck(lfu);
+        }
+
         [Fact]
         public async Task ThreadedVerifyMisses()
         {
