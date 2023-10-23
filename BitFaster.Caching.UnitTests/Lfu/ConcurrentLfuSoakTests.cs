@@ -28,8 +28,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Repeat(soakIterations)]
         public async Task WhenConcurrentGetCacheEndsInConsistentState(int iteration)
         {
-            var scheduler = new BackgroundThreadScheduler();
-            var lfu = new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
+            var lfu = CreateWithBackgroundScheduler();
 
             await Threaded.Run(threads, () => {
                 for (int i = 0; i < loopIterations; i++)
@@ -38,20 +37,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             });
 
-            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
-
-            scheduler.Dispose();
-            await scheduler.Completion;
-
-            RunIntegrityCheck(lfu);
+            await RunIntegrityCheckAsync(lfu, iteration);
         }
 
         [Theory]
         [Repeat(soakIterations)]
         public async Task WhenConcurrentGetAsyncCacheEndsInConsistentState(int iteration)
         {
-            var scheduler = new BackgroundThreadScheduler();
-            var lfu = new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
+            var lfu = CreateWithBackgroundScheduler();
 
             await Threaded.RunAsync(threads, async () => {
                 for (int i = 0; i < loopIterations; i++)
@@ -60,20 +53,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             });
 
-            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
-
-            scheduler.Dispose();
-            await scheduler.Completion;
-
-            RunIntegrityCheck(lfu);
+            await RunIntegrityCheckAsync(lfu, iteration);
         }
 
         [Theory]
         [Repeat(soakIterations)]
         public async Task WhenConcurrentGetWithArgCacheEndsInConsistentState(int iteration)
         {
-            var scheduler = new BackgroundThreadScheduler();
-            var lfu = new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
+            var lfu = CreateWithBackgroundScheduler();
 
             await Threaded.Run(threads, () => {
                 for (int i = 0; i < loopIterations; i++)
@@ -83,20 +70,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             });
 
-            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
-
-            scheduler.Dispose();
-            await scheduler.Completion;
-
-            RunIntegrityCheck(lfu);
+            await RunIntegrityCheckAsync(lfu, iteration);
         }
 
         [Theory]
         [Repeat(soakIterations)]
         public async Task WhenConcurrentGetAsyncWithArgCacheEndsInConsistentState(int iteration)
         {
-            var scheduler = new BackgroundThreadScheduler();
-            var lfu = new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
+            var lfu = CreateWithBackgroundScheduler();
 
             await Threaded.RunAsync(threads, async () => {
                 for (int i = 0; i < loopIterations; i++)
@@ -106,20 +87,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             });
 
-            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
-
-            scheduler.Dispose();
-            await scheduler.Completion;
-
-            RunIntegrityCheck(lfu);
+            await RunIntegrityCheckAsync(lfu, iteration);
         }
 
         [Theory]
         [Repeat(soakIterations)]
         public async Task WhenConcurrentGetAndUpdateCacheEndsInConsistentState(int iteration)
         {
-            var scheduler = new BackgroundThreadScheduler();
-            var lfu = new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
+            var lfu = CreateWithBackgroundScheduler();
 
             await Threaded.Run(threads, () => {
                 for (int i = 0; i < loopIterations; i++)
@@ -129,20 +104,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             });
 
-            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
-
-            scheduler.Dispose();
-            await scheduler.Completion;
-
-            RunIntegrityCheck(lfu);
+            await RunIntegrityCheckAsync(lfu, iteration);
         }
 
         [Theory]
         [Repeat(soakIterations)]
         public async Task WhenSoakConcurrentGetAndRemoveCacheEndsInConsistentState(int iteration)
         {
-            var scheduler = new BackgroundThreadScheduler();
-            var lfu = new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
+            var lfu = CreateWithBackgroundScheduler();
 
             await Threaded.Run(threads, () => {
                 for (int i = 0; i < loopIterations; i++)
@@ -152,20 +121,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             });
 
-            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
-
-            scheduler.Dispose();
-            await scheduler.Completion;
-
-            RunIntegrityCheck(lfu);
+            await RunIntegrityCheckAsync(lfu, iteration);
         }
 
         [Theory]
         [Repeat(soakIterations)]
         public async Task WhenConcurrentGetAndRemoveKvpCacheEndsInConsistentState(int iteration)
         {
-            var scheduler = new BackgroundThreadScheduler();
-            var lfu = new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
+            var lfu = CreateWithBackgroundScheduler();
 
             await Threaded.Run(threads, () => {
                 for (int i = 0; i < loopIterations; i++)
@@ -175,23 +138,18 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             });
 
-            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
-
-            scheduler.Dispose();
-            await scheduler.Completion;
-
-            RunIntegrityCheck(lfu);
+            await RunIntegrityCheckAsync(lfu, iteration);
         }
 
         [Fact]
         public async Task ThreadedVerifyMisses()
         {
             // buffer size is 1, this will cause dropped writes on some threads where the buffer is full
-            var cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default);
+            var cache = new ConcurrentLfu<int, string>(1, 20, new NullScheduler(), EqualityComparer<int>.Default);
 
             await Threaded.Run(threads, i =>
             {
-                Func<int, int> func = x => x;
+                Func<int, string> func = x => x.ToString();
 
                 int start = i * loopIterations;
 
@@ -210,7 +168,25 @@ namespace BitFaster.Caching.UnitTests.Lfu
             RunIntegrityCheck(cache);
         }
 
-        private void RunIntegrityCheck<K,V>(ConcurrentLfu<K,V> cache)
+        private ConcurrentLfu<int, string> CreateWithBackgroundScheduler()
+        {
+            var scheduler = new BackgroundThreadScheduler();
+            return new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
+        }
+
+        private async Task RunIntegrityCheckAsync(ConcurrentLfu<int, string> lfu, int iteration)
+        {
+            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
+
+            var scheduler = lfu.Scheduler as BackgroundThreadScheduler;
+            scheduler.Dispose();
+            await scheduler.Completion;
+
+            RunIntegrityCheck(lfu);
+        }
+
+
+        private static void RunIntegrityCheck<K,V>(ConcurrentLfu<K,V> cache)
         {
             new ConcurrentLfuIntegrityChecker<K, V>(cache).Validate();
         }
