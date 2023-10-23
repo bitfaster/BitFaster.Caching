@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -516,11 +517,6 @@ namespace BitFaster.Caching.Lfu
 
         private void TryScheduleDrain()
         {
-            if (this.drainStatus.VolatileRead() >= DrainStatus.ProcessingToIdle)
-            {
-                return;
-            }
-
             bool lockTaken = false;
             try
             {
@@ -864,9 +860,10 @@ namespace BitFaster.Caching.Lfu
 
             private PaddedInt drainStatus; // mutable struct, don't mark readonly
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool ShouldDrain(bool delayable)
             {
-                int status = this.drainStatus.Value;
+                int status = this.VolatileRead();
                 return status switch
                 {
                     Idle => !delayable,
@@ -876,26 +873,31 @@ namespace BitFaster.Caching.Lfu
                 };
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void VolatileWrite(int newStatus)
             { 
                 Volatile.Write(ref this.drainStatus.Value, newStatus);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void NonVolatileWrite(int newStatus)
             {
                 this.drainStatus.Value = newStatus;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool Cas(int oldStatus, int newStatus)
             { 
                 return Interlocked.CompareExchange(ref this.drainStatus.Value, newStatus, oldStatus) == oldStatus;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public int VolatileRead()
             {
                 return Volatile.Read(ref this.drainStatus.Value);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public int NonVolatileRead()
             {
                 return this.drainStatus.Value;
