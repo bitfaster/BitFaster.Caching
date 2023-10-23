@@ -1,4 +1,5 @@
-﻿using BitFaster.Caching.Lfu;
+﻿using System;
+using BitFaster.Caching.Lfu;
 using FluentAssertions;
 using Xunit;
 
@@ -6,6 +7,16 @@ namespace BitFaster.Caching.UnitTests.Lfu
 {
     public class LfuNodeListTests
     {
+#if DEBUG
+        [Fact]
+        public void WhenEmptyRemoveFirstThrows()
+        {
+            var list = new LfuNodeList<int, int>();
+            Action remove = () => { list.RemoveFirst(); };
+            remove.Should().Throw<InvalidOperationException>();
+        }
+#endif
+
         [Fact]
         public void WhenPreviousNullLastReturnsNull()
         {
