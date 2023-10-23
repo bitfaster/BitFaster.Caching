@@ -73,8 +73,6 @@ namespace BitFaster.Caching.Lfu
 
         private readonly LfuNode<K, V>[] drainBuffer;
 
-        private readonly Action drainBuffersAction;
-
         /// <summary>
         /// Initializes a new instance of the ConcurrentLfu class with the specified capacity.
         /// </summary>
@@ -114,11 +112,6 @@ namespace BitFaster.Caching.Lfu
             this.scheduler = scheduler;
 
             this.drainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
-
-            drainBuffersAction = () =>
-                {
-                    this.DrainBuffers();
-                };
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -532,7 +525,7 @@ namespace BitFaster.Caching.Lfu
                     }
 
                     this.drainStatus.NonVolatileWrite(DrainStatus.ProcessingToIdle);
-                    scheduler.Run(drainBuffersAction);
+                    scheduler.Run(() => this.DrainBuffers());
                 }
             }
             finally
