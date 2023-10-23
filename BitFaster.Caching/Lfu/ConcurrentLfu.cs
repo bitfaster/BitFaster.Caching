@@ -72,6 +72,8 @@ namespace BitFaster.Caching.Lfu
 
         private readonly LfuNode<K, V>[] drainBuffer;
 
+        private readonly Action drainBuffersAction;
+
         /// <summary>
         /// Initializes a new instance of the ConcurrentLfu class with the specified capacity.
         /// </summary>
@@ -111,6 +113,11 @@ namespace BitFaster.Caching.Lfu
             this.scheduler = scheduler;
 
             this.drainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
+
+            drainBuffersAction = () =>
+                {
+                    this.DrainBuffers();
+                };
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -480,7 +487,7 @@ namespace BitFaster.Caching.Lfu
             var spinner = new SpinWait();
             while (true)
             {
-                switch (this.drainStatus.Status())
+                switch (this.drainStatus.VolatileRead())
                 {
                     case DrainStatus.Idle:
                         this.drainStatus.Cas(DrainStatus.Idle, DrainStatus.Required);
@@ -509,7 +516,7 @@ namespace BitFaster.Caching.Lfu
 
         private void TryScheduleDrain()
         {
-            if (this.drainStatus.Status() >= DrainStatus.ProcessingToIdle)
+            if (this.drainStatus.VolatileRead() >= DrainStatus.ProcessingToIdle)
             {
                 return;
             }
@@ -521,15 +528,15 @@ namespace BitFaster.Caching.Lfu
 
                 if (lockTaken)
                 {
-                    int status = this.drainStatus.Status();
+                    int status = this.drainStatus.NonVolatileRead();
 
                     if (status >= DrainStatus.ProcessingToIdle)
                     {
                         return;
                     }
 
-                    this.drainStatus.Set(DrainStatus.ProcessingToIdle);
-                    scheduler.Run(() => DrainBuffers());
+                    this.drainStatus.NonVolatileWrite(DrainStatus.ProcessingToIdle);
+                    scheduler.Run(drainBuffersAction);
                 }
             }
             finally
@@ -559,7 +566,7 @@ namespace BitFaster.Caching.Lfu
                 }
             }
 
-            if (this.drainStatus.Status() == DrainStatus.Required)
+            if (this.drainStatus.VolatileRead() == DrainStatus.Required)
             {
                 TryScheduleDrain();
             }
@@ -567,7 +574,7 @@ namespace BitFaster.Caching.Lfu
 
         private bool Maintenance(LfuNode<K, V> droppedWrite = null)
         {
-            this.drainStatus.Set(DrainStatus.ProcessingToIdle);
+            this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
 
             // Note: this is only Span on .NET Core 3.1+, else this is no-op and it is still an array
             var buffer = this.drainBuffer.AsSpanOrArray();
@@ -609,10 +616,10 @@ namespace BitFaster.Caching.Lfu
             // 1. We drained both input buffers (all work done)
             // 2. or scheduler is foreground (since don't run continuously on the foreground)
             if ((done || !scheduler.IsBackground) &&
-                (this.drainStatus.Status() != DrainStatus.ProcessingToIdle ||
+                (this.drainStatus.VolatileRead() != DrainStatus.ProcessingToIdle ||
                 !this.drainStatus.Cas(DrainStatus.ProcessingToIdle, DrainStatus.Idle)))
             {
-                this.drainStatus.Set(DrainStatus.Required);
+                this.drainStatus.VolatileWrite(DrainStatus.Required);
             }
 
             return done;
@@ -859,7 +866,7 @@ namespace BitFaster.Caching.Lfu
 
             public bool ShouldDrain(bool delayable)
             {
-                int status = Volatile.Read(ref this.drainStatus.Value);
+                int status = this.drainStatus.Value;
                 return status switch
                 {
                     Idle => !delayable,
@@ -869,9 +876,14 @@ namespace BitFaster.Caching.Lfu
                 };
             }
 
-            public void Set(int newStatus)
+            public void VolatileWrite(int newStatus)
             { 
                 Volatile.Write(ref this.drainStatus.Value, newStatus);
+            }
+
+            public void NonVolatileWrite(int newStatus)
+            {
+                this.drainStatus.Value = newStatus;
             }
 
             public bool Cas(int oldStatus, int newStatus)
@@ -879,9 +891,14 @@ namespace BitFaster.Caching.Lfu
                 return Interlocked.CompareExchange(ref this.drainStatus.Value, newStatus, oldStatus) == oldStatus;
             }
 
-            public int Status()
+            public int VolatileRead()
             {
                 return Volatile.Read(ref this.drainStatus.Value);
+            }
+
+            public int NonVolatileRead()
+            {
+                return this.drainStatus.Value;
             }
 
             [ExcludeFromCodeCoverage]
