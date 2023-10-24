@@ -574,6 +574,13 @@ namespace BitFaster.Caching.UnitTests.Lru
             disposableValueFactory.Items[6].IsDisposed.Should().BeFalse();
         }
 
+        [Fact]
+        public void WhenAddingNullValueCanBeAddedAndRemoved()
+        {
+            lru.GetOrAdd(1, _ => null).Should().BeNull();
+            lru.AddOrUpdate(1, null);
+            lru.TryRemove(1).Should().BeTrue();
+        }
 
         [Fact]
         public void WhenValueEvictedItemRemovedEventIsFired()
