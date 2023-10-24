@@ -359,7 +359,7 @@ namespace BitFaster.Caching.Lru
             this.telemetryPolicy.OnItemRemoved(key, item.Value, ItemRemovedReason.Removed);
 
             // serialize dispose (common case dispose not thread safe)
-            lock (item.Value)
+            lock (item)
             {
                 Disposer<V>.Dispose(item.Value);
             }
