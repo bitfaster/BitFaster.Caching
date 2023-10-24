@@ -739,6 +739,7 @@ namespace BitFaster.Caching.Lfu
             public LfuNode<K, V> node;
             public int freq;
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public EvictIterator(CmSketch<K> sketch, LfuNode<K, V> node)
             {
                 this.sketch = sketch;
@@ -746,6 +747,7 @@ namespace BitFaster.Caching.Lfu
                 freq = node == null ? -1 : sketch.EstimateFrequency(node.Key);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Next()
             {
                 node = node.Next;
