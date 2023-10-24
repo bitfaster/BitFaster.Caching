@@ -688,6 +688,12 @@ namespace BitFaster.Caching.Lfu
 
         private void PromoteProbation(LfuNode<K, V> node)
         {
+            if (node.list == null)
+            {
+                // Ignore stale accesses for an entry that is no longer present
+                return;
+            }
+
             this.probationLru.Remove(node);
             this.protectedLru.AddLast(node);
             node.Position = Position.Protected;
