@@ -26,6 +26,7 @@
     <FileVersion>2.3.2.0</FileVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <IsTrimmable>true</IsTrimmable>
     <!--Package Validation-->
     <EnablePackageValidation>true</EnablePackageValidation>
     <PackageValidationBaselineVersion>2.3.0</PackageValidationBaselineVersion>    
