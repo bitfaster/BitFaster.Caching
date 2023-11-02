@@ -422,7 +422,7 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public void Clear()
         {
-            int count = this.Count();
+            int count = this.Count;
 
             for (int i = 0; i < count; i++)
             {

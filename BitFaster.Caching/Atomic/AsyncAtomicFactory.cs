@@ -136,6 +136,7 @@ namespace BitFaster.Caching.Atomic
                 return await synchronizedTask.ConfigureAwait(false);
             }
 
+#pragma warning disable CA2002 // Do not lock on objects with weak identity
             private Task<V> DoubleCheck(Task<V> value)
             {
                 // Fast path
@@ -155,6 +156,7 @@ namespace BitFaster.Caching.Atomic
 
                 return valueTask;
             }
+#pragma warning restore CA2002 // Do not lock on objects with weak identity
         }
     }
 }
