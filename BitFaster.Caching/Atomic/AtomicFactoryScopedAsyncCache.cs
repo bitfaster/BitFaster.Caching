@@ -54,11 +54,13 @@ namespace BitFaster.Caching.Atomic
         ///<inheritdoc/>
         public ICollection<K> Keys => AtomicEx.FilterKeys<K, ScopedAsyncAtomicFactory<K, V>>(this.cache, v => v.IsScopeCreated);
 
+#pragma warning disable CA2000 // Dispose objects before losing scope
         ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
         {
             this.cache.AddOrUpdate(key, new ScopedAsyncAtomicFactory<K, V>(value));
         }
+#pragma warning restore CA2000 // Dispose objects before losing scope
 
         ///<inheritdoc/>
         public void Clear()
@@ -129,11 +131,13 @@ namespace BitFaster.Caching.Atomic
             return this.cache.TryRemove(key);
         }
 
+#pragma warning disable CA2000 // Dispose objects before losing scope
         ///<inheritdoc/>
         public bool TryUpdate(K key, V value)
         {
             return this.cache.TryUpdate(key, new ScopedAsyncAtomicFactory<K, V>(value));
         }
+#pragma warning restore CA2000 // Dispose objects before losing scope
 
         ///<inheritdoc/>
         public IEnumerator<KeyValuePair<K, Scoped<V>>> GetEnumerator()

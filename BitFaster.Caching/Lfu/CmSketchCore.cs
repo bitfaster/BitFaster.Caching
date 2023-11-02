@@ -24,8 +24,8 @@ namespace BitFaster.Caching.Lfu
     /// https://github.com/ben-manes/caffeine
     public class CmSketchCore<T, I> where I : struct, IsaProbe
     {
-        private static readonly long ResetMask = 0x7777777777777777L;
-        private static readonly long OneMask = 0x1111111111111111L;
+        private const long ResetMask = 0x7777777777777777L;
+        private const long OneMask = 0x1111111111111111L;
 
         private long[] table;
         private int sampleSize;

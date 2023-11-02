@@ -876,10 +876,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             // verify this doesn't block or throw
             var b = cache.Scheduler as BackgroundThreadScheduler;
-            if (b is not null)
-            {
-                b.Dispose();
-            }
+            b?.Dispose();
         }
 
         private void LogLru()

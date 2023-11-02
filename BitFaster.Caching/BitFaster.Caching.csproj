@@ -35,6 +35,13 @@
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <AnalysisModePerformance>All</AnalysisModePerformance>
+    <AnalysisModeDocumentation>All</AnalysisModeDocumentation>
+    <AnalysisModeInteroperability>All</AnalysisModeInteroperability>
+    <AnalysisModeReliability>All</AnalysisModeReliability>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="..\LICENSE">
       <Pack>True</Pack>
