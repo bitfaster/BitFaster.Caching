@@ -86,7 +86,7 @@ namespace BitFaster.Caching.Buffers
         public BufferStatus TryAdd(T item)
         {
             int head = Volatile.Read(ref headAndTail.Head);
-            int tail = Volatile.Read(ref headAndTail.Tail);
+            int tail = headAndTail.Tail;
             int size = tail - head;
 
             if (size >= buffer.Length)
@@ -117,7 +117,7 @@ namespace BitFaster.Caching.Buffers
         public BufferStatus TryTake(out T item)
         {
             int head = Volatile.Read(ref headAndTail.Head);
-            int tail = Volatile.Read(ref headAndTail.Tail);
+            int tail = headAndTail.Tail;
             int size = tail - head;
 
             if (size == 0)
@@ -136,7 +136,7 @@ namespace BitFaster.Caching.Buffers
                 return BufferStatus.Contended;
             }
 
-            Volatile.Write(ref buffer[index], null);
+            buffer[index] = null;
             Volatile.Write(ref this.headAndTail.Head, ++head);
             return BufferStatus.Success;
         }
@@ -190,7 +190,7 @@ namespace BitFaster.Caching.Buffers
 #endif
         {
             int head = Volatile.Read(ref headAndTail.Head);
-            int tail = Volatile.Read(ref headAndTail.Tail);
+            int tail = headAndTail.Tail;
             int size = tail - head;
 
             if (size == 0)
@@ -214,7 +214,7 @@ namespace BitFaster.Caching.Buffers
                     break;
                 }
 
-                Volatile.Write(ref localBuffer[index], null);
+                localBuffer[index] = null;
                 Write(output, outCount++, item);
                 head++;
             }
