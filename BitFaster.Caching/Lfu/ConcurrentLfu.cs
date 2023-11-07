@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -743,6 +744,7 @@ namespace BitFaster.Caching.Lfu
             public LfuNode<K, V> node;
             public int freq;
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public EvictIterator(CmSketch<K> sketch, LfuNode<K, V> node)
             {
                 this.sketch = sketch;
@@ -750,6 +752,7 @@ namespace BitFaster.Caching.Lfu
                 freq = node == null ? -1 : sketch.EstimateFrequency(node.Key);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Next()
             {
                 node = node.Next;
@@ -863,6 +866,7 @@ namespace BitFaster.Caching.Lfu
 
             private PaddedInt drainStatus; // mutable struct, don't mark readonly
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool ShouldDrain(bool delayable)
             {
                 int status = Volatile.Read(ref this.drainStatus.Value);
@@ -875,16 +879,19 @@ namespace BitFaster.Caching.Lfu
                 };
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Set(int newStatus)
             { 
                 Volatile.Write(ref this.drainStatus.Value, newStatus);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool Cas(int oldStatus, int newStatus)
             { 
                 return Interlocked.CompareExchange(ref this.drainStatus.Value, newStatus, oldStatus) == oldStatus;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public int Status()
             {
                 return Volatile.Read(ref this.drainStatus.Value);
