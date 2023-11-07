@@ -9,7 +9,6 @@ using Xunit;
 using Xunit.Abstractions;
 using System.Collections.Concurrent;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -1118,6 +1117,45 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.testOutputHelper.WriteLine("exp " + string.Join(" ", expected));
 
             lru.Keys.Should().BeEquivalentTo(expected);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        [InlineData(6)]
+        [InlineData(7)]
+        [InlineData(8)]
+        [InlineData(9)]
+        [InlineData(10)]
+        public void WhenItemsExistAndItemsAccessedTrimRemovesAllItems(int itemCount)
+        {
+            // By default capacity is 9. Test all possible states of touched items
+            // in the cache.
+
+            for (int i = 0; i < itemCount; i++)
+            {
+                lru.AddOrUpdate(i, "1");
+            }
+
+            // touch n items
+            for (int i = 0; i < itemCount; i++)
+            {
+                lru.TryGet(i, out _);
+            }
+
+            lru.Trim(Math.Min(itemCount, lru.Capacity));
+
+            this.testOutputHelper.WriteLine("LRU " + string.Join(" ", lru.Keys));
+
+            lru.Count.Should().Be(0);
+
+            // verify queues are purged
+            lru.HotCount.Should().Be(0);
+            lru.WarmCount.Should().Be(0);
+            lru.ColdCount.Should().Be(0);
         }
 
         [Fact]
