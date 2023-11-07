@@ -502,11 +502,11 @@ namespace BitFaster.Caching.Lru
         private void TrimLiveItems(int itemsRemoved, int itemCount, ItemRemovedReason reason)
         {
             // When items are touched, they are moved to warm by cycling. Therefore, to guarantee 
-            // that we can remove itemCount items, we must cycle capacity.Warm + capacity.Hot times.
+            // that we can remove itemCount items, we must cycle (2 * capacity.Warm) + capacity.Hot times.
             // If clear is called during trimming, it would be possible to get stuck in an infinite
             // loop here. The warm + hot limit also guards against this case.
             int trimWarmAttempts = 0;
-            int maxWarmHotAttempts = this.capacity.Warm + this.capacity.Hot;
+            int maxWarmHotAttempts = (this.capacity.Warm * 2) + this.capacity.Hot;
 
             while (itemsRemoved < itemCount && trimWarmAttempts < maxWarmHotAttempts)
             {

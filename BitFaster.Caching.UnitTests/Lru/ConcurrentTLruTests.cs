@@ -218,5 +218,69 @@ namespace BitFaster.Caching.UnitTests.Lru
             // backcompat: use TlruStopwatchPolicy
             return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TLruLongTicksPolicy<K, V>, TelemetryPolicy<K, V>>(1, capacity, EqualityComparer<K>.Default, new TLruLongTicksPolicy<K, V>(timeToLive), default);
         }
+
+#if NET6_0_OR_GREATER
+        private record FakeCacheKey(int SomeProperty);
+        private record FakeCacheValue
+        {
+            public int SomeProperty { get; set; }
+        };
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void WhenClearingCache_ShouldActuallyClearCache(bool shouldClearTwice)
+        {
+            var cache = new ConcurrentTLru<FakeCacheKey, FakeCacheValue>(3, TimeSpan.FromMinutes(10));
+            var keyOne = new FakeCacheKey(1);
+            var keyTwo = new FakeCacheKey(2);
+            var cacheValue = new FakeCacheValue();
+
+            cache.AddOrUpdate(keyOne, cacheValue);
+            cache.AddOrUpdate(keyTwo, cacheValue);
+
+            cache.TryGet(keyOne, out var retrievedKeyValueOne);
+            retrievedKeyValueOne.Should().BeSameAs(cacheValue);
+            cache.TryGet(keyTwo, out var retrievedKeyTwoValue);
+            retrievedKeyTwoValue.Should().BeSameAs(cacheValue);
+
+            cache.Clear();
+            if (shouldClearTwice)
+                cache.Clear();
+
+            cache.TryGet(keyOne, out var a);
+            a.Should().NotBeSameAs(cacheValue);
+            cache.TryGet(keyOne, out var b);
+            b.Should().NotBeSameAs(cacheValue);
+        }
+
+        [Theory]
+        //[InlineData(true)]
+        [InlineData(false)]
+        public void WhenClearingCache_ShouldActuallyClearCache_2(bool shouldClearTwice)
+        {
+            var cache = new ConcurrentTLru<FakeCacheKey, FakeCacheValue>(3, TimeSpan.FromMinutes(10));
+            var keyOne = new FakeCacheKey(1);
+            var keyTwo = new FakeCacheKey(2);
+            var cacheValue = new FakeCacheValue();
+
+            cache.AddOrUpdate(keyOne, cacheValue);
+            cache.AddOrUpdate(keyTwo, cacheValue);
+
+            cache.TryGet(keyOne, out var retrievedKeyValueOne);
+            retrievedKeyValueOne.Should().BeSameAs(cacheValue);
+            cache.TryGet(keyTwo, out var retrievedKeyTwoValue);
+            retrievedKeyTwoValue.Should().BeSameAs(cacheValue);
+
+            cache.Clear();
+            if (shouldClearTwice)
+                cache.Clear();
+
+            var a = cache.TryGet(keyOne, out _);
+            a.Should().BeFalse();
+            var b = cache.TryGet(keyOne, out _);
+            a.Should().BeFalse();
+        }
+#endif
     }
 }
