@@ -874,6 +874,28 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.ColdCount.Should().Be(0);
         }
 
+        // This is a special case:
+        // Cycle 1: hot => warm
+        // Cycle 2: warm => warm
+        // Cycle 3: warm => cold
+        // Cycle 4: cold => remove
+        // Cycle 5: cold => remove
+        [Fact]
+        public void WhenCacheIsSize3ItemsExistAndItemsAccessedClearRemovesAllItems()
+        {
+            lru = new ConcurrentLru<int, string>(3);
+
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "1");
+
+            lru.TryGet(1, out _);
+            lru.TryGet(2, out _);
+
+            lru.Clear();
+
+            lru.Count.Should().Be(0);
+        }
+
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
