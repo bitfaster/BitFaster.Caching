@@ -422,15 +422,7 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public void Clear()
         {
-            int count = this.Count;
-
-            for (int i = 0; i < count; i++)
-            {
-                CycleHotUnchecked(ItemRemovedReason.Cleared);
-                CycleWarmUnchecked(ItemRemovedReason.Cleared);
-                TryRemoveCold(ItemRemovedReason.Cleared);
-            }
-
+            this.TrimLiveItems(itemsRemoved: 0, this.Count, ItemRemovedReason.Cleared);
             Volatile.Write(ref this.isWarm, false);
         }
 
@@ -458,7 +450,7 @@ namespace BitFaster.Caching.Lru
             // first scan each queue for discardable items and remove them immediately. Note this can remove > itemCount items.
             int itemsRemoved = this.itemPolicy.CanDiscard() ? TrimAllDiscardedItems() : 0;
 
-            TrimLiveItems(itemsRemoved, itemCount);
+            TrimLiveItems(itemsRemoved, itemCount, ItemRemovedReason.Trimmed);
         }
 
         private void TrimExpired()
@@ -507,42 +499,44 @@ namespace BitFaster.Caching.Lru
             return itemsRemoved;
         }
 
-        private void TrimLiveItems(int itemsRemoved, int itemCount)
+        private void TrimLiveItems(int itemsRemoved, int itemCount, ItemRemovedReason reason)
         {
+            // When items are touched, they are moved to warm by cycling. Therefore, to guarantee 
+            // that we can remove itemCount items, we must cycle (2 * capacity.Warm) + capacity.Hot times.
             // If clear is called during trimming, it would be possible to get stuck in an infinite
-            // loop here. Instead quit after n consecutive failed attempts to move warm/hot to cold.
+            // loop here. The warm + hot limit also guards against this case.
             int trimWarmAttempts = 0;
-            int maxAttempts = this.capacity.Cold + 1;
+            int maxWarmHotAttempts = (this.capacity.Warm * 2) + this.capacity.Hot;
 
-            while (itemsRemoved < itemCount && trimWarmAttempts < maxAttempts)
+            while (itemsRemoved < itemCount && trimWarmAttempts < maxWarmHotAttempts)
             {
                 if (Volatile.Read(ref this.counter.cold) > 0)
                 {
-                    if (TryRemoveCold(ItemRemovedReason.Trimmed) == (ItemDestination.Remove, 0))
+                    if (TryRemoveCold(reason) == (ItemDestination.Remove, 0))
                     {
                         itemsRemoved++;
                         trimWarmAttempts = 0;
                     }
 
-                    TrimWarmOrHot();
+                    TrimWarmOrHot(reason);
                 }
                 else
                 {
-                    TrimWarmOrHot();
+                    TrimWarmOrHot(reason);
                     trimWarmAttempts++;
                 }
             }
         }
 
-        private void TrimWarmOrHot()
+        private void TrimWarmOrHot(ItemRemovedReason reason)
         {
             if (Volatile.Read(ref this.counter.warm) > 0)
             {
-                CycleWarmUnchecked(ItemRemovedReason.Trimmed);
+                CycleWarmUnchecked(reason);
             }
             else if (Volatile.Read(ref this.counter.hot) > 0)
             {
-                CycleHotUnchecked(ItemRemovedReason.Trimmed);
+                CycleHotUnchecked(reason);
             }
         }
 
