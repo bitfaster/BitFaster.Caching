@@ -214,13 +214,13 @@ namespace BitFaster.Caching.Buffers
                     break;
                 }
 
-                localBuffer[index] = null;
+                Volatile.Write(ref localBuffer[index], null);
                 Write(output, outCount++, item);
                 head++;
             }
             while (head != tail && outCount < Length(output));
 
-            Volatile.Write(ref this.headAndTail.Head, head);
+            this.headAndTail.Head = head;
 
             return outCount;
         }
