@@ -220,7 +220,7 @@ namespace BitFaster.Caching.Buffers
             }
             while (head != tail && outCount < Length(output));
 
-            Volatile.Write(ref this.headAndTail.Head, head);
+            this.headAndTail.Head = head;
 
             return outCount;
         }

@@ -481,7 +481,7 @@ namespace BitFaster.Caching.Lfu
             var spinner = new SpinWait();
             while (true)
             {
-                switch (this.drainStatus.VolatileRead())
+                switch (this.drainStatus.NonVolatileRead())
                 {
                     case DrainStatus.Idle:
                         this.drainStatus.Cas(DrainStatus.Idle, DrainStatus.Required);
@@ -510,6 +510,11 @@ namespace BitFaster.Caching.Lfu
 
         private void TryScheduleDrain()
         {
+            if (this.drainStatus.NonVolatileRead() >= DrainStatus.ProcessingToIdle)
+            {
+                return;
+            }
+
             bool lockTaken = false;
             try
             {
@@ -524,7 +529,7 @@ namespace BitFaster.Caching.Lfu
                         return;
                     }
 
-                    this.drainStatus.NonVolatileWrite(DrainStatus.ProcessingToIdle);
+                    this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
                     scheduler.Run(() => this.DrainBuffers());
                 }
             }
@@ -605,10 +610,10 @@ namespace BitFaster.Caching.Lfu
             // 1. We drained both input buffers (all work done)
             // 2. or scheduler is foreground (since don't run continuously on the foreground)
             if ((done || !scheduler.IsBackground) &&
-                (this.drainStatus.VolatileRead() != DrainStatus.ProcessingToIdle ||
+                (this.drainStatus.NonVolatileRead() != DrainStatus.ProcessingToIdle ||
                 !this.drainStatus.Cas(DrainStatus.ProcessingToIdle, DrainStatus.Idle)))
             {
-                this.drainStatus.VolatileWrite(DrainStatus.Required);
+                this.drainStatus.NonVolatileWrite(DrainStatus.Required);
             }
 
             return done;
@@ -864,7 +869,7 @@ namespace BitFaster.Caching.Lfu
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool ShouldDrain(bool delayable)
             {
-                int status = this.VolatileRead();
+                int status = this.NonVolatileRead();
                 return status switch
                 {
                     Idle => !delayable,
