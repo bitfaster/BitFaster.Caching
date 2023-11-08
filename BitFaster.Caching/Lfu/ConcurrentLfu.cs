@@ -479,9 +479,10 @@ namespace BitFaster.Caching.Lfu
         private void ScheduleAfterWrite()
         {
             var spinner = new SpinWait();
+            int status = this.drainStatus.NonVolatileRead();
             while (true)
             {
-                switch (this.drainStatus.NonVolatileRead())
+                switch (status)
                 {
                     case DrainStatus.Idle:
                         this.drainStatus.Cas(DrainStatus.Idle, DrainStatus.Required);
@@ -495,6 +496,7 @@ namespace BitFaster.Caching.Lfu
                         {
                             return;
                         }
+                        status = this.drainStatus.VolatileRead();
                         break;
                     case DrainStatus.ProcessingToRequired:
                         return;
