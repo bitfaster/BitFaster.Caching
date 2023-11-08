@@ -113,7 +113,7 @@ namespace BitFaster.Caching.Lfu
             stepSize = HillClimberStepPercent;
         }
 
-        private double Clamp(double input, double min, double max)
+        private static double Clamp(double input, double min, double max)
         {
             return Math.Max(min, Math.Min(input, max));
         }

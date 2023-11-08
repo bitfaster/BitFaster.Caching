@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Scheduler
@@ -25,7 +26,7 @@ namespace BitFaster.Caching.Scheduler
         {
             count++;
             Task.Run(action)
-                .ContinueWith(t => lastException = new Optional<Exception>(t.Exception.Flatten().InnerException), TaskContinuationOptions.OnlyOnFaulted);
+                .ContinueWith(t => lastException = new Optional<Exception>(t.Exception.Flatten().InnerException), CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
         }
     }
 }

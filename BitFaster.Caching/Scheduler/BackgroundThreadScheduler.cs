@@ -35,7 +35,7 @@ namespace BitFaster.Caching.Scheduler
         public BackgroundThreadScheduler()
         {
             // dedicated thread
-            Task.Factory.StartNew(() => Background(), TaskCreationOptions.LongRunning);
+            Task.Factory.StartNew(() => Background(), cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         ///<inheritdoc/>
@@ -68,7 +68,7 @@ namespace BitFaster.Caching.Scheduler
             {
                 try
                 {
-                    await semaphore.WaitAsync(cts.Token);
+                    await semaphore.WaitAsync(cts.Token).ConfigureAwait(false);
 
                     BufferStatus s;
                     do

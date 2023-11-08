@@ -182,6 +182,7 @@ namespace BitFaster.Caching.Atomic
                 return await synchronizedTask.ConfigureAwait(false);
             }
 
+#pragma warning disable CA2002 // Do not lock on objects with weak identity
             private Task<Scoped<V>> DoubleCheck(Task<Scoped<V>> value)
             {
                 // Fast path
@@ -201,6 +202,7 @@ namespace BitFaster.Caching.Atomic
 
                 return task;
             }
+#pragma warning restore CA2002 // Do not lock on objects with weak identity
 
             // <remarks>
             // Let's say there are 2 threads, A and B:

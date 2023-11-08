@@ -156,6 +156,7 @@ namespace BitFaster.Caching.Atomic
             scope.Dispose();
         }
 
+#pragma warning disable CA2002 // Do not lock on objects with weak identity
         private class Initializer
         {
             private bool isInitialized;
@@ -196,5 +197,6 @@ namespace BitFaster.Caching.Atomic
                 }
             }
         }
+#pragma warning restore CA2002 // Do not lock on objects with weak identity
     }
 }

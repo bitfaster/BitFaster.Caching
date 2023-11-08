@@ -675,6 +675,16 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void WhenAddingNullValueCanBeAddedAndRemoved()
+        {
+            // use foreground so that any null ref exceptions will surface
+            var lfu = new ConcurrentLfu<int, string>(1, 20, new ForegroundScheduler(), EqualityComparer<int>.Default);
+            lfu.GetOrAdd(1, _ => null).Should().BeNull();
+            lfu.AddOrUpdate(1, null);
+            lfu.TryRemove(1).Should().BeTrue();
+        }
+
+        [Fact]
         public void WhenClearedCacheIsEmpty()
         {
             cache.GetOrAdd(1, k => k);
@@ -866,10 +876,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             // verify this doesn't block or throw
             var b = cache.Scheduler as BackgroundThreadScheduler;
-            if (b is not null)
-            {
-                b.Dispose();
-            }
+            b?.Dispose();
         }
 
         private void LogLru()
