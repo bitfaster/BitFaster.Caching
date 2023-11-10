@@ -348,6 +348,7 @@ namespace BitFaster.Caching.Lru
             return TryRemove(key, out _);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void OnRemove(K key, I item)
         {
             // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
@@ -364,7 +365,6 @@ namespace BitFaster.Caching.Lru
                 Disposer<V>.Dispose(item.Value);
             }
         }
-
 
         ///<inheritdoc/>
         ///<remarks>Note: Calling this method does not affect LRU order.</remarks>
@@ -749,18 +749,14 @@ namespace BitFaster.Caching.Lru
 
                     var kvp = new KeyValuePair<K, I>(item.Key, item);
 
-                    // hidden atomic remove
+#if NET6_0_OR_GREATER
+                    if (this.dictionary.TryRemove(kvp))
+#else
                     // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
                     if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
+#endif
                     {
-                        item.WasRemoved = true;
-
-                        this.telemetryPolicy.OnItemRemoved(item.Key, item.Value, removedReason);
-
-                        lock (item)
-                        {
-                            Disposer<V>.Dispose(item.Value);
-                        }
+                        OnRemove(item.Key, item);
                     }
                     break;
             }
