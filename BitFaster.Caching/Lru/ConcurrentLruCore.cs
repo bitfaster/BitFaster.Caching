@@ -566,7 +566,7 @@ namespace BitFaster.Caching.Lru
                         LastWarmToCold();
                     }
 
-                    RemoveCold(ItemRemovedReason.Evicted);
+                    ConstrainCold(ItemRemovedReason.Evicted);
                 }
             }
             else
@@ -725,13 +725,13 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void RemoveCold(ItemRemovedReason removedReason) 
+        private void ConstrainCold(ItemRemovedReason removedReason)
         {
-            Interlocked.Decrement(ref this.counter.cold);
+            int cc = Interlocked.Decrement(ref this.counter.cold);
 
-            if (this.coldQueue.TryDequeue(out var item))
+            if (cc == this.capacity.Cold && this.coldQueue.TryDequeue(out var item))
             {
-                 this.Move(item, ItemDestination.Remove, removedReason);
+                this.Move(item, ItemDestination.Remove, removedReason);
             }
             else
             {
