@@ -546,40 +546,13 @@ namespace BitFaster.Caching.Lru
             {
                 (var dest, var count) = CycleHot(hotCount);
 
-                const int maxAttempts = 5;
-                int attempts = 0;
-
-                while (attempts++ < maxAttempts)
+                if (dest == ItemDestination.Warm)
                 {
-                    if (dest == ItemDestination.Warm)
-                    {
-                        (dest, count) = CycleWarm(count);
-                    }
-                    else if (dest == ItemDestination.Cold)
-                    {
-                        (dest, count) = CycleCold(count);
-                    }
-                    else
-                    {
-                        // If an item was removed, it is possible that the warm and cold queues are still oversize.
-                        // Attempt to recover. It is possible that multiple threads read the same queue count here,
-                        // so this process has races that could reduce cache size below capacity. This manifests
-                        // in 'off by one' which is considered harmless.
-
-                        (dest, count) = CycleCold(Volatile.Read(ref counter.cold));
-                        if (dest != ItemDestination.Remove)
-                        {
-                            continue;
-                        }
-
-                        (dest, count) = CycleWarm(Volatile.Read(ref counter.warm));
-                        if (dest != ItemDestination.Remove)
-                        {
-                            continue;
-                        }
-
-                        break;
-                    }
+                    (dest, count) = CycleWarm(count);
+                }
+                else if (dest == ItemDestination.Cold)
+                {
+                    (dest, count) = CycleCold(count);
                 }
 
                 // If we get here, we have cycled the queues multiple times and still have not removed an item.
@@ -604,6 +577,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LastWarmToCold()
         {
             Interlocked.Decrement(ref this.counter.warm);
@@ -750,6 +724,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RemoveCold(ItemRemovedReason removedReason) 
         {
             Interlocked.Decrement(ref this.counter.cold);
@@ -789,7 +764,7 @@ namespace BitFaster.Caching.Lru
 
                         this.telemetryPolicy.OnItemRemoved(item.Key, item.Value, removedReason);
 
-                        lock (item)
+                        //lock (item)
                         {
                             Disposer<V>.Dispose(item.Value);
                         }
