@@ -546,15 +546,19 @@ namespace BitFaster.Caching.Lru
             {
                 (var dest, var count) = CycleHot(hotCount);
 
-                if (dest == ItemDestination.Warm)
+                int cycles = 0;
+                while (cycles++ < 3 && dest != ItemDestination.Remove)
                 {
-                    (dest, count) = CycleWarm(count);
+                    if (dest == ItemDestination.Warm)
+                    {
+                        (dest, count) = CycleWarm(count);
+                    }
+                    else if (dest == ItemDestination.Cold)
+                    {
+                        (dest, count) = CycleCold(count);
+                    }
                 }
-                else if (dest == ItemDestination.Cold)
-                {
-                    (dest, count) = CycleCold(count);
-                }
-
+                
                 // If nothing was removed yet, constrain the size of warm and cold by discarding the coldest item.
                 if (dest != ItemDestination.Remove)
                 {
