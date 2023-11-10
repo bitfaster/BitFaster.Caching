@@ -583,20 +583,14 @@ namespace BitFaster.Caching.Lru
 
                 if (this.hotQueue.TryDequeue(out var item))
                 {
-                    // always move to warm until it is full
-                    if (Volatile.Read(ref this.counter.warm) < this.capacity.Warm)
+                    int count = this.Move(item, ItemDestination.Warm, ItemRemovedReason.Evicted);
+
+                    // if warm is now full, overflow to cold and mark as warm
+                    if (count > this.capacity.Warm)
                     {
-                        // If there is a race, we will potentially add multiple items to warm. Guard by cycling the queue.
-                        int warmCount = this.Move(item, ItemDestination.Warm, ItemRemovedReason.Evicted);
-                        CycleWarm(warmCount);
-                    }
-                    else
-                    {
-                        // Else mark isWarm and move items to cold.
-                        // If there is a race, we will potentially add multiple items to cold. Guard by cycling the queue.
                         Volatile.Write(ref this.isWarm, true);
-                        int coldCount = this.Move(item, ItemDestination.Cold, ItemRemovedReason.Evicted);
-                        CycleCold(coldCount);
+                        count = LastWarmToCold();
+                        ConstrainCold(count, ItemRemovedReason.Evicted);
                     }
                 }
                 else
