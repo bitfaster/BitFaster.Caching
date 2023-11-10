@@ -312,7 +312,7 @@ namespace BitFaster.Caching.Lru
                     if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
 #endif
                     {
-                        OnRemove(item.Key, kvp.Value);
+                        OnRemove(item.Key, kvp.Value, ItemRemovedReason.Removed);
                         return true;
                     }
                 }
@@ -333,7 +333,7 @@ namespace BitFaster.Caching.Lru
         {
             if (this.dictionary.TryRemove(key, out var item))
             {
-                OnRemove(key, item);
+                OnRemove(key, item, ItemRemovedReason.Removed);
                 value = item.Value;
                 return true;
             }
@@ -348,7 +348,8 @@ namespace BitFaster.Caching.Lru
             return TryRemove(key, out _);
         }
 
-        private void OnRemove(K key, I item)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void OnRemove(K key, I item, ItemRemovedReason reason)
         {
             // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
             // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
@@ -356,7 +357,7 @@ namespace BitFaster.Caching.Lru
             item.WasAccessed = false;
             item.WasRemoved = true;
 
-            this.telemetryPolicy.OnItemRemoved(key, item.Value, ItemRemovedReason.Removed);
+            this.telemetryPolicy.OnItemRemoved(key, item.Value, reason);
 
             // serialize dispose (common case dispose not thread safe)
             lock (item)
@@ -364,7 +365,6 @@ namespace BitFaster.Caching.Lru
                 Disposer<V>.Dispose(item.Value);
             }
         }
-
 
         ///<inheritdoc/>
         ///<remarks>Note: Calling this method does not affect LRU order.</remarks>
@@ -546,10 +546,8 @@ namespace BitFaster.Caching.Lru
             {
                 (var dest, var count) = CycleHot(hotCount);
 
-                const int maxAttempts = 5;
-                int attempts = 0;
-
-                while (attempts++ < maxAttempts)
+                int cycles = 0;
+                while (cycles++ < 3 && dest != ItemDestination.Remove)
                 {
                     if (dest == ItemDestination.Warm)
                     {
@@ -559,41 +557,17 @@ namespace BitFaster.Caching.Lru
                     {
                         (dest, count) = CycleCold(count);
                     }
-                    else
-                    {
-                        // If an item was removed, it is possible that the warm and cold queues are still oversize.
-                        // Attempt to recover. It is possible that multiple threads read the same queue count here,
-                        // so this process has races that could reduce cache size below capacity. This manifests
-                        // in 'off by one' which is considered harmless.
-
-                        (dest, count) = CycleCold(Volatile.Read(ref counter.cold));
-                        if (dest != ItemDestination.Remove)
-                        {
-                            continue;
-                        }
-
-                        (dest, count) = CycleWarm(Volatile.Read(ref counter.warm));
-                        if (dest != ItemDestination.Remove)
-                        {
-                            continue;
-                        }
-
-                        break;
-                    }
                 }
-
-                // If we get here, we have cycled the queues multiple times and still have not removed an item.
-                // This can happen if the cache is full of items that are not discardable. In this case, we simply
-                // discard the coldest item to avoid unbounded growth.
+                
+                // If nothing was removed yet, constrain the size of warm and cold by discarding the coldest item.
                 if (dest != ItemDestination.Remove)
                 {
-                    // if an item was last moved into warm, move the last warm item to cold to prevent enlarging warm
-                    if (dest == ItemDestination.Warm)
+                    if (dest == ItemDestination.Warm && count > this.capacity.Warm)
                     {
-                        LastWarmToCold();
+                        count = LastWarmToCold();
                     }
 
-                    RemoveCold(ItemRemovedReason.Evicted);
+                    ConstrainCold(count, ItemRemovedReason.Evicted);
                 }
             }
             else
@@ -601,20 +575,6 @@ namespace BitFaster.Caching.Lru
                 // fill up the warm queue with new items until warm is full.
                 // else during warmup the cache will only use the hot + cold queues until any item is requested twice.
                 CycleDuringWarmup(hotCount);
-            }
-        }
-
-        private void LastWarmToCold()
-        {
-            Interlocked.Decrement(ref this.counter.warm);
-
-            if (this.warmQueue.TryDequeue(out var item))
-            {
-                this.Move(item, ItemDestination.Cold, ItemRemovedReason.Evicted);
-            }
-            else
-            {
-                Interlocked.Increment(ref this.counter.warm);
             }
         }
 
@@ -750,17 +710,29 @@ namespace BitFaster.Caching.Lru
             }
         }
 
-        private void RemoveCold(ItemRemovedReason removedReason) 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int LastWarmToCold()
         {
-            Interlocked.Decrement(ref this.counter.cold);
+            Interlocked.Decrement(ref this.counter.warm);
 
-            if (this.coldQueue.TryDequeue(out var item))
+            if (this.warmQueue.TryDequeue(out var item))
             {
-                 this.Move(item, ItemDestination.Remove, removedReason);
+                return this.Move(item, ItemDestination.Cold, ItemRemovedReason.Evicted);
             }
             else
             {
-                Interlocked.Increment(ref this.counter.cold);
+                Interlocked.Increment(ref this.counter.warm);
+                return 0;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ConstrainCold(int coldCount, ItemRemovedReason removedReason)
+        {
+            if (coldCount > this.capacity.Cold && this.coldQueue.TryDequeue(out var item))
+            {
+                Interlocked.Decrement(ref this.counter.cold);
+                this.Move(item, ItemDestination.Remove, removedReason);
             }
         }
 
@@ -781,18 +753,14 @@ namespace BitFaster.Caching.Lru
 
                     var kvp = new KeyValuePair<K, I>(item.Key, item);
 
-                    // hidden atomic remove
+#if NET6_0_OR_GREATER
+                    if (this.dictionary.TryRemove(kvp))
+#else
                     // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
                     if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
+#endif
                     {
-                        item.WasRemoved = true;
-
-                        this.telemetryPolicy.OnItemRemoved(item.Key, item.Value, removedReason);
-
-                        lock (item)
-                        {
-                            Disposer<V>.Dispose(item.Value);
-                        }
+                        OnRemove(item.Key, item, removedReason);
                     }
                     break;
             }
@@ -826,6 +794,7 @@ namespace BitFaster.Caching.Lru
         // it becomes immutable. However, this object is then somewhere else on the 
         // heap, which slows down the policies with hit counter logic in benchmarks. Likely
         // this approach keeps the structs data members in the same CPU cache line as the LRU.
+        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
         [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Upd = {Updated}, Evict = {Evicted}")]
 #else
