@@ -764,7 +764,7 @@ namespace BitFaster.Caching.Lru
 
                         this.telemetryPolicy.OnItemRemoved(item.Key, item.Value, removedReason);
 
-                        //lock (item)
+                        lock (item)
                         {
                             Disposer<V>.Dispose(item.Value);
                         }
