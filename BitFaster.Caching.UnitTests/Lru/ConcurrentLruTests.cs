@@ -562,11 +562,10 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lruOfDisposable.GetOrAdd(i, disposableValueFactory.Create);
             }
 
-            disposableValueFactory.Items[0].IsDisposed.Should().BeFalse();
+            disposableValueFactory.Items[0].IsDisposed.Should().BeTrue();
+
             disposableValueFactory.Items[1].IsDisposed.Should().BeFalse();
-
-            disposableValueFactory.Items[2].IsDisposed.Should().BeTrue();
-
+            disposableValueFactory.Items[2].IsDisposed.Should().BeFalse();
             disposableValueFactory.Items[3].IsDisposed.Should().BeFalse();
             disposableValueFactory.Items[4].IsDisposed.Should().BeFalse();
             disposableValueFactory.Items[5].IsDisposed.Should().BeFalse();
@@ -598,8 +597,8 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             removedItems.Count.Should().Be(2);
 
-            removedItems[0].Key.Should().Be(3);
-            removedItems[0].Value.Should().Be(4);
+            removedItems[0].Key.Should().Be(1);
+            removedItems[0].Value.Should().Be(2);
             removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
 
             removedItems[1].Key.Should().Be(4);
@@ -1016,6 +1015,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(9, new int[] { })]
         public void WhenColdItemsExistTrimRemovesExpectedItemCount(int trimCount, int[] expected)
         {
+            Warmup();
+
             // initial state:
             // Hot = 9, 8, 7
             // Warm = 3, 2, 1
@@ -1109,6 +1110,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(9, new int[] { })]
         public void WhenColdItemsAreTouchedTrimRemovesExpectedItemCount(int trimCount, int[] expected)
         {
+            Warmup();
+
             // initial state:
             // Hot = 9, 8, 7
             // Warm = 3, 2, 1
