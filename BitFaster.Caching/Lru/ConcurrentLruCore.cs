@@ -312,7 +312,7 @@ namespace BitFaster.Caching.Lru
                     if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
 #endif
                     {
-                        OnRemove(item.Key, kvp.Value);
+                        OnRemove(item.Key, kvp.Value, ItemRemovedReason.Removed);
                         return true;
                     }
                 }
@@ -333,7 +333,7 @@ namespace BitFaster.Caching.Lru
         {
             if (this.dictionary.TryRemove(key, out var item))
             {
-                OnRemove(key, item);
+                OnRemove(key, item, ItemRemovedReason.Removed);
                 value = item.Value;
                 return true;
             }
@@ -348,7 +348,8 @@ namespace BitFaster.Caching.Lru
             return TryRemove(key, out _);
         }
 
-        private void OnRemove(K key, I item)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void OnRemove(K key, I item, ItemRemovedReason reason)
         {
             // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
             // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
@@ -356,7 +357,7 @@ namespace BitFaster.Caching.Lru
             item.WasAccessed = false;
             item.WasRemoved = true;
 
-            this.telemetryPolicy.OnItemRemoved(key, item.Value, ItemRemovedReason.Removed);
+            this.telemetryPolicy.OnItemRemoved(key, item.Value, reason);
 
             // serialize dispose (common case dispose not thread safe)
             lock (item)
@@ -364,7 +365,6 @@ namespace BitFaster.Caching.Lru
                 Disposer<V>.Dispose(item.Value);
             }
         }
-
 
         ///<inheritdoc/>
         ///<remarks>Note: Calling this method does not affect LRU order.</remarks>
@@ -546,15 +546,19 @@ namespace BitFaster.Caching.Lru
             {
                 (var dest, var count) = CycleHot(hotCount);
 
-                if (dest == ItemDestination.Warm)
+                int cycles = 0;
+                while (cycles++ < 3 && dest != ItemDestination.Remove)
                 {
-                    (dest, count) = CycleWarm(count);
+                    if (dest == ItemDestination.Warm)
+                    {
+                        (dest, count) = CycleWarm(count);
+                    }
+                    else if (dest == ItemDestination.Cold)
+                    {
+                        (dest, count) = CycleCold(count);
+                    }
                 }
-                else if (dest == ItemDestination.Cold)
-                {
-                    (dest, count) = CycleCold(count);
-                }
-
+                
                 // If nothing was removed yet, constrain the size of warm and cold by discarding the coldest item.
                 if (dest != ItemDestination.Remove)
                 {
@@ -743,18 +747,14 @@ namespace BitFaster.Caching.Lru
 
                     var kvp = new KeyValuePair<K, I>(item.Key, item);
 
-                    // hidden atomic remove
+#if NET6_0_OR_GREATER
+                    if (this.dictionary.TryRemove(kvp))
+#else
                     // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
                     if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
+#endif
                     {
-                        item.WasRemoved = true;
-
-                        this.telemetryPolicy.OnItemRemoved(item.Key, item.Value, removedReason);
-
-                        lock (item)
-                        {
-                            Disposer<V>.Dispose(item.Value);
-                        }
+                        OnRemove(item.Key, item, removedReason);
                     }
                     break;
             }
