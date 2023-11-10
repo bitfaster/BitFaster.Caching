@@ -801,7 +801,12 @@ namespace BitFaster.Caching.Lru
         // it becomes immutable. However, this object is then somewhere else on the 
         // heap, which slows down the policies with hit counter logic in benchmarks. Likely
         // this approach keeps the structs data members in the same CPU cache line as the LRU.
+        // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
         [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Upd = {Updated}, Evict = {Evicted}")]
+#else
+        [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Evict = {Evicted}")]
+#endif
         private class Proxy : ICacheMetrics, ICacheEvents<K, V>, IBoundedPolicy, ITimePolicy
         {
             private readonly ConcurrentLruCore<K, V, I, P, T> lru;
