@@ -561,12 +561,12 @@ namespace BitFaster.Caching.Lru
                 if (dest != ItemDestination.Remove)
                 {
                     // if an item was last moved into warm, move the last warm item to cold to prevent enlarging warm
-                    if (dest == ItemDestination.Warm)
+                    if (dest == ItemDestination.Warm && count > this.capacity.Warm)
                     {
-                        LastWarmToCold();
+                        count = LastWarmToCold();
                     }
 
-                    ConstrainCold(ItemRemovedReason.Evicted);
+                    ConstrainCold(count, ItemRemovedReason.Evicted);
                 }
             }
             else
@@ -574,21 +574,6 @@ namespace BitFaster.Caching.Lru
                 // fill up the warm queue with new items until warm is full.
                 // else during warmup the cache will only use the hot + cold queues until any item is requested twice.
                 CycleDuringWarmup(hotCount);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LastWarmToCold()
-        {
-            Interlocked.Decrement(ref this.counter.warm);
-
-            if (this.warmQueue.TryDequeue(out var item))
-            {
-                this.Move(item, ItemDestination.Cold, ItemRemovedReason.Evicted);
-            }
-            else
-            {
-                Interlocked.Increment(ref this.counter.warm);
             }
         }
 
@@ -725,17 +710,27 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ConstrainCold(ItemRemovedReason removedReason)
+        private int LastWarmToCold()
         {
-            int cc = Interlocked.Decrement(ref this.counter.cold);
+            Interlocked.Decrement(ref this.counter.warm);
 
-            if (cc == this.capacity.Cold && this.coldQueue.TryDequeue(out var item))
+            if (this.warmQueue.TryDequeue(out var item))
             {
-                this.Move(item, ItemDestination.Remove, removedReason);
+                return this.Move(item, ItemDestination.Cold, ItemRemovedReason.Evicted);
             }
             else
             {
-                Interlocked.Increment(ref this.counter.cold);
+                Interlocked.Increment(ref this.counter.warm);
+                return 0;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ConstrainCold(int coldCount, ItemRemovedReason removedReason)
+        {
+            if (coldCount > this.capacity.Cold && this.coldQueue.TryDequeue(out var item))
+            {
+                this.Move(item, ItemDestination.Remove, removedReason);
             }
         }
 
