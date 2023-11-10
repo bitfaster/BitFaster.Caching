@@ -312,7 +312,7 @@ namespace BitFaster.Caching.Lru
                     if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
 #endif
                     {
-                        OnRemove(item.Key, kvp.Value);
+                        OnRemove(item.Key, kvp.Value, ItemRemovedReason.Removed);
                         return true;
                     }
                 }
@@ -333,7 +333,7 @@ namespace BitFaster.Caching.Lru
         {
             if (this.dictionary.TryRemove(key, out var item))
             {
-                OnRemove(key, item);
+                OnRemove(key, item, ItemRemovedReason.Removed);
                 value = item.Value;
                 return true;
             }
@@ -349,7 +349,7 @@ namespace BitFaster.Caching.Lru
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void OnRemove(K key, I item)
+        private void OnRemove(K key, I item, ItemRemovedReason reason)
         {
             // Mark as not accessed, it will later be cycled out of the queues because it can never be fetched 
             // from the dictionary. Note: Hot/Warm/Cold count will reflect the removed item until it is cycled 
@@ -357,7 +357,7 @@ namespace BitFaster.Caching.Lru
             item.WasAccessed = false;
             item.WasRemoved = true;
 
-            this.telemetryPolicy.OnItemRemoved(key, item.Value, ItemRemovedReason.Removed);
+            this.telemetryPolicy.OnItemRemoved(key, item.Value, reason);
 
             // serialize dispose (common case dispose not thread safe)
             lock (item)
@@ -756,7 +756,7 @@ namespace BitFaster.Caching.Lru
                     if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
 #endif
                     {
-                        OnRemove(item.Key, item);
+                        OnRemove(item.Key, item, removedReason);
                     }
                     break;
             }
