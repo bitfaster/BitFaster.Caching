@@ -18,6 +18,13 @@ namespace BitFaster.Caching
             this.ExpireAfterWrite = expireAfterWrite;
         }
 
+        public CachePolicy(Optional<IBoundedPolicy> eviction, Optional<ITimePolicy> expireAfterWrite, Optional<ITimePolicy> expireAfterRead)
+        {
+            this.Eviction = eviction;
+            this.ExpireAfterWrite = expireAfterWrite;
+            this.ExpireAfterRead = expireAfterRead;
+        }
+
         /// <summary>
         /// Gets the bounded size eviction policy. This policy evicts items from the cache
         /// if it exceeds capacity.
@@ -29,5 +36,11 @@ namespace BitFaster.Caching
         /// fixed duration since an entry's creation or most recent replacement.
         /// </summary>
         public Optional<ITimePolicy> ExpireAfterWrite { get; }
+
+        /// <summary>
+        /// Gets the expire after read policy, if any. This policy evicts items after a 
+        /// fixed duration since an entry's creation or most recent replacement.
+        /// </summary>
+        public Optional<ITimePolicy> ExpireAfterRead { get; }
     }
 }

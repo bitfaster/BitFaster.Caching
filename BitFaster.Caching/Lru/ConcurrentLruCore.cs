@@ -778,7 +778,30 @@ namespace BitFaster.Caching.Lru
 
         private static CachePolicy CreatePolicy(ConcurrentLruCore<K, V, I, P, T> lru)
         { 
-            var p = new Proxy(lru); 
+            var p = new Proxy(lru);
+
+            // TODO: the after read policy here will return the after write TTL - need an additional proxy to handle that case. 
+#if NETCOREAPP3_0_OR_GREATER
+            if (typeof(P) == typeof(AfterReadTickCount64Policy<K, V>))
+            {
+                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p));
+            }
+
+            if (typeof(P) == typeof(AfterReadWriteTickCount64Policy<K, V>))
+            {
+                return new CachePolicy(new Optional<IBoundedPolicy>(p), new Optional<ITimePolicy>(p), new Optional<ITimePolicy>(p));
+            }
+#else
+            if (typeof(P) == typeof(AfterReadStopwatchPolicy<K, V>))
+            {
+                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p));
+            }
+
+            if (typeof(P) == typeof(AfterReadWriteStopwatchPolicy<K, V>))
+            {
+                return new CachePolicy(new Optional<IBoundedPolicy>(p), new Optional<ITimePolicy>(p), new Optional<ITimePolicy>(p));
+            }
+#endif
             return new CachePolicy(new Optional<IBoundedPolicy>(p), lru.itemPolicy.CanDiscard() ? new Optional<ITimePolicy>(p) : Optional<ITimePolicy>.None()); 
         }
 
