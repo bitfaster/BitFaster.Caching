@@ -136,7 +136,7 @@ namespace BitFaster.Caching.Atomic
             if (init != null)
             {
                 scope = init.CreateScope(key, valueFactory);
-                initializer = null;
+                Volatile.Write(ref initializer, null); // volatile write must occur after setting value
             }
         }
 
@@ -156,28 +156,23 @@ namespace BitFaster.Caching.Atomic
             scope.Dispose();
         }
 
+#pragma warning disable CA2002 // Do not lock on objects with weak identity
         private class Initializer
         {
-            private readonly object syncLock = new();
             private bool isInitialized;
             private Scoped<V> value;
 
             public Scoped<V> CreateScope<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
             {
-                if (Volatile.Read(ref isInitialized))
+                lock (this)
                 {
-                    return value;
-                }
-
-                lock (syncLock)
-                {
-                    if (Volatile.Read(ref isInitialized))
+                    if (isInitialized)
                     {
                         return value;
                     }
 
                     value = valueFactory.Create(key);
-                    Volatile.Write(ref isInitialized, true);
+                    isInitialized = true;
 
                     return value;
                 }
@@ -185,15 +180,9 @@ namespace BitFaster.Caching.Atomic
 
             public Scoped<V> TryCreateDisposedScope()
             {
-                // already exists, return it
-                if (Volatile.Read(ref isInitialized))
+                lock (this)
                 {
-                    return value;
-                }
-
-                lock (syncLock)
-                {
-                    if (Volatile.Read(ref isInitialized))
+                    if (isInitialized)
                     {
                         return value;
                     }
@@ -202,11 +191,12 @@ namespace BitFaster.Caching.Atomic
                     var temp = new Scoped<V>(default);
                     temp.Dispose();
                     value = temp;
-                    Volatile.Write(ref isInitialized, true);
+                    isInitialized = true;
 
                     return value;
                 }
             }
         }
+#pragma warning restore CA2002 // Do not lock on objects with weak identity
     }
 }

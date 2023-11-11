@@ -10,7 +10,7 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>ReadMe.md</PackageReadmeFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>2.3.0</Version>
+    <Version>2.3.2</Version>
     <Copyright>Copyright © Alex Peck $([System.DateTime]::Now.ToString(yyyy))</Copyright>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitfaster/BitFaster.Caching</RepositoryUrl>
@@ -22,8 +22,8 @@
     <IncludeSymbols>True</IncludeSymbols>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <AssemblyVersion>2.3.0.0</AssemblyVersion>
-    <FileVersion>2.3.0.0</FileVersion>
+    <AssemblyVersion>2.3.2.0</AssemblyVersion>
+    <FileVersion>2.3.2.0</FileVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <!--Package Validation-->
@@ -33,6 +33,13 @@
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AnalysisModePerformance>All</AnalysisModePerformance>
+    <AnalysisModeDocumentation>All</AnalysisModeDocumentation>
+    <AnalysisModeInteroperability>All</AnalysisModeInteroperability>
+    <AnalysisModeReliability>All</AnalysisModeReliability>
   </PropertyGroup>
 
   <ItemGroup>

@@ -92,8 +92,8 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             removedItems.Count.Should().Be(2);
 
-            removedItems[0].Key.Should().Be(3);
-            removedItems[0].Value.Should().Be(4);
+            removedItems[0].Key.Should().Be(1);
+            removedItems[0].Value.Should().Be(2);
             removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
 
             removedItems[1].Key.Should().Be(4);

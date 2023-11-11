@@ -133,6 +133,7 @@ namespace BitFaster.Caching.Atomic
             return ValueIfCreated.GetHashCode();
         }
 
+#pragma warning disable CA2002 // Do not lock on objects with weak identity
         private class Initializer
         {
             private bool isInitialized;
@@ -142,16 +143,17 @@ namespace BitFaster.Caching.Atomic
             {
                 lock (this)
                 {
-                    if (Volatile.Read(ref isInitialized))
+                    if (isInitialized)
                     {
                         return value;
                     }
 
                     value = valueFactory.Create(key);
-                    Volatile.Write(ref isInitialized, true);
+                    isInitialized = true;
                     return value;
                 }
             }
         }
+#pragma warning restore CA2002 // Do not lock on objects with weak identity
     }
 }

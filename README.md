@@ -26,12 +26,12 @@ BitFaster.Caching is installed from NuGet:
 
 ## ConcurrentLru
 
-`ConcurrentLru` is a light weight drop in replacement for `ConcurrentDictionary`, but with bounded size enforced by the TU-Q eviction policy (similar to [2Q](https://www.vldb.org/conf/1994/P439.PDF)). There are no background threads, no global locks, concurrent throughput is high, lookups are fast and hit rate outperforms a pure LRU in all tested scenarios.
+`ConcurrentLru` is a light weight drop in replacement for `ConcurrentDictionary`, but with bounded size enforced by the TU-Q eviction policy (derived from [2Q](https://www.vldb.org/conf/1994/P439.PDF)). There are no background threads, no global locks, concurrent throughput is high, lookups are fast and hit rate outperforms a pure LRU in all tested scenarios.
 
 Choose a capacity and use just like `ConcurrentDictionary`, but with bounded size:
 
 ```csharp
-int capacity = 666;
+int capacity = 128;
 var lru = new ConcurrentLru<string, SomeItem>(capacity);
 
 var value = lru.GetOrAdd("key", (key) => new SomeItem(key));
@@ -44,7 +44,7 @@ var value = lru.GetOrAdd("key", (key) => new SomeItem(key));
 Choose a capacity and use just like `ConcurrentDictionary`, but with bounded size:
 
 ```csharp
-int capacity = 666;
+int capacity = 128;
 var lfu = new ConcurrentLfu<string, SomeItem>(capacity);
 
 var value = lfu.GetOrAdd("key", (key) => new SomeItem(key));

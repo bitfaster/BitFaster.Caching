@@ -33,7 +33,7 @@ namespace BitFaster.Caching
         /// <param name="comparer">The IEqualityComparer implementation to use when comparing keys.</param>
         public SingletonCache(int concurrencyLevel, int capacity, IEqualityComparer<TKey> comparer)
         {
-            this.cache = new ConcurrentDictionary<TKey, ReferenceCount<TValue>>(concurrencyLevel, capacity, comparer);
+            this.cache = new ConcurrentDictionary<TKey, ReferenceCount<TValue>>(concurrencyLevel, ConcurrentDictionarySize.NextPrimeGreaterThan(capacity), comparer);
         }
 
         /// <summary>

@@ -52,7 +52,8 @@ namespace BitFaster.Caching.Lru
                 Throw.ArgNull(ExceptionArgument.comparer);
 
             this.capacity = capacity;
-            this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, this.capacity + 1, comparer);
+            int dictionaryCapacity = ConcurrentDictionarySize.Estimate(capacity);
+            this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, dictionaryCapacity, comparer);
             this.policy = new CachePolicy(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
         }
 
@@ -201,14 +202,14 @@ namespace BitFaster.Caching.Lru
                 return value;
             }
 
-            value = await valueFactory(key);
+            value = await valueFactory(key).ConfigureAwait(false);
 
             if (TryAdd(key, value))
             {
                 return value;
             }
 
-            return await this.GetOrAddAsync(key, valueFactory);
+            return await this.GetOrAddAsync(key, valueFactory).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -227,14 +228,14 @@ namespace BitFaster.Caching.Lru
                 return value;
             }
 
-            value = await valueFactory(key, factoryArgument);
+            value = await valueFactory(key, factoryArgument).ConfigureAwait(false);
 
             if (TryAdd(key, value))
             {
                 return value;
             }
 
-            return await this.GetOrAddAsync(key, valueFactory, factoryArgument);
+            return await this.GetOrAddAsync(key, valueFactory, factoryArgument).ConfigureAwait(false);
         }
 
         /// <summary>
