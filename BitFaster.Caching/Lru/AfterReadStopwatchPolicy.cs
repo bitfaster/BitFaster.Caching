@@ -11,7 +11,7 @@ namespace BitFaster.Caching.Lru
     /// <remarks>
     /// This class measures time using Stopwatch.GetTimestamp() with a resolution of ~1us.
     /// </remarks>
-    public readonly struct AfterReadStopwatchPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    public readonly struct AfterReadLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly long timeToLive;
 
@@ -19,9 +19,9 @@ namespace BitFaster.Caching.Lru
         /// Initializes a new instance of the TLruLongTicksPolicy class with the specified time to live.
         /// </summary>
         /// <param name="timeToLive">The time to live.</param>
-        public AfterReadStopwatchPolicy(TimeSpan timeToLive)
+        public AfterReadLongTicksPolicy(TimeSpan timeToLive)
         {
-            this.timeToLive = ToTicks(timeToLive);
+            this.timeToLive = TLruLongTicksPolicy<K, V>.ToTicks(timeToLive);
         }
 
         ///<inheritdoc/>
@@ -116,27 +116,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
-        public TimeSpan TimeToLive => FromTicks(timeToLive);
-
-        /// <summary>
-        /// Convert from TimeSpan to ticks.
-        /// </summary>
-        /// <param name="timespan">The time represented as a TimeSpan.</param>
-        /// <returns>The time represented as ticks.</returns>
-        public static long ToTicks(TimeSpan timespan)
-        {
-            return StopwatchTickConverter.ToTicks(timespan);
-        }
-
-        /// <summary>
-        /// Convert from ticks to a TimeSpan.
-        /// </summary>
-        /// <param name="ticks">The time represented as ticks.</param>
-        /// <returns>The time represented as a TimeSpan.</returns>
-        public static TimeSpan FromTicks(long ticks)
-        {
-            return StopwatchTickConverter.FromTicks(ticks);
-        }
+        public TimeSpan TimeToLive => TLruLongTicksPolicy< K, V>.FromTicks(timeToLive);
     }
 #endif
 }

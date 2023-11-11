@@ -5,14 +5,14 @@ namespace BitFaster.Caching.Lru
 {
 #if NETCOREAPP3_0_OR_GREATER
     /// <summary>
-    /// Implement an expire after read and expire after write policy.
+    /// Implement an expire after read policy.
     /// </summary>
     /// <remarks>
     /// This class measures time using Environment.TickCount64, which is significantly faster
     /// than both Stopwatch.GetTimestamp and DateTime.UtcNow. However, resolution is lower (typically 
     /// between 10-16ms), vs 1us for Stopwatch.GetTimestamp.
     /// </remarks>
-    public readonly struct AfterReadWriteTickCount64Policy<K, V> : IItemPolicy<K, V, LongTickCountReadWriteLruItem<K, V>>
+    public readonly struct AfterReadWriteLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountReadWriteLruItem<K, V>>
     {
         private readonly long readTimeToLive;
         private readonly long writeTimeToLive;
@@ -25,7 +25,7 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         /// <param name="readTimeToLive">The read time to live.</param>
         /// <param name="writeTimeToLive">The write time to live.</param>
-        public AfterReadWriteTickCount64Policy(TimeSpan readTimeToLive, TimeSpan writeTimeToLive)
+        public AfterReadWriteLongTicksPolicy(TimeSpan readTimeToLive, TimeSpan writeTimeToLive)
         {
             TimeSpan maxRepresentable = TimeSpan.FromTicks(9223372036854769664);
             if (readTimeToLive <= TimeSpan.Zero || readTimeToLive > maxRepresentable)

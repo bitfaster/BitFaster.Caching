@@ -18,6 +18,12 @@ namespace BitFaster.Caching
             this.ExpireAfterWrite = expireAfterWrite;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the CachePolicy class with the specified eviction and expire after write policies.
+        /// </summary>
+        /// <param name="eviction">The eviction policy.</param>
+        /// <param name="expireAfterWrite">The expire after write policy.</param>
+        /// <param name="expireAfterRead">The expire after read policy.</param>
         public CachePolicy(Optional<IBoundedPolicy> eviction, Optional<ITimePolicy> expireAfterWrite, Optional<ITimePolicy> expireAfterRead)
         {
             this.Eviction = eviction;

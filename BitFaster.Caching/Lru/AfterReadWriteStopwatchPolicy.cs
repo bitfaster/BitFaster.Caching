@@ -11,20 +11,20 @@ namespace BitFaster.Caching.Lru
     /// <remarks>
     /// This class measures time using Stopwatch.GetTimestamp() with a resolution of ~1us.
     /// </remarks>
-    public readonly struct AfterReadWriteStopwatchPolicy<K, V> : IItemPolicy<K, V, LongTickCountReadWriteLruItem<K, V>>
+    public readonly struct AfterReadWriteLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountReadWriteLruItem<K, V>>
     {
         private readonly long readTimeToLive;
         private readonly long writeTimeToLive;
 
         /// <summary>
-        /// Initializes a new instance of the AfterReadWriteStopwatchPolicy class with the specified time to live.
+        /// Initializes a new instance of the AfterReadWriteLongTicksPolicy class with the specified time to live.
         /// </summary>
         /// <param name="readTimeToLive">The read time to live.</param>
         /// <param name="writeTimeToLive">The write time to live.</param>
-        public AfterReadWriteStopwatchPolicy(TimeSpan readTimeToLive, TimeSpan writeTimeToLive)
+        public AfterReadWriteLongTicksPolicy(TimeSpan readTimeToLive, TimeSpan writeTimeToLive)
         {
-            this.readTimeToLive = ToTicks(readTimeToLive);
-            this.writeTimeToLive = ToTicks(writeTimeToLive);
+            this.readTimeToLive = TLruLongTicksPolicy<K, V>.ToTicks(readTimeToLive);
+            this.writeTimeToLive = TLruLongTicksPolicy<K, V>.ToTicks(writeTimeToLive);
         }
 
         ///<inheritdoc/>
@@ -126,27 +126,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
-        public TimeSpan TimeToLive => FromTicks(readTimeToLive);
-
-        /// <summary>
-        /// Convert from TimeSpan to ticks.
-        /// </summary>
-        /// <param name="timespan">The time represented as a TimeSpan.</param>
-        /// <returns>The time represented as ticks.</returns>
-        public static long ToTicks(TimeSpan timespan)
-        {
-            return StopwatchTickConverter.ToTicks(timespan);
-        }
-
-        /// <summary>
-        /// Convert from ticks to a TimeSpan.
-        /// </summary>
-        /// <param name="ticks">The time represented as ticks.</param>
-        /// <returns>The time represented as a TimeSpan.</returns>
-        public static TimeSpan FromTicks(long ticks)
-        {
-            return StopwatchTickConverter.FromTicks(ticks);
-        }
+        public TimeSpan TimeToLive => TLruLongTicksPolicy<K, V>.FromTicks(readTimeToLive);
     }
 #endif
 }

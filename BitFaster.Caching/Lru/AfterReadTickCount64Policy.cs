@@ -12,7 +12,7 @@ namespace BitFaster.Caching.Lru
     /// than both Stopwatch.GetTimestamp and DateTime.UtcNow. However, resolution is lower (typically 
     /// between 10-16ms), vs 1us for Stopwatch.GetTimestamp.
     /// </remarks>
-    public readonly struct AfterReadTickCount64Policy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    public readonly struct AfterReadLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly long timeToLive;
 
@@ -23,7 +23,7 @@ namespace BitFaster.Caching.Lru
         /// Initializes a new instance of the AfterReadTickCount64Policy class with the specified time to live.
         /// </summary>
         /// <param name="timeToLive">The time to live.</param>
-        public AfterReadTickCount64Policy(TimeSpan timeToLive)
+        public AfterReadLongTicksPolicy(TimeSpan timeToLive)
         {
             TimeSpan maxRepresentable = TimeSpan.FromTicks(9223372036854769664);
             if (timeToLive <= TimeSpan.Zero || timeToLive > maxRepresentable)
