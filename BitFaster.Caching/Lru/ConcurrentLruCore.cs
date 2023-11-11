@@ -544,14 +544,14 @@ namespace BitFaster.Caching.Lru
         {
             if (isWarm)
             {
-                (var dest, var count) = CycleHot(hotCount);
+                (var dest, var count) = CycleHotUnchecked(ItemRemovedReason.Evicted);
 
                 int cycles = 0;
                 while (cycles++ < 3 && dest != ItemDestination.Remove)
                 {
                     if (dest == ItemDestination.Warm)
                     {
-                        (dest, count) = CycleWarm(count);
+                        (dest, count) = CycleWarmUnchecked(ItemRemovedReason.Evicted);
                     }
                     else if (dest == ItemDestination.Cold)
                     {
@@ -586,33 +586,18 @@ namespace BitFaster.Caching.Lru
             {
                 Interlocked.Decrement(ref this.counter.hot);
 
-                if (this.hotQueue.TryDequeue(out var item))
-                {
-                    int count = this.Move(item, ItemDestination.Warm, ItemRemovedReason.Evicted);
+                this.hotQueue.TryDequeue(out var item);
 
-                    // if warm is now full, overflow to cold and mark as warm
-                    if (count > this.capacity.Warm)
-                    {
-                        Volatile.Write(ref this.isWarm, true);
-                        count = LastWarmToCold();
-                        ConstrainCold(count, ItemRemovedReason.Evicted);
-                    }
-                }
-                else
+                int count = this.Move(item, ItemDestination.Warm, ItemRemovedReason.Evicted);
+
+                // if warm is now full, overflow to cold and mark as warm
+                if (count > this.capacity.Warm)
                 {
-                    Interlocked.Increment(ref this.counter.hot);
+                    Volatile.Write(ref this.isWarm, true);
+                    count = LastWarmToCold();
+                    ConstrainCold(count, ItemRemovedReason.Evicted);
                 }
             }
-        }
-
-        private (ItemDestination, int) CycleHot(int hotCount)
-        {
-            if (hotCount > this.capacity.Hot)
-            {
-                return CycleHotUnchecked(ItemRemovedReason.Evicted);
-            }
-
-            return (ItemDestination.Remove, 0);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -620,26 +605,10 @@ namespace BitFaster.Caching.Lru
         {
             Interlocked.Decrement(ref this.counter.hot);
 
-            if (this.hotQueue.TryDequeue(out var item))
-            {
-                var where = this.itemPolicy.RouteHot(item);
-                return (where, this.Move(item, where, removedReason));
-            }
-            else
-            {
-                Interlocked.Increment(ref this.counter.hot);
-                return (ItemDestination.Remove, 0);
-            }
-        }
+            this.hotQueue.TryDequeue(out var item);
 
-        private (ItemDestination, int) CycleWarm(int count)
-        {
-            if (count > this.capacity.Warm)
-            {
-                return CycleWarmUnchecked(ItemRemovedReason.Evicted);
-            }
-
-            return (ItemDestination.Remove, 0);
+            var where = this.itemPolicy.RouteHot(item);
+            return (where, this.Move(item, where, removedReason));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
