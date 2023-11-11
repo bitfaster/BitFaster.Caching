@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using FluentAssertions;
@@ -189,6 +190,26 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
         }
 
+        [Fact]
+        public async Task WhenAddingCacheSizeItemsNothingIsEvicted()
+        {
+            const int size = 1024;
+
+            var cache = new ConcurrentLruBuilder<int, int>()
+                .WithMetrics()
+                .WithCapacity(size)
+                .Build();
+
+            await Threaded.Run(4, () =>
+            {
+                for (int i = 0; i < size; i++)
+                {
+                    cache.GetOrAdd(i, k => k);
+                }
+            });
+
+            cache.Metrics.Value.Evicted.Should().Be(0);
+        }
         private void RunIntegrityCheck()
         {
             new ConcurrentLruIntegrityChecker<int, string, LruItem<int, string>, LruPolicy<int, string>, TelemetryPolicy<int, string>>(this.lru).Validate();
