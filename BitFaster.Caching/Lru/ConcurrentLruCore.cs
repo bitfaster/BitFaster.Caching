@@ -578,6 +578,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private void CycleDuringWarmup(int hotCount)
         {
             // do nothing until hot is full
