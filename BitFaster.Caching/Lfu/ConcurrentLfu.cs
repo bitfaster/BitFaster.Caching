@@ -70,6 +70,7 @@ namespace BitFaster.Caching.Lfu
         private readonly object maintenanceLock = new();
 
         private readonly IScheduler scheduler;
+        private readonly Action drainBuffers;
 
         private readonly LfuNode<K, V>[] drainBuffer;
 
@@ -110,6 +111,7 @@ namespace BitFaster.Caching.Lfu
             this.capacity = new LfuCapacityPartition(capacity);
 
             this.scheduler = scheduler;
+            this.drainBuffers = () => this.DrainBuffers();
 
             this.drainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
         }
@@ -532,7 +534,7 @@ namespace BitFaster.Caching.Lfu
                     }
 
                     this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
-                    scheduler.Run(() => this.DrainBuffers());
+                    scheduler.Run(this.drainBuffers);
                 }
             }
             finally
