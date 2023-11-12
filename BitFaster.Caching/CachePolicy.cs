@@ -28,7 +28,7 @@ namespace BitFaster.Caching
         {
             this.Eviction = eviction;
             this.ExpireAfterWrite = expireAfterWrite;
-            this.ExpireAfterRead = expireAfterRead;
+            this.ExpireAfterAccess = expireAfterRead;
         }
 
         /// <summary>
@@ -47,6 +47,6 @@ namespace BitFaster.Caching
         /// Gets the expire after read policy, if any. This policy evicts items after a 
         /// fixed duration since an entry's creation or most recent read.
         /// </summary>
-        public Optional<ITimePolicy> ExpireAfterRead { get; }
+        public Optional<ITimePolicy> ExpireAfterAccess { get; }
     }
 }

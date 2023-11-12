@@ -780,14 +780,9 @@ namespace BitFaster.Caching.Lru
         { 
             var p = new Proxy(lru);
 
-            if (typeof(P) == typeof(AfterReadLongTicksPolicy<K, V>))
+            if (typeof(P) == typeof(AfterAccessLongTicksPolicy<K, V>))
             {
                 return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p));
-            }
-
-            if (typeof(P) == typeof(AfterReadWriteLongTicksPolicy<K, V>))
-            {
-                return new CachePolicy(new Optional<IBoundedPolicy>(p), new Optional<ITimePolicy>(p), new Optional<ITimePolicy>(new AfterReadProxy(lru)));
             }
 
             return new CachePolicy(new Optional<IBoundedPolicy>(p), lru.itemPolicy.CanDiscard() ? new Optional<ITimePolicy>(p) : Optional<ITimePolicy>.None()); 
@@ -875,34 +870,6 @@ namespace BitFaster.Caching.Lru
             public void TrimExpired()
             {
                 lru.TrimExpired();
-            }
-        }
-
-        private class AfterReadProxy : ITimePolicy
-        {
-            private readonly ConcurrentLruCore<K, V, I, P, T> lru;
-
-            public TimeSpan TimeToLive
-            {
-                get
-                {
-                    if (lru.itemPolicy is AfterReadWriteLongTicksPolicy<K, V> p)
-                    {
-                        return p.ReadTimeToLive;
-                    }
-
-                    return TimeSpan.Zero;
-                }
-            }
-
-            public AfterReadProxy(ConcurrentLruCore<K, V, I, P, T> lru)
-            {
-                this.lru = lru;
-            }
-
-            public void TrimExpired()
-            {
-                this.lru.TrimExpired();
             }
         }
     }

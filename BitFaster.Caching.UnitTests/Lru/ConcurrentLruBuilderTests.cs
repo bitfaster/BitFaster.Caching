@@ -141,63 +141,41 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void TestExpireAfterRead()
+        public void TestExpireAfterAccess()
         {
-            ICache<string, int> expireAfterRead = new ConcurrentLruBuilder<string, int>()
-                .WithExpireAfterRead(TimeSpan.FromSeconds(1))
+            ICache<string, int> expireAfterAccess = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
                 .Build();
 
-            expireAfterRead.Metrics.HasValue.Should().BeFalse();
-            expireAfterRead.Policy.ExpireAfterRead.HasValue.Should().BeTrue();
-            expireAfterRead.Policy.ExpireAfterRead.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
-            expireAfterRead.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+            expireAfterAccess.Metrics.HasValue.Should().BeFalse();
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
         }
 
         [Fact]
-        public void TestExpireAfterReadWithMetrics()
+        public void TestExpireAfterAccessWithMetrics()
         {
-            ICache<string, int> expireAfterRead = new ConcurrentLruBuilder<string, int>()
-                .WithExpireAfterRead(TimeSpan.FromSeconds(1))
+            ICache<string, int> expireAfterAccess = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
                 .WithMetrics()
                 .Build();
 
-            expireAfterRead.Metrics.HasValue.Should().BeTrue();
-            expireAfterRead.Policy.ExpireAfterRead.HasValue.Should().BeTrue();
-            expireAfterRead.Policy.ExpireAfterRead.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
-            expireAfterRead.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+            expireAfterAccess.Metrics.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
         }
 
         [Fact]
-        public void TestExpireAfterReadAndExpireAfterWrite()
+        public void TestExpireAfterReadAndExpireAfterWriteThrows()
         {
-            ICache<string, int> readWrite = new ConcurrentLruBuilder<string, int>()
-                .WithExpireAfterRead(TimeSpan.FromSeconds(1))
-                .WithExpireAfterWrite(TimeSpan.FromSeconds(2))
-                .Build();
+            var builder = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(2));
 
-            readWrite.Metrics.HasValue.Should().BeFalse();
-            readWrite.Policy.ExpireAfterRead.HasValue.Should().BeTrue();
-            readWrite.Policy.ExpireAfterRead.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
-
-            readWrite.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
-            readWrite.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(2));
-        }
-
-        [Fact]
-        public void TestExpireAfterReadAndExpireAfterWriteWithMetrics()
-        {
-            ICache<string, int> readWrite = new ConcurrentLruBuilder<string, int>()
-                .WithExpireAfterRead(TimeSpan.FromSeconds(1))
-                .WithExpireAfterWrite(TimeSpan.FromSeconds(2))
-                .WithMetrics()
-                .Build();
-
-            readWrite.Metrics.HasValue.Should().BeTrue();
-            readWrite.Policy.ExpireAfterRead.HasValue.Should().BeTrue();
-            readWrite.Policy.ExpireAfterRead.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
-
-            readWrite.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
-            readWrite.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(2));
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
         }
 
         //  There are 15 combinations to test:

@@ -6,12 +6,12 @@ namespace BitFaster.Caching.Lru
 {
 #if !NETCOREAPP3_0_OR_GREATER
     /// <summary>
-    /// Implement an expire after read policy.
+    /// Implement an expire after access policy.
     /// </summary>    
     /// <remarks>
     /// This class measures time using Stopwatch.GetTimestamp() with a resolution of ~1us.
     /// </remarks>
-    public readonly struct AfterReadLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    public readonly struct AfterAccessLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly long timeToLive;
         private readonly Time time;
@@ -20,7 +20,7 @@ namespace BitFaster.Caching.Lru
         /// Initializes a new instance of the TLruLongTicksPolicy class with the specified time to live.
         /// </summary>
         /// <param name="timeToLive">The time to live.</param>
-        public AfterReadLongTicksPolicy(TimeSpan timeToLive)
+        public AfterAccessLongTicksPolicy(TimeSpan timeToLive)
         {
             this.timeToLive = StopwatchTickConverter.ToTicks(timeToLive);
             this.time = new Time();
@@ -45,6 +45,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(LongTickCountLruItem<K, V> item)
         {
+            item.TickCount = Stopwatch.GetTimestamp();
         }
 
         ///<inheritdoc/>

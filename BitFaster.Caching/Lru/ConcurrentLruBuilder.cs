@@ -40,20 +40,21 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public override ICache<K, V> Build()
         {
+            if (info.TimeToExpireAfterWrite.HasValue && info.TimeToExpireAfterAccess.HasValue)
+            {
+                Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfterAccess is not supported.");
+            }
+
             return info switch
             {
-                LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue && !i.TimeToExpireAfterRead.HasValue => new ConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
-                LruInfo<K> i when i.WithMetrics && i.TimeToExpireAfterWrite.HasValue && !i.TimeToExpireAfterRead.HasValue => new ConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
-                LruInfo<K> i when i.TimeToExpireAfterWrite.HasValue && !i.TimeToExpireAfterRead.HasValue => new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
-                LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterRead.HasValue =>
-                    new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterReadLongTicksPolicy<K, V>, TelemetryPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterReadLongTicksPolicy<K,V>(info.TimeToExpireAfterRead.Value), default),
-                LruInfo<K> i when !i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterRead.HasValue =>
-                    new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterReadLongTicksPolicy<K, V>, NoTelemetryPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterReadLongTicksPolicy<K,V>(info.TimeToExpireAfterRead.Value), default),
-                LruInfo<K> i when i.WithMetrics && i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterRead.HasValue =>
-                    new ConcurrentLruCore<K, V, LongTickCountReadWriteLruItem<K, V>, AfterReadWriteLongTicksPolicy<K, V>, TelemetryPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterReadWriteLongTicksPolicy<K, V>(info.TimeToExpireAfterRead.Value, info.TimeToExpireAfterWrite.Value), default),
-                LruInfo<K> i when i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterRead.HasValue =>
-                    new ConcurrentLruCore<K, V, LongTickCountReadWriteLruItem<K, V>, AfterReadWriteLongTicksPolicy<K, V>, NoTelemetryPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterReadWriteLongTicksPolicy<K, V>(info.TimeToExpireAfterRead.Value, info.TimeToExpireAfterWrite.Value), default),
-                _ => new FastConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
+                LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue && !i.TimeToExpireAfterAccess.HasValue => new ConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
+                LruInfo<K> i when i.WithMetrics && i.TimeToExpireAfterWrite.HasValue && !i.TimeToExpireAfterAccess.HasValue => new ConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
+                LruInfo<K> i when i.TimeToExpireAfterWrite.HasValue && !i.TimeToExpireAfterAccess.HasValue => new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
+                LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterAccess.HasValue =>
+                    new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterAccessLongTicksPolicy<K, V>, TelemetryPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterAccessLongTicksPolicy<K,V>(info.TimeToExpireAfterAccess.Value), default),
+                LruInfo<K> i when !i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterAccess.HasValue =>
+                    new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterAccessLongTicksPolicy<K, V>, NoTelemetryPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterAccessLongTicksPolicy<K,V>(info.TimeToExpireAfterAccess.Value), default),
+                        _ => new FastConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
             };
         }
     }

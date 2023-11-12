@@ -1,18 +1,19 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
 {
 #if NETCOREAPP3_0_OR_GREATER
     /// <summary>
-    /// Implement an expire after read policy.
+    /// Implement an expire after access policy.
     /// </summary>
     /// <remarks>
     /// This class measures time using Environment.TickCount64, which is significantly faster
     /// than both Stopwatch.GetTimestamp and DateTime.UtcNow. However, resolution is lower (typically 
     /// between 10-16ms), vs 1us for Stopwatch.GetTimestamp.
     /// </remarks>
-    public readonly struct AfterReadLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    public readonly struct AfterAccessLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly long timeToLive;
         private readonly Time time;
@@ -24,7 +25,7 @@ namespace BitFaster.Caching.Lru
         /// Initializes a new instance of the AfterReadTickCount64Policy class with the specified time to live.
         /// </summary>
         /// <param name="timeToLive">The time to live.</param>
-        public AfterReadLongTicksPolicy(TimeSpan timeToLive)
+        public AfterAccessLongTicksPolicy(TimeSpan timeToLive)
         {
             if (timeToLive <= TimeSpan.Zero || timeToLive > Time.MaxRepresentable)
                 Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Time.MaxRepresentable}");
@@ -52,6 +53,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(LongTickCountLruItem<K, V> item)
         {
+            item.TickCount = Environment.TickCount64;
         }
 
         ///<inheritdoc/>

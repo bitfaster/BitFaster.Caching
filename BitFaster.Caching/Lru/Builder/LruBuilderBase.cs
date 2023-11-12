@@ -88,13 +88,13 @@ namespace BitFaster.Caching.Lru.Builder
         }
 
         /// <summary>
-        /// Evict after a fixed duration since an entry's most recent access.
+        /// Evict after a fixed duration since an entry's most recent read or write.
         /// </summary>
         /// <param name="expiration">The length of time before an entry is automatically removed.</param>
         /// <returns>A ConcurrentLruBuilder</returns>
-        public TBuilder WithExpireAfterRead(TimeSpan expiration)
+        public TBuilder WithExpireAfterAccess(TimeSpan expiration)
         {
-            this.info.TimeToExpireAfterRead = expiration;
+            this.info.TimeToExpireAfterAccess = expiration;
             return this as TBuilder;
         }
 
