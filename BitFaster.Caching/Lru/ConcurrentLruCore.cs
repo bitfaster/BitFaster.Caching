@@ -104,10 +104,10 @@ namespace BitFaster.Caching.Lru
         public int Capacity => this.capacity.Hot + this.capacity.Warm + this.capacity.Cold;
 
         ///<inheritdoc/>
-        public Optional<ICacheMetrics> Metrics => new(new Proxy(this));
+        public Optional<ICacheMetrics> Metrics => CreateMetrics(this);
 
         ///<inheritdoc/>
-        public Optional<ICacheEvents<K, V>> Events => new(new Proxy(this));
+        public Optional<ICacheEvents<K, V>> Events => CreateEvents(this);
 
         ///<inheritdoc/>
         public CachePolicy Policy => CreatePolicy(this);
@@ -791,6 +791,26 @@ namespace BitFaster.Caching.Lru
             }
 
             return new CachePolicy(new Optional<IBoundedPolicy>(p), lru.itemPolicy.CanDiscard() ? new Optional<ITimePolicy>(p) : Optional<ITimePolicy>.None()); 
+        }
+
+        private static Optional<ICacheMetrics> CreateMetrics(ConcurrentLruCore<K, V, I, P, T> lru)
+        {
+            if (typeof(T) == typeof(NoTelemetryPolicy<K, V>))
+            {
+                return Optional<ICacheMetrics>.None();
+            }
+
+            return new(new Proxy(lru));
+        }
+
+        private static Optional<ICacheEvents<K, V>> CreateEvents(ConcurrentLruCore<K, V, I, P, T> lru)
+        {
+            if (typeof(T) == typeof(NoTelemetryPolicy<K, V>))
+            {
+                return Optional<ICacheEvents<K, V>>.None();
+            }
+
+            return new(new Proxy(lru));
         }
 
         // To get JIT optimizations, policies must be structs.

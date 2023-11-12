@@ -53,5 +53,21 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.Count.Should().Be(0);
         }
+
+        [Fact]
+        public void MetricsHasValueIsFalse()
+        {
+            var x = new FastConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
+
+            x.Metrics.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EventsHasValueIsFalse()
+        {
+            var x = new FastConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
+
+            x.Events.HasValue.Should().BeFalse();
+        }
     }
 }
