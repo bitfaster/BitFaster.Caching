@@ -287,7 +287,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.output.WriteLine($"Maintenance ops {cache.Scheduler.RunCount}");
 
             cache.Metrics.Value.Misses.Should().Be(loopIterations * threads);
-            RunIntegrityCheck(cache);
+            RunIntegrityCheck(cache, this.output);
         }
 
         private ConcurrentLfu<int, string> CreateWithBackgroundScheduler()
