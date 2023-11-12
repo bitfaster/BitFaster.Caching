@@ -18,12 +18,12 @@ namespace BitFaster.Caching.Lru
         private readonly Time time;
 
         ///<inheritdoc/>
-        public TimeSpan TimeToLive => StopwatchTickConverter.FromTicks(readTimeToLive);
+        public TimeSpan TimeToLive => StopwatchTickConverter.FromTicks(writeTimeToLive);
 
         /// <summary>
         /// Gets the read time to live defined by the read policy.
         /// </summary>
-        public TimeSpan ReadTimeToLive => TimeSpan.FromMilliseconds(readTimeToLive);
+        public TimeSpan ReadTimeToLive => StopwatchTickConverter.FromTicks(readTimeToLive);
 
         /// <summary>
         /// Initializes a new instance of the AfterReadWriteLongTicksPolicy class with the specified time to live.

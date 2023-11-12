@@ -46,9 +46,9 @@ namespace BitFaster.Caching.Lru
                 LruInfo<K> i when i.WithMetrics && i.TimeToExpireAfterWrite.HasValue && !i.TimeToExpireAfterRead.HasValue => new ConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
                 LruInfo<K> i when i.TimeToExpireAfterWrite.HasValue && !i.TimeToExpireAfterRead.HasValue => new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
                 LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterRead.HasValue =>
-                    new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterReadLongTicksPolicy<K, V>, TelemetryPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterReadLongTicksPolicy<K,V>(info.TimeToExpireAfterWrite.Value), default),
+                    new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterReadLongTicksPolicy<K, V>, TelemetryPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterReadLongTicksPolicy<K,V>(info.TimeToExpireAfterRead.Value), default),
                 LruInfo<K> i when !i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterRead.HasValue =>
-                    new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterReadLongTicksPolicy<K, V>, NoTelemetryPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterReadLongTicksPolicy<K,V>(info.TimeToExpireAfterWrite.Value), default),
+                    new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterReadLongTicksPolicy<K, V>, NoTelemetryPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterReadLongTicksPolicy<K,V>(info.TimeToExpireAfterRead.Value), default),
                 LruInfo<K> i when i.WithMetrics && i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterRead.HasValue =>
                     new ConcurrentLruCore<K, V, LongTickCountReadWriteLruItem<K, V>, AfterReadWriteLongTicksPolicy<K, V>, TelemetryPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterReadWriteLongTicksPolicy<K, V>(info.TimeToExpireAfterRead.Value, info.TimeToExpireAfterWrite.Value), default),
                 LruInfo<K> i when i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterRead.HasValue =>

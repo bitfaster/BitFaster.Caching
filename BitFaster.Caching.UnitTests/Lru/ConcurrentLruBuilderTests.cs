@@ -140,6 +140,68 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Policy.Eviction.Value.Capacity.Should().Be(6);
         }
 
+        [Fact]
+        public void TestExpireAfterRead()
+        {
+            ICache<string, int> expireAfterRead = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterRead(TimeSpan.FromSeconds(1))
+                .Build();
+
+            // TODO: LRU always has metrics, which is wrong
+            // expireAfterRead.Metrics.HasValue.Should().BeFalse();
+            expireAfterRead.Policy.ExpireAfterRead.HasValue.Should().BeTrue();
+            expireAfterRead.Policy.ExpireAfterRead.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterRead.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterReadWithMetrics()
+        {
+            ICache<string, int> expireAfterRead = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterRead(TimeSpan.FromSeconds(1))
+                .WithMetrics()
+                .Build();
+
+            expireAfterRead.Metrics.HasValue.Should().BeTrue();
+            expireAfterRead.Policy.ExpireAfterRead.HasValue.Should().BeTrue();
+            expireAfterRead.Policy.ExpireAfterRead.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterRead.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterReadAndExpireAfterWrite()
+        {
+            ICache<string, int> readWrite = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterRead(TimeSpan.FromSeconds(1))
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(2))
+                .Build();
+
+            // TODO: LRU always has metrics, which is wrong
+            // expireAfterRead.Metrics.HasValue.Should().BeFalse();
+            readWrite.Policy.ExpireAfterRead.HasValue.Should().BeTrue();
+            readWrite.Policy.ExpireAfterRead.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+
+            readWrite.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
+            readWrite.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(2));
+        }
+
+        [Fact]
+        public void TestExpireAfterReadAndExpireAfterWriteWithMetrics()
+        {
+            ICache<string, int> readWrite = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterRead(TimeSpan.FromSeconds(1))
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(2))
+                .WithMetrics()
+                .Build();
+
+            readWrite.Metrics.HasValue.Should().BeTrue();
+            readWrite.Policy.ExpireAfterRead.HasValue.Should().BeTrue();
+            readWrite.Policy.ExpireAfterRead.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+
+            readWrite.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
+            readWrite.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(2));
+        }
+
         //  There are 15 combinations to test:
         //  -----------------------------
         //1 WithAtomic

@@ -45,7 +45,7 @@ namespace BitFaster.Caching
 
         /// <summary>
         /// Gets the expire after read policy, if any. This policy evicts items after a 
-        /// fixed duration since an entry's creation or most recent replacement.
+        /// fixed duration since an entry's creation or most recent read.
         /// </summary>
         public Optional<ITimePolicy> ExpireAfterRead { get; }
     }
