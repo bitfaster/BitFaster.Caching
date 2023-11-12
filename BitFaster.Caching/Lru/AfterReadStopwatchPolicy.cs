@@ -11,7 +11,7 @@ namespace BitFaster.Caching.Lru
     /// <remarks>
     /// This class measures time using Stopwatch.GetTimestamp() with a resolution of ~1us.
     /// </remarks>
-    public readonly struct AfterAccessLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    internal readonly struct AfterAccessLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly long timeToLive;
         private readonly Time time;
