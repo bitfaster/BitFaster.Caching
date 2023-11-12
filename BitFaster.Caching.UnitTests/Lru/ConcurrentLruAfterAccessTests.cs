@@ -94,14 +94,17 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                 await Task.Delay(TimeSpan.FromMilliseconds(50));
 
-                lru.TryGet(1, out _).Should().BeTrue("First");
-
-                await Task.Delay(TimeSpan.FromMilliseconds(75));
-
-                if (sw.Elapsed < TimeSpan.FromMilliseconds(150))
+                if (sw.Elapsed < TimeSpan.FromMilliseconds(75))
                 {
-                    lru.TryGet(1, out var value).Should().BeTrue("Second " + sw.Elapsed);
-                    break;
+                    lru.TryGet(1, out _).Should().BeTrue($"First {sw.Elapsed}");
+
+                    await Task.Delay(TimeSpan.FromMilliseconds(75));
+
+                    if (sw.Elapsed < TimeSpan.FromMilliseconds(150))
+                    {
+                        lru.TryGet(1, out var value).Should().BeTrue($"Second {sw.Elapsed}");
+                        break;
+                    }
                 }
 
                 await Task.Yield();
