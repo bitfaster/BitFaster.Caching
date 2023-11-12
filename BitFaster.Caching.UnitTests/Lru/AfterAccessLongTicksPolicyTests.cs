@@ -4,6 +4,10 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 
+#if NETFRAMEWORK
+using System.Diagnostics;
+#endif
+
 namespace BitFaster.Caching.UnitTests.Lru
 {
     public class AfterAccessLongTicksPolicyTests
