@@ -178,6 +178,20 @@ namespace BitFaster.Caching.UnitTests.Lru
             act.Should().Throw<InvalidOperationException>();
         }
 
+        [Fact]
+        public void TestExpireAfter()
+        {
+            ICache<string, int> expireAfter = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfter(new Expiry<string, int>((k, v) => TimeSpan.FromMinutes(5)))
+                .Build();
+
+            expireAfter.Metrics.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
+
+            expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
         //  There are 15 combinations to test:
         //  -----------------------------
         //1 WithAtomic

@@ -43,6 +43,12 @@ namespace BitFaster.Caching.Lru
             if (info.TimeToExpireAfterWrite.HasValue && info.TimeToExpireAfterAccess.HasValue)
                 Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfterAccess is not supported.");
 
+            if (info.TimeToExpireAfterWrite.HasValue && info.ExpireAfter != null)
+                Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfter is not supported.");
+
+            if (info.TimeToExpireAfterAccess.HasValue && info.ExpireAfter != null)
+                Throw.InvalidOp("Specifying both ExpireAfterAccess and ExpireAfter is not supported.");
+
             return info switch
             {
                 LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue && !i.TimeToExpireAfterAccess.HasValue => new ConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
@@ -50,6 +56,8 @@ namespace BitFaster.Caching.Lru
                 LruInfo<K> i when i.TimeToExpireAfterWrite.HasValue && !i.TimeToExpireAfterAccess.HasValue => new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
                 LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterAccess.HasValue => CreateExpireAfterAccess<TelemetryPolicy<K, V>>(info),
                 LruInfo<K> i when !i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterAccess.HasValue => CreateExpireAfterAccess<NoTelemetryPolicy<K, V>>(info),
+                LruInfo<K> i when i.WithMetrics && i.ExpireAfter != null => CreateExpireAfter<TelemetryPolicy<K, V>>(info),
+                LruInfo<K> i when i.ExpireAfter != null => CreateExpireAfter<NoTelemetryPolicy<K, V>>(info),
                 _ => new FastConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
             };
         }
@@ -58,6 +66,20 @@ namespace BitFaster.Caching.Lru
         {
             return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterAccessLongTicksPolicy<K, V>, TP>(
                 info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterAccessLongTicksPolicy<K, V>(info.TimeToExpireAfterAccess.Value), default);
+        }
+
+        private static ICache<K, V> CreateExpireAfter<TP>(LruInfo<K> info) where TP : struct, ITelemetryPolicy<K, V>
+        {
+            if (info.ExpireAfter is not IExpiry<K, V>)
+            {
+                Throw.InvalidOp($"Expiry must be of type {typeof(IExpiry<K, V>)}.");
+            }
+
+            var expiry = info.ExpireAfter as IExpiry<K, V>;
+
+            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, CustomExpiryPolicy<K, V>, TP>(
+                    info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new CustomExpiryPolicy<K, V>(expiry), default);
+            
         }
     }
 }

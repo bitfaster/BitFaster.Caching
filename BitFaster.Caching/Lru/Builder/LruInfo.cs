@@ -31,6 +31,11 @@ namespace BitFaster.Caching.Lru.Builder
         public TimeSpan? TimeToExpireAfterAccess { get; set; } = null;
 
         /// <summary>
+        /// Gets or sets the custom expire after.
+        /// </summary>
+        public object ExpireAfter { get; set; } = null;
+
+        /// <summary>
         /// Gets or sets a value indicating whether to use metrics.
         /// </summary>
         public bool WithMetrics { get; set; } = false;

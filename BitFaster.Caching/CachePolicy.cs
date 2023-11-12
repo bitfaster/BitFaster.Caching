@@ -32,6 +32,21 @@ namespace BitFaster.Caching
         }
 
         /// <summary>
+        /// Initializes a new instance of the CachePolicy class with the specified policies.
+        /// </summary>
+        /// <param name="eviction">The eviction policy.</param>
+        /// <param name="expireAfterWrite">The expire after write policy.</param>
+        /// <param name="expireAfterAccess">The expire after access policy.</param>
+        /// <param name="expireAfter">The expire after policy.</param>
+        public CachePolicy(Optional<IBoundedPolicy> eviction, Optional<ITimePolicy> expireAfterWrite, Optional<ITimePolicy> expireAfterAccess, Optional<IVariableTimePolicy> expireAfter)
+        {
+            this.Eviction = eviction;
+            this.ExpireAfterWrite = expireAfterWrite;
+            this.ExpireAfterAccess = expireAfterAccess;
+            this.ExpireAfter = expireAfter;
+        }
+
+        /// <summary>
         /// Gets the bounded size eviction policy. This policy evicts items from the cache
         /// if it exceeds capacity.
         /// </summary>
@@ -48,5 +63,34 @@ namespace BitFaster.Caching
         /// fixed duration since an entry's creation or most recent read/write access.
         /// </summary>
         public Optional<ITimePolicy> ExpireAfterAccess { get; }
+
+        /// <summary>
+        /// Gets the expire after policy, if any. This policy evicts items after a
+        /// variable time to live computed from the key and value.
+        /// </summary>
+        public Optional<IVariableTimePolicy> ExpireAfter { get; }
+
+        public bool TryTrimExpired()
+        {
+            if (ExpireAfterWrite.HasValue)
+            {
+                ExpireAfterWrite.Value.TrimExpired();
+                return true;
+            }
+
+            if (ExpireAfterAccess.HasValue)
+            {
+                ExpireAfterAccess.Value.TrimExpired();
+                return true;
+            }
+
+            if (ExpireAfter.HasValue)
+            {
+                ExpireAfter.Value.TrimExpired();
+                return true;
+            }
+
+            return false;
+        }
     }
 }

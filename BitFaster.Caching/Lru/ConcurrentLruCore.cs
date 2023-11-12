@@ -199,7 +199,7 @@ namespace BitFaster.Caching.Lru
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
             while (true)
-            {        
+            {
                 if (this.TryGet(key, out var value))
                 {
                     return value;
@@ -379,7 +379,7 @@ namespace BitFaster.Caching.Lru
                         V oldValue = existing.Value;
                         existing.Value = value;
                         this.itemPolicy.Update(existing);
-// backcompat: remove conditional compile
+                        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
                         this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
 #endif
@@ -396,12 +396,12 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         ///<remarks>Note: Updates to existing items do not affect LRU order. Added items are at the top of the LRU.</remarks>
         public void AddOrUpdate(K key, V value)
-        { 
+        {
             while (true)
-            { 
+            {
                 // first, try to update
                 if (this.TryUpdate(key, value))
-                { 
+                {
                     return;
                 }
 
@@ -558,7 +558,7 @@ namespace BitFaster.Caching.Lru
                         (dest, count) = CycleCold(count);
                     }
                 }
-                
+
                 // If nothing was removed yet, constrain the size of warm and cold by discarding the coldest item.
                 if (dest != ItemDestination.Remove)
                 {
@@ -777,15 +777,20 @@ namespace BitFaster.Caching.Lru
         }
 
         private static CachePolicy CreatePolicy(ConcurrentLruCore<K, V, I, P, T> lru)
-        { 
+        {
             var p = new Proxy(lru);
 
             if (typeof(P) == typeof(AfterAccessLongTicksPolicy<K, V>))
             {
-                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p));
+                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p), Optional<IVariableTimePolicy>.None());
             }
 
-            return new CachePolicy(new Optional<IBoundedPolicy>(p), lru.itemPolicy.CanDiscard() ? new Optional<ITimePolicy>(p) : Optional<ITimePolicy>.None()); 
+            if (typeof(P) == typeof(CustomExpiryPolicy<K, V>))
+            {
+                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), Optional<ITimePolicy>.None(), new Optional<IVariableTimePolicy>(new VariableTimeProxy(lru)));
+            }
+
+            return new CachePolicy(new Optional<IBoundedPolicy>(p), lru.itemPolicy.CanDiscard() ? new Optional<ITimePolicy>(p) : Optional<ITimePolicy>.None());
         }
 
         private static Optional<ICacheMetrics> CreateMetrics(ConcurrentLruCore<K, V, I, P, T> lru)
@@ -840,7 +845,7 @@ namespace BitFaster.Caching.Lru
 
             public long Evicted => lru.telemetryPolicy.Evicted;
 
-// backcompat: remove conditional compile
+            // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
             public long Updated => lru.telemetryPolicy.Updated;
 #endif
@@ -854,7 +859,7 @@ namespace BitFaster.Caching.Lru
                 remove { this.lru.telemetryPolicy.ItemRemoved -= value; }
             }
 
-// backcompat: remove conditional compile
+            // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
             public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
             {
@@ -870,6 +875,39 @@ namespace BitFaster.Caching.Lru
             public void TrimExpired()
             {
                 lru.TrimExpired();
+            }
+        }
+
+        private class VariableTimeProxy : IVariableTimePolicy
+        {
+            private readonly ConcurrentLruCore<K, V, I, P, T> lru;
+
+            public VariableTimeProxy(ConcurrentLruCore<K, V, I, P, T> lru)
+            {
+                this.lru = lru;
+            }
+
+            public void TrimExpired()
+            {
+                lru.TrimExpired();
+            }
+
+            public bool TryGetTimeToLive(object key, out TimeSpan timeToLive)
+            {
+                if (key is K k)
+                {
+                    if (lru.dictionary.TryGetValue(k, out var item))
+                    {
+                        if (item is LongTickCountLruItem<K, V> tickItem)
+                        {
+                            timeToLive = TimeSpan.FromTicks(tickItem.TickCount);
+                            return true;
+                        }
+                    }
+                }
+
+                timeToLive = default;
+                return false;
             }
         }
     }
