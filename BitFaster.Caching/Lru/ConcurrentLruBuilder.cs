@@ -41,9 +41,7 @@ namespace BitFaster.Caching.Lru
         public override ICache<K, V> Build()
         {
             if (info.TimeToExpireAfterWrite.HasValue && info.TimeToExpireAfterAccess.HasValue)
-            {
                 Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfterAccess is not supported.");
-            }
 
             return info switch
             {
