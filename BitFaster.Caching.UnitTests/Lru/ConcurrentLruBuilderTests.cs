@@ -147,8 +147,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithExpireAfterRead(TimeSpan.FromSeconds(1))
                 .Build();
 
-            // TODO: LRU always has metrics, which is wrong
-            // expireAfterRead.Metrics.HasValue.Should().BeFalse();
+            expireAfterRead.Metrics.HasValue.Should().BeFalse();
             expireAfterRead.Policy.ExpireAfterRead.HasValue.Should().BeTrue();
             expireAfterRead.Policy.ExpireAfterRead.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
             expireAfterRead.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
@@ -176,8 +175,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithExpireAfterWrite(TimeSpan.FromSeconds(2))
                 .Build();
 
-            // TODO: LRU always has metrics, which is wrong
-            // expireAfterRead.Metrics.HasValue.Should().BeFalse();
+            readWrite.Metrics.HasValue.Should().BeFalse();
             readWrite.Policy.ExpireAfterRead.HasValue.Should().BeTrue();
             readWrite.Policy.ExpireAfterRead.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
 
