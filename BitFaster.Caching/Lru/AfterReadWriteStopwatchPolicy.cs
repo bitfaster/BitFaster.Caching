@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Lru
     {
         private readonly long readTimeToLive;
         private readonly long writeTimeToLive;
-        private readonly Clock clock;
+        private readonly Time clock;
 
         /// <summary>
         /// Initializes a new instance of the AfterReadWriteLongTicksPolicy class with the specified time to live.
@@ -24,9 +24,9 @@ namespace BitFaster.Caching.Lru
         /// <param name="writeTimeToLive">The write time to live.</param>
         public AfterReadWriteLongTicksPolicy(TimeSpan readTimeToLive, TimeSpan writeTimeToLive)
         {
-            this.readTimeToLive = TLruLongTicksPolicy<K, V>.ToTicks(readTimeToLive);
-            this.writeTimeToLive = TLruLongTicksPolicy<K, V>.ToTicks(writeTimeToLive);
-            this.clock = new Clock();
+            this.readTimeToLive = StopwatchTickConverter.ToTicks(readTimeToLive);
+            this.writeTimeToLive = StopwatchTickConverter.ToTicks(writeTimeToLive);
+            this.clock = new Time();
         }
 
         ///<inheritdoc/>
@@ -40,7 +40,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountReadWriteLruItem<K, V> item)
         {
-            item.ReadTickCount = this.clock.LastTime;
+            item.ReadTickCount = this.clock.Last;
             item.WasAccessed = true;
         }
 
@@ -55,13 +55,13 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountReadWriteLruItem<K, V> item)
         {
-            this.clock.LastTime = Stopwatch.GetTimestamp();
-            if (this.clock.LastTime - item.ReadTickCount > this.readTimeToLive)
+            this.clock.Last = Stopwatch.GetTimestamp();
+            if (this.clock.Last - item.ReadTickCount > this.readTimeToLive)
             {
                 return true;
             }
 
-            if (this.clock.LastTime - item.WriteTickCount > this.writeTimeToLive)
+            if (this.clock.Last - item.WriteTickCount > this.writeTimeToLive)
             {
                 return true;
             }
@@ -128,7 +128,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
-        public TimeSpan TimeToLive => TLruLongTicksPolicy<K, V>.FromTicks(readTimeToLive);
+        public TimeSpan TimeToLive => StopwatchTickConverter.FromTicks(readTimeToLive);
     }
 #endif
 }

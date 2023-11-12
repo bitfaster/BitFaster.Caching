@@ -14,7 +14,7 @@ namespace BitFaster.Caching.Lru
     public readonly struct AfterReadLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly long timeToLive;
-        private readonly Clock clock;
+        private readonly Time clock;
 
         /// <summary>
         /// Initializes a new instance of the TLruLongTicksPolicy class with the specified time to live.
@@ -22,8 +22,8 @@ namespace BitFaster.Caching.Lru
         /// <param name="timeToLive">The time to live.</param>
         public AfterReadLongTicksPolicy(TimeSpan timeToLive)
         {
-            this.timeToLive = TLruLongTicksPolicy<K, V>.ToTicks(timeToLive);
-            this.clock = new Clock();
+            this.timeToLive = StopwatchTickConverter.ToTicks(timeToLive);
+            this.clock = new Time();
         }
 
         ///<inheritdoc/>
@@ -37,7 +37,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountLruItem<K, V> item)
         {
-            item.TickCount = this.clock.LastTime;
+            item.TickCount = this.clock.Last;
             item.WasAccessed = true;
         }
 
@@ -51,8 +51,8 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
-            this.clock.LastTime = Stopwatch.GetTimestamp();
-            if (this.clock.LastTime - item.TickCount > this.timeToLive)
+            this.clock.Last = Stopwatch.GetTimestamp();
+            if (this.clock.Last - item.TickCount > this.timeToLive)
             {
                 return true;
             }
@@ -119,7 +119,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
-        public TimeSpan TimeToLive => TLruLongTicksPolicy< K, V>.FromTicks(timeToLive);
+        public TimeSpan TimeToLive => StopwatchTickConverter.FromTicks(timeToLive);
     }
 #endif
 }

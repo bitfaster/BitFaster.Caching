@@ -16,7 +16,7 @@ namespace BitFaster.Caching.Lru
     {
         private readonly long readTimeToLive;
         private readonly long writeTimeToLive;
-        private readonly Clock clock;
+        private readonly Time clock;
 
         ///<inheritdoc/>
         public TimeSpan TimeToLive => TimeSpan.FromMilliseconds(readTimeToLive);
@@ -28,16 +28,15 @@ namespace BitFaster.Caching.Lru
         /// <param name="writeTimeToLive">The write time to live.</param>
         public AfterReadWriteLongTicksPolicy(TimeSpan readTimeToLive, TimeSpan writeTimeToLive)
         {
-            TimeSpan maxRepresentable = TimeSpan.FromTicks(9223372036854769664);
-            if (readTimeToLive <= TimeSpan.Zero || readTimeToLive > maxRepresentable)
-                Throw.ArgOutOfRange(nameof(readTimeToLive), $"Value must greater than zero and less than {maxRepresentable}");
+            if (readTimeToLive <= TimeSpan.Zero || readTimeToLive > Time.MaxRepresentable)
+                Throw.ArgOutOfRange(nameof(readTimeToLive), $"Value must greater than zero and less than {Time.MaxRepresentable}");
 
-            if (writeTimeToLive <= TimeSpan.Zero || writeTimeToLive > maxRepresentable)
-                Throw.ArgOutOfRange(nameof(readTimeToLive), $"Value must greater than zero and less than {maxRepresentable}");
+            if (writeTimeToLive <= TimeSpan.Zero || writeTimeToLive > Time.MaxRepresentable)
+                Throw.ArgOutOfRange(nameof(readTimeToLive), $"Value must greater than zero and less than {Time.MaxRepresentable}");
 
             this.readTimeToLive = (long)readTimeToLive.TotalMilliseconds;
             this.writeTimeToLive = (long)writeTimeToLive.TotalMilliseconds;
-            this.clock = new Clock();
+            this.clock = new Time();
         }
 
         ///<inheritdoc/>
@@ -51,7 +50,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountReadWriteLruItem<K, V> item)
         {
-            item.ReadTickCount = this.clock.LastTime;
+            item.ReadTickCount = this.clock.Last;
             item.WasAccessed = true;
         }
 
@@ -66,13 +65,13 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountReadWriteLruItem<K, V> item)
         {
-            this.clock.LastTime = Environment.TickCount64;
-            if (this.clock.LastTime - item.ReadTickCount > this.readTimeToLive)
+            this.clock.Last = Environment.TickCount64;
+            if (this.clock.Last - item.ReadTickCount > this.readTimeToLive)
             {
                 return true;
             }
 
-            if (this.clock.LastTime - item.WriteTickCount > this.writeTimeToLive)
+            if (this.clock.Last - item.WriteTickCount > this.writeTimeToLive)
             {
                 return true;
             }

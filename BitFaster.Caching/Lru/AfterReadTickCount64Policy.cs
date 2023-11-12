@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Lru
     public readonly struct AfterReadLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly long timeToLive;
-        private readonly Clock clock;
+        private readonly Time time;
 
         ///<inheritdoc/>
         public TimeSpan TimeToLive => TimeSpan.FromMilliseconds(timeToLive);
@@ -26,12 +26,11 @@ namespace BitFaster.Caching.Lru
         /// <param name="timeToLive">The time to live.</param>
         public AfterReadLongTicksPolicy(TimeSpan timeToLive)
         {
-            TimeSpan maxRepresentable = TimeSpan.FromTicks(9223372036854769664);
-            if (timeToLive <= TimeSpan.Zero || timeToLive > maxRepresentable)
-                Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {maxRepresentable}");
+            if (timeToLive <= TimeSpan.Zero || timeToLive > Time.MaxRepresentable)
+                Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Time.MaxRepresentable}");
 
             this.timeToLive = (long)timeToLive.TotalMilliseconds;
-            this.clock = new Clock();
+            this.time = new Time();
         }
 
         ///<inheritdoc/>
@@ -45,7 +44,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountLruItem<K, V> item)
         {
-            item.TickCount = this.clock.LastTime;
+            item.TickCount = this.time.Last;
             item.WasAccessed = true;
         }
 
@@ -59,8 +58,8 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
-            this.clock.LastTime = Environment.TickCount64;
-            if (this.clock.LastTime - item.TickCount > this.timeToLive)
+            this.time.Last = Environment.TickCount64;
+            if (this.time.Last - item.TickCount > this.timeToLive)
             {
                 return true;
             }
