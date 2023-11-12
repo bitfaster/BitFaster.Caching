@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Lru
     {
         private readonly long readTimeToLive;
         private readonly long writeTimeToLive;
-        private readonly Time clock;
+        private readonly Time time;
 
         /// <summary>
         /// Initializes a new instance of the AfterReadWriteLongTicksPolicy class with the specified time to live.
@@ -26,7 +26,7 @@ namespace BitFaster.Caching.Lru
         {
             this.readTimeToLive = StopwatchTickConverter.ToTicks(readTimeToLive);
             this.writeTimeToLive = StopwatchTickConverter.ToTicks(writeTimeToLive);
-            this.clock = new Time();
+            this.time = new Time();
         }
 
         ///<inheritdoc/>
@@ -40,7 +40,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountReadWriteLruItem<K, V> item)
         {
-            item.ReadTickCount = this.clock.Last;
+            item.ReadTickCount = this.time.Last;
             item.WasAccessed = true;
         }
 
@@ -55,13 +55,13 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountReadWriteLruItem<K, V> item)
         {
-            this.clock.Last = Stopwatch.GetTimestamp();
-            if (this.clock.Last - item.ReadTickCount > this.readTimeToLive)
+            this.time.Last = Stopwatch.GetTimestamp();
+            if (this.time.Last - item.ReadTickCount > this.readTimeToLive)
             {
                 return true;
             }
 
-            if (this.clock.Last - item.WriteTickCount > this.writeTimeToLive)
+            if (this.time.Last - item.WriteTickCount > this.writeTimeToLive)
             {
                 return true;
             }

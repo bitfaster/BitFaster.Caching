@@ -16,7 +16,7 @@ namespace BitFaster.Caching.Lru
     {
         private readonly long readTimeToLive;
         private readonly long writeTimeToLive;
-        private readonly Time clock;
+        private readonly Time time;
 
         ///<inheritdoc/>
         public TimeSpan TimeToLive => TimeSpan.FromMilliseconds(readTimeToLive);
@@ -36,7 +36,7 @@ namespace BitFaster.Caching.Lru
 
             this.readTimeToLive = (long)readTimeToLive.TotalMilliseconds;
             this.writeTimeToLive = (long)writeTimeToLive.TotalMilliseconds;
-            this.clock = new Time();
+            this.time = new Time();
         }
 
         ///<inheritdoc/>
@@ -50,7 +50,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountReadWriteLruItem<K, V> item)
         {
-            item.ReadTickCount = this.clock.Last;
+            item.ReadTickCount = this.time.Last;
             item.WasAccessed = true;
         }
 
@@ -65,13 +65,13 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountReadWriteLruItem<K, V> item)
         {
-            this.clock.Last = Environment.TickCount64;
-            if (this.clock.Last - item.ReadTickCount > this.readTimeToLive)
+            this.time.Last = Environment.TickCount64;
+            if (this.time.Last - item.ReadTickCount > this.readTimeToLive)
             {
                 return true;
             }
 
-            if (this.clock.Last - item.WriteTickCount > this.writeTimeToLive)
+            if (this.time.Last - item.WriteTickCount > this.writeTimeToLive)
             {
                 return true;
             }
