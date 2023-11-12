@@ -84,16 +84,16 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void TouchUpdatesTicks()
+        public async Task TouchUpdatesTicksCount()
         {
             var item = this.policy.CreateItem(1, 2);
+            var tc = item.TickCount;
+            await Task.Delay(TimeSpan.FromMilliseconds(1));
 
-            var lastTicks = item.TickCount;
-          
-            this.policy.ShouldDiscard(item); // set the time
+            this.policy.ShouldDiscard(item); // set the time in the policy
             this.policy.Touch(item);
 
-            item.TickCount.Should().BeGreaterThan(lastTicks);
+            item.TickCount.Should().BeGreaterThan(tc);
         }
 
         [Fact]
