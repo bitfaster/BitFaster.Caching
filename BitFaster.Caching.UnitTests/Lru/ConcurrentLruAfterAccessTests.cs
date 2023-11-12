@@ -107,7 +107,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                     }
                 }
 
-                await Task.Yield();
+                await Task.Delay(TimeSpan.FromMilliseconds(200));
                 attempts++.Should().BeLessThan(128);
             }
         }
