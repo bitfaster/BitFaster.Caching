@@ -4,48 +4,43 @@ using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
 {
-// backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if !NETCOREAPP3_0_OR_GREATER
     /// <summary>
-    /// Time aware Least Recently Used (TLRU) is a variant of LRU which discards the least 
-    /// recently used items first, and any item that has expired.
-    /// </summary>
+    /// Implement an expire after access policy.
+    /// </summary>    
     /// <remarks>
-    /// This class measures time using Environment.TickCount64, which is significantly faster
-    /// than both Stopwatch.GetTimestamp and DateTime.UtcNow. However, resolution is lower (typically 
-    /// between 10-16ms), vs 1us for Stopwatch.GetTimestamp.
+    /// This class measures time using Stopwatch.GetTimestamp() with a resolution of ~1us.
     /// </remarks>
-    // backcompat: rename to TLruTickCount64Policy
-    public readonly struct TLruLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    public readonly struct AfterAccessLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly long timeToLive;
+        private readonly Time time;
 
         ///<inheritdoc/>
-        public TimeSpan TimeToLive => TimeSpan.FromMilliseconds(timeToLive);
+        public TimeSpan TimeToLive => StopwatchTickConverter.FromTicks(timeToLive);
 
         /// <summary>
-        /// Initializes a new instance of the TLruTicksPolicy class with the specified time to live.
+        /// Initializes a new instance of the TLruLongTicksPolicy class with the specified time to live.
         /// </summary>
         /// <param name="timeToLive">The time to live.</param>
-        public TLruLongTicksPolicy(TimeSpan timeToLive)
+        public AfterAccessLongTicksPolicy(TimeSpan timeToLive)
         {
-            if (timeToLive <= TimeSpan.Zero || timeToLive > Time.MaxRepresentable)
-                Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Time.MaxRepresentable}");
-
-            this.timeToLive = (long)timeToLive.TotalMilliseconds;
+            this.timeToLive = StopwatchTickConverter.ToTicks(timeToLive);
+            this.time = new Time();
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LongTickCountLruItem<K, V> CreateItem(K key, V value)
         {
-            return new LongTickCountLruItem<K, V>(key, value, Environment.TickCount64);
+            return new LongTickCountLruItem<K, V>(key, value, Stopwatch.GetTimestamp());
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountLruItem<K, V> item)
         {
+            item.TickCount = this.time.Last;
             item.WasAccessed = true;
         }
 
@@ -53,14 +48,15 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(LongTickCountLruItem<K, V> item)
         {
-            item.TickCount = Environment.TickCount64;
+            item.TickCount = Stopwatch.GetTimestamp();
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
-            if (Environment.TickCount64 - item.TickCount > this.timeToLive)
+            this.time.Last = Stopwatch.GetTimestamp();
+            if (this.time.Last - item.TickCount > this.timeToLive)
             {
                 return true;
             }
@@ -126,27 +122,6 @@ namespace BitFaster.Caching.Lru
             return ItemDestination.Remove;
         }
 
-        /// <summary>
-        /// Convert from TimeSpan to ticks.
-        /// </summary>
-        /// <param name="timespan">The time represented as a TimeSpan.</param>
-        /// <returns>The time represented as ticks.</returns>
-        // backcompat: remove method (exists only for compatibility with orignal TLruLongTicksPolicy)
-        public static long ToTicks(TimeSpan timespan)
-        {
-            return StopwatchTickConverter.ToTicks(timespan);
-        }
-
-        /// <summary>
-        /// Convert from ticks to a TimeSpan.
-        /// </summary>
-        /// <param name="ticks">The time represented as ticks.</param>
-        /// <returns>The time represented as a TimeSpan.</returns>
-        // backcompat: remove method (exists only for compatibility with orignal TLruLongTicksPolicy)
-        public static TimeSpan FromTicks(long ticks)
-        {
-            return StopwatchTickConverter.FromTicks(ticks);
-        }
     }
 #endif
 }

@@ -140,6 +140,44 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Policy.Eviction.Value.Capacity.Should().Be(6);
         }
 
+        [Fact]
+        public void TestExpireAfterAccess()
+        {
+            ICache<string, int> expireAfterAccess = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .Build();
+
+            expireAfterAccess.Metrics.HasValue.Should().BeFalse();
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterAccessWithMetrics()
+        {
+            ICache<string, int> expireAfterAccess = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithMetrics()
+                .Build();
+
+            expireAfterAccess.Metrics.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterReadAndExpireAfterWriteThrows()
+        {
+            var builder = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(2));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
         //  There are 15 combinations to test:
         //  -----------------------------
         //1 WithAtomic

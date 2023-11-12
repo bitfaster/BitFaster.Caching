@@ -778,7 +778,13 @@ namespace BitFaster.Caching.Lru
 
         private static CachePolicy CreatePolicy(ConcurrentLruCore<K, V, I, P, T> lru)
         { 
-            var p = new Proxy(lru); 
+            var p = new Proxy(lru);
+
+            if (typeof(P) == typeof(AfterAccessLongTicksPolicy<K, V>))
+            {
+                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p));
+            }
+
             return new CachePolicy(new Optional<IBoundedPolicy>(p), lru.itemPolicy.CanDiscard() ? new Optional<ITimePolicy>(p) : Optional<ITimePolicy>.None()); 
         }
 
