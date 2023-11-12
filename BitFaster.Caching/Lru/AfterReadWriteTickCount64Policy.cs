@@ -19,7 +19,12 @@ namespace BitFaster.Caching.Lru
         private readonly Time time;
 
         ///<inheritdoc/>
-        public TimeSpan TimeToLive => TimeSpan.FromMilliseconds(readTimeToLive);
+        public TimeSpan TimeToLive => TimeSpan.FromMilliseconds(writeTimeToLive);
+
+        /// <summary>
+        /// Gets the read time to live defined by the read policy.
+        /// </summary>
+        public TimeSpan ReadTimeToLive => TimeSpan.FromMilliseconds(readTimeToLive);
 
         /// <summary>
         /// Initializes a new instance of the AfterReadTickCount64Policy class with the specified time to live.
