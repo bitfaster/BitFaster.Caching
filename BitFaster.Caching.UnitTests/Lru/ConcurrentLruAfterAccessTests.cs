@@ -57,21 +57,21 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenItemIsExpiredItIsRemoved()
+        public void WhenItemIsExpiredItIsRemoved()
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
-            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
+            Thread.Sleep(timeToLive.MultiplyBy(ttlWaitMlutiplier));
 
             lru.TryGet(1, out var value).Should().BeFalse();
         }
 
         [Fact]
-        public async Task WhenItemIsUpdatedTtlIsExtended()
+        public void WhenItemIsUpdatedTtlIsExtended()
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
-            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
+            Thread.Sleep(timeToLive.MultiplyBy(ttlWaitMlutiplier));
 
             lru.TryUpdate(1, "3");
 
@@ -148,7 +148,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenItemsAreExpiredExpireRemovesExpiredItems()
+        public void WhenItemsAreExpiredExpireRemovesExpiredItems()
         {
             lru.AddOrUpdate(1, "1");
             lru.AddOrUpdate(2, "2");
@@ -165,7 +165,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(8, "8");
             lru.AddOrUpdate(9, "9");
 
-            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
+            Thread.Sleep(timeToLive.MultiplyBy(ttlWaitMlutiplier));
 
             lru.Policy.ExpireAfterAccess.Value.TrimExpired();
 
@@ -173,7 +173,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
+        public void WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
         {
             lru.AddOrUpdate(1, "1");
             lru.AddOrUpdate(2, "2");
@@ -183,7 +183,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(5, "5");
             lru.AddOrUpdate(6, "6");
 
-            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
+            Thread.Sleep(timeToLive.MultiplyBy(ttlWaitMlutiplier));
 
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
@@ -195,13 +195,13 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenItemsAreExpiredTrimRemovesExpiredItems()
+        public void WhenItemsAreExpiredTrimRemovesExpiredItems()
         {
             lru.AddOrUpdate(1, "1");
             lru.AddOrUpdate(2, "2");
             lru.AddOrUpdate(3, "3");
 
-            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
+            Thread.Sleep(timeToLive.MultiplyBy(ttlWaitMlutiplier));
 
             lru.Policy.Eviction.Value.Trim(1);
 

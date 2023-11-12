@@ -25,7 +25,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.output = testOutputHelper;
         }
 
-
         //Elapsed 411.6918ms - 0.0004116918ns/op
         //Cache hits 1689839 (sampled 16.89839%)
         //Maintenance ops 31
