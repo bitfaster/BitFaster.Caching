@@ -78,8 +78,11 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.TryGet(1, out var value).Should().BeTrue();
         }
 
+        // Using async/await makes this very unstable due to xunit
+        // running new tests on the yielding thread. Using sleep
+        // forces the test to stay on the same thread.
         [Fact]
-        public async Task WhenItemIsReadTtlIsExtended()
+        public void WhenItemIsReadTtlIsExtended()
         {
             int attempts = 0;
             while (true)
@@ -93,14 +96,12 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                 lru.GetOrAdd(1, valueFactory.Create);
 
-                //await Task.Delay(TimeSpan.FromMilliseconds(50));
                 Thread.Sleep(50);
 
                 if (sw.Elapsed < TimeSpan.FromMilliseconds(75))
                 {
                     lru.TryGet(1, out _).Should().BeTrue($"First {sw.Elapsed}");
 
-                    //await Task.Delay(TimeSpan.FromMilliseconds(75));
                     Thread.Sleep(75);
 
                     if (sw.Elapsed < TimeSpan.FromMilliseconds(150))
@@ -110,9 +111,8 @@ namespace BitFaster.Caching.UnitTests.Lru
                     }
                 }
 
- //               await Task.Delay(TimeSpan.FromMilliseconds(200));
                 Thread.Sleep(200);
-                attempts++.Should().BeLessThan(128);
+                attempts++.Should().BeLessThan(128, "Unable to run test within verification margin");
             }
         }
 
