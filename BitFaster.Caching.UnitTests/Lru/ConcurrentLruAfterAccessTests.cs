@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using FluentAssertions;
@@ -92,13 +93,15 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                 lru.GetOrAdd(1, valueFactory.Create);
 
-                await Task.Delay(TimeSpan.FromMilliseconds(50));
+                //await Task.Delay(TimeSpan.FromMilliseconds(50));
+                Thread.Sleep(50);
 
                 if (sw.Elapsed < TimeSpan.FromMilliseconds(75))
                 {
                     lru.TryGet(1, out _).Should().BeTrue($"First {sw.Elapsed}");
 
-                    await Task.Delay(TimeSpan.FromMilliseconds(75));
+                    //await Task.Delay(TimeSpan.FromMilliseconds(75));
+                    Thread.Sleep(75);
 
                     if (sw.Elapsed < TimeSpan.FromMilliseconds(150))
                     {
@@ -107,7 +110,8 @@ namespace BitFaster.Caching.UnitTests.Lru
                     }
                 }
 
-                await Task.Delay(TimeSpan.FromMilliseconds(200));
+ //               await Task.Delay(TimeSpan.FromMilliseconds(200));
+                Thread.Sleep(200);
                 attempts++.Should().BeLessThan(128);
             }
         }
