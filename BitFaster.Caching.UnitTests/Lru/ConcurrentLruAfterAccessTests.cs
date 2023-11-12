@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
@@ -76,16 +77,36 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.TryGet(1, out var value).Should().BeTrue();
         }
 
-        [Fact(Skip="Not sure how to do this yet")]
+        [Fact]
         public async Task WhenItemIsReadTtlIsExtended()
         {
-            lru.GetOrAdd(1, valueFactory.Create);
+            int attempts = 0;
+            while (true)
+            {
+                var sw = Stopwatch.StartNew();
 
-            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
+                lru = new ConcurrentLruBuilder<int, string>()
+                    .WithCapacity(capacity)
+                    .WithExpireAfterAccess(TimeSpan.FromMilliseconds(100))
+                    .Build();
 
-            lru.TryGet(1, out _);
+                lru.GetOrAdd(1, valueFactory.Create);
 
-            lru.TryGet(1, out var value).Should().BeTrue();
+                await Task.Delay(TimeSpan.FromMilliseconds(50));
+
+                lru.TryGet(1, out _).Should().BeTrue("First");
+
+                await Task.Delay(TimeSpan.FromMilliseconds(75));
+
+                if (sw.Elapsed < TimeSpan.FromMilliseconds(150))
+                {
+                    lru.TryGet(1, out var value).Should().BeTrue("Second " + sw.Elapsed);
+                    break;
+                }
+
+                await Task.Yield();
+                attempts++.Should().BeLessThan(128);
+            }
         }
 
         [Fact]

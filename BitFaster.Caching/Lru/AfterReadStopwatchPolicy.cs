@@ -16,6 +16,9 @@ namespace BitFaster.Caching.Lru
         private readonly long timeToLive;
         private readonly Time time;
 
+        ///<inheritdoc/>
+        public TimeSpan TimeToLive => StopwatchTickConverter.FromTicks(timeToLive);
+
         /// <summary>
         /// Initializes a new instance of the TLruLongTicksPolicy class with the specified time to live.
         /// </summary>
@@ -119,8 +122,6 @@ namespace BitFaster.Caching.Lru
             return ItemDestination.Remove;
         }
 
-        ///<inheritdoc/>
-        public TimeSpan TimeToLive => StopwatchTickConverter.FromTicks(timeToLive);
     }
 #endif
 }
