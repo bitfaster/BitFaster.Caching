@@ -892,17 +892,14 @@ namespace BitFaster.Caching.Lru
                 lru.TrimExpired();
             }
 
-            public bool TryGetTimeToLive(object key, out TimeSpan timeToLive)
+            public bool TryGetTimeToLive<TKey>(TKey key, out TimeSpan timeToLive)
             {
-                if (key is K k)
+                if (key is K k && lru.dictionary.TryGetValue(k, out var item))
                 {
-                    if (lru.dictionary.TryGetValue(k, out var item))
+                    if (item is LongTickCountLruItem<K, V> tickItem)
                     {
-                        if (item is LongTickCountLruItem<K, V> tickItem)
-                        {
-                            timeToLive = TimeSpan.FromTicks(tickItem.TickCount);
-                            return true;
-                        }
+                        timeToLive = TimeSpan.FromTicks(tickItem.TickCount);
+                        return true;
                     }
                 }
 

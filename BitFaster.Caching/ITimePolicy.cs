@@ -30,7 +30,7 @@ namespace BitFaster.Caching
         /// <param name="key">The key of the item.</param>
         /// <param name="timeToLive">If the key exists, the time to live for the item with the specified key.</param>
         /// <returns>True if the key exists, otherwise false.</returns>
-        bool TryGetTimeToLive(object key, out TimeSpan timeToLive);
+        bool TryGetTimeToLive<K>(K key, out TimeSpan timeToLive);
 
         /// <summary>
         /// Remove all expired items from the cache.
