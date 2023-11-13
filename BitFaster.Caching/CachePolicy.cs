@@ -16,6 +16,7 @@ namespace BitFaster.Caching
         {
             this.Eviction = eviction;
             this.ExpireAfterWrite = expireAfterWrite;
+            this.ExpireAfterAccess = Optional<ITimePolicy>.None();
         }
 
         /// <summary>
@@ -48,5 +49,26 @@ namespace BitFaster.Caching
         /// fixed duration since an entry's creation or most recent read/write access.
         /// </summary>
         public Optional<ITimePolicy> ExpireAfterAccess { get; }
+
+        /// <summary>
+        /// If supported, trim expired items from the cache.
+        /// </summary>
+        /// <returns>True if expiry is supported and expired items were trimmed, otherwise false.</returns>
+        public bool TryTrimExpired()
+        {
+            if (ExpireAfterWrite.HasValue)
+            {
+                ExpireAfterWrite.Value.TrimExpired();
+                return true;
+            }
+
+            if (ExpireAfterAccess.HasValue)
+            {
+                ExpireAfterAccess.Value.TrimExpired();
+                return true;
+            }
+
+            return false;
+        }
     }
 }

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using FluentAssertions;
+﻿using FluentAssertions;
 using Moq;
 using Xunit;
 
@@ -21,6 +16,33 @@ namespace BitFaster.Caching.UnitTests
 
             cp.Eviction.Value.Should().Be(eviction.Object);
             cp.ExpireAfterWrite.Value.Should().Be(expire.Object);
+            cp.ExpireAfterAccess.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TryTrimWhenTrimNotSupportedReturnsFalse()
+        {
+            var cp = new CachePolicy(Optional<IBoundedPolicy>.None(), Optional<ITimePolicy>.None());
+
+            cp.TryTrimExpired().Should().BeFalse();
+        }
+
+        [Fact]
+        public void TryTrimWhenExpireAfterWriteReturnsTrue()
+        {
+            var expire = new Mock<ITimePolicy>();
+            var cp = new CachePolicy(Optional<IBoundedPolicy>.None(), new Optional<ITimePolicy>(expire.Object));
+
+            cp.TryTrimExpired().Should().BeTrue();
+        }
+
+        [Fact]
+        public void TryTrimWhenExpireAfterAccessReturnsTrue()
+        {
+            var expire = new Mock<ITimePolicy>();
+            var cp = new CachePolicy(Optional<IBoundedPolicy>.None(), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(expire.Object));
+
+            cp.TryTrimExpired().Should().BeTrue();
         }
     }
 }
