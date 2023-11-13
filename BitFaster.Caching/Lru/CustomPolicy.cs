@@ -3,28 +3,53 @@ using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
 {
+    /// <summary>
+    /// Defines a policy for determining the expiry of an item.
+    /// </summary>
     public interface IExpiry<K, V>
     {
+        /// <summary>
+        /// Gets the expiry for an item after it is created.
+        /// </summary>
         Func<K, V, TimeSpan> GetExpireAfterCreate { get; }
 
+        /// <summary>
+        /// Gets the expiry for an item after it is read.
+        /// </summary>
         Func<K, V, TimeSpan> GetExpireAfterRead { get; }
         
+        /// <summary>
+        /// Gets the expiry for an item after it is updated.
+        /// </summary>
         Func<K, V, TimeSpan> GetExpireAfterUpdate { get; }
     }
 
+    /// <summary>
+    /// Defines a policy for determining the expiry of an item using function delegates.
+    /// </summary>
     public readonly struct Expiry<K, V> : IExpiry<K, V>
     {
         private readonly Func<K, V, TimeSpan> expireAfterCreate;
         private readonly Func<K, V, TimeSpan> expireAfterRead;
         private readonly Func<K, V, TimeSpan> expireAfterUpdate;
 
-        public Expiry(Func<K, V, TimeSpan> expireAfterCreate)
+        /// <summary>
+        /// Initializes a new instance of the Expiry class.
+        /// </summary>
+        /// <param name="expireAfter">The delegate that computes the item time to live.</param>
+        public Expiry(Func<K, V, TimeSpan> expireAfter)
         {
-            this.expireAfterCreate = expireAfterCreate;
-            this.expireAfterRead = expireAfterCreate;
-            this.expireAfterUpdate = expireAfterCreate;
+            this.expireAfterCreate = expireAfter;
+            this.expireAfterRead = expireAfter;
+            this.expireAfterUpdate = expireAfter;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the Expiry class.
+        /// </summary>
+        /// <param name="expireAfterCreate">The delegate that computes the item time to live at creation.</param>
+        /// <param name="expireAfterRead">The delegate that computes the item time to live after a read operation.</param>
+        /// <param name="expireAfterUpdate">The delegate that computes the item time to live after an update operation.</param>
         public Expiry(Func<K, V, TimeSpan> expireAfterCreate, Func<K, V, TimeSpan> expireAfterRead, Func<K, V, TimeSpan> expireAfterUpdate)
         {
             this.expireAfterCreate = expireAfterCreate;
@@ -32,10 +57,13 @@ namespace BitFaster.Caching.Lru
             this.expireAfterUpdate = expireAfterUpdate;
         }
 
+        ///<inheritdoc/>
         public Func<K, V, TimeSpan> GetExpireAfterCreate => expireAfterCreate;
 
+        ///<inheritdoc/>
         public Func<K, V, TimeSpan> GetExpireAfterRead => expireAfterRead;
 
+        ///<inheritdoc/>
         public Func<K, V, TimeSpan> GetExpireAfterUpdate => expireAfterUpdate;
     }
 
