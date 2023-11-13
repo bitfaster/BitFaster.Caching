@@ -21,7 +21,7 @@ namespace BitFaster.Caching.Lru.Builder
         ///<inheritdoc/>
         public override IScopedCache<K, V> Build()
         {
-            info.ThrowIfExpireAfterSpecified("AsAtomic or AsScoped");
+            info.ThrowIfExpirySpecified("AsAtomic or AsScoped");
 
             var level1 = inner.Build() as ICache<K, ScopedAtomicFactory<K, V>>;
             return new AtomicFactoryScopedCache<K, V>(level1);

@@ -20,7 +20,7 @@ namespace BitFaster.Caching.Lru.Builder
         ///<inheritdoc/>
         public override ICache<K, V> Build()
         {
-            info.ThrowIfExpireAfterSpecified("AsAtomic");
+            info.ThrowIfExpirySpecified("AsAtomic");
 
             var level1 = inner.Build();
             return new AtomicFactoryCache<K, V>(level1);

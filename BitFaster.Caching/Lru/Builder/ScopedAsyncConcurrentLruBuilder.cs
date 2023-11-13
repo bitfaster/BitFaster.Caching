@@ -20,7 +20,7 @@ namespace BitFaster.Caching.Lru.Builder
         ///<inheritdoc/>
         public override IScopedAsyncCache<K, V> Build()
         {
-            info.ThrowIfExpireAfterSpecified("AsScoped");
+            info.ThrowIfExpirySpecified("AsScoped");
 
             // this is a legal type conversion due to the generic constraint on W
             var scopedInnerCache = inner.Build() as IAsyncCache<K, Scoped<V>>;

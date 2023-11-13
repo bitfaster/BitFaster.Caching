@@ -54,7 +54,7 @@ namespace BitFaster.Caching.Lru.Builder
         /// </summary>
         public IEqualityComparer<K> KeyComparer { get; set; } = EqualityComparer<K>.Default;
 
-        internal void ThrowIfExpireAfterSpecified(string extensionName)
+        internal void ThrowIfExpirySpecified(string extensionName)
         {
             if (this.expiry != null)
                 Throw.InvalidOp("WithExpiry is not compatible with " + extensionName);
