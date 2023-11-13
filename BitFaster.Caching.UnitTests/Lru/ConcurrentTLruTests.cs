@@ -2,10 +2,8 @@
 using BitFaster.Caching.Lru;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Xunit;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -162,6 +160,45 @@ namespace BitFaster.Caching.UnitTests.Lru
                     lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
                     lru.Count.Should().Be(0);
+                }
+            );
+        }
+
+        [Fact]
+        public void WhenExpiredItemsAreTrimmedCacheMarkedCold()
+        {
+            Timed.Execute(
+                lru,
+                lru =>
+                {
+                    lru.AddOrUpdate(1, "1");
+                    lru.AddOrUpdate(2, "2");
+                    lru.AddOrUpdate(3, "3");
+                    lru.GetOrAdd(1, valueFactory.Create);
+                    lru.GetOrAdd(2, valueFactory.Create);
+                    lru.GetOrAdd(3, valueFactory.Create);
+
+                    lru.AddOrUpdate(4, "4");
+                    lru.AddOrUpdate(5, "5");
+                    lru.AddOrUpdate(6, "6");
+
+                    lru.AddOrUpdate(7, "7");
+                    lru.AddOrUpdate(8, "8");
+                    lru.AddOrUpdate(9, "9");
+
+                    return lru;
+                },
+                timeToLive.MultiplyBy(ttlWaitMlutiplier),
+                lru =>
+                {
+                    lru.Policy.ExpireAfterWrite.Value.TrimExpired();
+
+                    for (int i = 0; i < lru.Policy.Eviction.Value.Capacity; i++)
+                    {
+                        lru.GetOrAdd(i, k => k.ToString());
+                    }
+
+                    lru.Count.Should().Be(lru.Policy.Eviction.Value.Capacity);
                 }
             );
         }

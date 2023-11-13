@@ -423,7 +423,6 @@ namespace BitFaster.Caching.Lru
         public void Clear()
         {
             this.TrimLiveItems(itemsRemoved: 0, this.Count, ItemRemovedReason.Cleared);
-            Volatile.Write(ref this.isWarm, false);
         }
 
         /// <summary>
