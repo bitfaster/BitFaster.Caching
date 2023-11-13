@@ -5,12 +5,19 @@ using FluentAssertions;
 
 namespace BitFaster.Caching.UnitTests
 {
-    // Helper class for running timed integration tests. This is useful to verify
-    // correct expiry behavior in an end to end integration test with real code.
-    // This class uses Thread.Sleep instead of async/await because xunit will 
-    // aggressively run tests on any await yielding thread making timing unpredictable.
+
+    /// <summary>
+    /// An execution orchestrator for running timed integration tests. This is useful to verify
+    /// correct expiry behavior in an end to end integration test with real code.
+    /// This class uses Thread.Sleep instead of async/await because xunit will 
+    /// aggressively run tests on any await yielding thread making timing unpredictable.
+    /// </summary>
     public class Timed
     {
+        /// <summary>
+        /// Executes two test steps with a pause in between. The total time of the test is constrained
+        /// such that each step + pause is guaranteed to execute within 25ms precision.
+        /// </summary>
         public static void Execute<TArg, TState>(TArg arg, Func<TArg, TState> first, TimeSpan pause, Action<TState> second)
         {
             int attempts = 0;
@@ -32,6 +39,10 @@ namespace BitFaster.Caching.UnitTests
             }
         }
 
+        /// <summary>
+        /// Executes three test steps pauses in between. The total time of the test is constrained
+        /// such that each step + pause is guaranteed to execute within 25ms precision.
+        /// </summary>
         public static void Execute<TArg, TState>(TArg arg, Func<TArg, TState> first, TimeSpan pause1, Action<TState> second, TimeSpan pause2, Action<TState> third)
         {
             int attempts = 0;
