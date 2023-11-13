@@ -782,12 +782,12 @@ namespace BitFaster.Caching.Lru
 
             if (typeof(P) == typeof(AfterAccessLongTicksPolicy<K, V>))
             {
-                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p), Optional<IVariableTimePolicy>.None());
+                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p), Optional<IDiscreteTimePolicy>.None());
             }
 
             if (typeof(P) == typeof(CustomExpiryPolicy<K, V>))
             {
-                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), Optional<ITimePolicy>.None(), new Optional<IVariableTimePolicy>(new VariableTimeProxy(lru)));
+                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), Optional<ITimePolicy>.None(), new Optional<IDiscreteTimePolicy>(new VariableTimeProxy(lru)));
             }
 
             return new CachePolicy(new Optional<IBoundedPolicy>(p), lru.itemPolicy.CanDiscard() ? new Optional<ITimePolicy>(p) : Optional<ITimePolicy>.None());
@@ -878,7 +878,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
-        private class VariableTimeProxy : IVariableTimePolicy
+        private class VariableTimeProxy : IDiscreteTimePolicy
         {
             private readonly ConcurrentLruCore<K, V, I, P, T> lru;
 

@@ -38,7 +38,7 @@ namespace BitFaster.Caching
         /// <param name="expireAfterWrite">The expire after write policy.</param>
         /// <param name="expireAfterAccess">The expire after access policy.</param>
         /// <param name="expireAfter">The expire after policy.</param>
-        public CachePolicy(Optional<IBoundedPolicy> eviction, Optional<ITimePolicy> expireAfterWrite, Optional<ITimePolicy> expireAfterAccess, Optional<IVariableTimePolicy> expireAfter)
+        public CachePolicy(Optional<IBoundedPolicy> eviction, Optional<ITimePolicy> expireAfterWrite, Optional<ITimePolicy> expireAfterAccess, Optional<IDiscreteTimePolicy> expireAfter)
         {
             this.Eviction = eviction;
             this.ExpireAfterWrite = expireAfterWrite;
@@ -68,7 +68,7 @@ namespace BitFaster.Caching
         /// Gets the expire after policy, if any. This policy evicts items after a
         /// variable time to live computed from the key and value.
         /// </summary>
-        public Optional<IVariableTimePolicy> ExpireAfter { get; }
+        public Optional<IDiscreteTimePolicy> ExpireAfter { get; }
 
         public bool TryTrimExpired()
         {

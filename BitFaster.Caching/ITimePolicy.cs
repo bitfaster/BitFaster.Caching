@@ -19,10 +19,9 @@ namespace BitFaster.Caching
     }
 
     /// <summary>
-    /// Represents a variable time based cache policy.
+    /// Represents a per item time based cache policy.
     /// </summary>
-    /// backcompat: this should be generic in terms of Key to avoid object arg.
-    public interface IVariableTimePolicy
+    public interface IDiscreteTimePolicy
     {
         /// <summary>
         /// Gets the time to live for an item in the cache.
