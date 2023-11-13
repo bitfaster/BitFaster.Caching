@@ -33,8 +33,8 @@ namespace BitFaster.Caching.Lru
     public readonly struct ExpiryCalculator<K, V> : IExpiryCalculator<K, V>
     {
         private readonly Func<K, V, TimeSpan> expireAfterCreate;
-        private readonly Func<K, V, TimeSpan> expireAfterRead;
-        private readonly Func<K, V, TimeSpan> expireAfterUpdate;
+        private readonly Func<K, V, TimeSpan, TimeSpan> expireAfterRead;
+        private readonly Func<K, V, TimeSpan, TimeSpan> expireAfterUpdate;
 
         /// <summary>
         /// Initializes a new instance of the Expiry class.
@@ -43,8 +43,8 @@ namespace BitFaster.Caching.Lru
         public ExpiryCalculator(Func<K, V, TimeSpan> expireAfter)
         {
             this.expireAfterCreate = expireAfter;
-            this.expireAfterRead = expireAfter;
-            this.expireAfterUpdate = expireAfter;
+            this.expireAfterRead = null;
+            this.expireAfterUpdate = null;
         }
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="expireAfterCreate">The delegate that computes the item time to live at creation.</param>
         /// <param name="expireAfterRead">The delegate that computes the item time to live after a read operation.</param>
         /// <param name="expireAfterUpdate">The delegate that computes the item time to live after an update operation.</param>
-        public ExpiryCalculator(Func<K, V, TimeSpan> expireAfterCreate, Func<K, V, TimeSpan> expireAfterRead, Func<K, V, TimeSpan> expireAfterUpdate)
+        public ExpiryCalculator(Func<K, V, TimeSpan> expireAfterCreate, Func<K, V, TimeSpan, TimeSpan> expireAfterRead, Func<K, V, TimeSpan, TimeSpan> expireAfterUpdate)
         {
             this.expireAfterCreate = expireAfterCreate;
             this.expireAfterRead = expireAfterRead;
@@ -71,14 +71,14 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TimeSpan GetExpireAfterRead(K key, V value, TimeSpan currentTtl)
         {
-            return this.expireAfterRead(key, value);
+            return this.expireAfterRead == null ? this.expireAfterCreate(key, value) : this.expireAfterRead(key, value, currentTtl);
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TimeSpan GetExpireAfterUpdate(K key, V value, TimeSpan currentTtl)
         {
-            return this.expireAfterUpdate(key, value);
+            return this.expireAfterUpdate == null ? this.expireAfterCreate(key, value) : this.expireAfterUpdate(key, value, currentTtl);
         }
     }
 
