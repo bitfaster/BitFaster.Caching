@@ -7,7 +7,7 @@ namespace BitFaster.Caching.Lru
     /// <summary>
     /// Defines a mechanism to calculate when cache entries expire.
     /// </summary>
-    public interface IExpiry<K, V>
+    public interface IExpiryCalculator<K, V>
     {
         /// <summary>
         /// Specify the inital time to live after an entry is created.
@@ -15,20 +15,22 @@ namespace BitFaster.Caching.Lru
         TimeSpan GetExpireAfterCreate(K key, V value);
 
         /// <summary>
-        /// Specify the time to live after an entry is read.
+        /// Specify the time to live after an entry is read. The current TTL may be
+        /// be returned to not modify the expiration time.
         /// </summary>
-        TimeSpan GetExpireAfterRead(K key, V value);
+        TimeSpan GetExpireAfterRead(K key, V value, TimeSpan currentTtl);
 
         /// <summary>
-        /// Specify the time to live after an entry is updated.
+        /// Specify the time to live after an entry is updated.The current TTL may be
+        /// be returned to not modify the expiration time.
         /// </summary>
-        TimeSpan GetExpireAfterUpdate(K key, V value);
+        TimeSpan GetExpireAfterUpdate(K key, V value, TimeSpan currentTtl);
     }
 
     /// <summary>
     /// Defines a mechanism to determine the time to live for a cache item using function delegates.
     /// </summary>
-    public readonly struct Expiry<K, V> : IExpiry<K, V>
+    public readonly struct ExpiryCalculator<K, V> : IExpiryCalculator<K, V>
     {
         private readonly Func<K, V, TimeSpan> expireAfterCreate;
         private readonly Func<K, V, TimeSpan> expireAfterRead;
@@ -38,7 +40,7 @@ namespace BitFaster.Caching.Lru
         /// Initializes a new instance of the Expiry class.
         /// </summary>
         /// <param name="expireAfter">The delegate that computes the item time to live.</param>
-        public Expiry(Func<K, V, TimeSpan> expireAfter)
+        public ExpiryCalculator(Func<K, V, TimeSpan> expireAfter)
         {
             this.expireAfterCreate = expireAfter;
             this.expireAfterRead = expireAfter;
@@ -51,7 +53,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="expireAfterCreate">The delegate that computes the item time to live at creation.</param>
         /// <param name="expireAfterRead">The delegate that computes the item time to live after a read operation.</param>
         /// <param name="expireAfterUpdate">The delegate that computes the item time to live after an update operation.</param>
-        public Expiry(Func<K, V, TimeSpan> expireAfterCreate, Func<K, V, TimeSpan> expireAfterRead, Func<K, V, TimeSpan> expireAfterUpdate)
+        public ExpiryCalculator(Func<K, V, TimeSpan> expireAfterCreate, Func<K, V, TimeSpan> expireAfterRead, Func<K, V, TimeSpan> expireAfterUpdate)
         {
             this.expireAfterCreate = expireAfterCreate;
             this.expireAfterRead = expireAfterRead;
@@ -67,28 +69,28 @@ namespace BitFaster.Caching.Lru
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TimeSpan GetExpireAfterRead(K key, V value)
+        public TimeSpan GetExpireAfterRead(K key, V value, TimeSpan currentTtl)
         {
             return this.expireAfterRead(key, value);
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TimeSpan GetExpireAfterUpdate(K key, V value)
+        public TimeSpan GetExpireAfterUpdate(K key, V value, TimeSpan currentTtl)
         {
             return this.expireAfterUpdate(key, value);
         }
     }
 
 #if NETCOREAPP3_0_OR_GREATER
-    internal readonly struct CustomExpiryPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    internal readonly struct DiscreteExpiryPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
-        private readonly IExpiry<K, V> expiry;
+        private readonly IExpiryCalculator<K, V> expiry;
         private readonly Time time;
 
         public TimeSpan TimeToLive => TimeSpan.Zero;
 
-        public CustomExpiryPolicy(IExpiry<K, V> expiry)
+        public DiscreteExpiryPolicy(IExpiryCalculator<K, V> expiry)
         {
             this.expiry = expiry;
             this.time = new Time();
@@ -106,8 +108,9 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountLruItem<K, V> item)
         {
-            var ttl = expiry.GetExpireAfterRead(item.Key, item.Value);
-            item.TickCount = this.time.Last + ttl.Ticks;
+            var currentTtl = TimeSpan.FromTicks(item.TickCount - this.time.Last);
+            var newTtl = expiry.GetExpireAfterRead(item.Key, item.Value, currentTtl);
+            item.TickCount = this.time.Last + newTtl.Ticks;
             item.WasAccessed = true;
         }
 
@@ -115,8 +118,10 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(LongTickCountLruItem<K, V> item)
         {
-            var ttl = expiry.GetExpireAfterUpdate(item.Key, item.Value);
-            item.TickCount = Environment.TickCount64 + ttl.Ticks;
+            var time = Environment.TickCount64;
+            var currentTtl = TimeSpan.FromTicks(item.TickCount - time);
+            var newTtl = expiry.GetExpireAfterUpdate(item.Key, item.Value, currentTtl);
+            item.TickCount = time + newTtl.Ticks;
         }
 
         ///<inheritdoc/>
@@ -191,14 +196,14 @@ namespace BitFaster.Caching.Lru
         }
     }
 #else
-    internal readonly struct CustomExpiryPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    internal readonly struct DiscreteExpiryPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
-        private readonly IExpiry<K, V> expiry;
+        private readonly IExpiryCalculator<K, V> expiry;
         private readonly Time time;
 
         public TimeSpan TimeToLive => TimeSpan.Zero;
 
-        public CustomExpiryPolicy(IExpiry<K, V> expiry)
+        public DiscreteExpiryPolicy(IExpiryCalculator<K, V> expiry)
         {
             this.expiry = expiry;
             this.time = new Time();
@@ -216,8 +221,9 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountLruItem<K, V> item)
         {
-            var ttl = expiry.GetExpireAfterRead(item.Key, item.Value);
-            item.TickCount = this.time.Last + StopwatchTickConverter.ToTicks(ttl);
+            var currentTtl = StopwatchTickConverter.FromTicks(item.TickCount - this.time.Last);
+            var newTtl = expiry.GetExpireAfterRead(item.Key, item.Value, currentTtl);
+            item.TickCount = this.time.Last + StopwatchTickConverter.ToTicks(newTtl);
             item.WasAccessed = true;
         }
 
@@ -225,8 +231,10 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(LongTickCountLruItem<K, V> item)
         {
-            var ttl = expiry.GetExpireAfterUpdate(item.Key, item.Value);
-            item.TickCount = Stopwatch.GetTimestamp() + StopwatchTickConverter.ToTicks(ttl);
+            var time = Stopwatch.GetTimestamp();
+            var currentTtl = StopwatchTickConverter.FromTicks(item.TickCount - time);
+            var newTtl = expiry.GetExpireAfterUpdate(item.Key, item.Value, currentTtl);
+            item.TickCount = time + StopwatchTickConverter.ToTicks(newTtl);
         }
 
         ///<inheritdoc/>

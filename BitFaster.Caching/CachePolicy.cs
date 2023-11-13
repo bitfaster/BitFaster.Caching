@@ -51,8 +51,8 @@ namespace BitFaster.Caching
         public Optional<ITimePolicy> ExpireAfterAccess { get; }
 
         /// <summary>
-        /// Gets the expire after policy, if any. This policy evicts items after a
-        /// variable time to live computed from the key and value.
+        /// Gets the expire after policy, if any. This policy evicts items based on
+        /// a time to live computed from the key and value.
         /// </summary>
         public Optional<IDiscreteTimePolicy> ExpireAfter { get; }
 

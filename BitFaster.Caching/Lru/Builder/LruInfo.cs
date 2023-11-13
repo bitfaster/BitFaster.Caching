@@ -36,13 +36,13 @@ namespace BitFaster.Caching.Lru.Builder
         /// Set the custom expiry.
         /// </summary>
         /// <param name="expiry">The expiry</param>
-        public void SetExpiry<V>(IExpiry<K, V> expiry) => this.expiry = expiry;
+        public void SetExpiry<V>(IExpiryCalculator<K, V> expiry) => this.expiry = expiry;
 
         /// <summary>
         /// Get the custom expiry.
         /// </summary>
         /// <returns>The expiry.</returns>
-        public IExpiry<K, V> GetExpiry<V>() => this.expiry as IExpiry<K, V>;
+        public IExpiryCalculator<K, V> GetExpiry<V>() => this.expiry as IExpiryCalculator<K, V>;
 
         /// <summary>
         /// Gets or sets a value indicating whether to use metrics.

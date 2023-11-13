@@ -18,7 +18,7 @@ namespace BitFaster.Caching.Lru.Builder
         /// </summary>
         /// <param name="expiry">The expiry that determines item time to live.</param>
         /// <returns>A AsyncConcurrentLruBuilder</returns>
-        public AsyncConcurrentLruBuilder<K, V> WithExpiry(IExpiry<K, V> expiry)
+        public AsyncConcurrentLruBuilder<K, V> WithExpiry(IExpiryCalculator<K, V> expiry)
         {
             this.info.SetExpiry(expiry);
             return this;

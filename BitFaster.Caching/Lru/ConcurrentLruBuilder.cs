@@ -42,7 +42,7 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         /// <param name="expiry">The expiry that determines item time to live.</param>
         /// <returns>A ConcurrentLruBuilder</returns>
-        public ConcurrentLruBuilder<K, V> WithExpiry(IExpiry<K, V> expiry)
+        public ConcurrentLruBuilder<K, V> WithExpiry(IExpiryCalculator<K, V> expiry)
         {
             this.info.SetExpiry(expiry);
             return this;
@@ -81,10 +81,10 @@ namespace BitFaster.Caching.Lru
                 info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterAccessLongTicksPolicy<K, V>(info.TimeToExpireAfterAccess.Value), default);
         }
 
-        private static ICache<K, V> CreateExpireAfter<TP>(LruInfo<K> info, IExpiry<K, V> expiry) where TP : struct, ITelemetryPolicy<K, V>
+        private static ICache<K, V> CreateExpireAfter<TP>(LruInfo<K> info, IExpiryCalculator<K, V> expiry) where TP : struct, ITelemetryPolicy<K, V>
         {
-            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, CustomExpiryPolicy<K, V>, TP>(
-                    info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new CustomExpiryPolicy<K, V>(expiry), default);
+            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, DiscreteExpiryPolicy<K, V>, TP>(
+                    info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new DiscreteExpiryPolicy<K, V>(expiry), default);
             
         }
     }
