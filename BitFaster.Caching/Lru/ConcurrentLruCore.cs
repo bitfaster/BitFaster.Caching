@@ -785,7 +785,14 @@ namespace BitFaster.Caching.Lru
                 return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p), Optional<IDiscreteTimePolicy>.None());
             }
 
-            if (typeof(P) == typeof(DiscreteExpiryPolicy<K, V>))
+            // TODO: how to bind to the interface?
+            //if (typeof(P) == typeof(DiscretePolicy<K, V>))
+            //{
+            //    return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), Optional<ITimePolicy>.None(), new Optional<IDiscreteTimePolicy>(new DiscreteExpiryProxy(lru)));
+            //}
+
+            // IsAssignableFrom is a jit intrinsic https://github.com/dotnet/runtime/issues/4920
+            if (typeof(IDiscreteItemPolicy<K, V>).IsAssignableFrom(typeof(P)))
             {
                 return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), Optional<ITimePolicy>.None(), new Optional<IDiscreteTimePolicy>(new DiscreteExpiryProxy(lru)));
             }
@@ -896,9 +903,10 @@ namespace BitFaster.Caching.Lru
             {
                 if (key is K k && lru.dictionary.TryGetValue(k, out var item))
                 {
-                    if (item is LongTickCountLruItem<K, V> tickItem)
+                    // note: using the interface here will box the policy (since it is constrained to be a value type)
+                    if (item is LongTickCountLruItem<K, V> tickItem && lru.itemPolicy is IDiscreteItemPolicy<K, V> policy)
                     {
-                        timeToLive = TimeSpan.FromTicks(tickItem.TickCount);
+                        timeToLive = policy.ConvertTicks(tickItem.TickCount);
                         return true;
                     }
                 }

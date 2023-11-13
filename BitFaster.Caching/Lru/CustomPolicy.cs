@@ -83,14 +83,17 @@ namespace BitFaster.Caching.Lru
     }
 
 #if NETCOREAPP3_0_OR_GREATER
-    internal readonly struct DiscreteExpiryPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    internal readonly struct DiscretePolicy<K, V> : IDiscreteItemPolicy<K, V>
     {
         private readonly IExpiryCalculator<K, V> expiry;
         private readonly Time time;
 
         public TimeSpan TimeToLive => TimeSpan.Zero;
 
-        public DiscreteExpiryPolicy(IExpiryCalculator<K, V> expiry)
+        ///<inheritdoc/>
+        public TimeSpan ConvertTicks(long ticks) => TimeSpan.FromTicks(ticks);
+
+        public DiscretePolicy(IExpiryCalculator<K, V> expiry)
         {
             this.expiry = expiry;
             this.time = new Time();
@@ -196,14 +199,17 @@ namespace BitFaster.Caching.Lru
         }
     }
 #else
-    internal readonly struct DiscreteExpiryPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    internal readonly struct DiscretePolicy<K, V> : IDiscreteItemPolicy<K, V>
     {
         private readonly IExpiryCalculator<K, V> expiry;
         private readonly Time time;
 
         public TimeSpan TimeToLive => TimeSpan.Zero;
 
-        public DiscreteExpiryPolicy(IExpiryCalculator<K, V> expiry)
+        ///<inheritdoc/>
+        public TimeSpan ConvertTicks(long ticks) => StopwatchTickConverter.FromTicks(ticks);
+
+        public DiscretePolicy(IExpiryCalculator<K, V> expiry)
         {
             this.expiry = expiry;
             this.time = new Time();

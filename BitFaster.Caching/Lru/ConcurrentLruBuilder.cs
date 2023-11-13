@@ -83,8 +83,8 @@ namespace BitFaster.Caching.Lru
 
         private static ICache<K, V> CreateExpireAfter<TP>(LruInfo<K> info, IExpiryCalculator<K, V> expiry) where TP : struct, ITelemetryPolicy<K, V>
         {
-            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, DiscreteExpiryPolicy<K, V>, TP>(
-                    info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new DiscreteExpiryPolicy<K, V>(expiry), default);
+            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, DiscretePolicy<K, V>, TP>(
+                    info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new DiscretePolicy<K, V>(expiry), default);
             
         }
     }
