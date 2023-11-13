@@ -98,8 +98,6 @@ namespace BitFaster.Caching.Lru.Builder
             return this as TBuilder;
         }
 
-
-
         /// <summary>
         /// Builds a cache configured via the method calls invoked on the builder instance.
         /// </summary>

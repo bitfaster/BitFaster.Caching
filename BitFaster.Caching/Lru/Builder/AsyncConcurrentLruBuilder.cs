@@ -13,9 +13,14 @@ namespace BitFaster.Caching.Lru.Builder
         {
         }
 
-        public AsyncConcurrentLruBuilder<K, V> WithExpireAfter(IExpiry<K, V> expiry)
+        /// <summary>
+        /// Evict after a variable duration specified by an IExpiry instance.
+        /// </summary>
+        /// <param name="expiry">The expiry that determines item time to live.</param>
+        /// <returns>A AsyncConcurrentLruBuilder</returns>
+        public AsyncConcurrentLruBuilder<K, V> WithExpiry(IExpiry<K, V> expiry)
         {
-            this.info.ExpireAfter = expiry;
+            this.info.Expiry = expiry;
             return this;
         }
 

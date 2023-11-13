@@ -31,9 +31,9 @@ namespace BitFaster.Caching.Lru.Builder
         public TimeSpan? TimeToExpireAfterAccess { get; set; } = null;
 
         /// <summary>
-        /// Gets or sets the custom expire after.
+        /// Gets or sets the custom expiry.
         /// </summary>
-        public object ExpireAfter { get; set; } = null;
+        public object Expiry { get; set; } = null;
 
         /// <summary>
         /// Gets or sets a value indicating whether to use metrics.
@@ -45,10 +45,10 @@ namespace BitFaster.Caching.Lru.Builder
         /// </summary>
         public IEqualityComparer<K> KeyComparer { get; set; } = EqualityComparer<K>.Default;
 
-        internal void ThrowIfExpireAfterSpecified(string builderType)
+        internal void ThrowIfExpireAfterSpecified(string extensionName)
         {
-            if (this.ExpireAfter != null)
-                Throw.InvalidOp("ExpireAfter is not compatible with " + builderType);
+            if (this.Expiry != null)
+                Throw.InvalidOp("WithExpiry is not compatible with " + extensionName);
         }
     }
 }
