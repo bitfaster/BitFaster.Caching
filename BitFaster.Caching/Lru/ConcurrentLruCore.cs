@@ -468,10 +468,9 @@ namespace BitFaster.Caching.Lru
         // backcompat: make internal
         protected int TrimAllDiscardedItems()
         {
-            int itemsRemoved = 0;
-
-            void RemoveDiscardableItems(ConcurrentQueue<I> q, ref int queueCounter)
+            int RemoveDiscardableItems(ConcurrentQueue<I> q, ref int queueCounter)
             {
+                int itemsRemoved = 0;
                 int localCount = queueCounter;
 
                 for (int i = 0; i < localCount; i++)
@@ -490,13 +489,20 @@ namespace BitFaster.Caching.Lru
                         }
                     }
                 }
+
+                return itemsRemoved;
             }
 
-            RemoveDiscardableItems(coldQueue, ref this.counter.cold);
-            RemoveDiscardableItems(warmQueue, ref this.counter.warm);
-            RemoveDiscardableItems(hotQueue, ref this.counter.hot);
+            int coldRem = RemoveDiscardableItems(coldQueue, ref this.counter.cold);
+            int warmRem = RemoveDiscardableItems(warmQueue, ref this.counter.warm);
+            int hotRem = RemoveDiscardableItems(hotQueue, ref this.counter.hot);
 
-            return itemsRemoved;
+            if (warmRem > 0)
+            {
+                Volatile.Write(ref this.isWarm, false);
+            }
+
+            return coldRem + warmRem + hotRem;
         }
 
         private void TrimLiveItems(int itemsRemoved, int itemCount, ItemRemovedReason reason)
@@ -508,35 +514,59 @@ namespace BitFaster.Caching.Lru
             int trimWarmAttempts = 0;
             int maxWarmHotAttempts = (this.capacity.Warm * 2) + this.capacity.Hot;
 
+            int warmCount = Volatile.Read(ref this.counter.warm);
+            int coldCount = Volatile.Read(ref this.counter.cold);
+
             while (itemsRemoved < itemCount && trimWarmAttempts < maxWarmHotAttempts)
             {
-                if (Volatile.Read(ref this.counter.cold) > 0)
+                if (coldCount > 0)
                 {
                     if (TryRemoveCold(reason) == (ItemDestination.Remove, 0))
                     {
                         itemsRemoved++;
+                        coldCount--;
                         trimWarmAttempts = 0;
                     }
 
-                    TrimWarmOrHot(reason);
+                    TrimWarmOrHot(reason, ref warmCount, ref coldCount);
                 }
                 else
                 {
-                    TrimWarmOrHot(reason);
+                    TrimWarmOrHot(reason, ref warmCount, ref coldCount);
                     trimWarmAttempts++;
                 }
             }
+
+            if (warmCount < this.capacity.Warm)
+            {
+                Volatile.Write(ref this.isWarm, false);
+            }
         }
 
-        private void TrimWarmOrHot(ItemRemovedReason reason)
+        private void TrimWarmOrHot(ItemRemovedReason reason, ref int warmCount, ref int coldCount)
         {
-            if (Volatile.Read(ref this.counter.warm) > 0)
+            if (warmCount > 0)
             {
-                CycleWarmUnchecked(reason);
+                var (dest, count) = CycleWarmUnchecked(reason);
+                warmCount--;
+                UpdateCount(ref warmCount, ref coldCount, dest, count);
             }
             else if (Volatile.Read(ref this.counter.hot) > 0)
             {
-                CycleHotUnchecked(reason);
+                var (dest, count) = CycleHotUnchecked(reason);
+                UpdateCount(ref warmCount, ref coldCount, dest, count);
+            }
+
+            void UpdateCount(ref int warmCount, ref int coldCount, ItemDestination dest, int count)
+            {
+                if (dest == ItemDestination.Cold)
+                {
+                    coldCount = count;
+                }
+                else if (dest == ItemDestination.Warm)
+                {
+                    warmCount = count;
+                }
             }
         }
 
