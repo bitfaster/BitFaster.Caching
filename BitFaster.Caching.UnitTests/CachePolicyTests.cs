@@ -17,6 +17,7 @@ namespace BitFaster.Caching.UnitTests
             cp.Eviction.Value.Should().Be(eviction.Object);
             cp.ExpireAfterWrite.Value.Should().Be(expire.Object);
             cp.ExpireAfterAccess.HasValue.Should().BeFalse();
+            cp.ExpireAfter.HasValue.Should().BeFalse();
         }
 
         [Fact]
@@ -40,7 +41,16 @@ namespace BitFaster.Caching.UnitTests
         public void TryTrimWhenExpireAfterAccessReturnsTrue()
         {
             var expire = new Mock<ITimePolicy>();
-            var cp = new CachePolicy(Optional<IBoundedPolicy>.None(), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(expire.Object));
+            var cp = new CachePolicy(Optional<IBoundedPolicy>.None(), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(expire.Object), Optional<IDiscreteTimePolicy>.None());
+
+            cp.TryTrimExpired().Should().BeTrue();
+        }
+
+        [Fact]
+        public void TryTrimWhenExpireAfterReturnsTrue()
+        {
+            var expire = new Mock<IDiscreteTimePolicy>();
+            var cp = new CachePolicy(Optional<IBoundedPolicy>.None(), Optional<ITimePolicy>.None(), Optional<ITimePolicy>.None(), new Optional<IDiscreteTimePolicy>(expire.Object));
 
             cp.TryTrimExpired().Should().BeTrue();
         }
