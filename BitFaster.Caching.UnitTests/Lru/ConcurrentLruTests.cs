@@ -954,6 +954,25 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenWarmThenTrimIsWarmIsReset()
+        {
+            for (int i = 0; i < 20; i++)
+            {
+                lru.GetOrAdd(i, k => k.ToString());
+            }
+
+            lru.Trim(6);
+            lru.Count.Should().Be(3);
+
+            for (int i = 0; i < 20; i++)
+            {
+                lru.GetOrAdd(i, k => k.ToString());
+            }
+
+            lru.Count.Should().Be(capacity.Hot + capacity.Warm + capacity.Cold);
+        }
+
+        [Fact]
         public void WhenItemsAreDisposableClearDisposesItemsOnRemove()
         {
             var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
