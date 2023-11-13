@@ -13,6 +13,12 @@ namespace BitFaster.Caching.Lru.Builder
         {
         }
 
+        public AsyncConcurrentLruBuilder<K, V> WithExpireAfter(IExpiry<K, V> expiry)
+        {
+            this.info.ExpireAfter = expiry;
+            return this;
+        }
+
         ///<inheritdoc/>
         public override IAsyncCache<K, V> Build()
         {

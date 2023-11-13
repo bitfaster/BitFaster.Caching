@@ -98,11 +98,7 @@ namespace BitFaster.Caching.Lru.Builder
             return this as TBuilder;
         }
 
-        public TBuilder WithExpireAfter(IExpiry<K, V> expiry)
-        { 
-            this.info.ExpireAfter = expiry;
-            return this as TBuilder;
-        }
+
 
         /// <summary>
         /// Builds a cache configured via the method calls invoked on the builder instance.
