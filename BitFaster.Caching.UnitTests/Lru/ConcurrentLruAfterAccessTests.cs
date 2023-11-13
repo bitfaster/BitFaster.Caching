@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Threading;
 using BitFaster.Caching.Lru;
 using FluentAssertions;
 using Xunit;
