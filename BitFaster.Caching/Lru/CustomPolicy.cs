@@ -12,17 +12,17 @@ namespace BitFaster.Caching.Lru
         /// <summary>
         /// Gets the expiry for an item after it is created.
         /// </summary>
-        Func<K, V, TimeSpan> GetExpireAfterCreate { get; }
+        TimeSpan GetExpireAfterCreate(K key, V value);
 
         /// <summary>
         /// Gets the expiry for an item after it is read.
         /// </summary>
-        Func<K, V, TimeSpan> GetExpireAfterRead { get; }
-        
+        TimeSpan GetExpireAfterRead(K key, V value);
+
         /// <summary>
         /// Gets the expiry for an item after it is updated.
         /// </summary>
-        Func<K, V, TimeSpan> GetExpireAfterUpdate { get; }
+        TimeSpan GetExpireAfterUpdate(K key, V value);
     }
 
     /// <summary>
@@ -59,13 +59,25 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
-        public Func<K, V, TimeSpan> GetExpireAfterCreate => expireAfterCreate;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TimeSpan GetExpireAfterCreate(K key, V value)
+        {
+            return this.expireAfterCreate(key, value);
+        }
 
         ///<inheritdoc/>
-        public Func<K, V, TimeSpan> GetExpireAfterRead => expireAfterRead;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TimeSpan GetExpireAfterRead(K key, V value)
+        {
+            return this.expireAfterRead(key, value);
+        }
 
         ///<inheritdoc/>
-        public Func<K, V, TimeSpan> GetExpireAfterUpdate => expireAfterUpdate;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TimeSpan GetExpireAfterUpdate(K key, V value)
+        {
+            return this.expireAfterUpdate(key, value);
+        }
     }
 
 #if NETCOREAPP3_0_OR_GREATER
