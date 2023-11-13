@@ -20,7 +20,7 @@ namespace BitFaster.Caching.Lru.Builder
         /// <returns>A AsyncConcurrentLruBuilder</returns>
         public AsyncConcurrentLruBuilder<K, V> WithExpiry(IExpiry<K, V> expiry)
         {
-            this.info.Expiry = expiry;
+            this.info.SetExpiry(expiry);
             return this;
         }
 

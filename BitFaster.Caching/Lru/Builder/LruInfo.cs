@@ -33,7 +33,11 @@ namespace BitFaster.Caching.Lru.Builder
         /// <summary>
         /// Gets or sets the custom expiry.
         /// </summary>
-        public object Expiry { get; set; } = null;
+        private object Expiry { get; set; } = null;
+
+        public void SetExpiry<K, V>(IExpiry<K, V> expiry) => Expiry = expiry;
+
+        public IExpiry<K, V> GetExpiry<K, V>() => this.Expiry as IExpiry<K, V>;
 
         /// <summary>
         /// Gets or sets a value indicating whether to use metrics.

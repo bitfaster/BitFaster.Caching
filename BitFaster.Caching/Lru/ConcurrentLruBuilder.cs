@@ -44,7 +44,7 @@ namespace BitFaster.Caching.Lru
         /// <returns>A ConcurrentLruBuilder</returns>
         public ConcurrentLruBuilder<K, V> WithExpiry(IExpiry<K, V> expiry)
         {
-            this.info.Expiry = expiry;
+            this.info.SetExpiry(expiry);
             return this;
         }
 
@@ -54,10 +54,12 @@ namespace BitFaster.Caching.Lru
             if (info.TimeToExpireAfterWrite.HasValue && info.TimeToExpireAfterAccess.HasValue)
                 Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfterAccess is not supported.");
 
-            if (info.TimeToExpireAfterWrite.HasValue && info.Expiry != null)
+            var expiry = info.GetExpiry<K, V>();
+
+            if (info.TimeToExpireAfterWrite.HasValue && expiry != null)
                 Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfter is not supported.");
 
-            if (info.TimeToExpireAfterAccess.HasValue && info.Expiry != null)
+            if (info.TimeToExpireAfterAccess.HasValue && expiry != null)
                 Throw.InvalidOp("Specifying both ExpireAfterAccess and ExpireAfter is not supported.");
 
             return info switch
@@ -67,8 +69,8 @@ namespace BitFaster.Caching.Lru
                 LruInfo<K> i when i.TimeToExpireAfterWrite.HasValue && !i.TimeToExpireAfterAccess.HasValue => new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
                 LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterAccess.HasValue => CreateExpireAfterAccess<TelemetryPolicy<K, V>>(info),
                 LruInfo<K> i when !i.TimeToExpireAfterWrite.HasValue && i.TimeToExpireAfterAccess.HasValue => CreateExpireAfterAccess<NoTelemetryPolicy<K, V>>(info),
-                LruInfo<K> i when i.WithMetrics && i.Expiry != null => CreateExpireAfter<TelemetryPolicy<K, V>>(info),
-                LruInfo<K> i when i.Expiry != null => CreateExpireAfter<NoTelemetryPolicy<K, V>>(info),
+                LruInfo<K> i when i.WithMetrics && expiry != null => CreateExpireAfter<TelemetryPolicy<K, V>>(info, expiry),
+                LruInfo<K> _ when expiry != null => CreateExpireAfter<NoTelemetryPolicy<K, V>>(info, expiry),
                 _ => new FastConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
             };
         }
@@ -79,15 +81,8 @@ namespace BitFaster.Caching.Lru
                 info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterAccessLongTicksPolicy<K, V>(info.TimeToExpireAfterAccess.Value), default);
         }
 
-        private static ICache<K, V> CreateExpireAfter<TP>(LruInfo<K> info) where TP : struct, ITelemetryPolicy<K, V>
+        private static ICache<K, V> CreateExpireAfter<TP>(LruInfo<K> info, IExpiry<K, V> expiry) where TP : struct, ITelemetryPolicy<K, V>
         {
-            if (info.Expiry is not IExpiry<K, V>)
-            {
-                Throw.InvalidOp($"Expiry must be of type {typeof(IExpiry<K, V>)}.");
-            }
-
-            var expiry = info.Expiry as IExpiry<K, V>;
-
             return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, CustomExpiryPolicy<K, V>, TP>(
                     info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new CustomExpiryPolicy<K, V>(expiry), default);
             
