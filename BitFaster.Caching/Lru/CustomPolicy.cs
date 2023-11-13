@@ -1,32 +1,31 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
 {
     /// <summary>
-    /// Defines a policy for determining the expiry of an item.
+    /// Defines a mechanism to calculate when cache entries expire.
     /// </summary>
     public interface IExpiry<K, V>
     {
         /// <summary>
-        /// Gets the expiry for an item after it is created.
+        /// Specify the inital time to live after an entry is created.
         /// </summary>
         TimeSpan GetExpireAfterCreate(K key, V value);
 
         /// <summary>
-        /// Gets the expiry for an item after it is read.
+        /// Specify the time to live after an entry is read.
         /// </summary>
         TimeSpan GetExpireAfterRead(K key, V value);
 
         /// <summary>
-        /// Gets the expiry for an item after it is updated.
+        /// Specify the time to live after an entry is updated.
         /// </summary>
         TimeSpan GetExpireAfterUpdate(K key, V value);
     }
 
     /// <summary>
-    /// Defines a policy for determining the expiry of an item using function delegates.
+    /// Defines a mechanism to determine the time to live for a cache item using function delegates.
     /// </summary>
     public readonly struct Expiry<K, V> : IExpiry<K, V>
     {
