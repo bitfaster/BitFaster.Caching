@@ -54,7 +54,7 @@ namespace BitFaster.Caching.Lru
             if (info.TimeToExpireAfterWrite.HasValue && info.TimeToExpireAfterAccess.HasValue)
                 Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfterAccess is not supported.");
 
-            var expiry = info.GetExpiry<K, V>();
+            var expiry = info.GetExpiry<V>();
 
             if (info.TimeToExpireAfterWrite.HasValue && expiry != null)
                 Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfter is not supported.");

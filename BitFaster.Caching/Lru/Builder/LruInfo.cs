@@ -10,6 +10,8 @@ namespace BitFaster.Caching.Lru.Builder
     // backcompat: make class internal
     public sealed class LruInfo<K>
     {
+        private object expiry = null;
+
         /// <summary>
         /// Gets or sets the capacity partition.
         /// </summary>
@@ -31,13 +33,16 @@ namespace BitFaster.Caching.Lru.Builder
         public TimeSpan? TimeToExpireAfterAccess { get; set; } = null;
 
         /// <summary>
-        /// Gets or sets the custom expiry.
+        /// Set the custom expiry.
         /// </summary>
-        private object Expiry { get; set; } = null;
+        /// <param name="expiry">The expiry</param>
+        public void SetExpiry<V>(IExpiry<K, V> expiry) => this.expiry = expiry;
 
-        public void SetExpiry<K, V>(IExpiry<K, V> expiry) => Expiry = expiry;
-
-        public IExpiry<K, V> GetExpiry<K, V>() => this.Expiry as IExpiry<K, V>;
+        /// <summary>
+        /// Get the custom expiry.
+        /// </summary>
+        /// <returns>The expiry.</returns>
+        public IExpiry<K, V> GetExpiry<V>() => this.expiry as IExpiry<K, V>;
 
         /// <summary>
         /// Gets or sets a value indicating whether to use metrics.
@@ -51,7 +56,7 @@ namespace BitFaster.Caching.Lru.Builder
 
         internal void ThrowIfExpireAfterSpecified(string extensionName)
         {
-            if (this.Expiry != null)
+            if (this.expiry != null)
                 Throw.InvalidOp("WithExpiry is not compatible with " + extensionName);
         }
     }
