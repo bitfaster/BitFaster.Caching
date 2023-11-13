@@ -113,5 +113,57 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             winnerCount.Should().Be(1);
         }
+
+        [Fact]
+        public void WhenValueNotCreatedHashCodeIsZero()
+        {
+            new AsyncAtomicFactory<int, int>()
+                .GetHashCode()
+                .Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenValueCreatedHashCodeIsValueHashCode()
+        {
+            new AsyncAtomicFactory<int, int>(1)
+                .GetHashCode()
+                .Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenValueNotCreatedEqualsFalse()
+        {
+            var a = new AsyncAtomicFactory<int, int>();
+            var b = new AsyncAtomicFactory<int, int>();
+
+            a.Equals(b).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenOtherValueNotCreatedEqualsFalse()
+        {
+            var a = new AsyncAtomicFactory<int, int>(1);
+            var b = new AsyncAtomicFactory<int, int>();
+
+            a.Equals(b).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenArgNullEqualsFalse()
+        {
+            new AsyncAtomicFactory<int, int>(1)
+                .Equals(null)
+                .Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenArgObjectValuesAreSameEqualsTrue()
+        {
+            object other = new AsyncAtomicFactory<int, int>(1);
+
+            new AsyncAtomicFactory<int, int>(1)
+                .Equals(other)
+                .Should().BeTrue();
+        }
     }
 }
