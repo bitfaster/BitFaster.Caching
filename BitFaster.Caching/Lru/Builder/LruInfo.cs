@@ -44,5 +44,11 @@ namespace BitFaster.Caching.Lru.Builder
         /// Gets or sets the KeyComparer.
         /// </summary>
         public IEqualityComparer<K> KeyComparer { get; set; } = EqualityComparer<K>.Default;
+
+        internal void ThrowIfExpireAfterSpecified(string builderType)
+        {
+            if (this.ExpireAfter != null)
+                Throw.InvalidOp("ExpireAfter is not compatible with " + builderType);
+        }
     }
 }
