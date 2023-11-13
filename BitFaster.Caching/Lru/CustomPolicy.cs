@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
@@ -178,7 +179,6 @@ namespace BitFaster.Caching.Lru
         }
     }
 #else
-    // TODO: this should use stopwatch timing
     internal readonly struct CustomExpiryPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly IExpiry<K, V> expiry;
@@ -197,7 +197,7 @@ namespace BitFaster.Caching.Lru
         public LongTickCountLruItem<K, V> CreateItem(K key, V value)
         {
             var ttl = expiry.GetExpireAfterCreate(key, value);
-            return new LongTickCountLruItem<K, V>(key, value, ttl.Ticks + Environment.TickCount);
+            return new LongTickCountLruItem<K, V>(key, value, StopwatchTickConverter.ToTicks(ttl) + Stopwatch.GetTimestamp());
         }
 
         ///<inheritdoc/>
@@ -205,7 +205,7 @@ namespace BitFaster.Caching.Lru
         public void Touch(LongTickCountLruItem<K, V> item)
         {
             var ttl = expiry.GetExpireAfterRead(item.Key, item.Value);
-            item.TickCount = this.time.Last + ttl.Ticks;
+            item.TickCount = this.time.Last + StopwatchTickConverter.ToTicks(ttl);
             item.WasAccessed = true;
         }
 
@@ -214,14 +214,14 @@ namespace BitFaster.Caching.Lru
         public void Update(LongTickCountLruItem<K, V> item)
         {
             var ttl = expiry.GetExpireAfterUpdate(item.Key, item.Value);
-            item.TickCount = Environment.TickCount + ttl.Ticks;
+            item.TickCount = Stopwatch.GetTimestamp() + StopwatchTickConverter.ToTicks(ttl);
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
-            this.time.Last = Environment.TickCount;
+            this.time.Last = Stopwatch.GetTimestamp();
             if (this.time.Last > item.TickCount)
             {
                 return true;
