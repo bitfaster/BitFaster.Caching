@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -54,25 +55,40 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenItemIsExpiredItIsRemoved()
+        public void WhenItemIsExpiredItIsRemoved()
         {
-            lru.GetOrAdd(1, valueFactory.Create);
-
-            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
-
-            lru.TryGet(1, out var value).Should().BeFalse();
+            Timed.Execute(
+                lru,
+                lru =>
+                {
+                    lru.GetOrAdd(1, valueFactory.Create);
+                    return lru;
+                },
+                timeToLive.MultiplyBy(ttlWaitMlutiplier),
+                lru =>
+                {
+                    lru.TryGet(1, out var value).Should().BeFalse();
+                }
+            );
         }
 
         [Fact]
-        public async Task WhenItemIsUpdatedTtlIsExtended()
+        public void WhenItemIsUpdatedTtlIsExtended()
         {
-            lru.GetOrAdd(1, valueFactory.Create);
-
-            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
-
-            lru.TryUpdate(1, "3");
-
-            lru.TryGet(1, out var value).Should().BeTrue();
+            Timed.Execute(
+                lru,
+                lru =>
+                {
+                    lru.GetOrAdd(1, valueFactory.Create);
+                    return lru;
+                },
+                timeToLive.MultiplyBy(ttlWaitMlutiplier),
+                lru =>
+                {
+                    lru.TryUpdate(1, "3");
+                    lru.TryGet(1, out var value).Should().BeTrue();
+                }
+            );
         }
 
         [Fact]
@@ -117,64 +133,91 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task WhenItemsAreExpiredExpireRemovesExpiredItems()
+        public void WhenItemsAreExpiredExpireRemovesExpiredItems()
         {
-            lru.AddOrUpdate(1, "1");
-            lru.AddOrUpdate(2, "2");
-            lru.AddOrUpdate(3, "3");
-            lru.GetOrAdd(1, valueFactory.Create);
-            lru.GetOrAdd(2, valueFactory.Create);
-            lru.GetOrAdd(3, valueFactory.Create);
+            Timed.Execute(
+                lru,
+                lru =>
+                {
+                    lru.AddOrUpdate(1, "1");
+                    lru.AddOrUpdate(2, "2");
+                    lru.AddOrUpdate(3, "3");
+                    lru.GetOrAdd(1, valueFactory.Create);
+                    lru.GetOrAdd(2, valueFactory.Create);
+                    lru.GetOrAdd(3, valueFactory.Create);
 
-            lru.AddOrUpdate(4, "4");
-            lru.AddOrUpdate(5, "5");
-            lru.AddOrUpdate(6, "6");
+                    lru.AddOrUpdate(4, "4");
+                    lru.AddOrUpdate(5, "5");
+                    lru.AddOrUpdate(6, "6");
 
-            lru.AddOrUpdate(7, "7");
-            lru.AddOrUpdate(8, "8");
-            lru.AddOrUpdate(9, "9");
+                    lru.AddOrUpdate(7, "7");
+                    lru.AddOrUpdate(8, "8");
+                    lru.AddOrUpdate(9, "9");
 
-            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
+                    return lru;
+                },
+                timeToLive.MultiplyBy(ttlWaitMlutiplier),
+                lru =>
+                {
+                    lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
-            lru.Policy.ExpireAfterWrite.Value.TrimExpired();
-
-            lru.Count.Should().Be(0);
+                    lru.Count.Should().Be(0);
+                }
+            );
         }
 
         [Fact]
-        public async Task WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
+        public void WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
         {
-            lru.AddOrUpdate(1, "1");
-            lru.AddOrUpdate(2, "2");
-            lru.AddOrUpdate(3, "3");
+            Timed.Execute(
+              lru,
+              lru =>
+              {
+                  lru.AddOrUpdate(1, "1");
+                  lru.AddOrUpdate(2, "2");
+                  lru.AddOrUpdate(3, "3");
 
-            lru.AddOrUpdate(4, "4");
-            lru.AddOrUpdate(5, "5");
-            lru.AddOrUpdate(6, "6");
+                  lru.AddOrUpdate(4, "4");
+                  lru.AddOrUpdate(5, "5");
+                  lru.AddOrUpdate(6, "6");
 
-            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
+                  return lru;
+              },
+              timeToLive.MultiplyBy(ttlWaitMlutiplier),
+              lru =>
+              {
+                  lru.GetOrAdd(1, valueFactory.Create);
+                  lru.GetOrAdd(2, valueFactory.Create);
+                  lru.GetOrAdd(3, valueFactory.Create);
 
-            lru.GetOrAdd(1, valueFactory.Create);
-            lru.GetOrAdd(2, valueFactory.Create);
-            lru.GetOrAdd(3, valueFactory.Create);
+                  lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
-            lru.Policy.ExpireAfterWrite.Value.TrimExpired();
-
-            lru.Count.Should().Be(3);
+                  lru.Count.Should().Be(3);
+              }
+          );
         }
 
         [Fact]
-        public async Task WhenItemsAreExpiredTrimRemovesExpiredItems()
+        public void WhenItemsAreExpiredTrimRemovesExpiredItems()
         {
-            lru.AddOrUpdate(1, "1");
-            lru.AddOrUpdate(2, "2");
-            lru.AddOrUpdate(3, "3");
+            Timed.Execute(
+                lru,
+                lru =>
+                {
+                    lru.AddOrUpdate(1, "1");
+                    lru.AddOrUpdate(2, "2");
+                    lru.AddOrUpdate(3, "3");
 
-            await Task.Delay(timeToLive.MultiplyBy(ttlWaitMlutiplier));
+                    return lru;
+                },
+                timeToLive.MultiplyBy(ttlWaitMlutiplier),
+                lru =>
+                {
+                    lru.Policy.Eviction.Value.Trim(1);
 
-            lru.Policy.Eviction.Value.Trim(1);
-
-            lru.Count.Should().Be(0);
+                    lru.Count.Should().Be(0);
+                }
+            );
         }
     }
 

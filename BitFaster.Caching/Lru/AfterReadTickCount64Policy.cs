@@ -13,7 +13,7 @@ namespace BitFaster.Caching.Lru
     /// than both Stopwatch.GetTimestamp and DateTime.UtcNow. However, resolution is lower (typically 
     /// between 10-16ms), vs 1us for Stopwatch.GetTimestamp.
     /// </remarks>
-    public readonly struct AfterAccessLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    internal readonly struct AfterAccessLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly long timeToLive;
         private readonly Time time;
