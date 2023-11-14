@@ -909,7 +909,7 @@ namespace BitFaster.Caching.Lru
                 lru.TrimExpired();
             }
 
-            public bool TryGetTimeToLive<TKey>(TKey key, out TimeSpan timeToLive)
+            public bool TryGetTimeToExpire<TKey>(TKey key, out TimeSpan timeToLive)
             {
                 if (key is K k && lru.dictionary.TryGetValue(k, out var item))
                 {

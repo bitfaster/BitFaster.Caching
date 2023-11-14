@@ -40,7 +40,7 @@ namespace BitFaster.Caching.Lru
         /// <summary>
         /// Evict after a variable duration specified by an IExpiry instance.
         /// </summary>
-        /// <param name="expiry">The expiry that determines item time to live.</param>
+        /// <param name="expiry">The expiry that determines item time to expire.</param>
         /// <returns>A ConcurrentLruBuilder</returns>
         public ConcurrentLruBuilder<K, V> WithExpiry(IExpiryCalculator<K, V> expiry)
         {

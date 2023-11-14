@@ -52,7 +52,7 @@ namespace BitFaster.Caching
 
         /// <summary>
         /// Gets the expire after policy, if any. This policy evicts items based on
-        /// a time to live computed from the key and value.
+        /// a time to expire computed from the key and value.
         /// </summary>
         public Optional<IDiscreteTimePolicy> ExpireAfter { get; }
 

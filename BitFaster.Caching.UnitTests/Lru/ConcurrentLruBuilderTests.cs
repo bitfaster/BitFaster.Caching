@@ -182,7 +182,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestExpireAfter()
         {
             ICache<string, int> expireAfter = new ConcurrentLruBuilder<string, int>()
-                .WithExpiry(new ExpiryCalculator<string, int>((k, v) => TimeSpan.FromMinutes(5)))
+                .WithExpiry(new TestExpiryCalculator<string, int>((k, v) => TimeSpan.FromMinutes(5)))
                 .Build();
 
             expireAfter.Metrics.HasValue.Should().BeFalse();
