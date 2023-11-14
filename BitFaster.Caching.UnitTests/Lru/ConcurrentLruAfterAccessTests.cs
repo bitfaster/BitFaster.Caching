@@ -96,14 +96,21 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemIsReadTtlIsExtended()
         {
-            Timed.Execute(
-                capacity,
-                cap =>
-                {
-                    var lru = new ConcurrentLruBuilder<int, string>()
-                        .WithCapacity(cap)
+            var lru = new ConcurrentLruBuilder<int, string>()
+                        .WithCapacity(capacity)
                         .WithExpireAfterAccess(TimeSpan.FromMilliseconds(100))
                         .Build();
+
+            // execute the method to ensure it is always jitted
+            lru.GetOrAdd(-1, valueFactory.Create);
+            lru.GetOrAdd(-2, valueFactory.Create);
+            lru.GetOrAdd(-3, valueFactory.Create);
+
+            Timed.Execute(
+                lru,
+                lru =>
+                {
+                    
 
                     lru.GetOrAdd(1, valueFactory.Create);
 
