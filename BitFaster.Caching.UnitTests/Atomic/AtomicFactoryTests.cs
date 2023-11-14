@@ -167,56 +167,65 @@ namespace BitFaster.Caching.UnitTests.Atomic
             winnerCount.Should().Be(1);
         }
 
-        [Fact(Skip="Unstable")]
+        [Fact]
         public async Task WhenCallersRunConcurrentlyAndFailExceptionIsPropogated()
         {
-            var enter1 = new ManualResetEvent(false);
-            var enter2 = new ManualResetEvent(false);
-            var factory = new ManualResetEvent(false);
-            var resume = new ManualResetEvent(false);
+            int count = 0, timesContended = 0;
 
-            var atomicFactory = new AtomicFactory<int, int>();
-            var throwCount = 0;
+            while (count++ < 64)
+            { 
+                var enter1 = new ManualResetEvent(false);
+                var enter2 = new ManualResetEvent(false);
+                var factory = new ManualResetEvent(false);
+                var resume = new ManualResetEvent(false);
 
-            Task<int> first = Task.Run(() =>
-            {
-                enter1.Set();
-                return atomicFactory.GetValue(1, k =>
+                var atomicFactory = new AtomicFactory<int, int>();
+                var throwCount = 0;
+
+                Task<int> first = Task.Run(() =>
                 {
-                    factory.Set();
-                    resume.WaitOne();
+                    enter1.Set();
+                    return atomicFactory.GetValue(1, k =>
+                    {
+                        factory.Set();
+                        resume.WaitOne();
 
-                    Interlocked.Increment(ref throwCount);
-                    throw new Exception();
+                        Interlocked.Increment(ref throwCount);
+                        throw new Exception();
+                    });
                 });
-            });
 
-            Task<int> second = Task.Run(() =>
-            {
-                enter2.Set();
-                return atomicFactory.GetValue(1, k =>
+                Task<int> second = Task.Run(() =>
                 {
-                    factory.Set();
-                    resume.WaitOne();
+                    enter2.Set();
+                    return atomicFactory.GetValue(1, k =>
+                    {
+                        factory.Set();
+                        resume.WaitOne();
 
-                    Interlocked.Increment(ref throwCount);
-                    throw new Exception();
+                        Interlocked.Increment(ref throwCount);
+                        throw new Exception();
+                    });
                 });
-            });
 
-            enter1.WaitOne();
-            enter2.WaitOne();
-            factory.WaitOne();
-            resume.Set();
+                enter1.WaitOne();
+                enter2.WaitOne();
+                factory.WaitOne();
+                resume.Set();
 
-            Func<Task> act1 = () => first;
-            Func<Task> act2 = () => second;
+                Func<Task> act1 = () => first;
+                Func<Task> act2 = () => second;
 
-            await act1.Should().ThrowAsync<Exception>();
-            await act2.Should().ThrowAsync<Exception>();
+                await act1.Should().ThrowAsync<Exception>();
+                await act2.Should().ThrowAsync<Exception>();
 
-            // verify only one exception was thrown
-            throwCount.Should().Be(1);
+                if (throwCount == 1)
+                {
+                    timesContended++;
+                }
+            }
+
+            timesContended.Should().BeGreaterThan(0);
         }
 
         [Fact]
