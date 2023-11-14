@@ -1,4 +1,5 @@
 ﻿
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
@@ -118,7 +119,9 @@ namespace BitFaster.Caching.UnitTests.Atomic
         [Fact]
         public async Task WhenCallersRunConcurrentlyResultIsFromWinner()
         {
-            var enter = new ManualResetEvent(false);
+            var enter1 = new ManualResetEvent(false);
+            var enter2 = new ManualResetEvent(false);
+            var factory = new ManualResetEvent(false);
             var resume = new ManualResetEvent(false);
 
             var atomicFactory = new AtomicFactory<int, int>();
@@ -127,9 +130,10 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             Task<int> first = Task.Run(() =>
             {
+                enter1.Set();
                 return atomicFactory.GetValue(1, k =>
                 {
-                    enter.Set();
+                    factory.Set();
                     resume.WaitOne();
 
                     result = 1;
@@ -140,9 +144,10 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             Task<int> second = Task.Run(() =>
             {
+                enter2.Set();
                 return atomicFactory.GetValue(1, k =>
                 {
-                    enter.Set();
+                    factory.Set();
                     resume.WaitOne();
 
                     result = 2;
@@ -151,13 +156,114 @@ namespace BitFaster.Caching.UnitTests.Atomic
                 });
             });
 
-            enter.WaitOne();
+            enter1.WaitOne();
+            enter2.WaitOne();
+            factory.WaitOne();
             resume.Set();
 
             (await first).Should().Be(result);
             (await second).Should().Be(result);
 
             winnerCount.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task WhenCallersRunConcurrentlyAndFailExceptionIsPropogated()
+        {
+            var enter1 = new ManualResetEvent(false);
+            var enter2 = new ManualResetEvent(false);
+            var factory = new ManualResetEvent(false);
+            var resume = new ManualResetEvent(false);
+
+            var atomicFactory = new AtomicFactory<int, int>();
+            var throwCount = 0;
+
+            Task<int> first = Task.Run(() =>
+            {
+                enter1.Set();
+                return atomicFactory.GetValue(1, k =>
+                {
+                    factory.Set();
+                    resume.WaitOne();
+
+                    Interlocked.Increment(ref throwCount);
+                    throw new Exception();
+                });
+            });
+
+            Task<int> second = Task.Run(() =>
+            {
+                enter2.Set();
+                return atomicFactory.GetValue(1, k =>
+                {
+                    factory.Set();
+                    resume.WaitOne();
+
+                    Interlocked.Increment(ref throwCount);
+                    throw new Exception();
+                });
+            });
+
+            enter1.WaitOne();
+            enter2.WaitOne();
+            factory.WaitOne();
+            resume.Set();
+
+            Func<Task> act1 = () => first;
+            Func<Task> act2 = () => second;
+
+            await act1.Should().ThrowAsync<Exception>();
+            await act2.Should().ThrowAsync<Exception>();
+
+            // verify only one exception was thrown
+            throwCount.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task WhenCallersRunConcurrentlyAndFailNewCallerStartsClean()
+        {
+            var enter1 = new ManualResetEvent(false);
+            var enter2 = new ManualResetEvent(false);
+            var factory = new ManualResetEvent(false);
+            var resume = new ManualResetEvent(false);
+
+            var atomicFactory = new AtomicFactory<int, int>();
+
+            Task<int> first = Task.Run(() =>
+            {
+                enter1.Set();
+                return atomicFactory.GetValue(1, k =>
+                {
+                    factory.Set();
+                    resume.WaitOne();
+                    throw new Exception();
+                });
+            });
+
+            Task<int> second = Task.Run(() =>
+            {
+                enter2.Set();
+                return atomicFactory.GetValue(1, k =>
+                {
+                    factory.Set();
+                    resume.WaitOne();
+                    throw new Exception();
+                });
+            });
+
+            enter1.WaitOne();
+            enter2.WaitOne();
+            factory.WaitOne();
+            resume.Set();
+
+            Func<Task> act1 = () => first;
+            Func<Task> act2 = () => second;
+
+            await act1.Should().ThrowAsync<Exception>();
+            await act2.Should().ThrowAsync<Exception>();
+
+            // verify exception is no longer cached
+            atomicFactory.GetValue(1, k => k).Should().Be(1);
         }
     }
 }

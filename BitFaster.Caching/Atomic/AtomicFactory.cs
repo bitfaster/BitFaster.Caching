@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 
 namespace BitFaster.Caching.Atomic
 {
     /// <summary>
-    /// A class that provides simple, lightweight exactly once initialization for values
-    /// stored in a cache.
+    /// A class that provides simple, lightweight exactly once initialization for values stored
+    /// in a cache. Exceptions are propogated to the caller.
     /// </summary>
     /// <typeparam name="K">The type of the key.</typeparam>
     /// <typeparam name="V">The type of the value.</typeparam>
@@ -92,14 +93,35 @@ namespace BitFaster.Caching.Atomic
             }
         }
 
+        /// <summary>
+        /// Note the failure case works like this:
+        /// 1. Thread A enters AtomicFactory.CreateValue then Initializer.CreateValue and holds the lock.
+        /// 2. Thread B enters AtomicFactory.CreateValue then Initializer.CreateValue and queues on the lock.
+        /// 3. Thread A calls value factory, and after 1 second throws an exception. The exception is 
+        /// captured in exceptionDispatch, lock is released, and an exeption is thrown.
+        /// 4. AtomicFactory.CreateValue catches the exception and creates a fresh initializer.
+        /// 5. Thread B enters the lock, finds exceptionDispatch is populated and immediately throws.
+        /// 6. Thread C can now start from a clean state.
+        /// This mitigates lock convoys where many queued threads will fail slowly one by one, introducing delays
+        /// and multiplying the number of calls to the failing resource.
+        /// </summary>
         private V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
         {
             var init = Volatile.Read(ref initializer);
 
             if (init != null)
             {
-                value = init.CreateValue(key, valueFactory);
-                Volatile.Write(ref initializer, null); // volatile write must occur after setting value
+                try
+                {
+                    value = init.CreateValue(key, valueFactory);
+                    Volatile.Write(ref initializer, null); // volatile write must occur after setting value
+                }
+                catch
+                {
+                    // Overwrite the initializer with a fresh copy. New threads will start from a clean state.
+                    Volatile.Write(ref initializer, new Initializer());
+                    throw;
+                }
             }
 
             return value;
@@ -138,6 +160,7 @@ namespace BitFaster.Caching.Atomic
         {
             private bool isInitialized;
             private V value;
+            private ExceptionDispatchInfo exceptionDispatch;
 
             public V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
             {
@@ -148,9 +171,24 @@ namespace BitFaster.Caching.Atomic
                         return value;
                     }
 
-                    value = valueFactory.Create(key);
-                    isInitialized = true;
-                    return value;
+                    // If a previous thread called the factory and failed, throw the same error instead
+                    // of calling the factory again.
+                    if (exceptionDispatch != null)
+                    {
+                        exceptionDispatch.Throw();
+                    }
+
+                    try
+                    {
+                        value = valueFactory.Create(key);
+                        isInitialized = true;
+                        return value;
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptionDispatch = ExceptionDispatchInfo.Capture(ex);
+                        throw;
+                    }
                 }
             }
         }
