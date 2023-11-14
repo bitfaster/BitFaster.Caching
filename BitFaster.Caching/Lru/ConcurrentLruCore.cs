@@ -379,7 +379,7 @@ namespace BitFaster.Caching.Lru
                         V oldValue = existing.Value;
                         existing.Value = value;
                         this.itemPolicy.Update(existing);
-                        // backcompat: remove conditional compile
+// backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
                         this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
 #endif
@@ -795,12 +795,6 @@ namespace BitFaster.Caching.Lru
                 return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p), Optional<IDiscreteTimePolicy>.None());
             }
 
-            // TODO: how to bind to the interface?
-            //if (typeof(P) == typeof(DiscretePolicy<K, V>))
-            //{
-            //    return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), Optional<ITimePolicy>.None(), new Optional<IDiscreteTimePolicy>(new DiscreteExpiryProxy(lru)));
-            //}
-
             // IsAssignableFrom is a jit intrinsic https://github.com/dotnet/runtime/issues/4920
             if (typeof(IDiscreteItemPolicy<K, V>).IsAssignableFrom(typeof(P)))
             {
@@ -862,7 +856,7 @@ namespace BitFaster.Caching.Lru
 
             public long Evicted => lru.telemetryPolicy.Evicted;
 
-            // backcompat: remove conditional compile
+// backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
             public long Updated => lru.telemetryPolicy.Updated;
 #endif
@@ -876,7 +870,7 @@ namespace BitFaster.Caching.Lru
                 remove { this.lru.telemetryPolicy.ItemRemoved -= value; }
             }
 
-            // backcompat: remove conditional compile
+// backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
             public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
             {

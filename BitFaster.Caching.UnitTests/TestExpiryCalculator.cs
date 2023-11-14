@@ -7,9 +7,12 @@ namespace BitFaster.Caching.UnitTests
     /// </summary>
     public class TestExpiryCalculator<K, V> : IExpiryCalculator<K, V>
     {
-        private readonly Func<K, V, TimeSpan> expireAfterCreate;
-        private readonly Func<K, V, TimeSpan, TimeSpan> expireAfterRead;
-        private readonly Func<K, V, TimeSpan, TimeSpan> expireAfterUpdate;
+        public Func<K, V, TimeSpan> ExpireAfterCreate { get; set; }
+        public Func<K, V, TimeSpan, TimeSpan> ExpireAfterRead { get; set; }
+        public Func<K, V, TimeSpan, TimeSpan> ExpireAfterUpdate { get; set; }
+
+        public TestExpiryCalculator()
+        { }
 
         /// <summary>
         /// Initializes a new instance of the Expiry class.
@@ -17,9 +20,9 @@ namespace BitFaster.Caching.UnitTests
         /// <param name="expireAfter">The delegate that computes the item time to expire.</param>
         public TestExpiryCalculator(Func<K, V, TimeSpan> expireAfter)
         {
-            this.expireAfterCreate = expireAfter;
-            this.expireAfterRead = null;
-            this.expireAfterUpdate = null;
+            this.ExpireAfterCreate = expireAfter;
+            this.ExpireAfterRead = null;
+            this.ExpireAfterUpdate = null;
         }
 
         /// <summary>
@@ -30,27 +33,27 @@ namespace BitFaster.Caching.UnitTests
         /// <param name="expireAfterUpdate">The delegate that computes the item time to expire after an update operation.</param>
         public TestExpiryCalculator(Func<K, V, TimeSpan> expireAfterCreate, Func<K, V, TimeSpan, TimeSpan> expireAfterRead, Func<K, V, TimeSpan, TimeSpan> expireAfterUpdate)
         {
-            this.expireAfterCreate = expireAfterCreate;
-            this.expireAfterRead = expireAfterRead;
-            this.expireAfterUpdate = expireAfterUpdate;
+            this.ExpireAfterCreate = expireAfterCreate;
+            this.ExpireAfterRead = expireAfterRead;
+            this.ExpireAfterUpdate = expireAfterUpdate;
         }
 
         ///<inheritdoc/>
         public TimeSpan GetExpireAfterCreate(K key, V value)
         {
-            return this.expireAfterCreate(key, value);
+            return this.ExpireAfterCreate(key, value);
         }
 
         ///<inheritdoc/>
         public TimeSpan GetExpireAfterRead(K key, V value, TimeSpan currentTtl)
         {
-            return this.expireAfterRead == null ? this.expireAfterCreate(key, value) : this.expireAfterRead(key, value, currentTtl);
+            return this.ExpireAfterRead == null ? this.ExpireAfterCreate(key, value) : this.ExpireAfterRead(key, value, currentTtl);
         }
 
         ///<inheritdoc/>
         public TimeSpan GetExpireAfterUpdate(K key, V value, TimeSpan currentTtl)
         {
-            return this.expireAfterUpdate == null ? this.expireAfterCreate(key, value) : this.expireAfterUpdate(key, value, currentTtl);
+            return this.ExpireAfterUpdate == null ? this.ExpireAfterCreate(key, value) : this.ExpireAfterUpdate(key, value, currentTtl);
         }
     }
 }
