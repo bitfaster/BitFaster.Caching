@@ -36,9 +36,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void ConvertTicksReturnsTimeSpan()
         {
 #if NETFRAMEWORK
-            this.policy.ConvertTicks(StopwatchTickConverter.ToTicks(defaultTimeToExpire)).Should().Be(defaultTimeToExpire);
+            this.policy.ConvertTicks(StopwatchTickConverter.ToTicks(defaultTimeToExpire) + Stopwatch.GetTimestamp()).Should().BeCloseTo(defaultTimeToExpire, TimeSpan.FromMilliseconds(20));
 #else
-            this.policy.ConvertTicks(defaultTimeToExpire.ToEnvTick64()).Should().Be(defaultTimeToExpire);
+            this.policy.ConvertTicks(defaultTimeToExpire.ToEnvTick64() + Environment.TickCount64).Should().BeCloseTo(defaultTimeToExpire, TimeSpan.FromMilliseconds(20));
 #endif
         }
 

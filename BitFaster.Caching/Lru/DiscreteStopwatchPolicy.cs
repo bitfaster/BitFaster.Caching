@@ -13,7 +13,7 @@ namespace BitFaster.Caching.Lru
         public TimeSpan TimeToLive => TimeSpan.Zero;
 
         ///<inheritdoc/>
-        public TimeSpan ConvertTicks(long ticks) => StopwatchTickConverter.FromTicks(ticks);
+        public TimeSpan ConvertTicks(long ticks) => StopwatchTickConverter.FromTicks(ticks - Stopwatch.GetTimestamp());
 
         public DiscretePolicy(IExpiryCalculator<K, V> expiry)
         {

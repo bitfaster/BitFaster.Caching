@@ -15,7 +15,7 @@ namespace BitFaster.Caching.Lru
         public TimeSpan TimeToLive => TimeSpan.Zero;
 
         ///<inheritdoc/>
-        public TimeSpan ConvertTicks(long ticks) => TimeSpan.FromMilliseconds(ticks);
+        public TimeSpan ConvertTicks(long ticks) => TimeSpan.FromMilliseconds(ticks - Environment.TickCount64);
 
         public DiscretePolicy(IExpiryCalculator<K, V> expiry)
         {
