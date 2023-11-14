@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 
 namespace BitFaster.Caching.Atomic
@@ -98,8 +100,17 @@ namespace BitFaster.Caching.Atomic
 
             if (init != null)
             {
-                value = init.CreateValue(key, valueFactory);
-                Volatile.Write(ref initializer, null); // volatile write must occur after setting value
+                try
+                {
+                    value = init.CreateValue(key, valueFactory);
+                    Volatile.Write(ref initializer, null); // volatile write must occur after setting value
+                }
+                catch
+                {
+                    // Overwrite the initializer with a fresh copy. New threads will start from a clean state.
+                    Volatile.Write(ref initializer, new Initializer());
+                    throw;
+                }
             }
 
             return value;
@@ -138,6 +149,7 @@ namespace BitFaster.Caching.Atomic
         {
             private bool isInitialized;
             private V value;
+            private ExceptionDispatchInfo exceptionDispatch;
 
             public V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
             {
@@ -148,9 +160,24 @@ namespace BitFaster.Caching.Atomic
                         return value;
                     }
 
-                    value = valueFactory.Create(key);
-                    isInitialized = true;
-                    return value;
+                    // If a previous thread called the factory and failed, throw the same error instead
+                    // of calling the factory again.
+                    if (exceptionDispatch != null)
+                    {
+                        exceptionDispatch.Throw();
+                    }
+
+                    try
+                    {
+                        value = valueFactory.Create(key);
+                        isInitialized = true;
+                        return value;
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptionDispatch = ExceptionDispatchInfo.Capture(ex);
+                        throw;
+                    }
                 }
             }
         }
