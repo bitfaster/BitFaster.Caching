@@ -172,7 +172,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             int count = 0, timesContended = 0;
 
-            while (count++ < 64)
+            while (count++ < 128)
             { 
                 var enter1 = new ManualResetEvent(false);
                 var enter2 = new ManualResetEvent(false);
