@@ -25,7 +25,7 @@ namespace BitFaster.Caching.Lru
             if (info.TimeToExpireAfterAccess.HasValue && expiry != null)
                 Throw.InvalidOp("Specifying both ExpireAfterAccess and ExpireAfter is not supported.");
 
-            return (info.WithMetrics, info.TimeToExpireAfterWrite.HasValue, info.TimeToExpireAfterAccess.HasValue, expiry == null) switch
+            return (info.WithMetrics, info.TimeToExpireAfterWrite.HasValue, info.TimeToExpireAfterAccess.HasValue, expiry != null) switch
             {
                 (true, false, false, false) => new ConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
                 (true, true, false, false) => new ConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
