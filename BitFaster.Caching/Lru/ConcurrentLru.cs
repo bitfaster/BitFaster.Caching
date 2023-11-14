@@ -1,4 +1,6 @@
 ﻿
+using BitFaster.Caching.Lru.Builder;
+
 namespace BitFaster.Caching.Lru
 {
     /// <summary>
