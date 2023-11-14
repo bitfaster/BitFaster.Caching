@@ -172,7 +172,10 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             int count = 0, timesContended = 0;
 
-            while (count++ < 128)
+            // Overlapping the value factory calls is hard to achieve reliably.
+            // Therefore, try many times and verify it was possible to provoke
+            // at least once.
+            while (count++ < 256)
             { 
                 var enter1 = new ManualResetEvent(false);
                 var enter2 = new ManualResetEvent(false);
