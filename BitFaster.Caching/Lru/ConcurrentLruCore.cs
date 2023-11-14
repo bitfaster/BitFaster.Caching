@@ -423,7 +423,6 @@ namespace BitFaster.Caching.Lru
         public void Clear()
         {
             this.TrimLiveItems(itemsRemoved: 0, this.Count, ItemRemovedReason.Cleared);
-            Volatile.Write(ref this.isWarm, false);
         }
 
         /// <summary>
@@ -468,10 +467,9 @@ namespace BitFaster.Caching.Lru
         // backcompat: make internal
         protected int TrimAllDiscardedItems()
         {
-            int itemsRemoved = 0;
-
-            void RemoveDiscardableItems(ConcurrentQueue<I> q, ref int queueCounter)
+            int RemoveDiscardableItems(ConcurrentQueue<I> q, ref int queueCounter)
             {
+                int itemsRemoved = 0;
                 int localCount = queueCounter;
 
                 for (int i = 0; i < localCount; i++)
@@ -490,13 +488,20 @@ namespace BitFaster.Caching.Lru
                         }
                     }
                 }
+
+                return itemsRemoved;
             }
 
-            RemoveDiscardableItems(coldQueue, ref this.counter.cold);
-            RemoveDiscardableItems(warmQueue, ref this.counter.warm);
-            RemoveDiscardableItems(hotQueue, ref this.counter.hot);
+            int coldRem = RemoveDiscardableItems(coldQueue, ref this.counter.cold);
+            int warmRem = RemoveDiscardableItems(warmQueue, ref this.counter.warm);
+            int hotRem = RemoveDiscardableItems(hotQueue, ref this.counter.hot);
 
-            return itemsRemoved;
+            if (warmRem > 0)
+            {
+                Volatile.Write(ref this.isWarm, false);
+            }
+
+            return coldRem + warmRem + hotRem;
         }
 
         private void TrimLiveItems(int itemsRemoved, int itemCount, ItemRemovedReason reason)
@@ -525,6 +530,11 @@ namespace BitFaster.Caching.Lru
                     TrimWarmOrHot(reason);
                     trimWarmAttempts++;
                 }
+            }
+
+            if (Volatile.Read(ref this.counter.warm) < this.capacity.Warm)
+            {
+                Volatile.Write(ref this.isWarm, false);
             }
         }
 

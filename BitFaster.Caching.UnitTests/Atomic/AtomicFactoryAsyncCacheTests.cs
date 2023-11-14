@@ -15,10 +15,16 @@ namespace BitFaster.Caching.UnitTests.Atomic
     public class AtomicFactoryAsyncCacheTests
     {
         private const int capacity = 6;
-        private readonly AtomicFactoryAsyncCache<int, int> cache = new(new ConcurrentLru<int, AsyncAtomicFactory<int, int>>(capacity));
+        private readonly ConcurrentLru<int, AsyncAtomicFactory<int, int>> innerCache = new(capacity);
+        private readonly AtomicFactoryAsyncCache<int, int> cache;
 
         private List<ItemRemovedEventArgs<int, int>> removedItems = new();
         private List<ItemUpdatedEventArgs<int, int>> updatedItems = new();
+
+        public AtomicFactoryAsyncCacheTests()
+        {
+            cache = new(innerCache);
+        }
 
         [Fact]
         public void WhenInnerCacheIsNullCtorThrows()
@@ -251,6 +257,51 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             cache.Keys.Count().Should().Be(0);
         }
+
+       // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+        [Fact]
+        public void WhenRemovedValueIsReturned()
+        {
+            this.cache.AddOrUpdate(1, 1);
+            this.cache.TryRemove(1, out var value);
+
+            value.Should().Be(1);
+        }
+
+        [Fact]
+        public void WhenNotRemovedValueIsDefault()
+        {
+            this.cache.AddOrUpdate(1, 1);
+            this.cache.TryRemove(2, out var value);
+
+            value.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenRemoveKeyValueAndValueDoesntMatchDontRemove()
+        {
+            this.cache.AddOrUpdate(1, 1);
+            this.cache.TryRemove(new KeyValuePair<int, int>(1, 2)).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenRemoveKeyValueAndValueDoesMatchThenRemove()
+        {
+            this.cache.AddOrUpdate(1, 1);
+            this.cache.TryRemove(new KeyValuePair<int, int>(1, 1)).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenRemoveKeyValueAndValueIsNotCreatedDoesNotRemove()
+        {
+            // seed the inner cache with an not yet created value
+            this.innerCache.AddOrUpdate(1, new AsyncAtomicFactory<int, int>());
+
+            // try to remove with the default value (0)
+            this.cache.TryRemove(new KeyValuePair<int, int>(1, 0)).Should().BeFalse();
+        }
+#endif
 
         private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
         {
