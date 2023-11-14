@@ -174,9 +174,7 @@ namespace BitFaster.Caching.Atomic
                     // If a previous thread called the factory and failed, throw the same error instead
                     // of calling the factory again.
                     if (exceptionDispatch != null)
-                    {
                         exceptionDispatch.Throw();
-                    }
 
                     try
                     {
