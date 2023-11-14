@@ -16,13 +16,7 @@ namespace BitFaster.Caching.Lru.Builder
         ///<inheritdoc/>
         public override IAsyncCache<K, V> Build()
         {
-            return info switch
-            {
-                LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue => new ConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
-                LruInfo<K> i when i.WithMetrics && i.TimeToExpireAfterWrite.HasValue => new ConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
-                LruInfo<K> i when i.TimeToExpireAfterWrite.HasValue => new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
-                _ => new FastConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
-            };
+            return ConcurrentLruFactory<K, V>.CreateAsyncCache(this.info);
         }
     }
 }
