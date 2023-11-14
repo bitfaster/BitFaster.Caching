@@ -16,7 +16,7 @@ namespace BitFaster.Caching.Lru.Builder
         ///<inheritdoc/>
         public override IAsyncCache<K, V> Build()
         {
-            return LruFactory<K, V>.CreateAsyncConcurrent(this.info);
+            return LruFactory<K, V>.CreateConcurrent(this.info) as IAsyncCache<K, V>;
         }
     }
 }
