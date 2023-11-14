@@ -40,7 +40,7 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public override ICache<K, V> Build()
         {
-            return ConcurrentLruFactory<K, V>.CreateCache(this.info);
+            return LruFactory<K, V>.CreateConcurrent(this.info);
         }
     }
 }
