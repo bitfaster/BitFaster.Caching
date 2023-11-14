@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
@@ -190,6 +186,55 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
             expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterWithMetrics()
+        {
+            ICache<string, int> expireAfter = new ConcurrentLruBuilder<string, int>()
+                .WithExpiry(new TestExpiryCalculator<string, int>((k, v) => TimeSpan.FromMinutes(5)))
+                .WithMetrics()
+                .Build();
+
+            expireAfter.Metrics.HasValue.Should().BeTrue();
+            expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
+
+            expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterWriteAndExpireAfteThrows()
+        {
+            var builder = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .WithExpiry(new TestExpiryCalculator<string, int>((k, v) => TimeSpan.FromMinutes(5)));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestExpireAfterAccessAndExpireAfteThrows()
+        {
+            var builder = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithExpiry(new TestExpiryCalculator<string, int>((k, v) => TimeSpan.FromMinutes(5)));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestExpireAfterAccessAndWriteAndExpireAfteThrows()
+        {
+            var builder = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithExpiry(new TestExpiryCalculator<string, int>((k, v) => TimeSpan.FromMinutes(5)));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
         }
 
         //  There are 15 combinations to test:
