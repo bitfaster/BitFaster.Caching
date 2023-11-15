@@ -52,7 +52,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.GetOrAdd(1, k => "1");
             lru.Policy.ExpireAfter.Value.TryGetTimeToExpire(1, out var expiry).Should().BeTrue();
-            expiry.Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire, delta);
+            expiry.Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan(), delta);
         }
 
         [Fact]
@@ -65,7 +65,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                     lru.GetOrAdd(1, valueFactory.Create);
                     return lru;
                 },
-                TestExpiryCalculator<int, string>.DefaultTimeToExpire.MultiplyBy(ttlWaitMlutiplier),
+                TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan().MultiplyBy(ttlWaitMlutiplier),
                 lru =>
                 {
                     lru.TryGet(1, out var value).Should().BeFalse();
@@ -83,7 +83,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                     lru.GetOrAdd(1, valueFactory.Create);
                     return lru;
                 },
-                TestExpiryCalculator<int, string>.DefaultTimeToExpire.MultiplyBy(ttlWaitMlutiplier),
+                TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan().MultiplyBy(ttlWaitMlutiplier),
                 lru =>
                 {
                     lru.TryUpdate(1, "3");
@@ -95,7 +95,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemIsReadTtlIsExtended()
         {
-            expiryCalculator.ExpireAfterCreate = (_, _) => TimeSpan.FromMilliseconds(100);
+            expiryCalculator.ExpireAfterCreate = (_, _) => Interval.FromTimeSpan(TimeSpan.FromMilliseconds(100));
 
             var lru = new ConcurrentLruBuilder<int, string>()
                         .WithCapacity(capacity)
@@ -130,7 +130,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
-            expiryCalculator.ExpireAfterCreate = (_, _) => TimeSpan.FromSeconds(10);
+            expiryCalculator.ExpireAfterCreate = (_, _) => Interval.FromTimeSpan(TimeSpan.FromSeconds(10));
 
             var lruEvents = new ConcurrentLruBuilder<int, string>()
                 .WithCapacity(new EqualCapacityPartition(6))
@@ -184,7 +184,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                     return lru;
                 },
-                TestExpiryCalculator<int, string>.DefaultTimeToExpire.MultiplyBy(ttlWaitMlutiplier),
+                TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan().MultiplyBy(ttlWaitMlutiplier),
                 lru =>
                 {
                     lru.Policy.ExpireAfter.Value.TrimExpired();
@@ -211,7 +211,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                   return lru;
               },
-              TestExpiryCalculator<int, string>.DefaultTimeToExpire.MultiplyBy(ttlWaitMlutiplier),
+              TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan().MultiplyBy(ttlWaitMlutiplier),
               lru =>
               {
                   lru.GetOrAdd(1, valueFactory.Create);
@@ -238,7 +238,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                     return lru;
                 },
-                TestExpiryCalculator<int, string>.DefaultTimeToExpire.MultiplyBy(ttlWaitMlutiplier),
+                TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan().MultiplyBy(ttlWaitMlutiplier),
                 lru =>
                 {
                     lru.Policy.Eviction.Value.Trim(1);

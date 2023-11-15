@@ -8,6 +8,7 @@ using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Benchmarks
 {
@@ -165,19 +166,24 @@ namespace BitFaster.Caching.Benchmarks
 
         public class FixedExpiryCalculator : IExpiryCalculator<int, int>
         {
-            public TimeSpan GetExpireAfterCreate(int key, int value)
+            Interval tenMinutes = Interval.FromTimeSpan(TimeSpan.FromMinutes(10));
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Interval GetExpireAfterCreate(int key, int value)
             {
-                return TimeSpan.FromMinutes(10);
+                return tenMinutes;
             }
 
-            public TimeSpan GetExpireAfterRead(int key, int value, TimeSpan current)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Interval GetExpireAfterRead(int key, int value, Interval current)
             {
-                return TimeSpan.FromMinutes(10);
+                return tenMinutes;
             }
 
-            public TimeSpan GetExpireAfterUpdate(int key, int value, TimeSpan current)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Interval GetExpireAfterUpdate(int key, int value, Interval current)
             {
-                return TimeSpan.FromMinutes(10);
+                return tenMinutes;
             }
         }
     }

@@ -31,16 +31,16 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void ConvertTicksReturnsTimeSpan()
         {
 #if NETFRAMEWORK
-            this.policy.ConvertTicks(StopwatchTickConverter.ToTicks(TestExpiryCalculator<int, string>.DefaultTimeToExpire) + Stopwatch.GetTimestamp()).Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire, TimeSpan.FromMilliseconds(20));
+            this.policy.ConvertTicks(StopwatchTickConverter.ToTicks(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan()) + Stopwatch.GetTimestamp()).Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan(), TimeSpan.FromMilliseconds(20));
 #else
-            this.policy.ConvertTicks(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToEnvTick64() + Environment.TickCount64).Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire, TimeSpan.FromMilliseconds(20));
+            this.policy.ConvertTicks(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan().ToEnvTick64() + Environment.TickCount64).Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan(), TimeSpan.FromMilliseconds(20));
 #endif
         }
 
         [Fact]
         public void CreateItemInitializesKeyValueAndTicks()
         {
-            var timeToExpire = TimeSpan.FromHours(1);
+            var timeToExpire = Interval.FromTimeSpan(TimeSpan.FromHours(1));
 
             expiryCalculator.ExpireAfterCreate = (k, v) => 
             {
@@ -54,9 +54,9 @@ namespace BitFaster.Caching.UnitTests.Lru
             item.Key.Should().Be(1);
             item.Value.Should().Be(2);
 #if NETFRAMEWORK
-            item.TickCount.Should().BeCloseTo(StopwatchTickConverter.ToTicks(timeToExpire) + Stopwatch.GetTimestamp(), stopwatchDelta);
+            item.TickCount.Should().BeCloseTo(StopwatchTickConverter.ToTicks(timeToExpire.ToTimeSpan()) + Stopwatch.GetTimestamp(), stopwatchDelta);
 #else
-            item.TickCount.Should().BeCloseTo((long)timeToExpire.TotalMilliseconds + Environment.TickCount64, tickCountDelta);
+            item.TickCount.Should().BeCloseTo((long)timeToExpire.ToTimeSpan().TotalMilliseconds + Environment.TickCount64, tickCountDelta);
 #endif
         }
 

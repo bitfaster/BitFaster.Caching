@@ -26,16 +26,16 @@ namespace BitFaster.Caching.Lru
         public LongTickCountLruItem<K, V> CreateItem(K key, V value)
         {
             var expiry = this.expiry.GetExpireAfterCreate(key, value);
-            return new LongTickCountLruItem<K, V>(key, value, StopwatchTickConverter.ToTicks(expiry) + Stopwatch.GetTimestamp());
+            return new LongTickCountLruItem<K, V>(key, value, expiry.raw + Stopwatch.GetTimestamp());
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountLruItem<K, V> item)
         {
-            var currentExpiry = StopwatchTickConverter.FromTicks(item.TickCount - this.time.Last);
-            var newExpiry = expiry.GetExpireAfterRead(item.Key, item.Value, currentExpiry);
-            item.TickCount = this.time.Last + StopwatchTickConverter.ToTicks(newExpiry);
+            var currentExpiry = item.TickCount - this.time.Last;
+            var newExpiry = expiry.GetExpireAfterRead(item.Key, item.Value, new Interval(currentExpiry));
+            item.TickCount = this.time.Last + newExpiry.raw;
             item.WasAccessed = true;
         }
 
@@ -44,9 +44,9 @@ namespace BitFaster.Caching.Lru
         public void Update(LongTickCountLruItem<K, V> item)
         {
             var time = Stopwatch.GetTimestamp();
-            var currentExpiry = StopwatchTickConverter.FromTicks(item.TickCount - time);
-            var newExpiry = expiry.GetExpireAfterUpdate(item.Key, item.Value, currentExpiry);
-            item.TickCount = time + StopwatchTickConverter.ToTicks(newExpiry);
+            var currentExpiry = item.TickCount - time;
+            var newExpiry = expiry.GetExpireAfterUpdate(item.Key, item.Value, new Interval(currentExpiry));
+            item.TickCount = time + newExpiry.raw;
         }
 
         ///<inheritdoc/>

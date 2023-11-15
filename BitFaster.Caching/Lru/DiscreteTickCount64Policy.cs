@@ -26,16 +26,16 @@ namespace BitFaster.Caching.Lru
         public LongTickCountLruItem<K, V> CreateItem(K key, V value)
         {
             var expiry = this.expiry.GetExpireAfterCreate(key, value);
-            return new LongTickCountLruItem<K, V>(key, value, (long)expiry.TotalMilliseconds + Environment.TickCount64);
+            return new LongTickCountLruItem<K, V>(key, value, expiry.raw + Environment.TickCount64);
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountLruItem<K, V> item)
         {
-            var currentExpiry = TimeSpan.FromMilliseconds(item.TickCount - this.time.Last);
-            var newExpiry = expiry.GetExpireAfterRead(item.Key, item.Value, currentExpiry);
-            item.TickCount = this.time.Last + (long)newExpiry.TotalMilliseconds;
+            var currentExpiry = item.TickCount - this.time.Last;
+            var newExpiry = expiry.GetExpireAfterRead(item.Key, item.Value, new Interval(currentExpiry));
+            item.TickCount = this.time.Last + newExpiry.raw;
             item.WasAccessed = true;
         }
 
@@ -44,9 +44,9 @@ namespace BitFaster.Caching.Lru
         public void Update(LongTickCountLruItem<K, V> item)
         {
             var time = Environment.TickCount64;
-            var currentExpiry = TimeSpan.FromMilliseconds(item.TickCount - time);
+            var currentExpiry = new Interval(item.TickCount - time);
             var newExpiry = expiry.GetExpireAfterUpdate(item.Key, item.Value, currentExpiry);
-            item.TickCount = time + (long)newExpiry.TotalMilliseconds;
+            item.TickCount = time + newExpiry.raw;
         }
 
         ///<inheritdoc/>
