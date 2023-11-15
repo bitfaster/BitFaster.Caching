@@ -57,6 +57,12 @@ namespace BitFaster.Caching.ThroughputAnalysis
         /// </summary>
         public unsafe static int GetLogicalCoreCount()
         {
+            // don't crash
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return Environment.ProcessorCount;
+            }
+
             uint len = 0;
             const int ERROR_INSUFFICIENT_BUFFER = 122;
 
