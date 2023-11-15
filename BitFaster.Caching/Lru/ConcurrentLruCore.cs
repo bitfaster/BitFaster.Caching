@@ -892,15 +892,10 @@ namespace BitFaster.Caching.Lru
         private class DiscreteExpiryProxy : IDiscreteTimePolicy
         {
             private readonly ConcurrentLruCore<K, V, I, P, T> lru;
-            private readonly IDiscreteItemPolicy<K, V> policy;
 
             public DiscreteExpiryProxy(ConcurrentLruCore<K, V, I, P, T> lru)
             {
                 this.lru = lru;
-
-                // note: using the interface here will box the policy (since it is constrained to be a value type)
-                // store in the proxy so that repeatedly calling TryGetTimeToExpire on the same instance won't allocate.
-                this.policy = lru.itemPolicy as IDiscreteItemPolicy<K, V>;
             }
 
             public void TrimExpired()
@@ -913,7 +908,7 @@ namespace BitFaster.Caching.Lru
                 if (key is K k && lru.dictionary.TryGetValue(k, out var item))
                 {
                     LongTickCountLruItem<K, V> tickItem = item as LongTickCountLruItem<K, V>;
-                    timeToLive = policy.ConvertTicks(tickItem.TickCount);
+                    timeToLive = new Interval(tickItem.TickCount - Interval.GetTimestamp().raw).ToTimeSpan();
                     return true;
                 }
 

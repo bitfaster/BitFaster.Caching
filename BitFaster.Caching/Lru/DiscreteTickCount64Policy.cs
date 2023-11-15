@@ -13,7 +13,7 @@ namespace BitFaster.Caching.Lru
         public TimeSpan TimeToLive => TimeSpan.Zero;
 
         ///<inheritdoc/>
-        public TimeSpan ConvertTicks(long ticks) => TimeSpan.FromMilliseconds(ticks - Environment.TickCount64);
+        public TimeSpan ConvertTicks(long ticks) => TimeSpan.FromMilliseconds(ticks - Interval.GetTimestamp().raw);
 
         public DiscretePolicy(IExpiryCalculator<K, V> expiry)
         {
@@ -26,7 +26,7 @@ namespace BitFaster.Caching.Lru
         public LongTickCountLruItem<K, V> CreateItem(K key, V value)
         {
             var expiry = this.expiry.GetExpireAfterCreate(key, value);
-            return new LongTickCountLruItem<K, V>(key, value, expiry.raw + Environment.TickCount64);
+            return new LongTickCountLruItem<K, V>(key, value, expiry.raw + Interval.GetTimestamp().raw);
         }
 
         ///<inheritdoc/>
@@ -43,7 +43,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(LongTickCountLruItem<K, V> item)
         {
-            var time = Environment.TickCount64;
+            var time = Interval.GetTimestamp().raw;
             var currentExpiry = new Interval(item.TickCount - time);
             var newExpiry = expiry.GetExpireAfterUpdate(item.Key, item.Value, currentExpiry);
             item.TickCount = time + newExpiry.raw;
@@ -53,7 +53,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
-            this.time.Last = Environment.TickCount64;
+            this.time.Last = Interval.GetTimestamp().raw;
             if (this.time.Last > item.TickCount)
             {
                 return true;
