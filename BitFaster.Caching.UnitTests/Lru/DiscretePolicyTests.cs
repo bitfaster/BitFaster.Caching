@@ -15,14 +15,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         private static readonly ulong stopwatchDelta = (ulong)StopwatchTickConverter.ToTicks(TimeSpan.FromMilliseconds(20));
         private static readonly ulong tickCountDelta = (ulong)TimeSpan.FromMilliseconds(20).ToEnvTick64();
 
-        private static readonly TimeSpan defaultTimeToExpire = TimeSpan.FromSeconds(10);
-
         public DiscretePolicyTests() 
         {
             expiryCalculator = new TestExpiryCalculator<int, int>();
-            expiryCalculator.ExpireAfterCreate = (_, _) => defaultTimeToExpire;
-            expiryCalculator.ExpireAfterRead = (_, _, _) => defaultTimeToExpire;
-            expiryCalculator.ExpireAfterUpdate = (_, _, _) => defaultTimeToExpire;
             policy = new DiscretePolicy<int, int>(expiryCalculator);
         }
 
@@ -36,9 +31,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void ConvertTicksReturnsTimeSpan()
         {
 #if NETFRAMEWORK
-            this.policy.ConvertTicks(StopwatchTickConverter.ToTicks(defaultTimeToExpire) + Stopwatch.GetTimestamp()).Should().BeCloseTo(defaultTimeToExpire, TimeSpan.FromMilliseconds(20));
+            this.policy.ConvertTicks(StopwatchTickConverter.ToTicks(TestExpiryCalculator<int, string>.DefaultTimeToExpire) + Stopwatch.GetTimestamp()).Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire, TimeSpan.FromMilliseconds(20));
 #else
-            this.policy.ConvertTicks(defaultTimeToExpire.ToEnvTick64() + Environment.TickCount64).Should().BeCloseTo(defaultTimeToExpire, TimeSpan.FromMilliseconds(20));
+            this.policy.ConvertTicks(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToEnvTick64() + Environment.TickCount64).Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire, TimeSpan.FromMilliseconds(20));
 #endif
         }
 
@@ -108,9 +103,9 @@ namespace BitFaster.Caching.UnitTests.Lru
             var item = this.policy.CreateItem(1, 2);
 
 #if NETFRAMEWORK
-            item.TickCount = item.TickCount - StopwatchTickConverter.ToTicks(TimeSpan.FromSeconds(11));
+            item.TickCount = item.TickCount - StopwatchTickConverter.ToTicks(TimeSpan.FromMilliseconds(11));
 #else
-            item.TickCount = item.TickCount - TimeSpan.FromSeconds(11).ToEnvTick64();
+            item.TickCount = item.TickCount - TimeSpan.FromMilliseconds(11).ToEnvTick64();
 #endif
             this.policy.ShouldDiscard(item).Should().BeTrue();
         }
@@ -121,9 +116,9 @@ namespace BitFaster.Caching.UnitTests.Lru
             var item = this.policy.CreateItem(1, 2);
 
 #if NETFRAMEWORK
-            item.TickCount = item.TickCount - StopwatchTickConverter.ToTicks(TimeSpan.FromSeconds(9));
+            item.TickCount = item.TickCount - StopwatchTickConverter.ToTicks(TimeSpan.FromMilliseconds(9));
 #else
-            item.TickCount = item.TickCount - (int)TimeSpan.FromSeconds(9).ToEnvTick64();
+            item.TickCount = item.TickCount - (int)TimeSpan.FromMilliseconds(9).ToEnvTick64();
 #endif
 
             this.policy.ShouldDiscard(item).Should().BeFalse();
@@ -181,9 +176,9 @@ namespace BitFaster.Caching.UnitTests.Lru
             if (isExpired)
             {
 #if NETFRAMEWORK
-                item.TickCount = item.TickCount - StopwatchTickConverter.ToTicks(TimeSpan.FromSeconds(11));
+                item.TickCount = item.TickCount - StopwatchTickConverter.ToTicks(TimeSpan.FromMilliseconds(11));
 #else
-                item.TickCount = item.TickCount - TimeSpan.FromSeconds(11).ToEnvTick64();
+                item.TickCount = item.TickCount - TimeSpan.FromMilliseconds(11).ToEnvTick64();
 #endif
             }
 
