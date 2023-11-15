@@ -3,7 +3,8 @@
 namespace BitFaster.Caching
 {
     /// <summary>
-    /// Defines a mechanism to calculate when cache entries expire.
+    /// Defines a mechanism to calculate when cache entries expire based on the item key, value 
+    /// or existing time to expire.
     /// </summary>
     public interface IExpiryCalculator<K, V>
     {

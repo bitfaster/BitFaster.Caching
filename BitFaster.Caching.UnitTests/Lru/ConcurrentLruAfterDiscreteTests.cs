@@ -31,7 +31,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru = new ConcurrentLruBuilder<int, string>()
                 .WithCapacity(capacity)
-                .WithExpiry(expiryCalculator)
+                .WithExpireAfter(expiryCalculator)
                 .Build();
         }
 
@@ -99,7 +99,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             var lru = new ConcurrentLruBuilder<int, string>()
                         .WithCapacity(capacity)
-                        .WithExpiry(expiryCalculator)
+                        .WithExpireAfter(expiryCalculator)
                         .Build();
 
             // execute the method to ensure it is always jitted
@@ -134,7 +134,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             var lruEvents = new ConcurrentLruBuilder<int, string>()
                 .WithCapacity(new EqualCapacityPartition(6))
-                .WithExpiry(expiryCalculator)
+                .WithExpireAfter(expiryCalculator)
                 .WithMetrics()
                 .Build();
 
