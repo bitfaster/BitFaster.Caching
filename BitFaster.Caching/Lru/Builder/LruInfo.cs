@@ -72,7 +72,7 @@ namespace BitFaster.Caching.Lru.Builder
         internal void ThrowIfExpirySpecified(string extensionName)
         {
             if (this.expiry != null)
-                Throw.InvalidOp("WithExpiry is not compatible with " + extensionName);
+                Throw.InvalidOp("WithExpireAfter is not compatible with " + extensionName);
         }
     }
 }
