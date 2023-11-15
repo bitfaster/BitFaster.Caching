@@ -47,6 +47,7 @@ namespace BitFaster.Caching.Benchmarks
 
         private static readonly ICache<int, int> atomicFastLru = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithAtomicGetOrAdd().Build();
         private static readonly ICache<int, int> lruAfterAccess = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithExpireAfterAccess(TimeSpan.FromMinutes(10)).Build();
+        private static readonly ICache<int, int> lruAfter = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithExpireAfter(new FixedExpiryCalculator()).Build();
 
         private static readonly BackgroundThreadScheduler background = new BackgroundThreadScheduler();
         private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(1, 9, background, EqualityComparer<int>.Default);
@@ -107,10 +108,17 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark()]
-        public void FastConcLruAfter()
+        public void FastConcLruAfterAccess()
         {
             Func<int, int> func = x => x;
             lruAfterAccess.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void FastConcLruAfter()
+        {
+            Func<int, int> func = x => x;
+            lruAfter.GetOrAdd(1, func);
         }
 
         [Benchmark()]
@@ -153,6 +161,24 @@ namespace BitFaster.Caching.Benchmarks
 
             public MemoryCacheOptions Value => this.options;
 
+        }
+
+        public class FixedExpiryCalculator : IExpiryCalculator<int, int>
+        {
+            public TimeSpan GetExpireAfterCreate(int key, int value)
+            {
+                return TimeSpan.FromMinutes(10);
+            }
+
+            public TimeSpan GetExpireAfterRead(int key, int value, TimeSpan current)
+            {
+                return TimeSpan.FromMinutes(10);
+            }
+
+            public TimeSpan GetExpireAfterUpdate(int key, int value, TimeSpan current)
+            {
+                return TimeSpan.FromMinutes(10);
+            }
         }
     }
 }
