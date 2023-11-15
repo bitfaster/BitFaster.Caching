@@ -199,7 +199,7 @@ namespace BitFaster.Caching.Lru
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
             while (true)
-            {        
+            {
                 if (this.TryGet(key, out var value))
                 {
                     return value;
@@ -396,12 +396,12 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         ///<remarks>Note: Updates to existing items do not affect LRU order. Added items are at the top of the LRU.</remarks>
         public void AddOrUpdate(K key, V value)
-        { 
+        {
             while (true)
-            { 
+            {
                 // first, try to update
                 if (this.TryUpdate(key, value))
-                { 
+                {
                     return;
                 }
 
@@ -568,7 +568,7 @@ namespace BitFaster.Caching.Lru
                         (dest, count) = CycleCold(count);
                     }
                 }
-                
+
                 // If nothing was removed yet, constrain the size of warm and cold by discarding the coldest item.
                 if (dest != ItemDestination.Remove)
                 {
@@ -787,15 +787,21 @@ namespace BitFaster.Caching.Lru
         }
 
         private static CachePolicy CreatePolicy(ConcurrentLruCore<K, V, I, P, T> lru)
-        { 
+        {
             var p = new Proxy(lru);
 
             if (typeof(P) == typeof(AfterAccessLongTicksPolicy<K, V>))
             {
-                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p));
+                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p), Optional<IDiscreteTimePolicy>.None());
             }
 
-            return new CachePolicy(new Optional<IBoundedPolicy>(p), lru.itemPolicy.CanDiscard() ? new Optional<ITimePolicy>(p) : Optional<ITimePolicy>.None()); 
+            // IsAssignableFrom is a jit intrinsic https://github.com/dotnet/runtime/issues/4920
+            if (typeof(IDiscreteItemPolicy<K, V>).IsAssignableFrom(typeof(P)))
+            {
+                return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), Optional<ITimePolicy>.None(), new Optional<IDiscreteTimePolicy>(new DiscreteExpiryProxy(lru)));
+            }
+
+            return new CachePolicy(new Optional<IBoundedPolicy>(p), lru.itemPolicy.CanDiscard() ? new Optional<ITimePolicy>(p) : Optional<ITimePolicy>.None());
         }
 
         private static Optional<ICacheMetrics> CreateMetrics(ConcurrentLruCore<K, V, I, P, T> lru)
@@ -880,6 +886,39 @@ namespace BitFaster.Caching.Lru
             public void TrimExpired()
             {
                 lru.TrimExpired();
+            }
+        }
+
+        private class DiscreteExpiryProxy : IDiscreteTimePolicy
+        {
+            private readonly ConcurrentLruCore<K, V, I, P, T> lru;
+            private readonly IDiscreteItemPolicy<K, V> policy;
+
+            public DiscreteExpiryProxy(ConcurrentLruCore<K, V, I, P, T> lru)
+            {
+                this.lru = lru;
+
+                // note: using the interface here will box the policy (since it is constrained to be a value type)
+                // store in the proxy so that repeatedly calling TryGetTimeToExpire on the same instance won't allocate.
+                this.policy = lru.itemPolicy as IDiscreteItemPolicy<K, V>;
+            }
+
+            public void TrimExpired()
+            {
+                lru.TrimExpired();
+            }
+
+            public bool TryGetTimeToExpire<TKey>(TKey key, out TimeSpan timeToLive)
+            {
+                if (key is K k && lru.dictionary.TryGetValue(k, out var item))
+                {
+                    LongTickCountLruItem<K, V> tickItem = item as LongTickCountLruItem<K, V>;
+                    timeToLive = policy.ConvertTicks(tickItem.TickCount);
+                    return true;
+                }
+
+                timeToLive = default;
+                return false;
             }
         }
     }
