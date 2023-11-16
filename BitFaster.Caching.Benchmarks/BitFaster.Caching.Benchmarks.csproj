@@ -4,6 +4,10 @@
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net48;net6.0</TargetFrameworks>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <!-- https://stackoverflow.com/a/59916801/131345 -->
+    <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows> 
+    <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
+    <IsMacOS Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsMacOS>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -25,5 +29,15 @@
   <ItemGroup>
     <ProjectReference Include="..\BitFaster.Caching\BitFaster.Caching.csproj" />
   </ItemGroup>
+
+    <PropertyGroup Condition="'$(IsWindows)'=='true'">
+        <DefineConstants>Windows</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(IsLinux)'=='true'">
+        <DefineConstants>Linux</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(IsMacOS)'=='true'">
+        <DefineConstants>MacOS</DefineConstants>
+    </PropertyGroup>
 
 </Project>

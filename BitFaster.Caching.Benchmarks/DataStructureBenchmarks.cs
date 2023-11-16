@@ -7,7 +7,9 @@ using System.Threading;
 
 namespace BitFaster.Caching.Benchmarks
 {
+#if Windows
     [SimpleJob(RuntimeMoniker.Net48)]
+#endif
     [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     public class DataStructureBenchmarks

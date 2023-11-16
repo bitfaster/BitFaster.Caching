@@ -5,9 +5,11 @@ using BenchmarkDotNet.Jobs;
 
 namespace BitFaster.Caching.Benchmarks
 {
-    [SimpleJob(RuntimeMoniker.Net48)]
-    [SimpleJob(RuntimeMoniker.Net60)]
+#if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 3)]
+    [SimpleJob(RuntimeMoniker.Net48)]
+#endif
+    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class ValueFactoryBenchmarks
@@ -45,9 +47,11 @@ namespace BitFaster.Caching.Benchmarks
     }
 
 
-    [SimpleJob(RuntimeMoniker.Net48)]
-    [SimpleJob(RuntimeMoniker.Net60)]
+#if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 3)]
+    [SimpleJob(RuntimeMoniker.Net48)]
+#endif
+    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class ValueFactoryArgBenchmarks
@@ -84,9 +88,11 @@ namespace BitFaster.Caching.Benchmarks
         }
     }
 
-    [SimpleJob(RuntimeMoniker.Net48)]
-    [SimpleJob(RuntimeMoniker.Net60)]
+#if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 3)]
+    [SimpleJob(RuntimeMoniker.Net48)]
+#endif
+    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class ValueFactoryBigArgBenchmarks
