@@ -68,6 +68,28 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
+        public void WhenAsyncCacheInterfaceDefaultTryRemoveKeyThrows()
+        {
+            var cache = new Mock<IAsyncCache<int, int>>();
+            cache.CallBase = true;
+
+            Action tryRemove = () => { cache.Object.TryRemove(1, out var value); };
+
+            tryRemove.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
+        public void WhenAsyncCacheInterfaceDefaultTryRemoveKeyValueThrows()
+        {
+            var cache = new Mock<IAsyncCache<int, int>>();
+            cache.CallBase = true;
+
+            Action tryRemove = () => { cache.Object.TryRemove(new KeyValuePair<int, int>(1, 1)); };
+
+            tryRemove.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
         public void WhenScopedCacheInterfaceDefaultGetOrAddFallback()
         {
             var cache = new Mock<IScopedCache<int, Disposable>>();

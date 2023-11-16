@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
@@ -138,6 +134,170 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .Build();
 
             lru.Policy.Eviction.Value.Capacity.Should().Be(6);
+        }
+
+        [Fact]
+        public void TestExpireAfterAccess()
+        {
+            ICache<string, int> expireAfterAccess = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .Build();
+
+            expireAfterAccess.Metrics.HasValue.Should().BeFalse();
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterAccessWithMetrics()
+        {
+            ICache<string, int> expireAfterAccess = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithMetrics()
+                .Build();
+
+            expireAfterAccess.Metrics.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterReadAndExpireAfterWriteThrows()
+        {
+            var builder = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(2));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestExpireAfter()
+        {
+            ICache<string, int> expireAfter = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
+                .Build();
+
+            expireAfter.Metrics.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
+
+            expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestAsyncExpireAfter()
+        {
+            IAsyncCache<string, int> expireAfter = new ConcurrentLruBuilder<string, int>()
+                .AsAsyncCache()
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
+                .Build();
+
+            expireAfter.Metrics.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
+
+            expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterWithMetrics()
+        {
+            ICache<string, int> expireAfter = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
+                .WithMetrics()
+                .Build();
+
+            expireAfter.Metrics.HasValue.Should().BeTrue();
+            expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
+
+            expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterWriteAndExpireAfterThrows()
+        {
+            var builder = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestExpireAfterAccessAndExpireAfterThrows()
+        {
+            var builder = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestExpireAfterAccessAndWriteAndExpireAfterThrows()
+        {
+            var builder = new ConcurrentLruBuilder<string, int>()
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestScopedWithExpireAfterThrows()
+        {
+            var builder = new ConcurrentLruBuilder<string, Disposable>()               
+                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
+                .AsScopedCache();
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestScopedAtomicWithExpireAfterThrows()
+        {
+            var builder = new ConcurrentLruBuilder<string, Disposable>()
+                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
+                .AsScopedCache()
+                .WithAtomicGetOrAdd();
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestAsyncScopedWithExpireAfterThrows()
+        {
+            var builder = new ConcurrentLruBuilder<string, Disposable>()
+                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
+                .AsAsyncCache()
+                .AsScopedCache();
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestAsyncScopedAtomicWithExpireAfterThrows()
+        {
+            var builder = new ConcurrentLruBuilder<string, Disposable>()
+                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
+                .AsAsyncCache()
+                .AsScopedCache()
+                .WithAtomicGetOrAdd();
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
         }
 
         //  There are 15 combinations to test:

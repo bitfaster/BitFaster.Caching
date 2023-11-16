@@ -13,16 +13,21 @@ namespace BitFaster.Caching.Lru.Builder
         {
         }
 
+        /// <summary>
+        /// Evict after a duration calculated for each item using the specified IExpiryCalculator.
+        /// </summary>
+        /// <param name="expiry">The expiry calculator that determines item time to expire.</param>
+        /// <returns>A ConcurrentLruBuilder</returns>
+        public AsyncConcurrentLruBuilder<K, V> WithExpireAfter(IExpiryCalculator<K, V> expiry)
+        {
+            this.info.SetExpiry(expiry);
+            return this;
+        }
+
         ///<inheritdoc/>
         public override IAsyncCache<K, V> Build()
         {
-            return info switch
-            {
-                LruInfo<K> i when i.WithMetrics && !i.TimeToExpireAfterWrite.HasValue => new ConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
-                LruInfo<K> i when i.WithMetrics && i.TimeToExpireAfterWrite.HasValue => new ConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
-                LruInfo<K> i when i.TimeToExpireAfterWrite.HasValue => new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
-                _ => new FastConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
-            };
+            return ConcurrentLru.Create<K, V>(this.info) as IAsyncCache<K, V>;
         }
     }
 }

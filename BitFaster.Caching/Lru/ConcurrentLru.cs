@@ -1,45 +1,54 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
+﻿
+using BitFaster.Caching.Lru.Builder;
 
 namespace BitFaster.Caching.Lru
 {
-    ///<inheritdoc/>
-    [DebuggerTypeProxy(typeof(CacheDebugView<,>))]
-    [DebuggerDisplay("Count = {Count}/{Capacity}")]
-    public sealed class ConcurrentLru<K, V> : ConcurrentLruCore<K, V, LruItem<K, V>, LruPolicy<K, V>, TelemetryPolicy<K, V>>
+    /// <summary>
+    /// Factory class for creating ConcurrentLru variants.
+    /// </summary>
+    internal static class ConcurrentLru
     {
         /// <summary>
-        /// Initializes a new instance of the ConcurrentLru class with the specified capacity that has the default 
-        /// concurrency level, and uses the default comparer for the key type.
+        /// Creates a ConcurrentLru instance based on the provided LruInfo.
         /// </summary>
-        /// <param name="capacity">The maximum number of elements that the ConcurrentLru can contain.</param>
-        public ConcurrentLru(int capacity)
-            : base(Defaults.ConcurrencyLevel, new FavorWarmPartition(capacity), EqualityComparer<K>.Default, default, default)
+        /// <param name="info">The LruInfo</param>
+        /// <returns>A ConcurrentLru</returns>
+        internal static ICache<K, V> Create<K, V>(LruInfo<K> info)
         {
+            if (info.TimeToExpireAfterWrite.HasValue && info.TimeToExpireAfterAccess.HasValue)
+                Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfterAccess is not supported.");
+
+            var expiry = info.GetExpiry<V>();
+
+            if (info.TimeToExpireAfterWrite.HasValue && expiry != null)
+                Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfter is not supported.");
+
+            if (info.TimeToExpireAfterAccess.HasValue && expiry != null)
+                Throw.InvalidOp("Specifying both ExpireAfterAccess and ExpireAfter is not supported.");
+
+            return (info.WithMetrics, info.TimeToExpireAfterWrite.HasValue, info.TimeToExpireAfterAccess.HasValue, expiry != null) switch
+            {
+                (true, false, false, false) => new ConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
+                (true, true, false, false) => new ConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
+                (false, true, false, false) => new FastConcurrentTLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer, info.TimeToExpireAfterWrite.Value),
+                (true, false, true, false) => CreateExpireAfterAccess<K, V, TelemetryPolicy<K, V>>(info),
+                (false, false, true, false) => CreateExpireAfterAccess<K, V, NoTelemetryPolicy<K, V>>(info),
+                (true, false, false, true) => CreateExpireAfter<K, V, TelemetryPolicy<K, V>>(info, expiry),
+                (false, false, false, true) => CreateExpireAfter<K, V, NoTelemetryPolicy<K, V>>(info, expiry),
+                _ => new FastConcurrentLru<K, V>(info.ConcurrencyLevel, info.Capacity, info.KeyComparer),
+            };
         }
 
-        /// <summary>
-        /// Initializes a new instance of the ConcurrentLru class that has the specified concurrency level, has the 
-        /// specified initial capacity, and uses the specified IEqualityComparer.
-        /// </summary>
-        /// <param name="concurrencyLevel">The estimated number of threads that will update the ConcurrentLru concurrently.</param>
-        /// <param name="capacity">The maximum number of elements that the ConcurrentLru can contain.</param>
-        /// <param name="comparer">The IEqualityComparer implementation to use when comparing keys.</param>
-        public ConcurrentLru(int concurrencyLevel, int capacity, IEqualityComparer<K> comparer)
-            : base(concurrencyLevel, new FavorWarmPartition(capacity), comparer, default, default)
+        private static ICache<K, V> CreateExpireAfterAccess<K, V, TP>(LruInfo<K> info) where TP : struct, ITelemetryPolicy<K, V>
         {
+            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterAccessLongTicksPolicy<K, V>, TP>(
+                info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterAccessLongTicksPolicy<K, V>(info.TimeToExpireAfterAccess.Value), default);
         }
 
-        /// <summary>
-        /// Initializes a new instance of the ConcurrentLru class that has the specified concurrency level, has the 
-        /// specified initial capacity, and uses the specified IEqualityComparer.
-        /// </summary>
-        /// <param name="concurrencyLevel">The estimated number of threads that will update the ConcurrentLru concurrently.</param>
-        /// <param name="capacity">The maximum number of elements that the ConcurrentLru can contain.</param>
-        /// <param name="comparer">The IEqualityComparer implementation to use when comparing keys.</param>
-        public ConcurrentLru(int concurrencyLevel, ICapacityPartition capacity, IEqualityComparer<K> comparer)
-            : base(concurrencyLevel, capacity, comparer, default, default)
+        private static ICache<K, V> CreateExpireAfter<K, V, TP>(LruInfo<K> info, IExpiryCalculator<K, V> expiry) where TP : struct, ITelemetryPolicy<K, V>
         {
+            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, DiscretePolicy<K, V>, TP>(
+                info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new DiscretePolicy<K, V>(expiry), default);
         }
     }
 }

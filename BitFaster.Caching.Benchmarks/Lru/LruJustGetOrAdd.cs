@@ -8,6 +8,7 @@ using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Benchmarks
 {
@@ -28,9 +29,11 @@ namespace BitFaster.Caching.Benchmarks
     //|               ClassicLru |  49.041 ns | 0.8575 ns | 0.8021 ns |  6.23 |    0.11 |   3,013 B |      - |         - |
     //|    RuntimeMemoryCacheGet | 107.769 ns | 1.1901 ns | 0.9938 ns | 13.69 |    0.15 |      49 B | 0.0074 |      32 B |
     //| ExtensionsMemoryCacheGet |  93.188 ns | 0.2321 ns | 0.2171 ns | 11.85 |    0.07 |      78 B | 0.0055 |      24 B |
-    [SimpleJob(RuntimeMoniker.Net48)]
-    [SimpleJob(RuntimeMoniker.Net60)]
+#if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
+    [SimpleJob(RuntimeMoniker.Net48)]
+#endif
+    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/
     // [ThreadingDiagnoser] // Requires .NET Core
@@ -46,6 +49,8 @@ namespace BitFaster.Caching.Benchmarks
         private static readonly FastConcurrentTLru<int, int> fastConcurrentTLru = new FastConcurrentTLru<int, int>(8, 9, EqualityComparer<int>.Default, TimeSpan.FromMinutes(1));
 
         private static readonly ICache<int, int> atomicFastLru = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithAtomicGetOrAdd().Build();
+        private static readonly ICache<int, int> lruAfterAccess = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithExpireAfterAccess(TimeSpan.FromMinutes(10)).Build();
+        private static readonly ICache<int, int> lruAfter = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithExpireAfter(new FixedExpiryCalculator()).Build();
 
         private static readonly BackgroundThreadScheduler background = new BackgroundThreadScheduler();
         private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(1, 9, background, EqualityComparer<int>.Default);
@@ -106,6 +111,20 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark()]
+        public void FastConcLruAfterAccess()
+        {
+            Func<int, int> func = x => x;
+            lruAfterAccess.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void FastConcLruAfter()
+        {
+            Func<int, int> func = x => x;
+            lruAfter.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
         public void ConcurrentTLru()
         {
             Func<int, int> func = x => x;
@@ -145,6 +164,29 @@ namespace BitFaster.Caching.Benchmarks
 
             public MemoryCacheOptions Value => this.options;
 
+        }
+
+        public class FixedExpiryCalculator : IExpiryCalculator<int, int>
+        {
+            Duration tenMinutes = Duration.FromTimeSpan(TimeSpan.FromMinutes(10));
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Duration GetExpireAfterCreate(int key, int value)
+            {
+                return tenMinutes;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Duration GetExpireAfterRead(int key, int value, Duration current)
+            {
+                return tenMinutes;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Duration GetExpireAfterUpdate(int key, int value, Duration current)
+            {
+                return tenMinutes;
+            }
         }
     }
 }

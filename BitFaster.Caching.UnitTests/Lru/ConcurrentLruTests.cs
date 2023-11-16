@@ -9,7 +9,6 @@ using Xunit;
 using Xunit.Abstractions;
 using System.Collections.Concurrent;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -563,11 +562,10 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lruOfDisposable.GetOrAdd(i, disposableValueFactory.Create);
             }
 
-            disposableValueFactory.Items[0].IsDisposed.Should().BeFalse();
+            disposableValueFactory.Items[0].IsDisposed.Should().BeTrue();
+
             disposableValueFactory.Items[1].IsDisposed.Should().BeFalse();
-
-            disposableValueFactory.Items[2].IsDisposed.Should().BeTrue();
-
+            disposableValueFactory.Items[2].IsDisposed.Should().BeFalse();
             disposableValueFactory.Items[3].IsDisposed.Should().BeFalse();
             disposableValueFactory.Items[4].IsDisposed.Should().BeFalse();
             disposableValueFactory.Items[5].IsDisposed.Should().BeFalse();
@@ -599,8 +597,8 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             removedItems.Count.Should().Be(2);
 
-            removedItems[0].Key.Should().Be(3);
-            removedItems[0].Value.Should().Be(4);
+            removedItems[0].Key.Should().Be(1);
+            removedItems[0].Value.Should().Be(2);
             removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
 
             removedItems[1].Key.Should().Be(4);
@@ -875,6 +873,67 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.ColdCount.Should().Be(0);
         }
 
+        // This is a special case:
+        // Cycle 1: hot => warm
+        // Cycle 2: warm => warm
+        // Cycle 3: warm => cold
+        // Cycle 4: cold => remove
+        // Cycle 5: cold => remove
+        [Fact]
+        public void WhenCacheIsSize3ItemsExistAndItemsAccessedClearRemovesAllItems()
+        {
+            lru = new ConcurrentLru<int, string>(3);
+
+            lru.AddOrUpdate(1, "1");
+            lru.AddOrUpdate(2, "1");
+
+            lru.TryGet(1, out _);
+            lru.TryGet(2, out _);
+
+            lru.Clear();
+
+            lru.Count.Should().Be(0);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        [InlineData(6)]
+        [InlineData(7)]
+        [InlineData(8)]
+        [InlineData(9)]
+        [InlineData(10)]
+        public void WhenItemsExistAndItemsAccessedClearRemovesAllItems(int itemCount)
+        {
+            // By default capacity is 9. Test all possible states of touched items
+            // in the cache.
+
+            for (int i = 0; i < itemCount; i++) 
+            {
+                lru.AddOrUpdate(i, "1");
+            }
+
+            // touch n items
+            for (int i = 0; i < itemCount; i++)
+            {
+                lru.TryGet(i, out _);
+            }
+
+            lru.Clear();
+
+            this.testOutputHelper.WriteLine("LRU " + string.Join(" ", lru.Keys));
+
+            lru.Count.Should().Be(0);
+
+            // verify queues are purged
+            lru.HotCount.Should().Be(0);
+            lru.WarmCount.Should().Be(0);
+            lru.ColdCount.Should().Be(0);
+        }
+
         [Fact]
         public void WhenWarmThenClearedIsWarmIsReset()
         {
@@ -889,6 +948,25 @@ namespace BitFaster.Caching.UnitTests.Lru
             for (int i = 0; i < 20; i++)
             { 
                 lru.GetOrAdd(i, k => k.ToString()); 
+            }
+
+            lru.Count.Should().Be(capacity.Hot + capacity.Warm + capacity.Cold);
+        }
+
+        [Fact]
+        public void WhenWarmThenTrimIsWarmIsReset()
+        {
+            for (int i = 0; i < 20; i++)
+            {
+                lru.GetOrAdd(i, k => k.ToString());
+            }
+
+            lru.Trim(6);
+            lru.Count.Should().Be(3);
+
+            for (int i = 0; i < 20; i++)
+            {
+                lru.GetOrAdd(i, k => k.ToString());
             }
 
             lru.Count.Should().Be(capacity.Hot + capacity.Warm + capacity.Cold);
@@ -956,6 +1034,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(9, new int[] { })]
         public void WhenColdItemsExistTrimRemovesExpectedItemCount(int trimCount, int[] expected)
         {
+            Warmup();
+
             // initial state:
             // Hot = 9, 8, 7
             // Warm = 3, 2, 1
@@ -1049,6 +1129,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(9, new int[] { })]
         public void WhenColdItemsAreTouchedTrimRemovesExpectedItemCount(int trimCount, int[] expected)
         {
+            Warmup();
+
             // initial state:
             // Hot = 9, 8, 7
             // Warm = 3, 2, 1
@@ -1079,6 +1161,45 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.testOutputHelper.WriteLine("exp " + string.Join(" ", expected));
 
             lru.Keys.Should().BeEquivalentTo(expected);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        [InlineData(6)]
+        [InlineData(7)]
+        [InlineData(8)]
+        [InlineData(9)]
+        [InlineData(10)]
+        public void WhenItemsExistAndItemsAccessedTrimRemovesAllItems(int itemCount)
+        {
+            // By default capacity is 9. Test all possible states of touched items
+            // in the cache.
+
+            for (int i = 0; i < itemCount; i++)
+            {
+                lru.AddOrUpdate(i, "1");
+            }
+
+            // touch n items
+            for (int i = 0; i < itemCount; i++)
+            {
+                lru.TryGet(i, out _);
+            }
+
+            lru.Trim(Math.Min(itemCount, lru.Capacity));
+
+            this.testOutputHelper.WriteLine("LRU " + string.Join(" ", lru.Keys));
+
+            lru.Count.Should().Be(0);
+
+            // verify queues are purged
+            lru.HotCount.Should().Be(0);
+            lru.WarmCount.Should().Be(0);
+            lru.ColdCount.Should().Be(0);
         }
 
         [Fact]

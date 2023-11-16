@@ -29,9 +29,8 @@ namespace BitFaster.Caching.Lru
         /// <param name="timeToLive">The time to live.</param>
         public TLruLongTicksPolicy(TimeSpan timeToLive)
         {
-            TimeSpan maxRepresentable = TimeSpan.FromTicks(9223372036854769664);
-            if (timeToLive <= TimeSpan.Zero || timeToLive > maxRepresentable)
-                Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {maxRepresentable}");
+            if (timeToLive <= TimeSpan.Zero || timeToLive > Time.MaxRepresentable)
+                Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Time.MaxRepresentable}");
 
             this.timeToLive = (long)timeToLive.TotalMilliseconds;
         }

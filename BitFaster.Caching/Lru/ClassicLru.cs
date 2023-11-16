@@ -202,14 +202,14 @@ namespace BitFaster.Caching.Lru
                 return value;
             }
 
-            value = await valueFactory(key);
+            value = await valueFactory(key).ConfigureAwait(false);
 
             if (TryAdd(key, value))
             {
                 return value;
             }
 
-            return await this.GetOrAddAsync(key, valueFactory);
+            return await this.GetOrAddAsync(key, valueFactory).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -228,14 +228,14 @@ namespace BitFaster.Caching.Lru
                 return value;
             }
 
-            value = await valueFactory(key, factoryArgument);
+            value = await valueFactory(key, factoryArgument).ConfigureAwait(false);
 
             if (TryAdd(key, value))
             {
                 return value;
             }
 
-            return await this.GetOrAddAsync(key, valueFactory, factoryArgument);
+            return await this.GetOrAddAsync(key, valueFactory, factoryArgument).ConfigureAwait(false);
         }
 
         /// <summary>

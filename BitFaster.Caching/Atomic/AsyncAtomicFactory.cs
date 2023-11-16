@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ namespace BitFaster.Caching.Atomic
     /// <typeparam name="K">The type of the key.</typeparam>
     /// <typeparam name="V">The type of the value.</typeparam>
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
-    public sealed class AsyncAtomicFactory<K, V>
+    public sealed class AsyncAtomicFactory<K, V> : IEquatable<AsyncAtomicFactory<K, V>>
     {
         private Initializer initializer;
 
@@ -92,6 +93,34 @@ namespace BitFaster.Caching.Atomic
             }
         }
 
+        ///<inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as AsyncAtomicFactory<K, V>);
+        }
+
+        ///<inheritdoc/>
+        public bool Equals(AsyncAtomicFactory<K, V> other)
+        {
+            if (other is null || !IsValueCreated || !other.IsValueCreated)
+            {
+                return false;
+            }
+
+            return EqualityComparer<V>.Default.Equals(ValueIfCreated, other.ValueIfCreated);
+        }
+
+        ///<inheritdoc/>
+        public override int GetHashCode()
+        {
+            if (!IsValueCreated)
+            {
+                return 0;
+            }
+
+            return ValueIfCreated.GetHashCode();
+        }
+
         private async ValueTask<V> CreateValueAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, V>
         {
             var init = Volatile.Read(ref initializer);
@@ -136,6 +165,7 @@ namespace BitFaster.Caching.Atomic
                 return await synchronizedTask.ConfigureAwait(false);
             }
 
+#pragma warning disable CA2002 // Do not lock on objects with weak identity
             private Task<V> DoubleCheck(Task<V> value)
             {
                 // Fast path
@@ -155,6 +185,7 @@ namespace BitFaster.Caching.Atomic
 
                 return valueTask;
             }
+#pragma warning restore CA2002 // Do not lock on objects with weak identity
         }
     }
 }

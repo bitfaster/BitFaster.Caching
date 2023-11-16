@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -69,6 +70,7 @@ namespace BitFaster.Caching.Lfu
         private readonly object maintenanceLock = new();
 
         private readonly IScheduler scheduler;
+        private readonly Action drainBuffers;
 
         private readonly LfuNode<K, V>[] drainBuffer;
 
@@ -109,6 +111,7 @@ namespace BitFaster.Caching.Lfu
             this.capacity = new LfuCapacityPartition(capacity);
 
             this.scheduler = scheduler;
+            this.drainBuffers = () => this.DrainBuffers();
 
             this.drainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
         }
@@ -478,9 +481,10 @@ namespace BitFaster.Caching.Lfu
         private void ScheduleAfterWrite()
         {
             var spinner = new SpinWait();
+            int status = this.drainStatus.NonVolatileRead();
             while (true)
             {
-                switch (this.drainStatus.Status())
+                switch (status)
                 {
                     case DrainStatus.Idle:
                         this.drainStatus.Cas(DrainStatus.Idle, DrainStatus.Required);
@@ -494,6 +498,7 @@ namespace BitFaster.Caching.Lfu
                         {
                             return;
                         }
+                        status = this.drainStatus.VolatileRead();
                         break;
                     case DrainStatus.ProcessingToRequired:
                         return;
@@ -509,7 +514,7 @@ namespace BitFaster.Caching.Lfu
 
         private void TryScheduleDrain()
         {
-            if (this.drainStatus.Status() >= DrainStatus.ProcessingToIdle)
+            if (this.drainStatus.NonVolatileRead() >= DrainStatus.ProcessingToIdle)
             {
                 return;
             }
@@ -521,15 +526,15 @@ namespace BitFaster.Caching.Lfu
 
                 if (lockTaken)
                 {
-                    int status = this.drainStatus.Status();
+                    int status = this.drainStatus.NonVolatileRead();
 
                     if (status >= DrainStatus.ProcessingToIdle)
                     {
                         return;
                     }
 
-                    this.drainStatus.Set(DrainStatus.ProcessingToIdle);
-                    scheduler.Run(() => DrainBuffers());
+                    this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
+                    scheduler.Run(this.drainBuffers);
                 }
             }
             finally
@@ -559,7 +564,7 @@ namespace BitFaster.Caching.Lfu
                 }
             }
 
-            if (this.drainStatus.Status() == DrainStatus.Required)
+            if (this.drainStatus.VolatileRead() == DrainStatus.Required)
             {
                 TryScheduleDrain();
             }
@@ -567,7 +572,7 @@ namespace BitFaster.Caching.Lfu
 
         private bool Maintenance(LfuNode<K, V> droppedWrite = null)
         {
-            this.drainStatus.Set(DrainStatus.ProcessingToIdle);
+            this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
 
             // Note: this is only Span on .NET Core 3.1+, else this is no-op and it is still an array
             var buffer = this.drainBuffer.AsSpanOrArray();
@@ -609,10 +614,10 @@ namespace BitFaster.Caching.Lfu
             // 1. We drained both input buffers (all work done)
             // 2. or scheduler is foreground (since don't run continuously on the foreground)
             if ((done || !scheduler.IsBackground) &&
-                (this.drainStatus.Status() != DrainStatus.ProcessingToIdle ||
+                (this.drainStatus.NonVolatileRead() != DrainStatus.ProcessingToIdle ||
                 !this.drainStatus.Cas(DrainStatus.ProcessingToIdle, DrainStatus.Idle)))
             {
-                this.drainStatus.Set(DrainStatus.Required);
+                this.drainStatus.NonVolatileWrite(DrainStatus.Required);
             }
 
             return done;
@@ -743,6 +748,7 @@ namespace BitFaster.Caching.Lfu
             public LfuNode<K, V> node;
             public int freq;
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public EvictIterator(CmSketch<K> sketch, LfuNode<K, V> node)
             {
                 this.sketch = sketch;
@@ -750,6 +756,7 @@ namespace BitFaster.Caching.Lfu
                 freq = node == null ? -1 : sketch.EstimateFrequency(node.Key);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Next()
             {
                 node = node.Next;
@@ -863,9 +870,10 @@ namespace BitFaster.Caching.Lfu
 
             private PaddedInt drainStatus; // mutable struct, don't mark readonly
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool ShouldDrain(bool delayable)
             {
-                int status = Volatile.Read(ref this.drainStatus.Value);
+                int status = this.NonVolatileRead();
                 return status switch
                 {
                     Idle => !delayable,
@@ -875,19 +883,34 @@ namespace BitFaster.Caching.Lfu
                 };
             }
 
-            public void Set(int newStatus)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void VolatileWrite(int newStatus)
             { 
                 Volatile.Write(ref this.drainStatus.Value, newStatus);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void NonVolatileWrite(int newStatus)
+            {
+                this.drainStatus.Value = newStatus;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool Cas(int oldStatus, int newStatus)
             { 
                 return Interlocked.CompareExchange(ref this.drainStatus.Value, newStatus, oldStatus) == oldStatus;
             }
 
-            public int Status()
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public int VolatileRead()
             {
                 return Volatile.Read(ref this.drainStatus.Value);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public int NonVolatileRead()
+            {
+                return this.drainStatus.Value;
             }
 
             [ExcludeFromCodeCoverage]

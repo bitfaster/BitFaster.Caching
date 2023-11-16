@@ -9,7 +9,9 @@ namespace BitFaster.Caching.Benchmarks.Lru
     /// <summary>
     /// Compare different implementations of the TLRU policy. In particular, which clock impl is fastest?
     /// </summary>
+#if Windows
     [SimpleJob(RuntimeMoniker.Net48)]
+#endif
     [SimpleJob(RuntimeMoniker.Net60)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class TLruTimeBenchmark
