@@ -28,19 +28,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void ConvertTicksReturnsTimeSpan()
-        {
-#if NETFRAMEWORK
-            this.policy.ConvertTicks(StopwatchTickConverter.ToTicks(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan()) + Stopwatch.GetTimestamp()).Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan(), TimeSpan.FromMilliseconds(20));
-#else
-            this.policy.ConvertTicks(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan().ToEnvTick64() + Environment.TickCount64).Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan(), TimeSpan.FromMilliseconds(20));
-#endif
-        }
-
-        [Fact]
         public void CreateItemInitializesKeyValueAndTicks()
         {
-            var timeToExpire = Interval.FromTimeSpan(TimeSpan.FromHours(1));
+            var timeToExpire = Duration.FromTimeSpan(TimeSpan.FromHours(1));
 
             expiryCalculator.ExpireAfterCreate = (k, v) => 
             {

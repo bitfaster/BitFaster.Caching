@@ -908,7 +908,7 @@ namespace BitFaster.Caching.Lru
                 if (key is K k && lru.dictionary.TryGetValue(k, out var item))
                 {
                     LongTickCountLruItem<K, V> tickItem = item as LongTickCountLruItem<K, V>;
-                    timeToLive = new Interval(tickItem.TickCount - Interval.GetTimestamp().raw).ToTimeSpan();
+                    timeToLive = new Duration(tickItem.TickCount - Duration.SinceEpoch().raw).ToTimeSpan();
                     return true;
                 }
 

@@ -166,22 +166,22 @@ namespace BitFaster.Caching.Benchmarks
 
         public class FixedExpiryCalculator : IExpiryCalculator<int, int>
         {
-            Interval tenMinutes = Interval.FromTimeSpan(TimeSpan.FromMinutes(10));
+            Duration tenMinutes = Duration.FromTimeSpan(TimeSpan.FromMinutes(10));
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Interval GetExpireAfterCreate(int key, int value)
+            public Duration GetExpireAfterCreate(int key, int value)
             {
                 return tenMinutes;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Interval GetExpireAfterRead(int key, int value, Interval current)
+            public Duration GetExpireAfterRead(int key, int value, Duration current)
             {
                 return tenMinutes;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Interval GetExpireAfterUpdate(int key, int value, Interval current)
+            public Duration GetExpireAfterUpdate(int key, int value, Duration current)
             {
                 return tenMinutes;
             }

@@ -95,7 +95,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenItemIsReadTtlIsExtended()
         {
-            expiryCalculator.ExpireAfterCreate = (_, _) => Interval.FromTimeSpan(TimeSpan.FromMilliseconds(100));
+            expiryCalculator.ExpireAfterCreate = (_, _) => Duration.FromTimeSpan(TimeSpan.FromMilliseconds(100));
 
             var lru = new ConcurrentLruBuilder<int, string>()
                         .WithCapacity(capacity)
@@ -130,7 +130,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenValueEvictedItemRemovedEventIsFired()
         {
-            expiryCalculator.ExpireAfterCreate = (_, _) => Interval.FromTimeSpan(TimeSpan.FromSeconds(10));
+            expiryCalculator.ExpireAfterCreate = (_, _) => Duration.FromTimeSpan(TimeSpan.FromSeconds(10));
 
             var lruEvents = new ConcurrentLruBuilder<int, string>()
                 .WithCapacity(new EqualCapacityPartition(6))
