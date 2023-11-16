@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
 {
-#if NETCOREAPP3_0_OR_GREATER
     /// <summary>
     /// Implement an expire after access policy.
     /// </summary>
@@ -19,7 +17,7 @@ namespace BitFaster.Caching.Lru
         private readonly Time time;
 
         ///<inheritdoc/>
-        public TimeSpan TimeToLive => TimeSpan.FromMilliseconds(timeToLive);
+        public TimeSpan TimeToLive => new Duration(timeToLive).ToTimeSpan();
 
         /// <summary>
         /// Initializes a new instance of the AfterReadTickCount64Policy class with the specified time to live.
@@ -30,7 +28,7 @@ namespace BitFaster.Caching.Lru
             if (timeToLive <= TimeSpan.Zero || timeToLive > Time.MaxRepresentable)
                 Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Time.MaxRepresentable}");
 
-            this.timeToLive = (long)timeToLive.TotalMilliseconds;
+            this.timeToLive = Duration.FromTimeSpan(timeToLive).raw; //(long)timeToLive.TotalMilliseconds;
             this.time = new Time();
         }
 
@@ -38,7 +36,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LongTickCountLruItem<K, V> CreateItem(K key, V value)
         {
-            return new LongTickCountLruItem<K, V>(key, value, Environment.TickCount64);
+            return new LongTickCountLruItem<K, V>(key, value, Duration.SinceEpoch().raw);
         }
 
         ///<inheritdoc/>
@@ -53,14 +51,14 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(LongTickCountLruItem<K, V> item)
         {
-            item.TickCount = Environment.TickCount64;
+            item.TickCount = Duration.SinceEpoch().raw;
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
-            this.time.Last = Environment.TickCount64;
+            this.time.Last = Duration.SinceEpoch().raw; // Environment.TickCount64;
             if (this.time.Last - item.TickCount > this.timeToLive)
             {
                 return true;
@@ -127,5 +125,4 @@ namespace BitFaster.Caching.Lru
             return ItemDestination.Remove;
         }
     }
-#endif
 }
