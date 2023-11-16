@@ -98,18 +98,6 @@ namespace BitFaster.Caching
         }
 
         /// <summary>
-        /// Returns a long that represents the specified Duration.
-        /// </summary>
-        /// <param name="d">The duration, represented as a long</param>
-        public static implicit operator long(Duration d) => d.raw;
-
-        /// <summary>
-        /// Returns a Duration that represents the specified long value.
-        /// </summary>
-        /// <param name="b"></param>
-        public static implicit operator Duration(long b) => new Duration(b);
-
-        /// <summary>
         /// Adds two specified Duration instances.
         /// </summary>
         /// <param name="a">The first duration to add.</param>
