@@ -9,7 +9,9 @@ using System.Collections.Generic;
 
 namespace BitFaster.Caching.Benchmarks
 {
+#if Windows
     [SimpleJob(RuntimeMoniker.Net48)]
+#endif
     [SimpleJob(RuntimeMoniker.Net60)]
     //[DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser(displayGenColumns: false)]

@@ -19,9 +19,11 @@ namespace BitFaster.Caching.Benchmarks.Lru
     //| ConcurrentDictionary |  4.480 ns | 0.0230 ns | 0.0204 ns |  1.00 |    0.00 |     364 B |         - |
     //|    FastConcurrentLru |  7.705 ns | 0.0343 ns | 0.0286 ns |  1.72 |    0.01 |     448 B |         - |
     //|   FastConcurrentTLru | 25.350 ns | 0.3301 ns | 0.3088 ns |  5.66 |    0.08 |     546 B |         - |
-    [SimpleJob(RuntimeMoniker.Net48)]
-    [SimpleJob(RuntimeMoniker.Net60)]
+#if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
+    [SimpleJob(RuntimeMoniker.Net48)]
+#endif
+    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class LruJustTryGet
