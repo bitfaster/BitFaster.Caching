@@ -65,7 +65,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                     lru.GetOrAdd(1, valueFactory.Create);
                     return lru;
                 },
-                TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan().MultiplyBy(ttlWaitMlutiplier),
+                TestExpiryCalculator<int, string>.DefaultTimeToExpire.MultiplyBy(ttlWaitMlutiplier),
                 lru =>
                 {
                     lru.TryGet(1, out var value).Should().BeFalse();
@@ -83,7 +83,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                     lru.GetOrAdd(1, valueFactory.Create);
                     return lru;
                 },
-                TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan().MultiplyBy(ttlWaitMlutiplier),
+                TestExpiryCalculator<int, string>.DefaultTimeToExpire.MultiplyBy(ttlWaitMlutiplier),
                 lru =>
                 {
                     lru.TryUpdate(1, "3");
@@ -184,7 +184,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                     return lru;
                 },
-                TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan().MultiplyBy(ttlWaitMlutiplier),
+                TestExpiryCalculator<int, string>.DefaultTimeToExpire.MultiplyBy(ttlWaitMlutiplier),
                 lru =>
                 {
                     lru.Policy.ExpireAfter.Value.TrimExpired();
@@ -211,7 +211,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                   return lru;
               },
-              TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan().MultiplyBy(ttlWaitMlutiplier),
+              TestExpiryCalculator<int, string>.DefaultTimeToExpire.MultiplyBy(ttlWaitMlutiplier),
               lru =>
               {
                   lru.GetOrAdd(1, valueFactory.Create);
@@ -238,7 +238,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                     return lru;
                 },
-                TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan().MultiplyBy(ttlWaitMlutiplier),
+                TestExpiryCalculator<int, string>.DefaultTimeToExpire.MultiplyBy(ttlWaitMlutiplier),
                 lru =>
                 {
                     lru.Policy.Eviction.Value.Trim(1);
