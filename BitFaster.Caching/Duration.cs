@@ -14,6 +14,7 @@ namespace BitFaster.Caching
     /// to TimeSpan for non perf critical user code. Using long without a mul/div makes cache lookups 
     /// about 30% faster on .NET6.
     /// </remarks>
+    [DebuggerDisplay("{ToTimeSpan()}")]
     public readonly struct Duration
     {
         internal readonly long raw;
@@ -122,6 +123,6 @@ namespace BitFaster.Caching
         /// <param name="a">The minuend.</param>
         /// <param name="b">The subtrahend.</param>
         /// <returns>An duration whose value is the result of the value of a minus the value of b.</returns>
-        public static Duration operator -(Duration a, Duration b) => new Duration(a.raw + b.raw);
+        public static Duration operator -(Duration a, Duration b) => new Duration(a.raw - b.raw);
     }
 }
