@@ -13,11 +13,11 @@ namespace BitFaster.Caching.Lru
     /// </remarks>
     internal readonly struct AfterAccessLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
-        private readonly long timeToLive;
+        private readonly Duration timeToLive;
         private readonly Time time;
 
         ///<inheritdoc/>
-        public TimeSpan TimeToLive => new Duration(timeToLive).ToTimeSpan();
+        public TimeSpan TimeToLive => timeToLive.ToTimeSpan();
 
         /// <summary>
         /// Initializes a new instance of the AfterReadTickCount64Policy class with the specified time to live.
@@ -28,7 +28,7 @@ namespace BitFaster.Caching.Lru
             if (timeToLive <= TimeSpan.Zero || timeToLive > Time.MaxRepresentable)
                 Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Time.MaxRepresentable}");
 
-            this.timeToLive = Duration.FromTimeSpan(timeToLive).raw; //(long)timeToLive.TotalMilliseconds;
+            this.timeToLive = Duration.FromTimeSpan(timeToLive);
             this.time = new Time();
         }
 
@@ -58,8 +58,8 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
-            this.time.Last = Duration.SinceEpoch().raw; // Environment.TickCount64;
-            if (this.time.Last - item.TickCount > this.timeToLive)
+            this.time.Last = Duration.SinceEpoch().raw;
+            if (this.time.Last - item.TickCount > this.timeToLive.raw)
             {
                 return true;
             }
