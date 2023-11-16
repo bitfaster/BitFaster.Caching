@@ -12,8 +12,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         private readonly TestExpiryCalculator<int, int> expiryCalculator;
         private readonly DiscretePolicy<int, int> policy;
 
-        private static readonly ulong stopwatchDelta = (ulong)StopwatchTickConverter.ToTicks(TimeSpan.FromMilliseconds(20));
-        private static readonly ulong tickCountDelta = (ulong)TimeSpan.FromMilliseconds(20).ToEnvTick64();
+        private static readonly ulong epsilon = (ulong)Duration.FromSeconds(0.02).raw; // 20ms
 
         public DiscretePolicyTests() 
         {
@@ -43,11 +42,8 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             item.Key.Should().Be(1);
             item.Value.Should().Be(2);
-#if NETFRAMEWORK
-            item.TickCount.Should().BeCloseTo(StopwatchTickConverter.ToTicks(timeToExpire.ToTimeSpan()) + Stopwatch.GetTimestamp(), stopwatchDelta);
-#else
-            item.TickCount.Should().BeCloseTo((long)timeToExpire.ToTimeSpan().TotalMilliseconds + Environment.TickCount64, tickCountDelta);
-#endif
+
+            item.TickCount.Should().BeCloseTo(timeToExpire + Duration.SinceEpoch(), epsilon);
         }
 
         [Fact]

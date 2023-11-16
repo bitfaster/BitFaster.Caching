@@ -56,6 +56,16 @@ namespace BitFaster.Caching
 #endif       
         }
 
+        public static Duration FromMinutes(double value)
+        {
+            return FromTimeSpan(TimeSpan.FromMinutes(value));
+        }
+
+        public static Duration FromSeconds(double value)
+        {
+            return FromTimeSpan(TimeSpan.FromSeconds(value));
+        }
+
         public static implicit operator long(Duration d) => d.raw;
 
         public static implicit operator Duration(long b) => new Duration(b);
