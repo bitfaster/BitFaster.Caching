@@ -12,7 +12,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         private readonly TestExpiryCalculator<int, int> expiryCalculator;
         private readonly DiscretePolicy<int, int> policy;
 
-        private static readonly ulong epsilon = (ulong)Duration.FromSeconds(0.02).raw; // 20ms
+        private static readonly ulong epsilon = (ulong)Duration.FromMilliseconds(20).raw;
 
         public DiscretePolicyTests() 
         {
@@ -29,7 +29,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void CreateItemInitializesKeyValueAndTicks()
         {
-            var timeToExpire = Duration.FromTimeSpan(TimeSpan.FromHours(1));
+            var timeToExpire = Duration.FromMinutes(60);
 
             expiryCalculator.ExpireAfterCreate = (k, v) => 
             {

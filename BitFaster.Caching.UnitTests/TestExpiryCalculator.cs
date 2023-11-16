@@ -7,7 +7,7 @@ namespace BitFaster.Caching.UnitTests
     /// </summary>
     public class TestExpiryCalculator<K, V> : IExpiryCalculator<K, V>
     {
-        public static readonly Duration DefaultTimeToExpire = Duration.FromTimeSpan(TimeSpan.FromMilliseconds(10));
+        public static readonly Duration DefaultTimeToExpire = Duration.FromMilliseconds(10);
 
         public Func<K, V, Duration> ExpireAfterCreate { get; set; }
         public Func<K, V, Duration, Duration> ExpireAfterRead { get; set; }
