@@ -8,6 +8,7 @@ using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Benchmarks
 {
@@ -49,6 +50,7 @@ namespace BitFaster.Caching.Benchmarks
 
         private static readonly ICache<int, int> atomicFastLru = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithAtomicGetOrAdd().Build();
         private static readonly ICache<int, int> lruAfterAccess = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithExpireAfterAccess(TimeSpan.FromMinutes(10)).Build();
+        private static readonly ICache<int, int> lruAfter = new ConcurrentLruBuilder<int, int>().WithConcurrencyLevel(8).WithCapacity(9).WithExpireAfter(new FixedExpiryCalculator()).Build();
 
         private static readonly BackgroundThreadScheduler background = new BackgroundThreadScheduler();
         private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(1, 9, background, EqualityComparer<int>.Default);
@@ -109,10 +111,17 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark()]
-        public void FastConcLruAfter()
+        public void FastConcLruAfterAccess()
         {
             Func<int, int> func = x => x;
             lruAfterAccess.GetOrAdd(1, func);
+        }
+
+        [Benchmark()]
+        public void FastConcLruAfter()
+        {
+            Func<int, int> func = x => x;
+            lruAfter.GetOrAdd(1, func);
         }
 
         [Benchmark()]
@@ -155,6 +164,29 @@ namespace BitFaster.Caching.Benchmarks
 
             public MemoryCacheOptions Value => this.options;
 
+        }
+
+        public class FixedExpiryCalculator : IExpiryCalculator<int, int>
+        {
+            Duration tenMinutes = Duration.FromTimeSpan(TimeSpan.FromMinutes(10));
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Duration GetExpireAfterCreate(int key, int value)
+            {
+                return tenMinutes;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Duration GetExpireAfterRead(int key, int value, Duration current)
+            {
+                return tenMinutes;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Duration GetExpireAfterUpdate(int key, int value, Duration current)
+            {
+                return tenMinutes;
+            }
         }
     }
 }

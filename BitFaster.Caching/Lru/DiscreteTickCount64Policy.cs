@@ -3,17 +3,12 @@ using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
 {
-#if NETCOREAPP3_0_OR_GREATER
-    // Here the time values are in milliseconds
     internal readonly struct DiscretePolicy<K, V> : IDiscreteItemPolicy<K, V>
     {
         private readonly IExpiryCalculator<K, V> expiry;
         private readonly Time time;
 
         public TimeSpan TimeToLive => TimeSpan.Zero;
-
-        ///<inheritdoc/>
-        public TimeSpan ConvertTicks(long ticks) => TimeSpan.FromMilliseconds(ticks - Environment.TickCount64);
 
         public DiscretePolicy(IExpiryCalculator<K, V> expiry)
         {
@@ -26,16 +21,16 @@ namespace BitFaster.Caching.Lru
         public LongTickCountLruItem<K, V> CreateItem(K key, V value)
         {
             var expiry = this.expiry.GetExpireAfterCreate(key, value);
-            return new LongTickCountLruItem<K, V>(key, value, (long)expiry.TotalMilliseconds + Environment.TickCount64);
+            return new LongTickCountLruItem<K, V>(key, value, (expiry + Duration.SinceEpoch()).raw);
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountLruItem<K, V> item)
         {
-            var currentExpiry = TimeSpan.FromMilliseconds(item.TickCount - this.time.Last);
+            var currentExpiry = new Duration(item.TickCount - this.time.Last);
             var newExpiry = expiry.GetExpireAfterRead(item.Key, item.Value, currentExpiry);
-            item.TickCount = this.time.Last + (long)newExpiry.TotalMilliseconds;
+            item.TickCount = this.time.Last + newExpiry.raw;
             item.WasAccessed = true;
         }
 
@@ -43,17 +38,17 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(LongTickCountLruItem<K, V> item)
         {
-            var time = Environment.TickCount64;
-            var currentExpiry = TimeSpan.FromMilliseconds(item.TickCount - time);
+            var time = Duration.SinceEpoch();
+            var currentExpiry = new Duration(item.TickCount) - time;
             var newExpiry = expiry.GetExpireAfterUpdate(item.Key, item.Value, currentExpiry);
-            item.TickCount = time + (long)newExpiry.TotalMilliseconds;
+            item.TickCount = (time + newExpiry).raw;
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
-            this.time.Last = Environment.TickCount64;
+            this.time.Last = Duration.SinceEpoch().raw;
             if (this.time.Last > item.TickCount)
             {
                 return true;
@@ -120,5 +115,4 @@ namespace BitFaster.Caching.Lru
             return ItemDestination.Remove;
         }
     }
-#endif
 }

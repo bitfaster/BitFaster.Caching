@@ -178,7 +178,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestExpireAfter()
         {
             ICache<string, int> expireAfter = new ConcurrentLruBuilder<string, int>()
-                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => TimeSpan.FromMinutes(5)))
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
                 .Build();
 
             expireAfter.Metrics.HasValue.Should().BeFalse();
@@ -193,7 +193,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             IAsyncCache<string, int> expireAfter = new ConcurrentLruBuilder<string, int>()
                 .AsAsyncCache()
-                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => TimeSpan.FromMinutes(5)))
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
                 .Build();
 
             expireAfter.Metrics.HasValue.Should().BeFalse();
@@ -207,7 +207,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestExpireAfterWithMetrics()
         {
             ICache<string, int> expireAfter = new ConcurrentLruBuilder<string, int>()
-                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => TimeSpan.FromMinutes(5)))
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
                 .WithMetrics()
                 .Build();
 
@@ -223,7 +223,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var builder = new ConcurrentLruBuilder<string, int>()
                 .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
-                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => TimeSpan.FromMinutes(5)));
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)));
 
             Action act = () => builder.Build();
             act.Should().Throw<InvalidOperationException>();
@@ -234,7 +234,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var builder = new ConcurrentLruBuilder<string, int>()
                 .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
-                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => TimeSpan.FromMinutes(5)));
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)));
 
             Action act = () => builder.Build();
             act.Should().Throw<InvalidOperationException>();
@@ -246,7 +246,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             var builder = new ConcurrentLruBuilder<string, int>()
                 .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
                 .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
-                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => TimeSpan.FromMinutes(5)));
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)));
 
             Action act = () => builder.Build();
             act.Should().Throw<InvalidOperationException>();
@@ -256,7 +256,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestScopedWithExpireAfterThrows()
         {
             var builder = new ConcurrentLruBuilder<string, Disposable>()               
-                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => TimeSpan.FromMinutes(5)))
+                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
                 .AsScopedCache();
 
             Action act = () => builder.Build();
@@ -267,7 +267,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestScopedAtomicWithExpireAfterThrows()
         {
             var builder = new ConcurrentLruBuilder<string, Disposable>()
-                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => TimeSpan.FromMinutes(5)))
+                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
                 .AsScopedCache()
                 .WithAtomicGetOrAdd();
 
@@ -279,7 +279,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestAsyncScopedWithExpireAfterThrows()
         {
             var builder = new ConcurrentLruBuilder<string, Disposable>()
-                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => TimeSpan.FromMinutes(5)))
+                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
                 .AsAsyncCache()
                 .AsScopedCache();
 
@@ -291,7 +291,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestAsyncScopedAtomicWithExpireAfterThrows()
         {
             var builder = new ConcurrentLruBuilder<string, Disposable>()
-                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => TimeSpan.FromMinutes(5)))
+                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
                 .AsAsyncCache()
                 .AsScopedCache()
                 .WithAtomicGetOrAdd();

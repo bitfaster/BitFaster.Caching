@@ -7,11 +7,11 @@ namespace BitFaster.Caching.UnitTests
     /// </summary>
     public class TestExpiryCalculator<K, V> : IExpiryCalculator<K, V>
     {
-        public static readonly TimeSpan DefaultTimeToExpire = TimeSpan.FromMilliseconds(10);
+        public static readonly Duration DefaultTimeToExpire = Duration.FromMilliseconds(10);
 
-        public Func<K, V, TimeSpan> ExpireAfterCreate { get; set; }
-        public Func<K, V, TimeSpan, TimeSpan> ExpireAfterRead { get; set; }
-        public Func<K, V, TimeSpan, TimeSpan> ExpireAfterUpdate { get; set; }
+        public Func<K, V, Duration> ExpireAfterCreate { get; set; }
+        public Func<K, V, Duration, Duration> ExpireAfterRead { get; set; }
+        public Func<K, V, Duration, Duration> ExpireAfterUpdate { get; set; }
 
         public TestExpiryCalculator()
         {
@@ -22,7 +22,7 @@ namespace BitFaster.Caching.UnitTests
         /// Initializes a new instance of the Expiry class.
         /// </summary>
         /// <param name="expireAfter">The delegate that computes the item time to expire.</param>
-        public TestExpiryCalculator(Func<K, V, TimeSpan> expireAfter)
+        public TestExpiryCalculator(Func<K, V, Duration> expireAfter)
         {
             this.ExpireAfterCreate = expireAfter;
             this.ExpireAfterRead = null;
@@ -35,7 +35,7 @@ namespace BitFaster.Caching.UnitTests
         /// <param name="expireAfterCreate">The delegate that computes the item time to expire at creation.</param>
         /// <param name="expireAfterRead">The delegate that computes the item time to expire after a read operation.</param>
         /// <param name="expireAfterUpdate">The delegate that computes the item time to expire after an update operation.</param>
-        public TestExpiryCalculator(Func<K, V, TimeSpan> expireAfterCreate, Func<K, V, TimeSpan, TimeSpan> expireAfterRead, Func<K, V, TimeSpan, TimeSpan> expireAfterUpdate)
+        public TestExpiryCalculator(Func<K, V, Duration> expireAfterCreate, Func<K, V, Duration, Duration> expireAfterRead, Func<K, V, Duration, Duration> expireAfterUpdate)
         {
             this.ExpireAfterCreate = expireAfterCreate;
             this.ExpireAfterRead = expireAfterRead;
@@ -43,19 +43,19 @@ namespace BitFaster.Caching.UnitTests
         }
 
         ///<inheritdoc/>
-        public TimeSpan GetExpireAfterCreate(K key, V value)
+        public Duration GetExpireAfterCreate(K key, V value)
         {
             return this.ExpireAfterCreate(key, value);
         }
 
         ///<inheritdoc/>
-        public TimeSpan GetExpireAfterRead(K key, V value, TimeSpan currentTtl)
+        public Duration GetExpireAfterRead(K key, V value, Duration currentTtl)
         {
             return this.ExpireAfterRead == null ? this.ExpireAfterCreate(key, value) : this.ExpireAfterRead(key, value, currentTtl);
         }
 
         ///<inheritdoc/>
-        public TimeSpan GetExpireAfterUpdate(K key, V value, TimeSpan currentTtl)
+        public Duration GetExpireAfterUpdate(K key, V value, Duration currentTtl)
         {
             return this.ExpireAfterUpdate == null ? this.ExpireAfterCreate(key, value) : this.ExpireAfterUpdate(key, value, currentTtl);
         }

@@ -11,18 +11,18 @@ namespace BitFaster.Caching
         /// <summary>
         /// Specify the inital time to expire after an entry is created.
         /// </summary>
-        TimeSpan GetExpireAfterCreate(K key, V value);
+        Duration GetExpireAfterCreate(K key, V value);
 
         /// <summary>
         /// Specify the time to expire after an entry is read. The current time to expire may be
         /// be returned to not modify the expiration time.
         /// </summary>
-        TimeSpan GetExpireAfterRead(K key, V value, TimeSpan current);
+        Duration GetExpireAfterRead(K key, V value, Duration current);
 
         /// <summary>
         /// Specify the time to expire after an entry is updated.The current time to expire may be
         /// be returned to not modify the expiration time.
         /// </summary>
-        TimeSpan GetExpireAfterUpdate(K key, V value, TimeSpan current);
+        Duration GetExpireAfterUpdate(K key, V value, Duration current);
     }
 }

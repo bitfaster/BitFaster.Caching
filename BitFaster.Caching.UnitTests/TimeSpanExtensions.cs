@@ -9,5 +9,10 @@ namespace BitFaster.Caching.UnitTests
         {
             return TimeSpan.FromTicks(multiplicand.Ticks * multiplier);
         }
+
+        public static TimeSpan MultiplyBy(this Duration multiplicand, int multiplier)
+        {
+            return TimeSpan.FromTicks(multiplicand.ToTimeSpan().Ticks * multiplier);
+        }
     }
 }

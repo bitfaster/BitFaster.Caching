@@ -12,8 +12,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         private readonly TestExpiryCalculator<int, int> expiryCalculator;
         private readonly DiscretePolicy<int, int> policy;
 
-        private static readonly ulong stopwatchDelta = (ulong)StopwatchTickConverter.ToTicks(TimeSpan.FromMilliseconds(20));
-        private static readonly ulong tickCountDelta = (ulong)TimeSpan.FromMilliseconds(20).ToEnvTick64();
+        private static readonly ulong epsilon = (ulong)Duration.FromMilliseconds(20).raw;
 
         public DiscretePolicyTests() 
         {
@@ -28,19 +27,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void ConvertTicksReturnsTimeSpan()
-        {
-#if NETFRAMEWORK
-            this.policy.ConvertTicks(StopwatchTickConverter.ToTicks(TestExpiryCalculator<int, string>.DefaultTimeToExpire) + Stopwatch.GetTimestamp()).Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire, TimeSpan.FromMilliseconds(20));
-#else
-            this.policy.ConvertTicks(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToEnvTick64() + Environment.TickCount64).Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire, TimeSpan.FromMilliseconds(20));
-#endif
-        }
-
-        [Fact]
         public void CreateItemInitializesKeyValueAndTicks()
         {
-            var timeToExpire = TimeSpan.FromHours(1);
+            var timeToExpire = Duration.FromMinutes(60);
 
             expiryCalculator.ExpireAfterCreate = (k, v) => 
             {
@@ -53,11 +42,8 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             item.Key.Should().Be(1);
             item.Value.Should().Be(2);
-#if NETFRAMEWORK
-            item.TickCount.Should().BeCloseTo(StopwatchTickConverter.ToTicks(timeToExpire) + Stopwatch.GetTimestamp(), stopwatchDelta);
-#else
-            item.TickCount.Should().BeCloseTo((long)timeToExpire.TotalMilliseconds + Environment.TickCount64, tickCountDelta);
-#endif
+
+            item.TickCount.Should().BeCloseTo(timeToExpire.raw + Duration.SinceEpoch().raw, epsilon);
         }
 
         [Fact]
