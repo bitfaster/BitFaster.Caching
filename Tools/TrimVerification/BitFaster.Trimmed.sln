@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34309.116
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitFaster.Trimmed", "BitFaster.Trimmed\BitFaster.Trimmed.csproj", "{BDA6D44D-B26E-40A5-A5E7-E11649D88CCA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitFaster.Caching", "..\..\BitFaster.Caching\BitFaster.Caching.csproj", "{A4CECA54-D993-4498-8925-58C4C4F17B6B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BDA6D44D-B26E-40A5-A5E7-E11649D88CCA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDA6D44D-B26E-40A5-A5E7-E11649D88CCA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDA6D44D-B26E-40A5-A5E7-E11649D88CCA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDA6D44D-B26E-40A5-A5E7-E11649D88CCA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4CECA54-D993-4498-8925-58C4C4F17B6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4CECA54-D993-4498-8925-58C4C4F17B6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4CECA54-D993-4498-8925-58C4C4F17B6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4CECA54-D993-4498-8925-58C4C4F17B6B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DC498DF5-2DDD-4D98-983A-D093BDB985AA}
+	EndGlobalSection
+EndGlobal
