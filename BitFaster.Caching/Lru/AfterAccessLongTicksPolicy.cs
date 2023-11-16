@@ -6,11 +6,6 @@ namespace BitFaster.Caching.Lru
     /// <summary>
     /// Implement an expire after access policy.
     /// </summary>
-    /// <remarks>
-    /// This class measures time using Environment.TickCount64, which is significantly faster
-    /// than both Stopwatch.GetTimestamp and DateTime.UtcNow. However, resolution is lower (typically 
-    /// between 10-16ms), vs 1us for Stopwatch.GetTimestamp.
-    /// </remarks>
     internal readonly struct AfterAccessLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly Duration timeToLive;
