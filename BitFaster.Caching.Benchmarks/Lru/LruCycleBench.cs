@@ -22,9 +22,11 @@ namespace BitFaster.Caching.Benchmarks.Lru
     //| FastConcurrentTLru | 31.70 us | 0.087 us | 0.077 us |  1.39 |      6 KB | 2.3193 |     10 KB |
     //|     ConcurrentTLru | 31.85 us | 0.080 us | 0.071 us |  1.39 |      6 KB | 2.3193 |     10 KB |
     //|         ClassicLru | 16.35 us | 0.091 us | 0.076 us |  0.72 |      4 KB | 3.2959 |     14 KB |
-    [SimpleJob(RuntimeMoniker.Net48)]
-    [SimpleJob(RuntimeMoniker.Net60)]
+#if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
+    [SimpleJob(RuntimeMoniker.Net48)]
+#endif
+    [SimpleJob(RuntimeMoniker.Net60)]  
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class LruCycleBench

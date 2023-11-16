@@ -28,9 +28,11 @@ namespace BitFaster.Caching.Benchmarks
     //|               ClassicLru |  49.041 ns | 0.8575 ns | 0.8021 ns |  6.23 |    0.11 |   3,013 B |      - |         - |
     //|    RuntimeMemoryCacheGet | 107.769 ns | 1.1901 ns | 0.9938 ns | 13.69 |    0.15 |      49 B | 0.0074 |      32 B |
     //| ExtensionsMemoryCacheGet |  93.188 ns | 0.2321 ns | 0.2171 ns | 11.85 |    0.07 |      78 B | 0.0055 |      24 B |
-    [SimpleJob(RuntimeMoniker.Net48)]
-    [SimpleJob(RuntimeMoniker.Net60)]
+#if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
+    [SimpleJob(RuntimeMoniker.Net48)]
+#endif
+    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/
     // [ThreadingDiagnoser] // Requires .NET Core
