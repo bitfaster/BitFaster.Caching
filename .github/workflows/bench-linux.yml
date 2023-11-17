@@ -27,5 +27,5 @@ jobs:
     - name: Publish Results
       uses: actions/upload-artifact@v3
       with:
-        name: Benchmark Artifacts
+        name: Benchmark Artifacts (Linux)
         path: BenchmarkDotNet.Artifacts
