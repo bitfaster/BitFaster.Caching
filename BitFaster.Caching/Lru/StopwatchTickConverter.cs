@@ -12,13 +12,6 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static long ToTicks(TimeSpan timespan)
         {
-            // mac adjustment factor is 100, giving lowest maximum TTL on mac platform - use same upper limit on all platforms for consistency
-            // this also avoids overflow when multipling long.MaxValue by 1.0
-            const double maxTicks = long.MaxValue * 0.01d;
-
-            if (timespan <= TimeSpan.Zero || timespan.Ticks >= maxTicks)
-                Throw.ArgOutOfRange(nameof(timespan), $"Value must be greater than zero and less than {TimeSpan.FromTicks((long)maxTicks)}");
-
             return (long)(timespan.Ticks * stopwatchAdjustmentFactor);
         }
 

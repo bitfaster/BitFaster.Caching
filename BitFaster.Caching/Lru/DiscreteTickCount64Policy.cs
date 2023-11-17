@@ -12,6 +12,9 @@ namespace BitFaster.Caching.Lru
 
         public DiscretePolicy(IExpiryCalculator<K, V> expiry)
         {
+            if (expiry == null)
+                Throw.ArgNull(ExceptionArgument.expiry);
+
             this.expiry = expiry;
             this.time = new Time();
         }
