@@ -1,27 +1,18 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
 {
-// backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
     /// <summary>
     /// Time aware Least Recently Used (TLRU) is a variant of LRU which discards the least 
     /// recently used items first, and any item that has expired.
     /// </summary>
-    /// <remarks>
-    /// This class measures time using Environment.TickCount64, which is significantly faster
-    /// than both Stopwatch.GetTimestamp and DateTime.UtcNow. However, resolution is lower (typically 
-    /// between 10-16ms), vs 1us for Stopwatch.GetTimestamp.
-    /// </remarks>
-    // backcompat: rename to TLruTickCount64Policy
     public readonly struct TLruLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
-        private readonly long timeToLive;
+        private readonly Duration timeToLive;
 
         ///<inheritdoc/>
-        public TimeSpan TimeToLive => TimeSpan.FromMilliseconds(timeToLive);
+        public TimeSpan TimeToLive => timeToLive.ToTimeSpan();
 
         /// <summary>
         /// Initializes a new instance of the TLruTicksPolicy class with the specified time to live.
@@ -30,16 +21,16 @@ namespace BitFaster.Caching.Lru
         public TLruLongTicksPolicy(TimeSpan timeToLive)
         {
             if (timeToLive <= TimeSpan.Zero || timeToLive > Time.MaxRepresentable)
-                Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Time.MaxRepresentable}");
+                Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Duration.MaxRepresentable}");
 
-            this.timeToLive = (long)timeToLive.TotalMilliseconds;
+            this.timeToLive = Duration.FromTimeSpan(timeToLive);
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LongTickCountLruItem<K, V> CreateItem(K key, V value)
         {
-            return new LongTickCountLruItem<K, V>(key, value, Environment.TickCount64);
+            return new LongTickCountLruItem<K, V>(key, value, Duration.SinceEpoch().raw);
         }
 
         ///<inheritdoc/>
@@ -53,14 +44,14 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(LongTickCountLruItem<K, V> item)
         {
-            item.TickCount = Environment.TickCount64;
+            item.TickCount = Duration.SinceEpoch().raw;
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
-            if (Environment.TickCount64 - item.TickCount > this.timeToLive)
+            if (Duration.SinceEpoch().raw - item.TickCount > this.timeToLive.raw)
             {
                 return true;
             }
@@ -134,7 +125,10 @@ namespace BitFaster.Caching.Lru
         // backcompat: remove method (exists only for compatibility with orignal TLruLongTicksPolicy)
         public static long ToTicks(TimeSpan timespan)
         {
-            return StopwatchTickConverter.ToTicks(timespan);
+            if (timespan <= TimeSpan.Zero || timespan > Time.MaxRepresentable)
+                Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Duration.MaxRepresentable}");
+
+            return Duration.FromTimeSpan(timespan).raw;
         }
 
         /// <summary>
@@ -145,8 +139,7 @@ namespace BitFaster.Caching.Lru
         // backcompat: remove method (exists only for compatibility with orignal TLruLongTicksPolicy)
         public static TimeSpan FromTicks(long ticks)
         {
-            return StopwatchTickConverter.FromTicks(ticks);
+            return new Duration(ticks).ToTimeSpan();
         }
     }
-#endif
 }

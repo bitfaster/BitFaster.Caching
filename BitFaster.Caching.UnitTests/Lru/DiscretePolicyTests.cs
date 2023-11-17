@@ -21,6 +21,14 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenCalculatorNullThrows()
+        {
+            Action act = () => new DiscretePolicy<int, int>(null);
+
+            act.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact]
         public void TimeToLiveShouldBeZero()
         {
             this.policy.TimeToLive.Should().Be(TimeSpan.Zero);
