@@ -125,7 +125,7 @@ namespace BitFaster.Caching.Lru
         // backcompat: remove method (exists only for compatibility with orignal TLruLongTicksPolicy)
         public static long ToTicks(TimeSpan timespan)
         {
-            if (timespan <= TimeSpan.Zero || timespan > Time.MaxRepresentable)
+            if (timespan <= TimeSpan.Zero || timespan > Duration.MaxRepresentable)
                 Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Duration.MaxRepresentable}");
 
             return Duration.FromTimeSpan(timespan).raw;
