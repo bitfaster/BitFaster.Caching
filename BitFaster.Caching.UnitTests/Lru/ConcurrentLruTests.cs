@@ -1202,6 +1202,39 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.ColdCount.Should().Be(0);
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        [InlineData(6)]
+        [InlineData(7)]
+        [InlineData(8)]
+        [InlineData(9)]
+        [InlineData(10)]
+        public void WhenItemsRemovedClearRemovesAllItems(int itemCount)
+        {
+            for (int i = 0; i < itemCount; i++)
+            {
+                lru.AddOrUpdate(i, "1");
+            }
+
+            // this leaves an item in the queue but not the dictionary
+            lru.TryRemove(0, out _);
+
+            lru.Clear();
+
+            this.testOutputHelper.WriteLine("LRU " + string.Join(" ", lru.Keys));
+
+            lru.Count.Should().Be(0);
+
+            // verify queues are purged
+            lru.HotCount.Should().Be(0);
+            lru.WarmCount.Should().Be(0);
+            lru.ColdCount.Should().Be(0);
+        }
+
         [Fact]
         public void WhenItemsAreDisposableTrimDisposesItems()
         {

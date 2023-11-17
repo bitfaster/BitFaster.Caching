@@ -422,7 +422,14 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public void Clear()
         {
-            this.TrimLiveItems(itemsRemoved: 0, this.Count, ItemRemovedReason.Cleared);
+            // don't overlap Clear/Trim/TrimExpired
+            lock (this.dictionary)
+            {
+                // evaluate queue count, remove everything including items removed from the dictionary but
+                // not the queues. This also avoids the expensive o(n) no lock count, or locking the dictionary.
+                int queueCount = this.HotCount + this.WarmCount + this.ColdCount;
+                this.TrimLiveItems(itemsRemoved: 0, queueCount, ItemRemovedReason.Cleared);
+            }
         }
 
         /// <summary>
@@ -446,10 +453,14 @@ namespace BitFaster.Caching.Lru
             // clamp itemCount to number of items actually in the cache
             itemCount = Math.Min(itemCount, this.HotCount + this.WarmCount + this.ColdCount);
 
-            // first scan each queue for discardable items and remove them immediately. Note this can remove > itemCount items.
-            int itemsRemoved = this.itemPolicy.CanDiscard() ? TrimAllDiscardedItems() : 0;
+            // don't overlap Clear/Trim/TrimExpired
+            lock (this.dictionary)
+            {
+                // first scan each queue for discardable items and remove them immediately. Note this can remove > itemCount items.
+                int itemsRemoved = this.itemPolicy.CanDiscard() ? TrimAllDiscardedItems() : 0;
 
-            TrimLiveItems(itemsRemoved, itemCount, ItemRemovedReason.Trimmed);
+                TrimLiveItems(itemsRemoved, itemCount, ItemRemovedReason.Trimmed);
+            }
         }
 
         private void TrimExpired()
@@ -467,41 +478,45 @@ namespace BitFaster.Caching.Lru
         // backcompat: make internal
         protected int TrimAllDiscardedItems()
         {
-            int RemoveDiscardableItems(ConcurrentQueue<I> q, ref int queueCounter)
+            // don't overlap Clear/Trim/TrimExpired
+            lock (this.dictionary)
             {
-                int itemsRemoved = 0;
-                int localCount = queueCounter;
-
-                for (int i = 0; i < localCount; i++)
+                int RemoveDiscardableItems(ConcurrentQueue<I> q, ref int queueCounter)
                 {
-                    if (q.TryDequeue(out var item))
+                    int itemsRemoved = 0;
+                    int localCount = queueCounter;
+
+                    for (int i = 0; i < localCount; i++)
                     {
-                        if (this.itemPolicy.ShouldDiscard(item))
+                        if (q.TryDequeue(out var item))
                         {
-                            Interlocked.Decrement(ref queueCounter);
-                            this.Move(item, ItemDestination.Remove, ItemRemovedReason.Trimmed);
-                            itemsRemoved++;
-                        }
-                        else
-                        {
-                            q.Enqueue(item);
+                            if (this.itemPolicy.ShouldDiscard(item))
+                            {
+                                Interlocked.Decrement(ref queueCounter);
+                                this.Move(item, ItemDestination.Remove, ItemRemovedReason.Trimmed);
+                                itemsRemoved++;
+                            }
+                            else
+                            {
+                                q.Enqueue(item);
+                            }
                         }
                     }
+
+                    return itemsRemoved;
                 }
 
-                return itemsRemoved;
+                int coldRem = RemoveDiscardableItems(coldQueue, ref this.counter.cold);
+                int warmRem = RemoveDiscardableItems(warmQueue, ref this.counter.warm);
+                int hotRem = RemoveDiscardableItems(hotQueue, ref this.counter.hot);
+
+                if (warmRem > 0)
+                {
+                    Volatile.Write(ref this.isWarm, false);
+                }
+
+                return coldRem + warmRem + hotRem;
             }
-
-            int coldRem = RemoveDiscardableItems(coldQueue, ref this.counter.cold);
-            int warmRem = RemoveDiscardableItems(warmQueue, ref this.counter.warm);
-            int hotRem = RemoveDiscardableItems(hotQueue, ref this.counter.hot);
-
-            if (warmRem > 0)
-            {
-                Volatile.Write(ref this.isWarm, false);
-            }
-
-            return coldRem + warmRem + hotRem;
         }
 
         private void TrimLiveItems(int itemsRemoved, int itemCount, ItemRemovedReason reason)
