@@ -8,7 +8,7 @@ on:
 concurrency: benchmark_pr
 
 jobs:
-  bench:
+  bench-win:
 
     runs-on: windows-latest
 
