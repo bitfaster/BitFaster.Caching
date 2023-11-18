@@ -41,14 +41,14 @@ namespace BitFaster.Caching.Lru
 
         private static ICache<K, V> CreateExpireAfterAccess<K, V, TP>(LruInfo<K> info) where TP : struct, ITelemetryPolicy<K, V>
         {
-            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterAccessLongTicksPolicy<K, V>, TP>(
-                info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterAccessLongTicksPolicy<K, V>(info.TimeToExpireAfterAccess.Value), default);
+            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterAccessPolicy<K, V>, TP>(
+                info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterAccessPolicy<K, V>(info.TimeToExpireAfterAccess.Value), default);
         }
 
         private static ICache<K, V> CreateExpireAfter<K, V, TP>(LruInfo<K> info, IExpiryCalculator<K, V> expiry) where TP : struct, ITelemetryPolicy<K, V>
         {
-            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, DiscretePolicy<K, V>, TP>(
-                info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new DiscretePolicy<K, V>(expiry), default);
+            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, DiscreteItemPolicy<K, V>, TP>(
+                info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new DiscreteItemPolicy<K, V>(expiry), default);
         }
     }
 }

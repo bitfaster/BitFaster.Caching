@@ -3,27 +3,19 @@ using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
 {
-    /// <summary>
-    /// Implement an expire after access policy.
-    /// </summary>
-    internal readonly struct AfterAccessLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    internal readonly struct DiscreteItemPolicy<K, V> : IDiscreteItemPolicy<K, V>
     {
-        private readonly Duration timeToLive;
+        private readonly IExpiryCalculator<K, V> expiry;
         private readonly Time time;
 
-        ///<inheritdoc/>
-        public TimeSpan TimeToLive => timeToLive.ToTimeSpan();
+        public TimeSpan TimeToLive => TimeSpan.Zero;
 
-        /// <summary>
-        /// Initializes a new instance of the AfterReadTickCount64Policy class with the specified time to live.
-        /// </summary>
-        /// <param name="timeToLive">The time to live.</param>
-        public AfterAccessLongTicksPolicy(TimeSpan timeToLive)
+        public DiscreteItemPolicy(IExpiryCalculator<K, V> expiry)
         {
-            if (timeToLive <= TimeSpan.Zero || timeToLive > Time.MaxRepresentable)
-                Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Time.MaxRepresentable}");
+            if (expiry == null)
+                Throw.ArgNull(ExceptionArgument.expiry);
 
-            this.timeToLive = Duration.FromTimeSpan(timeToLive);
+            this.expiry = expiry;
             this.time = new Time();
         }
 
@@ -31,14 +23,17 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LongTickCountLruItem<K, V> CreateItem(K key, V value)
         {
-            return new LongTickCountLruItem<K, V>(key, value, Duration.SinceEpoch().raw);
+            var expiry = this.expiry.GetExpireAfterCreate(key, value);
+            return new LongTickCountLruItem<K, V>(key, value, (expiry + Duration.SinceEpoch()).raw);
         }
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(LongTickCountLruItem<K, V> item)
         {
-            item.TickCount = this.time.Last;
+            var currentExpiry = new Duration(item.TickCount - this.time.Last);
+            var newExpiry = expiry.GetExpireAfterRead(item.Key, item.Value, currentExpiry);
+            item.TickCount = this.time.Last + newExpiry.raw;
             item.WasAccessed = true;
         }
 
@@ -46,7 +41,10 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(LongTickCountLruItem<K, V> item)
         {
-            item.TickCount = Duration.SinceEpoch().raw;
+            var time = Duration.SinceEpoch();
+            var currentExpiry = new Duration(item.TickCount) - time;
+            var newExpiry = expiry.GetExpireAfterUpdate(item.Key, item.Value, currentExpiry);
+            item.TickCount = (time + newExpiry).raw;
         }
 
         ///<inheritdoc/>
@@ -54,7 +52,7 @@ namespace BitFaster.Caching.Lru
         public bool ShouldDiscard(LongTickCountLruItem<K, V> item)
         {
             this.time.Last = Duration.SinceEpoch().raw;
-            if (this.time.Last - item.TickCount > this.timeToLive.raw)
+            if (this.time.Last > item.TickCount)
             {
                 return true;
             }
