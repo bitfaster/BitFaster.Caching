@@ -218,7 +218,32 @@ namespace BitFaster.Caching.UnitTests.Lru
             await Threaded.Run(4, r => {
                 for (int i = 0; i < 100000; i++)
                 {
+                    // clear 6,250 times per 1_000_000 iters
                     if (r == 0 && (i & 15) == 15)
+                    {
+                        lru.Clear();
+                    }
+
+                    lru.GetOrAdd(i + 1, i => i.ToString());
+                }
+            });
+
+            this.testOutputHelper.WriteLine($"{iteration} {lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
+            this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
+
+            RunIntegrityCheck();
+        }
+
+        [Theory]
+        [Repeat(10)]
+        public async Task WhenConcurrentGetAndClearDuringWarmupCacheEndsInConsistentState(int iteration)
+        {
+            await Threaded.Run(4, r => {
+                for (int i = 0; i < 100000; i++)
+                {
+                    // clear 25,000 times per 1_000_000 iters
+                    // capacity is 9, so we will try to clear before warmup is done
+                    if (r == 0 && (i & 3) == 3)
                     {
                         lru.Clear();
                     }
