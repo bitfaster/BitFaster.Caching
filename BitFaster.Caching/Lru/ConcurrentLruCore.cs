@@ -565,6 +565,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private void Cycle(int hotCount)
         {
             if (isWarm)

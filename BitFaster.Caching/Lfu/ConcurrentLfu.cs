@@ -512,6 +512,7 @@ namespace BitFaster.Caching.Lfu
             return ((ConcurrentLfu<K, V>)this).GetEnumerator();
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private void TryScheduleDrain()
         {
             if (this.drainStatus.NonVolatileRead() >= DrainStatus.ProcessingToIdle)
