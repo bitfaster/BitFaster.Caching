@@ -631,6 +631,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private (ItemDestination, int) CycleHot(int hotCount)
         {
             if (hotCount > this.capacity.Hot)
@@ -658,6 +659,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private (ItemDestination, int) CycleWarm(int count)
         {
             if (count > this.capacity.Warm)
@@ -696,6 +698,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private (ItemDestination, int) CycleCold(int count)
         {
             if (count > this.capacity.Cold)
