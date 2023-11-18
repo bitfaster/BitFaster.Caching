@@ -3,14 +3,14 @@ using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
 {
-    internal readonly struct DiscreteItemPolicy<K, V> : IDiscreteItemPolicy<K, V>
+    internal readonly struct DiscretePolicy<K, V> : IDiscreteItemPolicy<K, V>
     {
         private readonly IExpiryCalculator<K, V> expiry;
         private readonly Time time;
 
         public TimeSpan TimeToLive => TimeSpan.Zero;
 
-        public DiscreteItemPolicy(IExpiryCalculator<K, V> expiry)
+        public DiscretePolicy(IExpiryCalculator<K, V> expiry)
         {
             if (expiry == null)
                 Throw.ArgNull(ExceptionArgument.expiry);

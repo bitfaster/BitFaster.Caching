@@ -9,20 +9,20 @@ namespace BitFaster.Caching.UnitTests.Lru
     public class DiscretePolicyTests
     {
         private readonly TestExpiryCalculator<int, int> expiryCalculator;
-        private readonly DiscreteItemPolicy<int, int> policy;
+        private readonly DiscretePolicy<int, int> policy;
 
         private static readonly ulong epsilon = (ulong)Duration.FromMilliseconds(20).raw;
 
         public DiscretePolicyTests() 
         {
             expiryCalculator = new TestExpiryCalculator<int, int>();
-            policy = new DiscreteItemPolicy<int, int>(expiryCalculator);
+            policy = new DiscretePolicy<int, int>(expiryCalculator);
         }
 
         [Fact]
         public void WhenCalculatorNullThrows()
         {
-            Action act = () => new DiscreteItemPolicy<int, int>(null);
+            Action act = () => new DiscretePolicy<int, int>(null);
 
             act.Should().Throw<ArgumentNullException>();
         }
