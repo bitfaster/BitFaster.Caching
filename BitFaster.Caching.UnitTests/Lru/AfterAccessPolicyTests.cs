@@ -113,7 +113,12 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsExpiredShouldDiscardIsTrue()
         {
             var item = this.policy.CreateItem(1, 2);
+
+#if NETFRAMEWORK
+            item.TickCount = Stopwatch.GetTimestamp() - StopwatchTickConverter.ToTicks(TimeSpan.FromSeconds(11));
+#else
             item.TickCount = Environment.TickCount - (int)TimeSpan.FromSeconds(11).ToEnvTick64();
+#endif
 
             this.policy.ShouldDiscard(item).Should().BeTrue();
         }
