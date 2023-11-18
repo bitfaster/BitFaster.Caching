@@ -55,32 +55,5 @@ namespace BitFaster.Caching
         /// a time to expire computed from the key and value.
         /// </summary>
         public Optional<IDiscreteTimePolicy> ExpireAfter { get; }
-
-		/// <summary>
-        /// If supported, trim expired items from the cache.
-        /// </summary>
-        /// <returns>True if expiry is supported and expired items were trimmed, otherwise false.</returns>
-        public bool TryTrimExpired()
-        {
-            if (ExpireAfterWrite.HasValue)
-            {
-                ExpireAfterWrite.Value.TrimExpired();
-                return true;
-            }
-
-            if (ExpireAfterAccess.HasValue)
-            {
-                ExpireAfterAccess.Value.TrimExpired();
-                return true;
-            }
-
-            if (ExpireAfter.HasValue)
-            {
-                ExpireAfter.Value.TrimExpired();
-                return true;
-            }
-
-            return false;
-        }
     }
 }
