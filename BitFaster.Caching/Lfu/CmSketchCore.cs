@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 #if !NETSTANDARD2_0
 using System.Runtime.Intrinsics;
@@ -83,6 +84,7 @@ namespace BitFaster.Caching.Lfu
         /// Increment the count of the specified value.
         /// </summary>
         /// <param name="value">The value.</param>
+        [MethodImpl((MethodImplOptions)512)]
         public void Increment(T value)
         {
 #if NETSTANDARD2_0
@@ -269,6 +271,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private unsafe void IncrementAvx(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
