@@ -8,7 +8,7 @@ namespace BitFaster.Caching
     public interface IDiscreteTimePolicy
     {
         /// <summary>
-        /// Gets the time to live for an item in the cache.
+        /// Gets the time to expire for an item in the cache.
         /// </summary>
         /// <param name="key">The key of the item.</param>
         /// <param name="timeToExpire">If the key exists, the time to live for the item with the specified key.</param>
