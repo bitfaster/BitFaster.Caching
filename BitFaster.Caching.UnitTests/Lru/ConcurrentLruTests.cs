@@ -1300,10 +1300,13 @@ namespace BitFaster.Caching.UnitTests.Lru
         where T : struct, ITelemetryPolicy<K, V>
     {
         private readonly ConcurrentLruCore<K, V, I, P, T> cache;
-        
+
+        private readonly ConcurrentDictionary<K, I> dictionary;
         private readonly ConcurrentQueue<I> hotQueue;
         private readonly ConcurrentQueue<I> warmQueue;
         private readonly ConcurrentQueue<I> coldQueue;
+
+        private static FieldInfo dictionaryField = typeof(ConcurrentLruCore<K, V, I, P, T>).GetField("dictionary", BindingFlags.NonPublic | BindingFlags.Instance);
 
         private static FieldInfo hotQueueField = typeof(ConcurrentLruCore<K, V, I, P, T>).GetField("hotQueue", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo warmQueueField = typeof(ConcurrentLruCore<K, V, I, P, T>).GetField("warmQueue", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1314,6 +1317,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.cache = cache;
 
             // get queues via reflection
+            this.dictionary = (ConcurrentDictionary<K, I>)dictionaryField.GetValue(cache);
             this.hotQueue = (ConcurrentQueue<I>)hotQueueField.GetValue(cache);
             this.warmQueue = (ConcurrentQueue<I>)warmQueueField.GetValue(cache);
             this.coldQueue = (ConcurrentQueue<I>)coldQueueField.GetValue(cache);
@@ -1344,7 +1348,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                     // It is possible for the queues to contain 2 (or more) instances of the same key/item. One that was removed,
                     // and one that was added after the other was removed.
                     // In this case, the dictionary may contain the value only if the queues contain an entry for that key marked as WasRemoved == false.
-                    if (cache.TryGet(item.Key, out var value))
+                    if (dictionary.TryGetValue(item.Key, out var value))
                     {
                         hotQueue.Union(warmQueue).Union(coldQueue)
                             .Any(i => i.Key.Equals(item.Key) && !i.WasRemoved)
@@ -1353,7 +1357,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 }
                 else
                 {
-                    cache.TryGet(item.Key, out var value).Should().BeTrue($"{queueName} item {item.Key} was not present");
+                    dictionary.TryGetValue(item.Key, out var value).Should().BeTrue($"{queueName} item {item.Key} was not present");
                 }
             }
         }
