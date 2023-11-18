@@ -6,7 +6,7 @@ namespace BitFaster.Caching.Lru
     /// <summary>
     /// Implement an expire after access policy.
     /// </summary>
-    internal readonly struct AfterAccessLongTicksPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+    internal readonly struct AfterAccessPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
     {
         private readonly Duration timeToLive;
         private readonly Time time;
@@ -18,7 +18,7 @@ namespace BitFaster.Caching.Lru
         /// Initializes a new instance of the AfterReadTickCount64Policy class with the specified time to live.
         /// </summary>
         /// <param name="timeToLive">The time to live.</param>
-        public AfterAccessLongTicksPolicy(TimeSpan timeToLive)
+        public AfterAccessPolicy(TimeSpan timeToLive)
         {
             if (timeToLive <= TimeSpan.Zero || timeToLive > Time.MaxRepresentable)
                 Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Time.MaxRepresentable}");

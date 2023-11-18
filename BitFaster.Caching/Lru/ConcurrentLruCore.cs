@@ -805,7 +805,7 @@ namespace BitFaster.Caching.Lru
         {
             var p = new Proxy(lru);
 
-            if (typeof(P) == typeof(AfterAccessLongTicksPolicy<K, V>))
+            if (typeof(P) == typeof(AfterAccessPolicy<K, V>))
             {
                 return new CachePolicy(new Optional<IBoundedPolicy>(p), Optional<ITimePolicy>.None(), new Optional<ITimePolicy>(p), Optional<IDiscreteTimePolicy>.None());
             }

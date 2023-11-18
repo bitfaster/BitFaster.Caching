@@ -10,14 +10,14 @@ using System.Diagnostics;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class AfterAccessLongTicksPolicyTests
+    public class AfterAccessPolicyTests
     {
-        private readonly AfterAccessLongTicksPolicy<int, int> policy = new AfterAccessLongTicksPolicy<int, int>(TimeSpan.FromSeconds(10));
+        private readonly AfterAccessPolicy<int, int> policy = new AfterAccessPolicy<int, int>(TimeSpan.FromSeconds(10));
 
         [Fact]
         public void WhenTtlIsTimeSpanMaxThrow()
         {
-            Action constructor = () => { new AfterAccessLongTicksPolicy<int, int>(TimeSpan.MaxValue); };
+            Action constructor = () => { new AfterAccessPolicy<int, int>(TimeSpan.MaxValue); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
@@ -25,7 +25,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenTtlIsZeroThrow()
         {
-            Action constructor = () => { new AfterAccessLongTicksPolicy<int, int>(TimeSpan.Zero); };
+            Action constructor = () => { new AfterAccessPolicy<int, int>(TimeSpan.Zero); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
@@ -38,7 +38,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 #else
             var maxRepresentable = Time.MaxRepresentable;
 #endif
-            var policy = new AfterAccessLongTicksPolicy<int, int>(maxRepresentable);
+            var policy = new AfterAccessPolicy<int, int>(maxRepresentable);
             policy.TimeToLive.Should().BeCloseTo(maxRepresentable, TimeSpan.FromTicks(20));
         }
 
