@@ -210,6 +210,29 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             cache.Metrics.Value.Evicted.Should().Be(0);
         }
+
+        [Theory]
+        [Repeat(10)]
+        public async Task WhenConcurrentGetAndClearCacheEndsInConsistentState(int iteration)
+        {
+            await Threaded.Run(4, r => {
+                for (int i = 0; i < 100000; i++)
+                {
+                    if (r == 0 && (i & 15) == 15)
+                    {
+                        lru.Clear();
+                    }
+
+                    lru.GetOrAdd(i + 1, i => i.ToString());
+                }
+            });
+
+            this.testOutputHelper.WriteLine($"{iteration} {lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
+            this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
+
+            RunIntegrityCheck();
+        }
+
         private void RunIntegrityCheck()
         {
             new ConcurrentLruIntegrityChecker<int, string, LruItem<int, string>, LruPolicy<int, string>, TelemetryPolicy<int, string>>(this.lru).Validate();
