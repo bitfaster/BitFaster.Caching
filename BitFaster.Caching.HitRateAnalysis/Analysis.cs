@@ -64,7 +64,9 @@ namespace BitFaster.Caching.HitRateAnalysis
             var combined = Chart.Combine(new[] { classic, lru, lfu, memory });
             
             combined
-                .WithAxisTitles("Glimpse", "Cache Size", "Hit Rate (%)")
+                .WithLayout("Glimpse")
+                .WithoutVerticalGridlines()
+                .WithAxisTitles("Cache Size", "Hit Rate (%)")
                 .SaveSVG(Path.GetFileNameWithoutExtension(path), Width: 1000, Height:600);
         }
     }
