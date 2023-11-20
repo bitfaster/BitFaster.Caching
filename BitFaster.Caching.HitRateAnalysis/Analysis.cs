@@ -61,10 +61,11 @@ namespace BitFaster.Caching.HitRateAnalysis
             var lfu = Chart.Line<int, double, string>(xAxis, results.Select(x => x.ConcurrentLfuHitRate), Name: "ConcurrentLfu", MarkerColor: Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Khaki));
             var memory = Chart.Line<int, double, string>(xAxis, results.Select(x => x.MemoryCacheHitRate), Name: "MemoryCache", MarkerColor: Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.FireBrick));
 
-            var y = Chart.Combine(new[] { classic, lru, lfu, memory });
+            var combined = Chart.Combine(new[] { classic, lru, lfu, memory });
             
-
-            y.WithAxisTitles("Cache Size", "Hit Rate (%)").SaveSVG(Path.GetFileName(path));
+            combined
+                .WithAxisTitles("Glimpse", "Cache Size", "Hit Rate (%)")
+                .SaveSVG(Path.GetFileNameWithoutExtension(path), Width: 1000, Height:600);
         }
     }
 }

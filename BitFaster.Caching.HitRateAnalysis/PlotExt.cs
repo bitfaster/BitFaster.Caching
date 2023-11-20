@@ -12,11 +12,11 @@ namespace BitFaster.Caching.HitRateAnalysis
 {
     public static class PlotExt
     {
-        public static GenericChart.GenericChart WithAxisTitles(this GenericChart.GenericChart chart, string xTitle, string yTitle)
+        public static GenericChart.GenericChart WithAxisTitles(this GenericChart.GenericChart chart, string title, string xTitle, string yTitle)
         {
             FSharpOption<string> xt = new FSharpOption<string>(xTitle);
             FSharpOption<string> yt = new FSharpOption<string>(yTitle);
-            return chart.WithXAxisStyle(Title.init(xt)).WithYAxisStyle(Title.init(yt));
+            return chart.WithTitle(title).WithXAxisStyle(Title.init(xt)).WithYAxisStyle(Title.init(yt));
         }
     }
 }
