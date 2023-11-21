@@ -9,7 +9,6 @@ using Microsoft.FSharp.Core;
 using Plotly.NET;
 using Plotly.NET.ImageExport;
 using Plotly.NET.LayoutObjects;
-using static Plotly.NET.StyleParam.SubPlotId;
 using Chart = Plotly.NET.CSharp.Chart;
 
 namespace BitFaster.Caching.ThroughputAnalysis
@@ -76,9 +75,9 @@ namespace BitFaster.Caching.ThroughputAnalysis
         {
             var columns = new List<string>();
 
-            foreach (DataColumn column in resultTable.Columns)
+            for(int i = 1; i < resultTable.Columns.Count; i++)
             {
-                columns.Add(column.ColumnName);
+                columns.Add(resultTable.Columns[i].ColumnName);
             }
 
             List<GenericChart.GenericChart> charts = new List<GenericChart.GenericChart>();
