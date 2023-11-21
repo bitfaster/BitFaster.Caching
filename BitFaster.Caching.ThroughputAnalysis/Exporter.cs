@@ -88,7 +88,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 string name = row[0].ToString();
                 for (var i = 1; i < resultTable.Columns.Count; i++)
                 {
-                    rowData.Add(double.Parse(row[i].ToString()));
+                    rowData.Add(double.Parse(row[i].ToString()) * 1_000_000);
                 }
 
                 var chart = Chart.Line<string, double, string>(columns, rowData, Name: name, MarkerColor: MapColor(name));
@@ -99,7 +99,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 combined
                     .WithLayout(MapTitle(mode, cacheSize))
                     .WithoutVerticalGridlines()
-                    .WithAxisTitles("Number of threads", "Ops/sec (millions)")
+                    .WithAxisTitles("Number of threads", "Ops/sec")
                     .SaveSVG($"Results_{mode}_{cacheSize}", Width: 1000, Height: 600);
             }
         }
