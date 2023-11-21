@@ -28,7 +28,7 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Plot results
-      run: dotnet run --project "\Tools\BenchPlot\Benchplot.csproj" --configuration Release "BenchmarkDotNet.Artifacts"
+      run: dotnet run --project "Tools\BenchPlot\Benchplot.csproj" --configuration Release "BenchmarkDotNet.Artifacts"
     - name: Clone splitasm repo
       uses: actions/checkout@v3
       with:
