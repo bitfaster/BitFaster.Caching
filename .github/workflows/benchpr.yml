@@ -61,7 +61,7 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Plot results
-      run: dotnet run --project ${{ github.workspace }}/Tools/BenchPlot/Benchplot.csproj --configuration Release "BenchmarkDotNet.Artifacts"
+      run: dotnet run --project ../Tools/BenchPlot/Benchplot.csproj --configuration Release "BenchmarkDotNet.Artifacts"
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Benchmark
