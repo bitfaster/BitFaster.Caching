@@ -128,13 +128,13 @@ namespace BitFaster.Caching.ThroughputAnalysis
             {
                 case "ClassicLru":
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Limegreen);
-                case "MemoryCache":
+                case "MemryCache":
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.FireBrick);
-                case "FastConcurrentLRU":
+                case "FsTConcLRU":
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Silver);
-                case "ConcurrentLRU":
+                case "ConcurrLRU":
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.RoyalBlue);
-                case "ConcurrentLFU":
+                case "ConcurrLFU":
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Khaki);
                 default:
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.FireBrick);
