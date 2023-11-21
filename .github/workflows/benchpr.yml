@@ -36,7 +36,7 @@ jobs:
     - name: Build split asm
       run: dotnet build splitasm --configuration Release
     - name: Benchmark
-      run: dotnet run --project "BitFaster.Caching.Benchmarks" -f net6.0 -c Release --filter *LruAsyncGet*   
+      run: dotnet run --project "BitFaster.Caching.Benchmarks" -f net6.0 -c Release --filter '*'
     - name: Plot results
       run: dotnet run --project "Tools\BenchPlot\Benchplot.csproj" --configuration Release "BenchmarkDotNet.Artifacts"
     - name: Post process disassembly
@@ -60,12 +60,12 @@ jobs:
         dotnet-version: 6.0.x
     - name: Install dependencies
       run: dotnet restore
+        - name: Plot results
+      run: dotnet run --project "Tools/BenchPlot/Benchplot.csproj" --configuration Release "BenchmarkDotNet.Artifacts"
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Benchmark
       run: dotnet run --project "BitFaster.Caching.Benchmarks" -f net6.0 -c Release --filter '*'
-    - name: Plot results
-      run: dotnet run --project "Tools\BenchPlot\Benchplot.csproj" --configuration Release "BenchmarkDotNet.Artifacts"
     - name: Publish Results
       uses: actions/upload-artifact@v3
       with:

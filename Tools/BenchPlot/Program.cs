@@ -7,9 +7,8 @@ using System.Globalization;
 using Chart = Plotly.NET.CSharp.Chart;
 
 // TODO:
-// 1. path is an input arg
-// 2. enable override of title by benchname from a config file
-// 3. enable a way to process the size benches for the sketch tests?
+// 1. enable override of title by benchname from a config file
+// 2. enable a way to process the size benches for the sketch tests?
 
 if (args.Length != 1)
 {
@@ -17,7 +16,7 @@ if (args.Length != 1)
     return 1;
 }
 
-string inputPath = args[0]; //@"C:\Users\alexpeck\Downloads\Benchmark Artifacts (Windows)";
+string inputPath = args[0];
 string outputPath = Path.Combine(inputPath, "plots");
 
 Console.WriteLine($"Looking for results dir at {inputPath}");

@@ -53,21 +53,6 @@ namespace BitFaster.Caching.HitRateAnalysis
             {
                 csv.WriteRecords(results);
             }
-
-            //var xAxis = results.Select(x => x.CacheSize).ToArray();
-
-            //var classic = Chart.Line<int, double, string>(xAxis, results.Select(x => x.ClassicLruHitRate), Name: "LRU", MarkerColor: Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Limegreen));
-            //var lru = Chart.Line<int, double, string>(xAxis, results.Select(x => x.ConcurrentLruHitRate), Name: "ConcurrentLru", MarkerColor: Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.RoyalBlue));
-            //var lfu = Chart.Line<int, double, string>(xAxis, results.Select(x => x.ConcurrentLfuHitRate), Name: "ConcurrentLfu", MarkerColor: Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Khaki));
-            //var memory = Chart.Line<int, double, string>(xAxis, results.Select(x => x.MemoryCacheHitRate), Name: "MemoryCache", MarkerColor: Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.FireBrick));
-
-            //var combined = Chart.Combine(new[] { classic, lru, lfu, memory });
-            
-            //combined
-            //    .WithLayout("Glimpse")
-            //    .WithoutVerticalGridlines()
-            //    .WithAxisTitles("Cache Size", "Hit Rate (%)")
-            //    .SaveSVG(Path.GetFileNameWithoutExtension(path), Width: 1000, Height:600);
         }
 
         public static void Plot(string path, string title, IEnumerable<Analysis<K>> results)

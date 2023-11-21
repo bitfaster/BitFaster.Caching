@@ -1,21 +1,16 @@
 ﻿using CsvHelper.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BenchPlot
 {
     public class BenchmarkData
     {
-        public string Method { get; set; }
+        public string Method { get; set; } = string.Empty;
 
-        public string Job { get; set; }
+        public string Job { get; set; } = string.Empty;
 
-        public string Mean { get; set; }
+        public string Mean { get; set; } = string.Empty;
 
-        public string StdDev { get; set; }
+        public string StdDev { get; set; } = string.Empty;
 
         //public string Size { get; set; }
     }
