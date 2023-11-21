@@ -31,7 +31,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
 
             this.config.Analysis.WriteToConsole();
             Analysis<long>.WriteToFile(this.config.Name, this.config.Analysis);
-            Analysis<long>.Plot(this.config.Name, this.config.Name, this.config.Analysis);
+            Analysis<long>.Plot(this.config.Title, this.config.Name, this.config.Analysis);
         }
 
         private int AnalyzeSmall()
