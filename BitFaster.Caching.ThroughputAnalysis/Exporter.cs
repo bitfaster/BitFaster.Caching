@@ -92,7 +92,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                     rowData.Add(double.Parse(row[i].ToString()));
                 }
 
-                var chart = Chart.Line<string, double, string>(columns, rowData, Name: name, MarkerColor: Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.FireBrick));
+                var chart = Chart.Line<string, double, string>(columns, rowData, Name: name, MarkerColor: MapColor(name));
                 charts.Add(chart);
 
                 var combined = Chart.Combine(charts);
@@ -119,6 +119,25 @@ namespace BitFaster.Caching.ThroughputAnalysis
                     return $"Eviction throughput (100% cache miss) for size {cacheSize}";
                 default:
                     return $"{mode} {cacheSize}";
+            }
+        }
+
+        public Color MapColor(string name)
+        {
+            switch (name)
+            {
+                case "ClassicLru":
+                    return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Limegreen);
+                case "MemoryCache":
+                    return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.FireBrick);
+                case "FastConcurrentLRU":
+                    return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Silver);
+                case "ConcurrentLRU":
+                    return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.RoyalBlue);
+                case "ConcurrentLFU":
+                    return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Khaki);
+                default:
+                    return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.FireBrick);
             }
         }
     }
