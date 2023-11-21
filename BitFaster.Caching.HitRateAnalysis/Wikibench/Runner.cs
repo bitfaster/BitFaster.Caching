@@ -47,6 +47,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
             Console.WriteLine($"Tested {count} URIs in {sw.Elapsed}");
             analysis.WriteToConsole();
             Analysis<Uri>.WriteToFile("results.wikibench.csv", analysis);
+            Analysis<Uri>.Plot("results.wiki.csv", "Wikipedia, 45 million request URIs", analysis);
         }
     }
 }

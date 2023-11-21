@@ -66,6 +66,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             exporter.CaptureRows(cachesToTest);
 
             exporter.ExportCsv(mode, cacheSize);
+            exporter.ExportPlot(mode, cacheSize);
 
             //ConsoleTable
             //    .From(resultTable)
