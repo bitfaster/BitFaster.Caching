@@ -48,7 +48,7 @@ namespace BitFaster.Caching.HitRateAnalysis
 
         public static void WriteToFile(string path, IEnumerable<Analysis<K>> results)
         {
-            using (var writer = new StreamWriter(path))
+            using (var writer = new StreamWriter(path))                                     
             using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
             {
                 csv.WriteRecords(results);
@@ -61,7 +61,7 @@ namespace BitFaster.Caching.HitRateAnalysis
 
             var classic = Chart.Line<int, double, string>(xAxis, results.Select(x => x.ClassicLruHitRate), Name: "LRU", MarkerColor: Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Limegreen));
             var lru = Chart.Line<int, double, string>(xAxis, results.Select(x => x.ConcurrentLruHitRate), Name: "ConcurrentLru", MarkerColor: Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.RoyalBlue));
-            var lfu = Chart.Line<int, double, string>(xAxis, results.Select(x => x.ConcurrentLfuHitRate), Name: "ConcurrentLfu", MarkerColor: Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Khaki));
+            var lfu = Chart.Line<int, double, string>(xAxis, results.Select(x => x.ConcurrentLfuHitRate), Name: "ConcurrentLfu", MarkerColor: Plotly.NET.Color.fromRGB(255, 192, 0));
             var memory = Chart.Line<int, double, string>(xAxis, results.Select(x => x.MemoryCacheHitRate), Name: "MemoryCache", MarkerColor: Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.FireBrick));
 
             var combined = Chart.Combine(new[] { classic, lru, lfu, memory });

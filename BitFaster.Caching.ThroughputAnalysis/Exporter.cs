@@ -134,7 +134,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 case "ConcurrLRU":
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.RoyalBlue);
                 case "ConcurrLFU":
-                    return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Khaki);
+                    return Plotly.NET.Color.fromRGB(255, 192, 0);
                 default:
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.FireBrick);
             }
@@ -145,22 +145,29 @@ namespace BitFaster.Caching.ThroughputAnalysis
     {
         public static GenericChart.GenericChart WithAxisTitles(this GenericChart.GenericChart chart, string xTitle, string yTitle)
         {
+            var font = new FSharpOption<Font>(Font.init(Size: new FSharpOption<double>(16)));
             FSharpOption<string> xt = new FSharpOption<string>(xTitle);
             FSharpOption<string> yt = new FSharpOption<string>(yTitle);
-            return chart.WithXAxisStyle(Title.init(xt)).WithYAxisStyle(Title.init(yt));
+            return chart.WithXAxisStyle(Title.init(xt, Font: font)).WithYAxisStyle(Title.init(yt, Font: font));
         }
 
         public static GenericChart.GenericChart WithoutVerticalGridlines(this GenericChart.GenericChart chart)
         {
+            var gridColor = new FSharpOption<Color>(Color.fromKeyword(ColorKeyword.Gainsboro));
+            var yaxis = LinearAxis.init<IConvertible, IConvertible, IConvertible, IConvertible, IConvertible, IConvertible>(
+                GridColor: gridColor,
+                ZeroLineColor: gridColor);
+
             var axis = LinearAxis.init<IConvertible, IConvertible, IConvertible, IConvertible, IConvertible, IConvertible>(ShowGrid: new FSharpOption<bool>(false));
-            return chart.WithXAxis(axis);
+            return chart.WithXAxis(axis).WithYAxis(yaxis);
         }
 
         public static GenericChart.GenericChart WithLayout(this GenericChart.GenericChart chart, string title)
         {
-            FSharpOption<Title> t = Title.init(Text: title, X: 0.5);
-            FSharpOption<Color> plotBGColor = new FSharpOption<Color>(Color.fromKeyword(Plotly.NET.ColorKeyword.WhiteSmoke));
-            Layout layout = Layout.init<IConvertible>(PlotBGColor: plotBGColor, Title: t);
+            var font = new FSharpOption<Font>(Font.init(Size: new FSharpOption<double>(24)));
+            FSharpOption<Title> t = Title.init(Text: title, X: 0.5, Font: font);
+            FSharpOption<Color> plotBGColor = new FSharpOption<Color>(Color.fromKeyword(ColorKeyword.WhiteSmoke));
+            Layout layout = Layout.init<IConvertible>(PaperBGColor: plotBGColor, PlotBGColor: plotBGColor, Title: t);
             return chart.WithLayout(layout);
         }
     }
