@@ -7,7 +7,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 {
     public class Runner
     {
-        private static readonly int maxThreads = Host.GetAvailableCoreCount();
+        private static readonly int maxThreads = Host.GetAvailableCoreCount() * 2;
 
         public static void Run(Mode mode, int cacheSize)
         {

@@ -6,10 +6,6 @@ using System.Data;
 using System.Globalization;
 using Chart = Plotly.NET.CSharp.Chart;
 
-// TODO:
-// 1. enable override of title by benchname from a config file
-// 2. enable a way to process the size benches for the sketch tests?
-
 if (args.Length != 1)
 {
     Console.WriteLine($"Invalid args");
