@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BitFaster.Caching.HitRateAnalysis.Zipfian;
 
 namespace BitFaster.Caching.HitRateAnalysis.Arc
 {
@@ -30,6 +31,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
 
             this.config.Analysis.WriteToConsole();
             Analysis<long>.WriteToFile(this.config.Name, this.config.Analysis);
+            Analysis<long>.Plot(this.config.Name, this.config.Name, this.config.Analysis);
         }
 
         private int AnalyzeSmall()
