@@ -62,6 +62,7 @@ foreach (string file in files)
             var chart = Chart.Column<double, string, string>(nanos, methods, MarkerColor: Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.IndianRed))
                 .WithYErrorStyle<double, IConvertible>(stdDev)
                 .WithAxisTitles("Time (ns)")
+                .WithoutVerticalGridlines()
                 .WithLayout(fn);
 
             chart.SaveSVG(Path.Combine(outputPath, fn), Width: 1000, Height: 600);
@@ -93,6 +94,7 @@ foreach (string file in files)
             var fn = $"{benchName}";
             combined
                 .WithAxisTitles("Time (ns)")
+                .WithoutVerticalGridlines()
                 .WithLayout(fn)
                 .SaveSVG(Path.Combine(outputPath, fn), Width: 1000, Height: 600);
         }
