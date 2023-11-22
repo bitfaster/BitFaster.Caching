@@ -18,13 +18,11 @@ namespace BitFaster.Caching
     public readonly struct Duration
     {
         internal readonly long raw;
-#if NETCOREAPP3_0_OR_GREATER
-        internal static readonly TimeSpan MaxRepresentable = TimeSpan.FromTicks(9223372036854769664);
-#else
+
         // MacOS Stopwatch adjustment factor is 100, giving lowest maximum TTL on mac platform - use same upper limit on all platforms for consistency
         // this also avoids overflow when multipling long.MaxValue by 1.0
-        internal static readonly TimeSpan MaxRepresentable = TimeSpan.FromTicks((long)(long.MaxValue * 0.01d));
-#endif
+        internal static readonly TimeSpan MaxRepresentable = TimeSpan.FromTicks((long)(long.MaxValue / 100.0d)) - TimeSpan.FromTicks(10);
+
         internal Duration(long raw)
         { 
             this.raw = raw; 
