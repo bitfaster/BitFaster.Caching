@@ -21,7 +21,7 @@ namespace BitFaster.Caching
 
         // MacOS Stopwatch adjustment factor is 100, giving lowest maximum TTL on mac platform - use same upper limit on all platforms for consistency
         // this also avoids overflow when multipling long.MaxValue by 1.0
-        internal static readonly TimeSpan MaxRepresentable = TimeSpan.FromTicks((long)(long.MaxValue / 100.0d)) - TimeSpan.FromTicks(10);
+        internal static readonly TimeSpan MaxRepresentable = TimeSpan.FromTicks((long)(long.MaxValue / 100.0d));
 
         internal Duration(long raw)
         { 
