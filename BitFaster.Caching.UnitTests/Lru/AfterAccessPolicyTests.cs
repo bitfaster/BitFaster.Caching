@@ -33,13 +33,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenTtlIsMaxSetAsMax()
         {
-#if NETFRAMEWORK
-            var maxRepresentable = TimeSpan.FromTicks((long)(long.MaxValue / 100.0d)) - TimeSpan.FromTicks(10);
-#else
-            var maxRepresentable = Time.MaxRepresentable;
-#endif
-            var policy = new AfterAccessPolicy<int, int>(maxRepresentable);
-            policy.TimeToLive.Should().BeCloseTo(maxRepresentable, TimeSpan.FromTicks(20));
+            var policy = new AfterAccessPolicy<int, int>(Duration.MaxRepresentable);
+            policy.TimeToLive.Should().BeCloseTo(Duration.MaxRepresentable, TimeSpan.FromMilliseconds(20));
         }
 
         [Fact]

@@ -20,8 +20,8 @@ namespace BitFaster.Caching.Lru
         /// <param name="timeToLive">The time to live.</param>
         public AfterAccessPolicy(TimeSpan timeToLive)
         {
-            if (timeToLive <= TimeSpan.Zero || timeToLive > Time.MaxRepresentable)
-                Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Time.MaxRepresentable}");
+            if (timeToLive <= TimeSpan.Zero || timeToLive > Duration.MaxRepresentable)
+                Throw.ArgOutOfRange(nameof(timeToLive), $"Value must greater than zero and less than {Duration.MaxRepresentable}");
 
             this.timeToLive = Duration.FromTimeSpan(timeToLive);
             this.time = new Time();

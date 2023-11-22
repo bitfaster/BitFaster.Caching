@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace BitFaster.Caching.Lru
+﻿namespace BitFaster.Caching.Lru
 {
     /// <summary>
     /// During reads, the policy evaluates ShouldDiscard and Touch. To avoid Getting the current time twice
@@ -9,8 +7,6 @@ namespace BitFaster.Caching.Lru
     /// </summary>
     internal class Time
     {
-        internal static readonly TimeSpan MaxRepresentable = TimeSpan.FromTicks(9223372036854769664);
-
         /// <summary>
         /// Gets or sets the last time.
         /// </summary>

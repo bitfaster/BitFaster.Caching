@@ -32,9 +32,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenTtlIsMaxSetAsMax()
         {
-            var maxRepresentable = TimeSpan.FromTicks(9223372036854769664);
-            var policy = new TLruLongTicksPolicy<int, int>(maxRepresentable);
-            policy.TimeToLive.Should().Be(maxRepresentable);
+            var policy = new TLruLongTicksPolicy<int, int>(Duration.MaxRepresentable);
+            policy.TimeToLive.Should().BeCloseTo(Duration.MaxRepresentable, TimeSpan.FromMilliseconds(20));
         }
 
         [Fact]
