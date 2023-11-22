@@ -15,7 +15,7 @@ var lru = new ConcurrentLru<string, SomeItem>(capacity);
 var value = lru.GetOrAdd("key", (key) => new SomeItem(key));
 ```
 
-Optionally configure `ConcurrentLru` with a [time-based eviction policy](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru:-Time%E2%80%90based-eviction):
+Optionally configure `ConcurrentLru` with a [time-based eviction policy](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru:-Time%E2%80%90based-eviction), either:
 - Expire after write
 - Expire after access
 - Calculate an expiry time per item
