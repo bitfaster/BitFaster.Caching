@@ -59,7 +59,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                     (sched as IDisposable)?.Dispose();
 
                     cacheConfig.DataRow[tc.ToString()] = thru.ToString();
-                    Console.WriteLine($"{cacheConfig.Name} ({tc:00}) {FormatThroughput(thru)} million ops/sec");
+                    Console.WriteLine($"{cacheConfig.Name.PadRight(18)} ({tc:00}) {FormatThroughput(thru)} million ops/sec");
                 }
             }
 

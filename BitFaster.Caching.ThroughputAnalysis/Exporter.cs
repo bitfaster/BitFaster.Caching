@@ -73,11 +73,11 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public void ExportPlot(Mode mode, int cacheSize)
         {
-            var columns = new List<string>();
+            var columns = new List<int>();
 
             for(int i = 1; i < resultTable.Columns.Count; i++)
             {
-                columns.Add(resultTable.Columns[i].ColumnName);
+                columns.Add(int.Parse(resultTable.Columns[i].ColumnName));
             }
 
             List<GenericChart.GenericChart> charts = new List<GenericChart.GenericChart>();
@@ -91,7 +91,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                     rowData.Add(double.Parse(row[i].ToString()) * 1_000_000);
                 }
 
-                var chart = Chart.Line<string, double, string>(columns, rowData, Name: name, MarkerColor: MapColor(name));
+                var chart = Chart.Line<int, double, string>(columns, rowData, Name: name, MarkerColor: MapColor(name));
                 charts.Add(chart);
 
                 var combined = Chart.Combine(charts);
@@ -109,13 +109,13 @@ namespace BitFaster.Caching.ThroughputAnalysis
             switch (mode)
             {
                 case Mode.Read:
-                    return $"Read throughput (100% cache hit) for size {cacheSize}";
+                    return $"Read throughput (100% cache hit)";
                 case Mode.ReadWrite:
-                    return $"Read + Write throughput for size {cacheSize}";
+                    return $"Read + Write throughput";
                 case Mode.Update:
-                    return $"Update throughput for size {cacheSize}";
+                    return $"Update throughput";
                 case Mode.Evict:
-                    return $"Eviction throughput (100% cache miss) for size {cacheSize}";
+                    return $"Eviction throughput (100% cache miss)";
                 default:
                     return $"{mode} {cacheSize}";
             }
@@ -127,13 +127,13 @@ namespace BitFaster.Caching.ThroughputAnalysis
             {
                 case "ClassicLru":
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Limegreen);
-                case "MemryCache":
+                case "MemoryCache":
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.FireBrick);
-                case "FsTConcLRU":
+                case "FastConcurrentLru":
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.Silver);
-                case "ConcurrLRU":
+                case "ConcurrentLru":
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.RoyalBlue);
-                case "ConcurrLFU":
+                case "ConcurrentLfu":
                     return Plotly.NET.Color.fromRGB(255, 192, 0);
                 default:
                     return Plotly.NET.Color.fromKeyword(Plotly.NET.ColorKeyword.FireBrick);
