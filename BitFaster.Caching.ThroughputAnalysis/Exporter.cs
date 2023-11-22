@@ -73,11 +73,11 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public void ExportPlot(Mode mode, int cacheSize)
         {
-            var columns = new List<string>();
+            var columns = new List<int>();
 
             for(int i = 1; i < resultTable.Columns.Count; i++)
             {
-                columns.Add(resultTable.Columns[i].ColumnName);
+                columns.Add(int.Parse(resultTable.Columns[i].ColumnName));
             }
 
             List<GenericChart.GenericChart> charts = new List<GenericChart.GenericChart>();
@@ -91,7 +91,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                     rowData.Add(double.Parse(row[i].ToString()) * 1_000_000);
                 }
 
-                var chart = Chart.Line<string, double, string>(columns, rowData, Name: name, MarkerColor: MapColor(name));
+                var chart = Chart.Line<int, double, string>(columns, rowData, Name: name, MarkerColor: MapColor(name));
                 charts.Add(chart);
 
                 var combined = Chart.Combine(charts);
