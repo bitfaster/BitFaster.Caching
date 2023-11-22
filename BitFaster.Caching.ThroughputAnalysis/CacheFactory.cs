@@ -25,7 +25,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             this.capacity = capacity;
         }
 
-        public string Name => "FsTConcLRU";
+        public string Name => "FastConcurrentLru";
 
         public DataRow DataRow { get; set; }
 
@@ -46,7 +46,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             this.capacity = capacity;
         }
 
-        public string Name => "ConcurrLRU";
+        public string Name => "ConcurrentLru";
 
         public DataRow DataRow { get; set; }
 
@@ -67,7 +67,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             this.capacity = capacity;
         }
 
-        public string Name => "MemryCache";
+        public string Name => "MemoryCache";
 
         public DataRow DataRow { get; set; }
 
@@ -88,7 +88,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             this.capacity = capacity;
         }
 
-        public string Name => "ConcurrLFU";
+        public string Name => "ConcurrentLfu";
 
         public DataRow DataRow { get; set; }
 
