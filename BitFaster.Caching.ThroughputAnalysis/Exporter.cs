@@ -109,13 +109,13 @@ namespace BitFaster.Caching.ThroughputAnalysis
             switch (mode)
             {
                 case Mode.Read:
-                    return $"Read throughput (100% cache hit) for size {cacheSize}";
+                    return $"Read throughput (100% cache hit)";
                 case Mode.ReadWrite:
-                    return $"Read + Write throughput for size {cacheSize}";
+                    return $"Read + Write throughput";
                 case Mode.Update:
-                    return $"Update throughput for size {cacheSize}";
+                    return $"Update throughput";
                 case Mode.Evict:
-                    return $"Eviction throughput (100% cache miss) for size {cacheSize}";
+                    return $"Eviction throughput (100% cache miss)";
                 default:
                     return $"{mode} {cacheSize}";
             }
