@@ -514,7 +514,7 @@ namespace BitFaster.Caching.Lfu
 
         private void TryScheduleDrain()
         {
-            if (this.drainStatus.NonVolatileRead() >= DrainStatus.ProcessingToIdle)
+            if (this.drainStatus.VolatileRead() >= DrainStatus.ProcessingToIdle)
             {
                 return;
             }
@@ -831,8 +831,6 @@ namespace BitFaster.Caching.Lfu
         {
             int victimFreq = this.cmSketch.EstimateFrequency(victimKey);
             int candidateFreq = this.cmSketch.EstimateFrequency(candidateKey);
-
-            //var (victimFreq, candidateFreq) = this.cmSketch.EstimateFrequency(victimKey, candidateKey);
 
             // TODO: random factor when candidate freq < 5
             return candidateFreq > victimFreq;
