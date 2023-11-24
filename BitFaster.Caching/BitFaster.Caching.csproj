@@ -29,7 +29,7 @@
     <IsTrimmable>true</IsTrimmable>
     <!--Package Validation-->
     <EnablePackageValidation>true</EnablePackageValidation>
-    <PackageValidationBaselineVersion>2.3.0</PackageValidationBaselineVersion>    
+    <PackageValidationBaselineVersion>2.4.0</PackageValidationBaselineVersion>    
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
