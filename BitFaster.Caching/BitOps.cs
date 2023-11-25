@@ -18,7 +18,12 @@ namespace BitFaster.Caching
             return (int)CeilingPowerOfTwo((uint)x);
         }
 
-        public static long CeilingPowerOfTwo(long x)
+        /// <summary>
+        /// Calculate the smallest power of 2 greater than the input parameter.
+        /// </summary>
+        /// <param name="x">The input parameter.</param>
+        /// <returns>Smallest power of two greater than or equal to x.</returns>
+        internal static long CeilingPowerOfTwo(long x)
         {
             return (long)CeilingPowerOfTwo((ulong)x);
         }
@@ -44,7 +49,12 @@ namespace BitFaster.Caching
 #endif
         }
 
-        public static ulong CeilingPowerOfTwo(ulong x)
+        /// <summary>
+        /// Calculate the smallest power of 2 greater than the input parameter.
+        /// </summary>
+        /// <param name="x">The input parameter.</param>
+        /// <returns>Smallest power of two greater than or equal to x.</returns>
+        internal static ulong CeilingPowerOfTwo(ulong x)
         {
 #if NETSTANDARD2_0
             // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
@@ -57,17 +67,26 @@ namespace BitFaster.Caching
             x |= x >> 32;
             return x + 1;
 #else
-            return 1u << -BitOperations.LeadingZeroCount(x - 1);
+            return 1ul << -BitOperations.LeadingZeroCount(x - 1);
 #endif
-
         }
 
-        public static int TrailingZeroCount(long x)
+        /// <summary>
+        /// Counts the number of trailing zero bits in the input parameter.
+        /// </summary>
+        /// <param name="x">The input parameter.</param>
+        /// <returns>The number of trailing zero bits.</returns>
+        internal static int TrailingZeroCount(long x)
         {
             return TrailingZeroCount((ulong)x);
         }
 
-        public static int TrailingZeroCount(ulong x)
+        /// <summary>
+        /// Counts the number of trailing zero bits in the input parameter.
+        /// </summary>
+        /// <param name="x">The input parameter.</param>
+        /// <returns>The number of trailing zero bits.</returns>
+        internal static int TrailingZeroCount(ulong x)
         {
 #if NETSTANDARD2_0
             // https://codereview.stackexchange.com/questions/288007/c-bit-utility-functions-popcount-trailing-zeros-count-reverse-all-bits
@@ -76,7 +95,6 @@ namespace BitFaster.Caching
             return BitOperations.TrailingZeroCount(x);
 #endif
         }
-
 
         /// <summary>
         /// Counts the number of 1 bits in the input parameter.
