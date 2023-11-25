@@ -6,7 +6,7 @@ High performance, thread-safe in-memory caching primitives for .NET.
 
 # Features
 
-- [ConcurrentLru](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru), a lightweight pseudo LRU based on the [2Q](https://www.vldb.org/conf/1994/P439.PDF) eviction policy. Also with [time based eviction](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentTLru).
+- [ConcurrentLru](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru), a lightweight pseudo LRU based on the [2Q](https://www.vldb.org/conf/1994/P439.PDF) eviction policy. Also with [time based eviction](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru:-Time%E2%80%90based-eviction).
 - [ConcurrentLfu](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLfu), an approximate LFU based on the [W-TinyLFU](https://arxiv.org/pdf/1512.00727.pdf) admission policy.
 - Configurable [atomic valueFactory](https://github.com/bitfaster/BitFaster.Caching/wiki/Atomic-GetOrAdd) to mitigate [cache stampede](https://en.wikipedia.org/wiki/Cache_stampede).
 - Configurable [thread-safe wrappers for IDisposable](https://github.com/bitfaster/BitFaster.Caching/wiki/IDisposable-and-Scoped-values) cache values.
