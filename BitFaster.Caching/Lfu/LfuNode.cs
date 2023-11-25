@@ -1,6 +1,6 @@
 ﻿namespace BitFaster.Caching.Lfu
 {
-    internal sealed class LfuNode<K, V>
+    internal class LfuNode<K, V>
     {
         internal LfuNodeList<K, V> list;
         internal LfuNode<K, V> next;
@@ -56,5 +56,72 @@
         Window,
         Probation,
         Protected,
+    }
+
+    // existing scheme is purely access order
+    internal sealed class AccessOrderNode<K, V> : LfuNode<K, V>
+    {
+        public AccessOrderNode(K k, V v) : base(k, v)
+        {
+        }
+    }
+
+    // expire after access requires time to expire
+    internal sealed class AccessOrderExpiringNode<K, V> : LfuNode<K, V>
+    {
+        private Duration timeToExpire;
+
+        public AccessOrderExpiringNode(K k, V v) : base(k, v)
+        {
+        }
+    }
+
+    // both ExpireAfter and ExpireAfterWrite require
+    // 1. Duration
+    // 2. Doubly linked list
+    internal sealed class TimeOrderNode<K, V> : LfuNode<K, V>
+    {
+        TimeOrderNode<K, V> prevV;
+        TimeOrderNode<K, V> nextV;
+
+        private Duration timeToExpire;
+
+        public TimeOrderNode(K k, V v) : base(k, v)
+        {
+        }
+
+        public static TimeOrderNode<K, V> CreateSentinel()
+        {
+            var s = new TimeOrderNode<K, V>(default, default);
+            s.nextV = s.prevV = s;
+            return s;
+        }
+
+        public TimeOrderNode<K, V> getPreviousInVariableOrder()
+        {
+            return prevV;
+        }
+
+        public long getVariableTime()
+        {
+            return timeToExpire.raw;
+        }
+
+        //override
+        public void setPreviousInVariableOrder(TimeOrderNode<K, V> prev)
+        {
+            this.prevV = prev;
+        }
+        //override
+        public TimeOrderNode<K, V> getNextInVariableOrder()
+        {
+            return nextV;
+        }
+
+        // override
+        public void setNextInVariableOrder(TimeOrderNode<K, V> next)
+        {
+            this.nextV = next;
+        }
     }
 }

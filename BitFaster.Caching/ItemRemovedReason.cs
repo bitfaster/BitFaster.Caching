@@ -30,5 +30,7 @@ namespace BitFaster.Caching
         /// The item was removed from the cache by a trim method call.
         /// </summary>
         Trimmed,
+
+        Expired,
     }
 }

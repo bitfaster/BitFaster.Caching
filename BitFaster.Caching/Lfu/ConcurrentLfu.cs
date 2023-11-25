@@ -836,7 +836,7 @@ namespace BitFaster.Caching.Lfu
             return candidateFreq > victimFreq;
         }
 
-        private void Evict(LfuNode<K, V> evictee)
+        internal void Evict(LfuNode<K, V> evictee)
         {
             this.dictionary.TryRemove(evictee.Key, out var _);
             evictee.list.Remove(evictee);

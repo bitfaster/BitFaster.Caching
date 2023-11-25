@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 namespace BitFaster.Caching
 {
@@ -15,6 +16,11 @@ namespace BitFaster.Caching
         public static int CeilingPowerOfTwo(int x)
         {
             return (int)CeilingPowerOfTwo((uint)x);
+        }
+
+        public static long CeilingPowerOfTwo(long x)
+        {
+            return (long)CeilingPowerOfTwo((ulong)x);
         }
 
         /// <summary>
@@ -36,8 +42,40 @@ namespace BitFaster.Caching
 #else
             return 1u << -BitOperations.LeadingZeroCount(x - 1);
 #endif
+        }
+
+        public static ulong CeilingPowerOfTwo(ulong x)
+        {
+#if NETSTANDARD2_0
+            // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+            --x;
+            x |= x >> 1;
+            x |= x >> 2;
+            x |= x >> 4;
+            x |= x >> 8;
+            x |= x >> 16;
+            return x + 1;
+#else
+            return 1u << -BitOperations.LeadingZeroCount(x - 1);
+#endif
 
         }
+
+        public static int TrailingZeroCount(long x)
+        {
+            return TrailingZeroCount((ulong)x);
+        }
+
+        public static int TrailingZeroCount(ulong n)
+        {
+#if NETSTANDARD2_0
+            // https://codereview.stackexchange.com/questions/288007/c-bit-utility-functions-popcount-trailing-zeros-count-reverse-all-bits
+            return BitCount(~n & (n - 1));
+#else
+            return BitOperations.TrailingZeroCount(x);
+#endif
+        }
+
 
         /// <summary>
         /// Counts the number of 1 bits in the input parameter.
