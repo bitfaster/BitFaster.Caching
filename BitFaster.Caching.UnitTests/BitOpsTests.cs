@@ -60,10 +60,24 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(2, 1)]
         [InlineData(1_000_000, 6)]
         [InlineData(34359738368, 35)]
+        [InlineData(4611686018427387904, 62)]
+        [InlineData(long.MaxValue, 0)]
+
+        public void LongTrailingZeroCount(long input, int count)
+        {
+            BitOps.TrailingZeroCount(input).Should().Be(count);
+        }
+
+        [Theory]
+        [InlineData(0, 64)]
+        [InlineData(1, 0)]
+        [InlineData(2, 1)]
+        [InlineData(1_000_000, 6)]
+        [InlineData(34359738368, 35)]
         [InlineData(9223372036854775808, 63)]
         [InlineData(ulong.MaxValue, 0)]
 
-        public void LongTrailingZeroCount(ulong input, int count)
+        public void ULongTrailingZeroCount(ulong input, int count)
         {
             BitOps.TrailingZeroCount(input).Should().Be(count);
         }
