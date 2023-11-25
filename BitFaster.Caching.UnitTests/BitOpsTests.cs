@@ -25,6 +25,7 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(7, 8)]
         [InlineData(15, 16)]
         [InlineData(536870913, 1073741824)]
+        [InlineData(34359738368, 34359738368)]
         public void LongCeilingPowerOfTwo(long input, long power)
         {
             BitOps.CeilingPowerOfTwo(input).Should().Be(power);
