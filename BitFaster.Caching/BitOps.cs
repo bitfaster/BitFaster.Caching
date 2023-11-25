@@ -66,11 +66,11 @@ namespace BitFaster.Caching
             return TrailingZeroCount((ulong)x);
         }
 
-        public static int TrailingZeroCount(ulong n)
+        public static int TrailingZeroCount(ulong x)
         {
 #if NETSTANDARD2_0
             // https://codereview.stackexchange.com/questions/288007/c-bit-utility-functions-popcount-trailing-zeros-count-reverse-all-bits
-            return BitCount(~n & (n - 1));
+            return BitCount(~x & (x - 1));
 #else
             return BitOperations.TrailingZeroCount(x);
 #endif
