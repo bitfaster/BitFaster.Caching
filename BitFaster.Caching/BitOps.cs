@@ -66,7 +66,7 @@ namespace BitFaster.Caching
             x |= x >> 32;
             return x + 1;
 #else
-            return 1u << -BitOperations.LeadingZeroCount(x - 1);
+            return 1ul << -BitOperations.LeadingZeroCount(x - 1);
 #endif
         }
 

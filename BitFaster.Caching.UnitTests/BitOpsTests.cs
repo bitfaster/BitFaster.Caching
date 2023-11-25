@@ -42,12 +42,12 @@ namespace BitFaster.Caching.UnitTests
             BitOps.CeilingPowerOfTwo(input).Should().Be(power);
         }
 
-
         [Theory]
         [InlineData(3, 4)]
         [InlineData(7, 8)]
         [InlineData(15, 16)]
         [InlineData(536870913, 1073741824)]
+        [InlineData(34359738368, 34359738368)]
 
         public void UlongCeilingPowerOfTwo(ulong input, ulong power)
         {
