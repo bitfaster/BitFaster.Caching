@@ -4,7 +4,7 @@ namespace BitFaster.Caching.Lfu
 {
     // Port TimerWheel from Caffeine
     // https://github.com/ben-manes/caffeine/blob/73d5011f9db373fc20a6e12d1f194f0d7a967d69/caffeine/src/main/java/com/github/benmanes/caffeine/cache/TimerWheel.java#L36
-    internal class TimerWheel<K, V>
+    public class TimerWheel<K, V>
     {
         static readonly int[] BUCKETS = { 64, 64, 32, 4, 1 };
 
@@ -80,7 +80,7 @@ namespace BitFaster.Caching.Lfu
             catch (Exception t)
             {
                 nanos = previousTimeNanos;
-                throw t;
+                throw;
             }
         }
 
@@ -128,7 +128,7 @@ namespace BitFaster.Caching.Lfu
                         node.setNextInVariableOrder(next);
                         sentinel.getPreviousInVariableOrder().setNextInVariableOrder(node);
                         sentinel.setPreviousInVariableOrder(prev);
-                        throw t;
+                        throw;
                     }
                 }
             }
@@ -173,7 +173,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         // Adds the entry at the tail of the bucket's list.
-        private void Link(TimeOrderNode<K, V> sentinel, TimeOrderNode<K, V> node)
+        private static void Link(TimeOrderNode<K, V> sentinel, TimeOrderNode<K, V> node)
         {
             node.setPreviousInVariableOrder(sentinel.getPreviousInVariableOrder());
             node.setNextInVariableOrder(sentinel);
@@ -183,7 +183,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         // Removes the entry from its bucket, if scheduled.
-        private void Unlink(TimeOrderNode<K, V> node)
+        private static void Unlink(TimeOrderNode<K, V> node)
         {
             TimeOrderNode<K, V> next = node.getNextInVariableOrder();
             if (next != null)
