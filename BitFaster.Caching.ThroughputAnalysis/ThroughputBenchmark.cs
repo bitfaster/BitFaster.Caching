@@ -1,11 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.ThroughputAnalysis
 {
+    // This is taken from BenchmarkDotNet:
+    // https://github.com/dotnet/BenchmarkDotNet/blob/b4ac9df9f7890ca9669e2b9c8835af35c072a453/src/BenchmarkDotNet/Engines/DeadCodeEliminationHelper.cs#L6
+    public static class DeadCodeEliminationHelper
+    {
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static void KeepAliveWithoutBoxing<T>(T _) { }
+    }
+
     public interface IThroughputBenchmark
     {
         double Run(int warmup, int runs, int threads, IThroughputBenchConfig config, ICache<int, int> cache);
@@ -49,7 +54,8 @@ namespace BitFaster.Caching.ThroughputAnalysis
     {
         protected override double Run(int threads, IThroughputBenchConfig config, ICache<long, int> cache)
         {
-            void action(int index)
+            [MethodImpl(BenchmarkDotNet.Portability.CodeGenHelper.AggressiveOptimizationOption)]
+            static void action(int index, IThroughputBenchConfig config, ICache<long, int> cache)
             {
                 long[] samples = config.GetTestData(index);
                 int func(long x) => (int)x;
@@ -58,12 +64,12 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 {
                     for (int s = 0; s < samples.Length; s++)
                     {
-                        cache.GetOrAdd(samples[s], func);
+                        DeadCodeEliminationHelper.KeepAliveWithoutBoxing(cache.GetOrAdd(samples[s], func));
                     }
                 }
             }
 
-            var time = ParallelBenchmark.Run(action, threads);
+            var time = ParallelBenchmark.Run(action, threads, config, cache);
 
             // throughput = ops/sec
             return (threads * config.Samples * config.Iterations) / time.TotalSeconds;
@@ -74,7 +80,8 @@ namespace BitFaster.Caching.ThroughputAnalysis
     {
         protected override double Run(int threads, IThroughputBenchConfig config, ICache<long, int> cache)
         {
-            void action(int index)
+            [MethodImpl(BenchmarkDotNet.Portability.CodeGenHelper.AggressiveOptimizationOption)]
+            static void action(int index, IThroughputBenchConfig config, ICache<long, int> cache)
             {
                 long[] samples = config.GetTestData(index);
 
@@ -87,7 +94,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 }
             }
 
-            var time = ParallelBenchmark.Run(action, threads);
+            var time = ParallelBenchmark.Run(action, threads, config, cache);
 
             // throughput = ops/sec
             return (threads * config.Samples * config.Iterations) / time.TotalSeconds;
