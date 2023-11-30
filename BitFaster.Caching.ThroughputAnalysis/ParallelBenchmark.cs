@@ -7,21 +7,21 @@ namespace BitFaster.Caching.ThroughputAnalysis
 {
     public class ParallelBenchmark
     {
-        public static TimeSpan Run(Action<int, IThroughputBenchConfig, ICache<long, int>> action, int threads, IThroughputBenchConfig config, ICache<long, int> cache)
+        public static TimeSpan Run(Action<int, IThroughputBenchConfig, ICache<long, int>> action, int threads)
         {
             Task[] tasks = new Task[threads];
             ManualResetEventSlim mre = new ManualResetEventSlim();
 
-            Action<int, IThroughputBenchConfig, ICache<long, int>> syncStart = (taskId, config, cache) =>
+            Action<int> syncStart = (taskId, config, cache) =>
             {
                 mre.Wait();
-                action(taskId, config, cache);
+                action(taskId);
             };
 
             for (int i = 0; i < tasks.Length; i++)
             {
                 int index = i;
-                tasks[i] = Task.Factory.StartNew(() => syncStart(index, config, cache), TaskCreationOptions.LongRunning);
+                tasks[i] = Task.Factory.StartNew(() => syncStart(index), TaskCreationOptions.LongRunning);
             }
 
             // try to mitigate spam from MemoryCache
