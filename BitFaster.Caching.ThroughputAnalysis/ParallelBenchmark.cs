@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.ThroughputAnalysis
 {
     public class ParallelBenchmark
     {
-        public static TimeSpan Run(Action<int> action, int threads)
+        public static TimeSpan Run(Action<int> action, int threadCount)
         {
-            Task[] tasks = new Task[threads];
+            Thread[] threads = new Thread[threadCount];
             ManualResetEventSlim mre = new ManualResetEventSlim();
 
             Action<int> syncStart = taskId =>
@@ -18,10 +17,11 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 action(taskId);
             };
 
-            for (int i = 0; i < tasks.Length; i++)
+            for (int i = 0; i < threads.Length; i++)
             {
                 int index = i;
-                tasks[i] = Task.Factory.StartNew(() => syncStart(index), TaskCreationOptions.LongRunning);
+                threads[i] = new Thread(() => action(index));
+                threads[i].Start();
             }
 
             // try to mitigate spam from MemoryCache
@@ -32,7 +32,10 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             var sw = Stopwatch.StartNew();
             mre.Set();
-            Task.WaitAll(tasks);
+            for (int i = 0; i < threads.Length; i++)
+            {
+                threads[i].Join();
+            }
             return sw.Elapsed;
         }
     }
