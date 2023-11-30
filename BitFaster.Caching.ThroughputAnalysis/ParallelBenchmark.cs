@@ -12,7 +12,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             Task[] tasks = new Task[threads];
             ManualResetEventSlim mre = new ManualResetEventSlim();
 
-            Action<int> syncStart = (taskId) =>
+            Action<int> syncStart = taskId =>
             {
                 mre.Wait();
                 action(taskId);
