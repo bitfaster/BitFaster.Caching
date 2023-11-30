@@ -7,12 +7,12 @@ namespace BitFaster.Caching.ThroughputAnalysis
 {
     public class ParallelBenchmark
     {
-        public static TimeSpan Run(Action<int, IThroughputBenchConfig, ICache<long, int>> action, int threads)
+        public static TimeSpan Run(Action<int> action, int threads)
         {
             Task[] tasks = new Task[threads];
             ManualResetEventSlim mre = new ManualResetEventSlim();
 
-            Action<int> syncStart = (taskId, config, cache) =>
+            Action<int> syncStart = (taskId) =>
             {
                 mre.Wait();
                 action(taskId);
