@@ -39,7 +39,7 @@ namespace BitFaster.Caching.Benchmarks
     // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/
     // [ThreadingDiagnoser] // Requires .NET Core
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
-    [ColumnChart(Title= "Lookup Latency", Output = OutputMode.PerJob, Colors = "darkslategray,royalblue,royalblue,royalblue,royalblue,royalblue,royalblue,royalblue,#ffbf00,limegreen,indianred,indianred")]
+    [ColumnChart(Title= "Lookup Latency ({JOB})", Output = OutputMode.PerJob, Colors = "darkslategray,royalblue,royalblue,royalblue,royalblue,royalblue,royalblue,royalblue,#ffbf00,limegreen,indianred,indianred")]
     public class LruJustGetOrAdd
     {
         private static readonly ConcurrentDictionary<int, int> dictionary = new ConcurrentDictionary<int, int>(8, 9, EqualityComparer<int>.Default);
@@ -56,7 +56,6 @@ namespace BitFaster.Caching.Benchmarks
 
         private static readonly BackgroundThreadScheduler background = new BackgroundThreadScheduler();
         private static readonly ConcurrentLfu<int, int> concurrentLfu = new ConcurrentLfu<int, int>(1, 9, background, EqualityComparer<int>.Default);
-
 
         private static readonly int key = 1;
         private static System.Runtime.Caching.MemoryCache memoryCache = System.Runtime.Caching.MemoryCache.Default;
