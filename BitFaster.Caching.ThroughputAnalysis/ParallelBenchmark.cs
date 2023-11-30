@@ -21,6 +21,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             {
                 int index = i;
                 threads[i] = new Thread(() => action(index));
+                //threads[i].Priority = ThreadPriority.BelowNormal;
                 threads[i].Start();
             }
 
