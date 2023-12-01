@@ -39,14 +39,16 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
 
             // Pilot stage: estimate how many iterations to use to get stable measurements.
-            // this gives a run time of about 20 seconds per benchmark with 80 runs per config
-            // It can give unstable results if the pilot call returns much slower than the workload calls.
+            // this gives a run time of about 30 seconds per benchmark with 80 runs per config
+            int valid = 0;
             while (true)
             {
                 var sw = Stopwatch.StartNew();
                 Run(0, threads, config, cache);
 
-                if (sw.Elapsed > TimeSpan.FromMilliseconds(200))
+                valid = sw.Elapsed > TimeSpan.FromMilliseconds(200) ? valid + 1 : 0;    
+
+                if (valid > 3)
                 {
                     break;
                 }
@@ -85,7 +87,6 @@ namespace BitFaster.Caching.ThroughputAnalysis
             var finalStats = MeasurementsStatistics.Calculate(results, outlierMode);
 
             // return million ops/sec
-            //const int oneMillion = 1_000_000;
             return (runCounter, finalStats.Mean);
         }
 
@@ -94,7 +95,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class ReadThroughputBenchmark : ThroughputBenchmarkBase
     {
-        protected override double Run(int iter,int threads, IThroughputBenchConfig config, ICache<long, int> cache)
+        protected override double Run(int iter, int threads, IThroughputBenchConfig config, ICache<long, int> cache)
         {
             [MethodImpl(BenchmarkDotNet.Portability.CodeGenHelper.AggressiveOptimizationOption)]
             void action(int index)
@@ -111,9 +112,19 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 }
             }
 
-            // Avoid dividing a very large number by a very small number. This is a source of
-            // inacurracy.
-            var time = ParallelBenchmark.Run(action, threads);
+            // memory cache can queue up huge numbers of threads, wait for them to flush out
+            ThreadPoolInspector.WaitForEmpty();
+
+            // reject measurements that return too fast
+            TimeSpan time = ParallelBenchmark.Run(action, threads);
+
+            // Reject measurements that indicate memory cache eviction thread failed to run
+            if (time < TimeSpan.FromMilliseconds(5))
+            {
+                throw new InvalidOperationException("Execution time too fast - indicates serious instability.");
+            }
+
+            // Avoid dividing a very large number by a very small number.
             var millionOps = (threads * config.Samples * config.Iterations) / 1_000_000.0;
             var throughput = millionOps / time.TotalSeconds;
             if (false)
@@ -130,7 +141,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class UpdateThroughputBenchmark : ThroughputBenchmarkBase
     {
-        protected override double Run(int iter,int threads, IThroughputBenchConfig config, ICache<long, int> cache)
+        protected override double Run(int iter, int threads, IThroughputBenchConfig config, ICache<long, int> cache)
         {
             [MethodImpl(BenchmarkDotNet.Portability.CodeGenHelper.AggressiveOptimizationOption)]
             void action(int index)
@@ -146,7 +157,16 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 }
             }
 
+            // memory cache can queue up huge numbers of threads, wait for them to flush out
+            ThreadPoolInspector.WaitForEmpty();
+
             var time = ParallelBenchmark.Run(action, threads);
+
+            // Reject measurements that indicate memory cache eviction thread failed to run
+            if (time < TimeSpan.FromMilliseconds(5))
+            {
+                throw new InvalidOperationException("Execution time too fast - indicates serious instability.");
+            }
 
             var millionOps = (threads * config.Samples * config.Iterations) / 1_000_000.0;
             var throughput = millionOps / time.TotalSeconds;

@@ -9,18 +9,18 @@ namespace BitFaster.Caching.ThroughputAnalysis
         public static TimeSpan Run(Action<int> action, int threadCount)
         {
             Thread[] threads = new Thread[threadCount];
-            ManualResetEventSlim mre = new ManualResetEventSlim();
+            using ManualResetEventSlim signalStart = new ManualResetEventSlim();
 
-            Action<int> syncStart = taskId =>
+            Action<int> syncStart = (taskId) =>
             {
-                mre.Wait();
+                signalStart.Wait();
                 action(taskId);
             };
 
             for (int i = 0; i < threads.Length; i++)
             {
                 int index = i;
-                threads[i] = new Thread(() => action(index));
+                threads[i] = new Thread(() => syncStart(index));
                 threads[i].Start();
             }
 
@@ -31,11 +31,12 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
 
             var sw = Stopwatch.StartNew();
-            mre.Set();
+            signalStart.Set();
             for (int i = 0; i < threads.Length; i++)
             {
                 threads[i].Join();
             }
+
             return sw.Elapsed;
         }
     }

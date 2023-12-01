@@ -46,7 +46,9 @@ namespace BitFaster.Caching.ThroughputAnalysis
             Console.WriteLine($"Running {mode} with size {capacity} over {maxThreads} threads...");
             Console.WriteLine();
 
-            foreach (int tc in Enumerable.Range(1, maxThreads).ToArray())
+            int minThreads = 5;
+
+            foreach (int tc in Enumerable.Range(5, maxThreads - minThreads).ToArray())
             {
                 const int warmup = 3;
                 const int runs = 15;
