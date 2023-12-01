@@ -9,17 +9,17 @@ namespace BitFaster.Caching.ThroughputAnalysis
     internal readonly ref struct MeasurementsStatistics
     {
         /// <summary>
-        /// Standard error in nanoseconds.
+        /// Standard error.
         /// </summary>
         public double StandardError { get; }
 
         /// <summary>
-        /// Mean in nanoseconds.
+        /// Mean.
         /// </summary>
         public double Mean { get; }
 
         /// <summary>
-        /// 99.9% confidence interval in nanoseconds.
+        /// 99.9% confidence interval.
         /// </summary>
         public ConfidenceInterval ConfidenceInterval { get; }
 
