@@ -59,7 +59,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                     (sched as IDisposable)?.Dispose();
 
                     cacheConfig.DataRow[tc.ToString()] = thru.ToString();
-                    Console.WriteLine($"{cacheConfig.Name.PadRight(18)} ({tc:00}) {FormatThroughput(thru)} million ops/sec");
+                    Console.WriteLine($"{cacheConfig.Name.PadRight(18)} ({tc:00}) {Format.Throughput(thru)} million ops/sec");
                 }
             }
 
@@ -72,13 +72,6 @@ namespace BitFaster.Caching.ThroughputAnalysis
             //    .From(resultTable)
             //    .Configure(o => o.NumberAlignment = Alignment.Right)
             //    .Write(Format.MarkDown);
-        }
-
-        private static string FormatThroughput(double thru)
-        {
-            string dformat = "0.00;-0.00";
-            string raw = thru.ToString(dformat);
-            return raw.PadLeft(7, ' ');
         }
 
         private static void UpdateTitle(Mode mode, int tc, int maxTc)

@@ -66,17 +66,6 @@ namespace BitFaster.Caching.ThroughputAnalysis
         }
 
         protected abstract double Run(int iter, int threads, IThroughputBenchConfig config, ICache<long, int> cache);
-
-        private static double AverageLast(double[] results, int count)
-        {
-            double result = 0;
-            for (int i = results.Length - count; i < results.Length; i++)
-            {
-                result += results[i];
-            }
-
-            return result / count;
-        }
     }
 
     public class ReadThroughputBenchmark : ThroughputBenchmarkBase
@@ -99,27 +88,17 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
 
             var time = ParallelBenchmark.Run(action, threads);
-
-            // throughput = ops/sec
             var throughput = (threads * config.Samples * config.Iterations) / time.TotalSeconds;
-
-       //     if (throughput / 1_000_000 > 500)
+            if (false)
             {
-             //   Console.WriteLine($"{iter} {FormatThroughput(throughput / 1_000_000.0)} ops/sec");
-
+#pragma warning disable CS0162 // Unreachable code detected
+                Console.WriteLine($"{iter} {Format.Throughput(throughput / 1_000_000.0)} ops/sec");
+#pragma warning restore CS0162 // Unreachable code detected
             }
 
             return throughput;
         }
-
-        private static string FormatThroughput(double thru)
-        {
-            string dformat = "0.00;-0.00";
-            string raw = thru.ToString(dformat);
-            return raw.PadLeft(7, ' ');
-        }
     }
-
 
     public class UpdateThroughputBenchmark : ThroughputBenchmarkBase
     {
