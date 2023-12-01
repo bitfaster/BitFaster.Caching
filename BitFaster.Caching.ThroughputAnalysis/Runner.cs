@@ -48,18 +48,18 @@ namespace BitFaster.Caching.ThroughputAnalysis
             foreach (int tc in Enumerable.Range(1, maxThreads).ToArray())
             {
                 const int warmup = 3;
-                const int runs = 6;
+                const int runs = 15;
 
                 UpdateTitle(mode, tc, maxThreads);
 
                 foreach (var cacheConfig in cachesToTest)
                 {
                     var (sched, cache) = cacheConfig.Create(tc);
-                    double thru = bench.Run(warmup, runs, tc, dataConfig, cache);
+                    (int samples, double thru) = bench.Run(warmup, runs, tc, dataConfig, cache);
                     (sched as IDisposable)?.Dispose();
 
                     cacheConfig.DataRow[tc.ToString()] = thru.ToString();
-                    Console.WriteLine($"{cacheConfig.Name.PadRight(18)} ({tc:00}) {Format.Throughput(thru)} million ops/sec");
+                    Console.WriteLine($"{cacheConfig.Name.PadRight(18)} ({tc:00}) {Format.Throughput(thru)} million ops/sec, {samples:00} samples");
                 }
             }
 

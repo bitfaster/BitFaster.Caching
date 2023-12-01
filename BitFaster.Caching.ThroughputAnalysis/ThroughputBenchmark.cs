@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Perfolizer.Mathematics.OutlierDetection;
 
 namespace BitFaster.Caching.ThroughputAnalysis
@@ -23,7 +24,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
         public Action<ICache<long, int>> Initialize { get; set; }
 
         // https://github.com/dotnet/BenchmarkDotNet/blob/b4ac9df9f7890ca9669e2b9c8835af35c072a453/src/BenchmarkDotNet/Engines/EngineGeneralStage.cs#L18
-        public double Run(int warmup, int runs, int threads, IThroughputBenchConfig config, ICache<long, int> cache)
+        public (int, double) Run(int warmup, int runs, int threads, IThroughputBenchConfig config, ICache<long, int> cache)
         {
             var results = new List<double>();
 
@@ -35,10 +36,10 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
 
             int iterationCounter = 0;
-            double effectiveMaxRelativeError = 0.04; // https://github.com/dotnet/BenchmarkDotNet/blob/b4ac9df9f7890ca9669e2b9c8835af35c072a453/src/BenchmarkDotNet/Jobs/AccuracyMode.cs#L11
+            double effectiveMaxRelativeError = 0.02; // https://github.com/dotnet/BenchmarkDotNet/blob/b4ac9df9f7890ca9669e2b9c8835af35c072a453/src/BenchmarkDotNet/Jobs/AccuracyMode.cs#L11
 
             OutlierMode outlierMode = OutlierMode.RemoveUpper;
-            int maxIters = 25;
+            int maxIters = 80;
 
             while (true)
             {
@@ -62,7 +63,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             // return million ops/sec
             const int oneMillion = 1_000_000;
-            return finalStats.Mean / oneMillion;
+            return (iterationCounter, finalStats.Mean / oneMillion);
         }
 
         protected abstract double Run(int iter, int threads, IThroughputBenchConfig config, ICache<long, int> cache);
@@ -78,12 +79,20 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 long[] samples = config.GetTestData(index);
                 int func(long x) => (int)x;
 
+                bool yield = index % Environment.ProcessorCount == 0 && threads > 1;
+
                 for (int i = 0; i < config.Iterations; i++)
                 {
                     for (int s = 0; s < samples.Length; s++)
                     {
                         DeadCodeEliminationHelper.KeepAliveWithoutBoxing(cache.GetOrAdd(samples[s], func));
                     }
+
+                    // try to allow memory cache eviction thread to run
+                    //if (yield)
+                    //{
+                    //    Thread.Yield();
+                    //}
                 }
             }
 
