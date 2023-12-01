@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Microsoft.FSharp.Core.CompilerServices;
 
 namespace BitFaster.Caching.ThroughputAnalysis
 {
@@ -39,21 +40,20 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 new ConcurrentLfuFactory(capacity)
             };
 
-            var exporter = new Exporter(maxThreads);
+            int minThreads = 1;
+            var exporter = new Exporter(minThreads, maxThreads);
             exporter.Initialize(cachesToTest);
 
             Console.WriteLine();
             Console.WriteLine($"Running {mode} with size {capacity} over {maxThreads} threads...");
             Console.WriteLine();
 
-            int minThreads = 5;
-
-            foreach (int tc in Enumerable.Range(5, maxThreads - minThreads).ToArray())
+            foreach (int tc in Enumerable.Range(minThreads, maxThreads - minThreads).ToArray())
             {
                 const int warmup = 3;
                 const int runs = 15;
 
-                UpdateTitle(mode, tc, maxThreads);
+                UpdateTitle(mode, tc, minThreads, maxThreads);
 
                 foreach (var cacheConfig in cachesToTest)
                 {
@@ -80,7 +80,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             //    .Write(Format.MarkDown);
         }
 
-        private static void UpdateTitle(Mode mode, int tc, int maxTc)
+        private static void UpdateTitle(Mode mode, int tc, int minTc, int maxTc)
         {
             Console.Title = $"{mode} {tc}/{maxTc}";
         }

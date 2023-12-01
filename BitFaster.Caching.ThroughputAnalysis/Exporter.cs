@@ -17,7 +17,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
     {
         DataTable resultTable = new DataTable();
 
-        public Exporter(int maxThreads)
+        public Exporter(int minThreads, int maxThreads)
         {
             // output:
             // ThreadCount   1  2  3  4  5
@@ -26,7 +26,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             resultTable.Clear();
             resultTable.Columns.Add("ThreadCount");
-            foreach (var tc in Enumerable.Range(1, maxThreads).ToArray())
+            foreach (var tc in Enumerable.Range(minThreads, maxThreads- minThreads).ToArray())
             {
                 resultTable.Columns.Add(tc.ToString());
             }
@@ -88,7 +88,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 string name = row[0].ToString();
                 for (var i = 1; i < resultTable.Columns.Count; i++)
                 {
-                    rowData.Add(double.Parse(row[i].ToString()) * 1_000_000);
+                    rowData.Add(double.Parse(row[i].ToString()));
                 }
 
                 var chart = Chart.Line<int, double, string>(columns, rowData, Name: name, MarkerColor: MapColor(name));

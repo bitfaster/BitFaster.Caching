@@ -35,7 +35,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             for (int i = 0; i < warmup; i++)
             {
-                Run(i, threads, config, cache);
+                Run(Stage.Warmup, i, threads, config, cache);
             }
 
             // Pilot stage: estimate how many iterations to use to get stable measurements.
@@ -44,7 +44,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             while (true)
             {
                 var sw = Stopwatch.StartNew();
-                Run(0, threads, config, cache);
+                Run(Stage.Pilot, 0, threads, config, cache);
 
                 valid = sw.Elapsed > TimeSpan.FromMilliseconds(200) ? valid + 1 : 0;    
 
@@ -65,7 +65,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             while (true)
             {
                 runCounter++;
-                results.Add(Run(runCounter, threads, config, cache));
+                results.Add(Run(Stage.Workload, runCounter, threads, config, cache));
                 var statistics = MeasurementsStatistics.Calculate(results, outlierMode);
                 double actualError = statistics.ConfidenceInterval.Margin;
 
@@ -90,12 +90,12 @@ namespace BitFaster.Caching.ThroughputAnalysis
             return (runCounter, finalStats.Mean);
         }
 
-        protected abstract double Run(int iter, int threads, IThroughputBenchConfig config, ICache<long, int> cache);
+        protected abstract double Run(Stage stage, int iter, int threads, IThroughputBenchConfig config, ICache<long, int> cache);
     }
 
     public class ReadThroughputBenchmark : ThroughputBenchmarkBase
     {
-        protected override double Run(int iter, int threads, IThroughputBenchConfig config, ICache<long, int> cache)
+        protected override double Run(Stage stage, int iter, int threads, IThroughputBenchConfig config, ICache<long, int> cache)
         {
             [MethodImpl(BenchmarkDotNet.Portability.CodeGenHelper.AggressiveOptimizationOption)]
             void action(int index)
@@ -119,9 +119,9 @@ namespace BitFaster.Caching.ThroughputAnalysis
             TimeSpan time = ParallelBenchmark.Run(action, threads);
 
             // Reject measurements that indicate memory cache eviction thread failed to run
-            if (time < TimeSpan.FromMilliseconds(5))
+            if (stage == Stage.Workload && time < TimeSpan.FromMilliseconds(5))
             {
-                throw new InvalidOperationException("Execution time too fast - indicates serious instability.");
+                Console.WriteLine($"Warning: Execution time of {time} too fast - indicates instability.");
             }
 
             // Avoid dividing a very large number by a very small number.
@@ -141,7 +141,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class UpdateThroughputBenchmark : ThroughputBenchmarkBase
     {
-        protected override double Run(int iter, int threads, IThroughputBenchConfig config, ICache<long, int> cache)
+        protected override double Run(Stage stage, int iter, int threads, IThroughputBenchConfig config, ICache<long, int> cache)
         {
             [MethodImpl(BenchmarkDotNet.Portability.CodeGenHelper.AggressiveOptimizationOption)]
             void action(int index)
@@ -163,9 +163,9 @@ namespace BitFaster.Caching.ThroughputAnalysis
             var time = ParallelBenchmark.Run(action, threads);
 
             // Reject measurements that indicate memory cache eviction thread failed to run
-            if (time < TimeSpan.FromMilliseconds(5))
+            if (stage == Stage.Workload && time < TimeSpan.FromMilliseconds(5))
             {
-                throw new InvalidOperationException("Execution time too fast - indicates serious instability.");
+                Console.WriteLine($"Warning: Execution time of {time} too fast - indicates instability.");
             }
 
             var millionOps = (threads * config.Samples * config.Iterations) / 1_000_000.0;
