@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using Perfolizer.Mathematics.OutlierDetection;
 
 namespace BitFaster.Caching.ThroughputAnalysis
@@ -105,12 +104,6 @@ namespace BitFaster.Caching.ThroughputAnalysis
                     {
                         DeadCodeEliminationHelper.KeepAliveWithoutBoxing(cache.GetOrAdd(samples[s], func));
                     }
-
-                    // try to allow memory cache eviction thread to run
-                    //if (yield)
-                    //{
-                    //    Thread.Yield();
-                    //}
                 }
             }
 
