@@ -6,7 +6,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 {
     public interface IThroughputBenchConfig
     {
-        int Iterations { get; }
+        int Iterations { get; set; }
 
         int Samples { get; }
 
@@ -15,17 +15,15 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class ZipfConfig : IThroughputBenchConfig
     {
-        private readonly int iterations;
+        private int iterations;
         private readonly long[] samples;
 
-        public ZipfConfig(int iterations, int sampleCount, double s, int n)
+        public ZipfConfig(int sampleCount, double s, int n)
         {
-            this.iterations = iterations;
-
             samples = FastZipf.Generate(sampleCount, s, n);
         }
 
-        public int Iterations => iterations;
+        public int Iterations { get => iterations; set => iterations = value; }
 
         public int Samples => samples.Length;
 
@@ -37,20 +35,19 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
     public class EvictionConfig : IThroughputBenchConfig
     {
-        private readonly int iterations;
+        private int iterations;
 
         private readonly long[][] samples;
 
         const int maxSamples = 10_000_000;
 
-        public EvictionConfig(int iterations, int sampleCount, int threadCount)
+        public EvictionConfig(int sampleCount, int threadCount)
         {
             if (sampleCount > maxSamples)
             {
                 throw new ArgumentOutOfRangeException(nameof(sampleCount), "Sample count too large, will result in overlap");
             }
 
-            this.iterations = iterations;
             samples = new long[threadCount][];
 
             Parallel.ForEach(Enumerable.Range(0, threadCount), i =>
@@ -59,7 +56,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             });
         }
 
-        public int Iterations => iterations;
+        public int Iterations { get => iterations; set => iterations = value; }
 
         public int Samples => samples[0].Length;
 

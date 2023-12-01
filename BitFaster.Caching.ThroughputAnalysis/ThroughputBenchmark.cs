@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Perfolizer.Mathematics.OutlierDetection;
@@ -30,21 +31,38 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             Initialize?.Invoke(cache);
 
+            // estimate how many iterations to use
+            config.Iterations = 10;
+
             for (int i = 0; i < warmup; i++)
             {
                 Run(i, threads, config, cache);
             }
 
-            int iterationCounter = 0;
+            // this gives a run time of about 10 seconds per benchmark with 80 runs per config
+            while (true)
+            {
+                var sw = Stopwatch.StartNew();
+                Run(0, threads, config, cache);
+
+                if (sw.Elapsed > TimeSpan.FromMilliseconds(100))
+                {
+                    break;
+                }
+
+                config.Iterations = (int)(1.2 * config.Iterations);
+            }
+
+            int runCounter = 0;
             double effectiveMaxRelativeError = 0.02; // https://github.com/dotnet/BenchmarkDotNet/blob/b4ac9df9f7890ca9669e2b9c8835af35c072a453/src/BenchmarkDotNet/Jobs/AccuracyMode.cs#L11
 
             OutlierMode outlierMode = OutlierMode.RemoveUpper;
-            int maxIters = 80;
+            int maxRuns = 80;
 
             while (true)
             {
-                iterationCounter++;
-                results.Add(Run(iterationCounter, threads, config, cache));
+                runCounter++;
+                results.Add(Run(runCounter, threads, config, cache));
                 var statistics = MeasurementsStatistics.Calculate(results, outlierMode);
                 double actualError = statistics.ConfidenceInterval.Margin;
 
@@ -52,10 +70,10 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 double maxError2 = double.MaxValue;
                 double maxError = Math.Min(maxError1, maxError2);
 
-                if (iterationCounter >= runs && actualError < maxError)
+                if (runCounter >= runs && actualError < maxError)
                     break;
 
-                if (iterationCounter >= maxIters)
+                if (runCounter >= maxRuns)
                     break;
             }
 
@@ -63,7 +81,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             // return million ops/sec
             const int oneMillion = 1_000_000;
-            return (iterationCounter, finalStats.Mean / oneMillion);
+            return (runCounter, finalStats.Mean / oneMillion);
         }
 
         protected abstract double Run(int iter, int threads, IThroughputBenchConfig config, ICache<long, int> cache);

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
@@ -55,11 +56,14 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 foreach (var cacheConfig in cachesToTest)
                 {
                     var (sched, cache) = cacheConfig.Create(tc);
+
+                    var sw = Stopwatch.StartNew();
                     (int samples, double thru) = bench.Run(warmup, runs, tc, dataConfig, cache);
+                    var e = sw.Elapsed;
                     (sched as IDisposable)?.Dispose();
 
                     cacheConfig.DataRow[tc.ToString()] = thru.ToString();
-                    Console.WriteLine($"{cacheConfig.Name.PadRight(18)} ({tc:00}) {Format.Throughput(thru)} million ops/sec, {samples:00} samples");
+                    Console.WriteLine($"{cacheConfig.Name.PadRight(18)} ({tc:00}) {Format.Throughput(thru)} million ops/sec, {samples:00} samples in {e.TotalSeconds:0.0}secs");
                 }
             }
 

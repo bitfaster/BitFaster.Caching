@@ -12,37 +12,25 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public static (ThroughputBenchmarkBase, IThroughputBenchConfig, int) Create(Mode mode, int cacheSize, int maxThreads)
         {
-            int iterations = GetIterationCount(cacheSize);
             int samples = GetSampleCount(cacheSize);
             int n = cacheSize; // number of unique items for Zipf
 
             switch (mode)
             {
                 case Mode.Read:
-                    return (new ReadThroughputBenchmark(), new ZipfConfig(iterations, samples, s, n), cacheSize);
+                    return (new ReadThroughputBenchmark(), new ZipfConfig(samples, s, n), cacheSize);
                 case Mode.ReadWrite:
                     // cache holds 10% of all items
                     cacheSize /= 10;
-                    return (new ReadThroughputBenchmark(), new ZipfConfig(iterations, samples, s, n), cacheSize);
+                    return (new ReadThroughputBenchmark(), new ZipfConfig(samples, s, n), cacheSize);
                 case Mode.Update:
-                    return (new UpdateThroughputBenchmark(), new ZipfConfig(iterations, samples, s, n), cacheSize);
+                    return (new UpdateThroughputBenchmark(), new ZipfConfig(samples, s, n), cacheSize);
                 case Mode.Evict:
-                    return (new ReadThroughputBenchmark() { Initialize = c => EvictionInit(c) }, new EvictionConfig(iterations, samples, maxThreads), cacheSize);
+                    return (new ReadThroughputBenchmark() { Initialize = c => EvictionInit(c) }, new EvictionConfig(samples, maxThreads), cacheSize);
             }
 
             throw new InvalidOperationException();
         }
-
-        private static int GetIterationCount(int cacheSize) => cacheSize switch
-        {
-            < 500 => 400,
-            < 5_000 => 200,
-            < 10_000 => 100,
-            < 100_000 => 50,
-            < 1_000_000 => 25,
-            < 10_000_000 => 5,
-            _ => 1
-        };
 
         private static int GetSampleCount(int cacheSize) => cacheSize switch
         {
