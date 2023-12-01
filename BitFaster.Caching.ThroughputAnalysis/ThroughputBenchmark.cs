@@ -96,8 +96,6 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 long[] samples = config.GetTestData(index);
                 int func(long x) => (int)x;
 
-                bool yield = index % Environment.ProcessorCount == 0 && threads > 1;
-
                 for (int i = 0; i < config.Iterations; i++)
                 {
                     for (int s = 0; s < samples.Length; s++)
