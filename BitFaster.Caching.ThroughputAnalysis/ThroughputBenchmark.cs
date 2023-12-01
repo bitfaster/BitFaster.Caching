@@ -30,7 +30,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             Initialize?.Invoke(cache);
 
-            // estimate how many iterations to use
+            // Warmup a few times before estimating run time
             config.Iterations = 10;
 
             for (int i = 0; i < warmup; i++)
@@ -38,13 +38,15 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 Run(i, threads, config, cache);
             }
 
-            // this gives a run time of about 10 seconds per benchmark with 80 runs per config
+            // Pilot stage: estimate how many iterations to use to get stable measurements.
+            // this gives a run time of about 20 seconds per benchmark with 80 runs per config
+            // It can give unstable results if the pilot call returns much slower than the workload calls.
             while (true)
             {
                 var sw = Stopwatch.StartNew();
                 Run(0, threads, config, cache);
 
-                if (sw.Elapsed > TimeSpan.FromMilliseconds(100))
+                if (sw.Elapsed > TimeSpan.FromMilliseconds(200))
                 {
                     break;
                 }
@@ -74,13 +76,17 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
                 if (runCounter >= maxRuns)
                     break;
+
+                Console.Write("_");
             }
+
+            Console.WriteLine();
 
             var finalStats = MeasurementsStatistics.Calculate(results, outlierMode);
 
             // return million ops/sec
-            const int oneMillion = 1_000_000;
-            return (runCounter, finalStats.Mean / oneMillion);
+            //const int oneMillion = 1_000_000;
+            return (runCounter, finalStats.Mean);
         }
 
         protected abstract double Run(int iter, int threads, IThroughputBenchConfig config, ICache<long, int> cache);
@@ -105,15 +111,19 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 }
             }
 
+            // Avoid dividing a very large number by a very small number. This is a source of
+            // inacurracy.
             var time = ParallelBenchmark.Run(action, threads);
-            var throughput = (threads * config.Samples * config.Iterations) / time.TotalSeconds;
+            var millionOps = (threads * config.Samples * config.Iterations) / 1_000_000.0;
+            var throughput = millionOps / time.TotalSeconds;
             if (false)
             {
 #pragma warning disable CS0162 // Unreachable code detected
-                Console.WriteLine($"{iter} {Format.Throughput(throughput / 1_000_000.0)} ops/sec");
+                Console.WriteLine($"{iter} {Format.Throughput(throughput)} ops/sec");
 #pragma warning restore CS0162 // Unreachable code detected
             }
 
+            // throughput = million ops/sec
             return throughput;
         }
     }
@@ -138,8 +148,11 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             var time = ParallelBenchmark.Run(action, threads);
 
-            // throughput = ops/sec
-            return (threads * config.Samples * config.Iterations) / time.TotalSeconds;
+            var millionOps = (threads * config.Samples * config.Iterations) / 1_000_000.0;
+            var throughput = millionOps / time.TotalSeconds;
+
+            // throughput = million ops/sec
+            return throughput;
         }
     }
 }

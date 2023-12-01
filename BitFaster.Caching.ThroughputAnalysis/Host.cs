@@ -35,8 +35,6 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
                 Console.ResetColor();
             }
-
-            Console.WriteLine();
         }
 
         public static int GetAvailableCoreCount()
