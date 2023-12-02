@@ -310,11 +310,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         private static void RunIntegrityCheck<K,V>(ConcurrentLfu<K,V> cache, ITestOutputHelper output)
         {
-            new ConcurrentLfuIntegrityChecker<K, V>(cache).Validate(output);
+            new ConcurrentLfuIntegrityChecker<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>(cache).Validate(output);
         }
     }
 
-    public class ConcurrentLfuIntegrityChecker<K, V>
+    internal class ConcurrentLfuIntegrityChecker<K, V, N, P>
+        where N : LfuNode<K, V>
+        where P : struct, INodePolicy<K, V, N>
     {
         private readonly ConcurrentLfu<K, V> cache;
 
@@ -322,15 +324,15 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private readonly LfuNodeList<K, V> probationLru;
         private readonly LfuNodeList<K, V> protectedLru;
 
-        private readonly StripedMpscBuffer<LfuNode<K, V>> readBuffer;
-        private readonly MpscBoundedBuffer<LfuNode<K, V>> writeBuffer;
+        private readonly StripedMpscBuffer<N> readBuffer;
+        private readonly MpscBoundedBuffer<N> writeBuffer;
 
-        private static FieldInfo windowLruField = typeof(ConcurrentLfu<K, V>).GetField("windowLru", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static FieldInfo probationLruField = typeof(ConcurrentLfu<K, V>).GetField("probationLru", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static FieldInfo protectedLruField = typeof(ConcurrentLfu<K, V>).GetField("protectedLru", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo windowLruField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("windowLru", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo probationLruField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("probationLru", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo protectedLruField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("protectedLru", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        private static FieldInfo readBufferField = typeof(ConcurrentLfu<K, V>).GetField("readBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static FieldInfo writeBufferField = typeof(ConcurrentLfu<K, V>).GetField("writeBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo readBufferField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("readBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo writeBufferField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("writeBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
 
         public ConcurrentLfuIntegrityChecker(ConcurrentLfu<K, V> cache)
         {
@@ -341,8 +343,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.probationLru = (LfuNodeList<K, V>)probationLruField.GetValue(cache);
             this.protectedLru = (LfuNodeList<K, V>)protectedLruField.GetValue(cache);
 
-            this.readBuffer = (StripedMpscBuffer<LfuNode<K, V>>)readBufferField.GetValue(cache);
-            this.writeBuffer = (MpscBoundedBuffer<LfuNode<K, V>>)writeBufferField.GetValue(cache);
+            this.readBuffer = (StripedMpscBuffer<N>)readBufferField.GetValue(cache);
+            this.writeBuffer = (MpscBoundedBuffer<N>)writeBufferField.GetValue(cache);
         }
 
         public void Validate(ITestOutputHelper output)
