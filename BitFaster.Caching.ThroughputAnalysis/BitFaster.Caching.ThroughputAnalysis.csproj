@@ -23,7 +23,7 @@
         <NoWarn>NU1701</NoWarn>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
-    <PackageReference Include="Plotly.NET.CSharp" Version="0.11.1" />
+    <PackageReference Include="Plotly.NET" Version="4.2.0" />
     <PackageReference Include="Plotly.NET.ImageExport" Version="5.0.1" />
   </ItemGroup>
 
