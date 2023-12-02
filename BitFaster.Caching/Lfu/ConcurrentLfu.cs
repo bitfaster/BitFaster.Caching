@@ -53,6 +53,8 @@ namespace BitFaster.Caching.Lfu
             this.core = new (concurrencyLevel, capacity, scheduler, comparer);
         }
 
+        internal ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> Core => core;
+
         ///<inheritdoc/>
         public int Count => core.Count;
 

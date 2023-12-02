@@ -310,7 +310,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         private static void RunIntegrityCheck<K,V>(ConcurrentLfu<K,V> cache, ITestOutputHelper output)
         {
-            new ConcurrentLfuIntegrityChecker<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>(cache).Validate(output);
+            new ConcurrentLfuIntegrityChecker<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>(cache.Core).Validate(output);
         }
     }
 
@@ -318,7 +318,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         where N : LfuNode<K, V>
         where P : struct, INodePolicy<K, V, N>
     {
-        private readonly ConcurrentLfu<K, V> cache;
+        private readonly ConcurrentLfuCore<K, V, N, P> cache;
 
         private readonly LfuNodeList<K, V> windowLru;
         private readonly LfuNodeList<K, V> probationLru;
@@ -334,7 +334,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private static FieldInfo readBufferField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("readBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo writeBufferField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("writeBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        public ConcurrentLfuIntegrityChecker(ConcurrentLfu<K, V> cache)
+        public ConcurrentLfuIntegrityChecker(ConcurrentLfuCore<K, V, N, P> cache)
         {
             this.cache = cache;
 
