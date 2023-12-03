@@ -107,8 +107,6 @@ namespace BitFaster.Caching.Lfu
 
         public Optional<ICacheMetrics> Metrics => new(this.metrics);
 
-        public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
-
         public CachePolicy Policy => new(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
         public ICollection<K> Keys => this.dictionary.Keys;
