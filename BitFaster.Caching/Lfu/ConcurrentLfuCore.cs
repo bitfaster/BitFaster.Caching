@@ -135,9 +135,10 @@ namespace BitFaster.Caching.Lfu
 
         public void Clear()
         {
-            this.Trim(this.Count);
             this.readBuffer.Clear();
             this.writeBuffer.Clear();
+
+            this.Trim(this.Count);
 
             lock (maintenanceLock)
             {
