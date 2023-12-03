@@ -16,10 +16,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void Test()
         {
-            var wheel = new TimerWheel<int, int>();
+            var wheel = new TimerWheel<int, int, TimeOrderNode<int, int>, ExpireAfterPolicy<int, int>>();
             var policy = new ExpireAfterPolicy<int, int>(wheel);
             var cache = new ConcurrentLfuCore<int, int, TimeOrderNode<int, int>, ExpireAfterPolicy<int, int>>(
-                Defaults.ConcurrencyLevel, 3, new ThreadPoolScheduler(), EqualityComparer<int>.Default, policy);
+                Defaults.ConcurrencyLevel, 3, new ThreadPoolScheduler(), EqualityComparer<int>.Default, () => { }, policy);
             
             wheel.Should().NotBeNull();
         }

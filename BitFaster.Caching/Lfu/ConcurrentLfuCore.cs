@@ -70,7 +70,9 @@ namespace BitFaster.Caching.Lfu
 
         private readonly N[] drainBuffer;
 
-        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers)
+        private P policy;
+
+        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers, P policy)
         {
             if (capacity < 3)
                 Throw.ArgOutOfRange(nameof(capacity));
@@ -98,6 +100,8 @@ namespace BitFaster.Caching.Lfu
             this.drainBuffer = new N[this.readBuffer.Capacity];
 
             this.drainBuffers = drainBuffers;
+
+            this.policy = policy;
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -124,7 +128,7 @@ namespace BitFaster.Caching.Lfu
                     return;
                 }
 
-                var node = default(P).Create(key, value);
+                var node = policy.Create(key, value);
                 if (this.dictionary.TryAdd(key, node))
                 {
                     AfterWrite(node);
@@ -174,7 +178,7 @@ namespace BitFaster.Caching.Lfu
 
         private bool TryAdd(K key, V value)
         {
-            var node = default(P).Create(key, value);
+            var node = policy.Create(key, value);
 
             if (this.dictionary.TryAdd(key, node))
             {
@@ -749,7 +753,7 @@ namespace BitFaster.Caching.Lfu
             return candidateFreq > victimFreq;
         }
 
-        private void Evict(LfuNode<K, V> evictee)
+        internal void Evict(LfuNode<K, V> evictee)
         {
             this.dictionary.TryRemove(evictee.Key, out var _);
             evictee.list.Remove(evictee);

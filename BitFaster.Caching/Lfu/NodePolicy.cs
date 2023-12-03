@@ -24,11 +24,11 @@ namespace BitFaster.Caching.Lfu
 
     internal struct ExpireAfterPolicy<K, V> : INodePolicy<K, V, TimeOrderNode<K, V>>
     {
-        private readonly TimerWheel<K, V> wheel;
+        private readonly TimerWheel<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V>> wheel;
 
         // TODO: expiry calculator
 
-        public ExpireAfterPolicy(TimerWheel<K, V> wheel)
+        public ExpireAfterPolicy(TimerWheel<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V>> wheel)
         {
             this.wheel = wheel;
         }

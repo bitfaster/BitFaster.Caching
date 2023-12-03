@@ -79,7 +79,7 @@
     // both ExpireAfter and ExpireAfterWrite require
     // 1. Duration
     // 2. Doubly linked list
-    public sealed class TimeOrderNode<K, V> : LfuNode<K, V>
+    internal sealed class TimeOrderNode<K, V> : LfuNode<K, V>
     {
         TimeOrderNode<K, V> prevV;
         TimeOrderNode<K, V> nextV;

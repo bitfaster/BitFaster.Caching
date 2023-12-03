@@ -10,40 +10,6 @@ using BitFaster.Caching.Scheduler;
 
 namespace BitFaster.Caching.Lfu
 {
-    // TODO: making ConcurrentLfu with the Core base class required the following:
-    // - LfuNode public
-    // - INodePolicy public
-    // - AccessOrderPolicy public etc.
-    // This would be cleaner as a wrapper class, then all impl details can be internal and can be changed over time.
-    /// <summary>
-    /// Bounded size ConcurrentLfu
-    /// </summary>
-    public sealed class ConcurrentLfu<K, V> : ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>
-    {
-        // TODO: this is now duped, but required for back compat against 2.4.0
-        public const int DefaultBufferSize = 128;
-
-        /// <summary>
-        /// Initializes a new instance of the ConcurrentLfu class with the specified capacity.
-        /// </summary>
-        /// <param name="capacity">The capacity.</param>
-        public ConcurrentLfu(int capacity)
-            : base(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, default)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the ConcurrentLfu class with the specified concurrencyLevel, capacity, scheduler, equality comparer and buffer size.
-        /// </summary>
-        /// <param name="concurrencyLevel">The concurrency level.</param>
-        /// <param name="capacity">The capacity.</param>
-        /// <param name="scheduler">The scheduler.</param>
-        /// <param name="comparer">The equality comparer.</param>
-        public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
-            : base(concurrencyLevel, capacity, scheduler, comparer, default)
-        { }
-    }
-
     /// <summary>
     /// An approximate LFU based on the W-TinyLfu eviction policy. W-TinyLfu tracks items using a window LRU list, and 
     /// a main space LRU divided into protected and probation segments. Reads and writes to the cache are stored in buffers
@@ -82,7 +48,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="capacity">The capacity.</param>
         public ConcurrentLfu(int capacity)
         {
-            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers());
+            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers(), default);
         }
 
         /// <summary>
@@ -94,7 +60,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="comparer">The equality comparer.</param>
         public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
-            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers());
+            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), default);
         }
 
         internal ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> Core => core;

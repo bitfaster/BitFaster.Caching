@@ -4,7 +4,9 @@ namespace BitFaster.Caching.Lfu
 {
     // Port TimerWheel from Caffeine
     // https://github.com/ben-manes/caffeine/blob/73d5011f9db373fc20a6e12d1f194f0d7a967d69/caffeine/src/main/java/com/github/benmanes/caffeine/cache/TimerWheel.java#L36
-    public class TimerWheel<K, V>
+    internal class TimerWheel<K, V, N, P>
+        where N : LfuNode<K, V>
+        where P : struct, INodePolicy<K, V, N>
     {
         static readonly int[] BUCKETS = { 64, 64, 32, 4, 1 };
 
@@ -48,7 +50,7 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <param name="cache"></param>
         /// <param name="currentTimeNanos"></param>
-        public void Advance(ConcurrentLfu<K, V> cache, long currentTimeNanos)
+        public void Advance(ref ConcurrentLfuCore<K, V, N, P> cache, long currentTimeNanos)
         {
             long previousTimeNanos = nanos;
             nanos = currentTimeNanos;
@@ -74,7 +76,7 @@ namespace BitFaster.Caching.Lfu
                     {
                         break;
                     }
-                    Expire(cache, i, previousTicks, delta);
+                    Expire(ref cache, i, previousTicks, delta);
                 }
             }
             catch (Exception t)
@@ -85,7 +87,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         // Expires entries or reschedules into the proper bucket if still active.
-        private void Expire(ConcurrentLfu<K, V> cache, int index, long previousTicks, long delta)
+        private void Expire(ref ConcurrentLfuCore<K, V, N, P> cache, int index, long previousTicks, long delta)
         {
             TimeOrderNode<K, V>[] timerWheel = wheel[index];
             int mask = timerWheel.Length - 1;
