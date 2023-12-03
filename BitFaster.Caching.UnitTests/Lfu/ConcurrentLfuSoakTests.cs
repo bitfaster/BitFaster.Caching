@@ -307,7 +307,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
             RunIntegrityCheck(lfu, this.output);
         }
 
-
         private static void RunIntegrityCheck<K,V>(ConcurrentLfu<K,V> cache, ITestOutputHelper output)
         {
             new ConcurrentLfuIntegrityChecker<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>(cache.Core).Validate(output);

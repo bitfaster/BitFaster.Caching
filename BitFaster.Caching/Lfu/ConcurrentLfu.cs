@@ -23,9 +23,12 @@ namespace BitFaster.Caching.Lfu
     /// <summary>
     /// Facade to hide generics.
     /// </summary>
+    [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView<>))]
+    [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
-        private readonly ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> core;
+        // Note: for performance reasons this is a mutable struct, it cannot be readonly.
+        private ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> core;
 
         /// <summary>
         /// The default buffer size.
@@ -38,7 +41,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="capacity">The capacity.</param>
         public ConcurrentLfu(int capacity)
         {
-            this.core = new (capacity);
+            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers());
         }
 
         /// <summary>
@@ -50,10 +53,16 @@ namespace BitFaster.Caching.Lfu
         /// <param name="comparer">The equality comparer.</param>
         public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
-            this.core = new (concurrencyLevel, capacity, scheduler, comparer);
+            this.core = new (concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers());
         }
 
         internal ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> Core => core;
+
+        // structs cannot declare self referencing lambda functions, therefore pass this in from the ctor
+        private void DrainBuffers()
+        {
+            this.core.DrainBuffers();
+        }
 
         ///<inheritdoc/>
         public int Count => core.Count;
@@ -183,6 +192,41 @@ namespace BitFaster.Caching.Lfu
             return core.FormatLfuString();
         }
 #endif
+
+        [ExcludeFromCodeCoverage]
+        internal class LfuDebugView<N>
+             where N : LfuNode<K, V>
+        {
+            private readonly ConcurrentLfu<K, V> lfu;
+
+            public LfuDebugView(ConcurrentLfu<K, V> lfu)
+            {
+                this.lfu = lfu;
+            }
+
+            public string Maintenance => lfu.core.drainStatus.Format();
+
+            public ICacheMetrics Metrics => lfu.Metrics.Value;
+
+            public StripedMpscBuffer<N> ReadBuffer => this.lfu.core.readBuffer as StripedMpscBuffer<N>;
+
+            public MpscBoundedBuffer<N> WriteBuffer => this.lfu.core.writeBuffer as MpscBoundedBuffer<N>;
+
+            public KeyValuePair<K, V>[] Items
+            {
+                get
+                {
+                    var items = new KeyValuePair<K, V>[lfu.Count];
+
+                    int index = 0;
+                    foreach (var kvp in lfu)
+                    {
+                        items[index++] = kvp;
+                    }
+                    return items;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -205,23 +249,19 @@ namespace BitFaster.Caching.Lfu
     /// </summary>
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    [DebuggerTypeProxy(typeof(ConcurrentLfuCore<,,,>.LfuDebugView))]
-    [DebuggerDisplay("Count = {Count}/{Capacity}")]
-    internal sealed class ConcurrentLfuCore<K, V, N, P> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
+    
+    internal struct ConcurrentLfuCore<K, V, N, P> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
         where N : LfuNode<K, V>
         where P : struct, INodePolicy<K, V, N>
     {
         private const int MaxWriteBufferRetries = 64;
 
-        /// <summary>
-        /// The default buffer size.
-        /// </summary>
-        public const int DefaultBufferSize = 128;
+        private const int DefaultBufferSize = 128;
 
         private readonly ConcurrentDictionary<K, N> dictionary;
 
-        private readonly StripedMpscBuffer<N> readBuffer;
-        private readonly MpscBoundedBuffer<N> writeBuffer;
+        internal readonly StripedMpscBuffer<N> readBuffer;
+        internal readonly MpscBoundedBuffer<N> writeBuffer;
 
         private readonly CacheMetrics metrics = new();
 
@@ -233,7 +273,7 @@ namespace BitFaster.Caching.Lfu
 
         private readonly LfuCapacityPartition capacity;
 
-        private readonly DrainStatus drainStatus = new();
+        internal readonly DrainStatus drainStatus = new();
         private readonly object maintenanceLock = new();
 
         private readonly IScheduler scheduler;
@@ -241,23 +281,7 @@ namespace BitFaster.Caching.Lfu
 
         private readonly N[] drainBuffer;
 
-        /// <summary>
-        /// Initializes a new instance of the ConcurrentLfu class with the specified capacity.
-        /// </summary>
-        /// <param name="capacity">The capacity.</param>
-        public ConcurrentLfuCore(int capacity)
-            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default)
-        {        
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the ConcurrentLfu class with the specified concurrencyLevel, capacity, scheduler, equality comparer and buffer size.
-        /// </summary>
-        /// <param name="concurrencyLevel">The concurrency level.</param>
-        /// <param name="capacity">The capacity.</param>
-        /// <param name="scheduler">The scheduler.</param>
-        /// <param name="comparer">The equality comparer.</param>
-        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
+        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers)
         {
             int dictionaryCapacity = ConcurrentDictionarySize.Estimate(capacity);
             this.dictionary = new (concurrencyLevel, dictionaryCapacity, comparer);
@@ -278,9 +302,10 @@ namespace BitFaster.Caching.Lfu
             this.capacity = new LfuCapacityPartition(capacity);
 
             this.scheduler = scheduler;
-            this.drainBuffers = () => this.DrainBuffers();
 
             this.drainBuffer = new N[this.readBuffer.Capacity];
+
+            this.drainBuffers = drainBuffers;
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -713,7 +738,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private void DrainBuffers()
+        internal void DrainBuffers()
         {
             bool done = false;
 
@@ -1026,7 +1051,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         [DebuggerDisplay("{Format(),nq}")]
-        private class DrainStatus
+        internal class DrainStatus
         {
             public const int Idle = 0;
             public const int Required = 1;
@@ -1138,40 +1163,6 @@ namespace BitFaster.Caching.Lfu
             return sb.ToString();
         }
 #endif
-
-        [ExcludeFromCodeCoverage]
-        internal class LfuDebugView
-        {
-            private readonly ConcurrentLfuCore<K, V, N, P> lfu;
-
-            public LfuDebugView(ConcurrentLfuCore<K, V, N, P> lfu)
-            {
-                this.lfu = lfu;
-            }
-
-            public string Maintenance => lfu.drainStatus.Format();
-
-            public ICacheMetrics Metrics => lfu.metrics;
-
-            public StripedMpscBuffer<N> ReadBuffer => this.lfu.readBuffer;
-
-            public MpscBoundedBuffer<N> WriteBuffer => this.lfu.writeBuffer;
-
-            public KeyValuePair<K, V>[] Items
-            {
-                get
-                {
-                    var items = new KeyValuePair<K, V>[lfu.Count];
-
-                    int index = 0;
-                    foreach (var kvp in lfu)
-                    {
-                        items[index++] = kvp;
-                    }
-                    return items;
-                }
-            }
-        }
     }
 
     // Explicit layout cannot be a generic class member
