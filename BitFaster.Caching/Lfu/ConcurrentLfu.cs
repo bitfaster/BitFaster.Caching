@@ -128,12 +128,6 @@ namespace BitFaster.Caching.Lfu
         }
 
         ///<inheritdoc/>
-        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
-        {
-            return core.GetEnumerator();
-        }
-
-        ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
             return core.GetOrAdd(key, valueFactory);
@@ -203,9 +197,15 @@ namespace BitFaster.Caching.Lfu
         }
 
         ///<inheritdoc/>
+        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
+        {
+            return core.GetEnumerator();
+        }
+
+        ///<inheritdoc/>
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return ((ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>)core).GetEnumerator();
+            return core.GetEnumerator();
         }
 
 #if DEBUG
@@ -276,7 +276,7 @@ namespace BitFaster.Caching.Lfu
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
     
-    internal struct ConcurrentLfuCore<K, V, N, P> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
+    internal struct ConcurrentLfuCore<K, V, N, P> : IBoundedPolicy
         where N : LfuNode<K, V>
         where P : struct, INodePolicy<K, V, N>
     {
@@ -660,11 +660,6 @@ namespace BitFaster.Caching.Lfu
                 }
                 spinner.SpinOnce();
             }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((ConcurrentLfuCore<K, V, N, P>)this).GetEnumerator();
         }
 
         private void TryScheduleDrain()
