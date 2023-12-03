@@ -85,13 +85,13 @@ namespace BitFaster.Caching.Lfu
         public int Count => core.Count;
 
         ///<inheritdoc/>
-        public Optional<ICacheMetrics> Metrics => new(this.core.metrics);
+        public Optional<ICacheMetrics> Metrics => core.Metrics;
 
         ///<inheritdoc/>
-        public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
+        public Optional<ICacheEvents<K, V>> Events => core.Events;
 
         ///<inheritdoc/>
-        public CachePolicy Policy => new(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
+        public CachePolicy Policy => core.Policy;
 
         ///<inheritdoc/>
         public ICollection<K> Keys => core.Keys;
@@ -125,6 +125,12 @@ namespace BitFaster.Caching.Lfu
         public void Clear()
         {
             core.Clear();
+        }
+
+        ///<inheritdoc/>
+        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
+        {
+            return core.GetEnumerator();
         }
 
         ///<inheritdoc/>
@@ -197,16 +203,9 @@ namespace BitFaster.Caching.Lfu
         }
 
         ///<inheritdoc/>
-        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
-        {
-            return core.GetEnumerator();
-        }
-
-        ///<inheritdoc/>
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return core.GetEnumerator();
-            //return ((ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>)core).GetEnumerator();
+            return ((ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>)core).GetEnumerator();
         }
 
 #if DEBUG
@@ -277,7 +276,7 @@ namespace BitFaster.Caching.Lfu
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
     
-    internal struct ConcurrentLfuCore<K, V, N, P> : IBoundedPolicy
+    internal struct ConcurrentLfuCore<K, V, N, P> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
         where N : LfuNode<K, V>
         where P : struct, INodePolicy<K, V, N>
     {
@@ -290,7 +289,7 @@ namespace BitFaster.Caching.Lfu
         internal readonly StripedMpscBuffer<N> readBuffer;
         internal readonly MpscBoundedBuffer<N> writeBuffer;
 
-        internal readonly CacheMetrics metrics = new();
+        private readonly CacheMetrics metrics = new();
 
         private readonly CmSketch<K> cmSketch;
 
@@ -342,6 +341,12 @@ namespace BitFaster.Caching.Lfu
         public int Count => this.dictionary.Skip(0).Count();
 
         public int Capacity => this.capacity.Capacity;
+
+        public Optional<ICacheMetrics> Metrics => new(this.metrics);
+
+        public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
+
+        public CachePolicy Policy => new(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
         public ICollection<K> Keys => this.dictionary.Keys;
 
@@ -655,6 +660,11 @@ namespace BitFaster.Caching.Lfu
                 }
                 spinner.SpinOnce();
             }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((ConcurrentLfuCore<K, V, N, P>)this).GetEnumerator();
         }
 
         private void TryScheduleDrain()
