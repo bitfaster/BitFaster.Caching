@@ -46,7 +46,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 var sw = Stopwatch.StartNew();
                 Run(Stage.Pilot, 0, threads, config, cache);
 
-                valid = sw.Elapsed > TimeSpan.FromMilliseconds(200) ? valid + 1 : 0;    
+                valid = sw.Elapsed > TimeSpan.FromMilliseconds(400) ? valid + 1 : 0;    
 
                 if (valid > 3)
                 {
@@ -59,7 +59,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             int runCounter = 0;
             double effectiveMaxRelativeError = 0.02; // https://github.com/dotnet/BenchmarkDotNet/blob/b4ac9df9f7890ca9669e2b9c8835af35c072a453/src/BenchmarkDotNet/Jobs/AccuracyMode.cs#L11
 
-            OutlierMode outlierMode = OutlierMode.RemoveUpper;
+            OutlierMode outlierMode = OutlierMode.RemoveLower;
             int maxRuns = 80;
 
             while (true)

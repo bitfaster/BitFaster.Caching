@@ -51,7 +51,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             foreach (int tc in Enumerable.Range(minThreads, maxThreads - (minThreads -1)).ToArray())
             {
                 const int warmup = 3;
-                const int runs = 15;
+                const int runs = 11;
 
                 UpdateTitle(mode, tc, minThreads, maxThreads);
 
