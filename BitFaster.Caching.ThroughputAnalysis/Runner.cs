@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Microsoft.FSharp.Core.CompilerServices;
 
 namespace BitFaster.Caching.ThroughputAnalysis
 {
@@ -38,28 +40,32 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 new ConcurrentLfuFactory(capacity)
             };
 
-            var exporter = new Exporter(maxThreads);
+            int minThreads = 1;
+            var exporter = new Exporter(minThreads, maxThreads);
             exporter.Initialize(cachesToTest);
 
             Console.WriteLine();
             Console.WriteLine($"Running {mode} with size {capacity} over {maxThreads} threads...");
             Console.WriteLine();
 
-            foreach (int tc in Enumerable.Range(1, maxThreads).ToArray())
+            foreach (int tc in Enumerable.Range(minThreads, maxThreads - (minThreads -1)).ToArray())
             {
                 const int warmup = 3;
-                const int runs = 6;
+                const int runs = 11;
 
-                UpdateTitle(mode, tc, maxThreads);
+                UpdateTitle(mode, tc, minThreads, maxThreads);
 
                 foreach (var cacheConfig in cachesToTest)
                 {
                     var (sched, cache) = cacheConfig.Create(tc);
-                    double thru = bench.Run(warmup, runs, tc, dataConfig, cache);
+
+                    var sw = Stopwatch.StartNew();
+                    (int samples, double thru) = bench.Run(warmup, runs, tc, dataConfig, cache);
+                    var e = sw.Elapsed;
                     (sched as IDisposable)?.Dispose();
 
                     cacheConfig.DataRow[tc.ToString()] = thru.ToString();
-                    Console.WriteLine($"{cacheConfig.Name.PadRight(18)} ({tc:00}) {FormatThroughput(thru)} million ops/sec");
+                    Console.WriteLine($"{cacheConfig.Name.PadRight(18)} ({tc:00}) {Format.Throughput(thru)} million ops/sec, {samples:00} samples in {e.TotalSeconds:0.0}secs");
                 }
             }
 
@@ -74,14 +80,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             //    .Write(Format.MarkDown);
         }
 
-        private static string FormatThroughput(double thru)
-        {
-            string dformat = "0.00;-0.00";
-            string raw = thru.ToString(dformat);
-            return raw.PadLeft(7, ' ');
-        }
-
-        private static void UpdateTitle(Mode mode, int tc, int maxTc)
+        private static void UpdateTitle(Mode mode, int tc, int minTc, int maxTc)
         {
             Console.Title = $"{mode} {tc}/{maxTc}";
         }

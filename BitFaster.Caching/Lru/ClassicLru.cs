@@ -318,6 +318,7 @@ namespace BitFaster.Caching.Lru
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
+                LockAndMoveToEnd(node);
                 node.Value.Value = value;
                 Interlocked.Increment(ref this.metrics.updatedCount);
                 return true;
@@ -333,6 +334,7 @@ namespace BitFaster.Caching.Lru
             // first, try to update
             if (this.dictionary.TryGetValue(key, out var existingNode))
             {
+                LockAndMoveToEnd(existingNode);
                 existingNode.Value.Value = value;
                 Interlocked.Increment(ref this.metrics.updatedCount);
                 return;

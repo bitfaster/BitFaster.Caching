@@ -8,7 +8,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
     /// </summary>
     public class FastZipf
     {
-        private static readonly Random srandom = new(666);
+        private static readonly Random srandom = new(42);
 
         /// <summary>
         /// Generate a zipf distribution.
