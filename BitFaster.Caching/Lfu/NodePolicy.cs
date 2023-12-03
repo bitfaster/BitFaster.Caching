@@ -1,8 +1,11 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace BitFaster.Caching.Lfu
 {
-    public interface INodePolicy<K, V, N>
+    internal interface INodePolicy<K, V, N>
         where N : LfuNode<K, V>
     {
         N Create(K key, V value);
@@ -10,7 +13,7 @@ namespace BitFaster.Caching.Lfu
         // TODO: expire methods
     }
 
-    public struct AccessOrderPolicy<K, V> : INodePolicy<K, V, AccessOrderNode<K, V>>
+    internal struct AccessOrderPolicy<K, V> : INodePolicy<K, V, AccessOrderNode<K, V>>
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public AccessOrderNode<K, V> Create(K key, V value)
@@ -19,7 +22,7 @@ namespace BitFaster.Caching.Lfu
         }
     }
 
-    public struct ExpireAfterPolicy<K, V> : INodePolicy<K, V, TimeOrderNode<K, V>>
+    internal struct ExpireAfterPolicy<K, V> : INodePolicy<K, V, TimeOrderNode<K, V>>
     {
         private readonly TimerWheel<K, V> wheel;
 
