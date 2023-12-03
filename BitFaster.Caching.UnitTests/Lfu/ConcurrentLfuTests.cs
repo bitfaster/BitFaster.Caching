@@ -27,6 +27,30 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void WhenCapacityIsLessThan3CtorThrows()
+        {
+            Action constructor = () => { var x = new ConcurrentLfu<int, string>(2); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public void WhenCapacityIsValidCacheIsCreated()
+        {
+            var x = new ConcurrentLfu<int, string>(3);
+
+            x.Capacity.Should().Be(3);
+        }
+
+        [Fact]
+        public void WhenConcurrencyIsLessThan1CtorThrows()
+        {
+            Action constructor = () => { var x = new ConcurrentLfu<int, string>(0, 20, new ForegroundScheduler(), EqualityComparer<int>.Default); };
+
+            constructor.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
         public void DefaultSchedulerIsThreadPool()
         {
             var cache = new ConcurrentLfu<int, int>(20);

@@ -309,6 +309,9 @@ namespace BitFaster.Caching.Lfu
 
         public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers)
         {
+            if (capacity < 3)
+                Throw.ArgOutOfRange(nameof(capacity));
+
             int dictionaryCapacity = ConcurrentDictionarySize.Estimate(capacity);
             this.dictionary = new (concurrencyLevel, dictionaryCapacity, comparer);
 
