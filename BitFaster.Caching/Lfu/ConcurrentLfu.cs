@@ -1026,8 +1026,8 @@ namespace BitFaster.Caching.Lfu
                 {
                     Idle => !delayable,
                     Required => true,
-                    ProcessingToIdle or ProcessingToRequired => false,
-                    _ => false,// not reachable
+                    // ProcessingToIdle or ProcessingToRequired => false, undefined not reachable
+                    _ => false,
                 };
             }
 
