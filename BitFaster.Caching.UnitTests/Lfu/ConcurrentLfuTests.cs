@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using BitFaster.Caching.UnitTests.Lru;
@@ -572,7 +570,11 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.GetOrAdd(1, k => k + 1);
             cache.GetOrAdd(2, k => k + 1);
 
-            cache.Should().BeEquivalentTo(new[] { new KeyValuePair<int, int>(1, 2), new KeyValuePair<int, int>(2, 3) });
+            var enumerator = cache.GetEnumerator();
+            enumerator.MoveNext().Should().BeTrue();
+            enumerator.Current.Should().Be(new KeyValuePair<int, int>(1, 2));
+            enumerator.MoveNext().Should().BeTrue();
+            enumerator.Current.Should().Be(new KeyValuePair<int, int>(2, 3));
         }
 
         [Fact]
