@@ -40,47 +40,25 @@ namespace BitFaster.Caching.Lfu
     /// </summary>
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView))]
+    [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView<>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
     {
-        private const int MaxWriteBufferRetries = 64;
+        // Note: for performance reasons this is a mutable struct, it cannot be readonly.
+        private ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> core;
 
         /// <summary>
         /// The default buffer size.
         /// </summary>
         public const int DefaultBufferSize = 128;
 
-        private readonly ConcurrentDictionary<K, LfuNode<K, V>> dictionary;
-
-        private readonly StripedMpscBuffer<LfuNode<K, V>> readBuffer;
-        private readonly MpscBoundedBuffer<LfuNode<K, V>> writeBuffer;
-
-        private readonly CacheMetrics metrics = new();
-
-        private readonly CmSketch<K> cmSketch;
-
-        private readonly LfuNodeList<K, V> windowLru;
-        private readonly LfuNodeList<K, V> probationLru;
-        private readonly LfuNodeList<K, V> protectedLru;
-
-        private readonly LfuCapacityPartition capacity;
-
-        private readonly DrainStatus drainStatus = new();
-        private readonly object maintenanceLock = new();
-
-        private readonly IScheduler scheduler;
-        private readonly Action drainBuffers;
-
-        private readonly LfuNode<K, V>[] drainBuffer;
-
         /// <summary>
         /// Initializes a new instance of the ConcurrentLfu class with the specified capacity.
         /// </summary>
         /// <param name="capacity">The capacity.</param>
         public ConcurrentLfu(int capacity)
-            : this(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default)
-        {        
+        {
+            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers());
         }
 
         /// <summary>
@@ -92,16 +70,258 @@ namespace BitFaster.Caching.Lfu
         /// <param name="comparer">The equality comparer.</param>
         public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
+            this.core = new (concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers());
+        }
+
+        internal ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> Core => core;
+
+        // structs cannot declare self referencing lambda functions, therefore pass this in from the ctor
+        private void DrainBuffers()
+        {
+            this.core.DrainBuffers();
+        }
+
+        ///<inheritdoc/>
+        public int Count => core.Count;
+
+        ///<inheritdoc/>
+        public Optional<ICacheMetrics> Metrics => core.Metrics;
+
+        ///<inheritdoc/>
+        public Optional<ICacheEvents<K, V>> Events => core.Events;
+
+        ///<inheritdoc/>
+        public CachePolicy Policy => core.Policy;
+
+        ///<inheritdoc/>
+        public ICollection<K> Keys => core.Keys;
+
+        ///<inheritdoc/>
+        public int Capacity => core.Capacity;
+
+        ///<inheritdoc/>
+        public IScheduler Scheduler => core.Scheduler;
+
+        /// <summary>
+        /// Synchronously perform all pending policy maintenance. Drain the read and write buffers then
+        /// use the eviction policy to preserve bounded size and remove expired items.
+        /// </summary>
+        /// <remarks>
+        /// Note: maintenance is automatically performed asynchronously immediately following a read or write.
+        /// It is not necessary to call this method, <see cref="DoMaintenance"/> is provided purely to enable tests to reach a consistent state.
+        /// </remarks>
+        public void DoMaintenance()
+        {
+            core.DoMaintenance();
+        }
+
+        ///<inheritdoc/>
+        public void AddOrUpdate(K key, V value)
+        {
+            core.AddOrUpdate(key, value);
+        }
+
+        ///<inheritdoc/>
+        public void Clear()
+        {
+            core.Clear();
+        }
+
+        ///<inheritdoc/>
+        public V GetOrAdd(K key, Func<K, V> valueFactory)
+        {
+            return core.GetOrAdd(key, valueFactory);
+        }
+
+        ///<inheritdoc/>
+        public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+        {
+            return core.GetOrAdd(key, valueFactory, factoryArgument);
+        }
+
+        ///<inheritdoc/>
+        public ValueTask<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
+        {
+            return core.GetOrAddAsync(key, valueFactory);
+        }
+
+        ///<inheritdoc/>
+        public ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+        {
+            return core.GetOrAddAsync(key, valueFactory, factoryArgument);
+        }
+
+        ///<inheritdoc/>
+        public void Trim(int itemCount)
+        {
+            core.Trim(itemCount);
+        }
+
+        ///<inheritdoc/>
+        public bool TryGet(K key, out V value)
+        {
+            return core.TryGet(key, out value);
+        }
+
+        ///<inheritdoc/>
+        public bool TryRemove(K key)
+        {
+            return core.TryRemove(key);
+        }
+
+        /// <summary>
+        /// Attempts to remove the specified key value pair.
+        /// </summary>
+        /// <param name="item">The item to remove.</param>
+        /// <returns>true if the item was removed successfully; otherwise, false.</returns>
+        public bool TryRemove(KeyValuePair<K, V> item)
+        {
+            return core.TryRemove(item);
+        }
+
+        /// <summary>
+        /// Attempts to remove and return the value that has the specified key.
+        /// </summary>
+        /// <param name="key">The key of the element to remove.</param>
+        /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
+        /// <returns>true if the object was removed successfully; otherwise, false.</returns>
+        public bool TryRemove(K key, out V value)
+        {
+            return core.TryRemove(key, out value);
+        }
+
+        ///<inheritdoc/>
+        public bool TryUpdate(K key, V value)
+        {
+            return core.TryUpdate(key, value);
+        }
+
+        ///<inheritdoc/>
+        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
+        {
+            return core.GetEnumerator();
+        }
+
+        ///<inheritdoc/>
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return core.GetEnumerator();
+        }
+
+#if DEBUG
+        /// <summary>
+        /// Format the LFU as a string by converting all the keys to strings.
+        /// </summary>
+        /// <returns>The LFU formatted as a string.</returns>
+        public string FormatLfuString()
+        {
+            return core.FormatLfuString();
+        }
+#endif
+
+        [ExcludeFromCodeCoverage]
+        internal class LfuDebugView<N>
+             where N : LfuNode<K, V>
+        {
+            private readonly ConcurrentLfu<K, V> lfu;
+
+            public LfuDebugView(ConcurrentLfu<K, V> lfu)
+            {
+                this.lfu = lfu;
+            }
+
+            public string Maintenance => lfu.core.drainStatus.Format();
+
+            public ICacheMetrics Metrics => lfu.Metrics.Value;
+
+            public StripedMpscBuffer<N> ReadBuffer => this.lfu.core.readBuffer as StripedMpscBuffer<N>;
+
+            public MpscBoundedBuffer<N> WriteBuffer => this.lfu.core.writeBuffer as MpscBoundedBuffer<N>;
+
+            public KeyValuePair<K, V>[] Items
+            {
+                get
+                {
+                    var items = new KeyValuePair<K, V>[lfu.Count];
+
+                    int index = 0;
+                    foreach (var kvp in lfu)
+                    {
+                        items[index++] = kvp;
+                    }
+                    return items;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// An approximate LFU based on the W-TinyLfu eviction policy. W-TinyLfu tracks items using a window LRU list, and 
+    /// a main space LRU divided into protected and probation segments. Reads and writes to the cache are stored in buffers
+    /// and later applied to the policy LRU lists in batches under a lock. Each read and write is tracked using a compact 
+    /// popularity sketch to probalistically estimate item frequency. Items proceed through the LRU lists as follows:
+    /// <list type="number">
+    ///   <item><description>New items are added to the window LRU. When acessed window items move to the window MRU position.</description></item>
+    ///   <item><description>When the window is full, candidate items are moved to the probation segment in LRU order.</description></item>
+    ///   <item><description>When the main space is full, the access frequency of each window candidate is compared 
+    ///   to probation victims in LRU order. The item with the lowest frequency is evicted until the cache size is within bounds.</description></item>
+    ///   <item><description>When a probation item is accessed, it is moved to the protected segment. If the protected segment is full, 
+    ///   the LRU protected item is demoted to probation.</description></item>
+    ///   <item><description>When a protected item is accessed, it is moved to the protected MRU position.</description></item>
+    /// </list>
+    /// The size of the admission window and main space are adapted over time to iteratively improve hit rate using a 
+    /// hill climbing algorithm. A larger window favors workloads with high recency bias, whereas a larger main space
+    /// favors workloads with frequency bias.
+    /// </summary>
+    /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
+    /// https://github.com/ben-manes/caffeine
+    
+    internal struct ConcurrentLfuCore<K, V, N, P> : IBoundedPolicy
+        where N : LfuNode<K, V>
+        where P : struct, INodePolicy<K, V, N>
+    {
+        private const int MaxWriteBufferRetries = 64;
+
+        private const int DefaultBufferSize = 128;
+
+        private readonly ConcurrentDictionary<K, N> dictionary;
+
+        internal readonly StripedMpscBuffer<N> readBuffer;
+        internal readonly MpscBoundedBuffer<N> writeBuffer;
+
+        private readonly CacheMetrics metrics = new();
+
+        private readonly CmSketch<K> cmSketch;
+
+        private readonly LfuNodeList<K, V> windowLru;
+        private readonly LfuNodeList<K, V> probationLru;
+        private readonly LfuNodeList<K, V> protectedLru;
+
+        private readonly LfuCapacityPartition capacity;
+
+        internal readonly DrainStatus drainStatus = new();
+        private readonly object maintenanceLock = new();
+
+        private readonly IScheduler scheduler;
+        private readonly Action drainBuffers;
+
+        private readonly N[] drainBuffer;
+
+        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers)
+        {
+            if (capacity < 3)
+                Throw.ArgOutOfRange(nameof(capacity));
+
             int dictionaryCapacity = ConcurrentDictionarySize.Estimate(capacity);
-            this.dictionary = new ConcurrentDictionary<K, LfuNode<K, V>>(concurrencyLevel, dictionaryCapacity, comparer);
+            this.dictionary = new (concurrencyLevel, dictionaryCapacity, comparer);
 
             // cap concurrency at proc count * 2
             int readStripes = Math.Min(BitOps.CeilingPowerOfTwo(concurrencyLevel), BitOps.CeilingPowerOfTwo(Environment.ProcessorCount * 2));
-            this.readBuffer = new StripedMpscBuffer<LfuNode<K, V>>(readStripes, DefaultBufferSize);
+            this.readBuffer = new (readStripes, DefaultBufferSize);
 
             // Cap the write buffer to the cache size, or 128. Whichever is smaller.
             int writeBufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);
-            this.writeBuffer = new MpscBoundedBuffer<LfuNode<K, V>>(writeBufferSize);
+            this.writeBuffer = new (writeBufferSize);
 
             this.cmSketch = new CmSketch<K>(capacity, comparer);
             this.windowLru = new LfuNodeList<K, V>();
@@ -111,36 +331,27 @@ namespace BitFaster.Caching.Lfu
             this.capacity = new LfuCapacityPartition(capacity);
 
             this.scheduler = scheduler;
-            this.drainBuffers = () => this.DrainBuffers();
 
-            this.drainBuffer = new LfuNode<K, V>[this.readBuffer.Capacity];
+            this.drainBuffer = new N[this.readBuffer.Capacity];
+
+            this.drainBuffers = drainBuffers;
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
-        ///<inheritdoc/>
         public int Count => this.dictionary.Skip(0).Count();
 
-        ///<inheritdoc/>
         public int Capacity => this.capacity.Capacity;
 
-        ///<inheritdoc/>
         public Optional<ICacheMetrics> Metrics => new(this.metrics);
 
-        ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
 
-        ///<inheritdoc/>
         public CachePolicy Policy => new(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
-        ///<inheritdoc/>
         public ICollection<K> Keys => this.dictionary.Keys;
 
-        /// <summary>
-        /// Gets the scheduler.
-        /// </summary>
         public IScheduler Scheduler => scheduler;
 
-        ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
         {
             while (true)
@@ -150,7 +361,7 @@ namespace BitFaster.Caching.Lfu
                     return;
                 }
 
-                var node = new LfuNode<K, V>(key, value);
+                var node = default(P).Create(key, value);
                 if (this.dictionary.TryAdd(key, node))
                 {
                     AfterWrite(node);
@@ -159,7 +370,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        ///<inheritdoc/>
         public void Clear()
         {
             this.Trim(this.Count);
@@ -172,10 +382,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        /// <summary>
-        /// Trim the specified number of items from the cache.
-        /// </summary>
-        /// <param name="itemCount">The number of items to remove.</param>
         public void Trim(int itemCount)
         {
             itemCount = Math.Min(itemCount, this.Count);
@@ -205,7 +411,7 @@ namespace BitFaster.Caching.Lfu
 
         private bool TryAdd(K key, V value)
         {
-            var node = new LfuNode<K, V>(key, value);
+            var node = default(P).Create(key, value);
 
             if (this.dictionary.TryAdd(key, node))
             {
@@ -217,7 +423,6 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
             while (true)
@@ -235,16 +440,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        /// <summary>
-        /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
-        /// existing value if the key already exists.
-        /// </summary>
-        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
-        /// <param name="key">The key of the element to add.</param>
-        /// <param name="valueFactory">The factory function used to generate a value for the key.</param>
-        /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
-        /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
-        /// in the cache, or the new value if the key was not in the cache.</returns>
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
         {
             while (true)
@@ -262,7 +457,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        ///<inheritdoc/>
         public async ValueTask<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
             while (true)
@@ -280,15 +474,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        /// <summary>
-        /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
-        /// existing value if the key already exists.
-        /// </summary>
-        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
-        /// <param name="key">The key of the element to add.</param>
-        /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
-        /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
-        /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
         public async ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
         {
             while (true)
@@ -306,7 +491,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
             if (this.dictionary.TryGetValue(key, out var node))
@@ -327,24 +511,19 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        /// <summary>
-        /// Attempts to remove the specified key value pair.
-        /// </summary>
-        /// <param name="item">The item to remove.</param>
-        /// <returns>true if the item was removed successfully; otherwise, false.</returns>
         public bool TryRemove(KeyValuePair<K, V> item)
         {
             if (this.dictionary.TryGetValue(item.Key, out var node))
             {
                 if (EqualityComparer<V>.Default.Equals(node.Value, item.Value))
                 {
-                    var kvp = new KeyValuePair<K, LfuNode<K,V>>(item.Key, node);
+                    var kvp = new KeyValuePair<K, N>(item.Key, node);
 
 #if NET6_0_OR_GREATER
                     if (this.dictionary.TryRemove(kvp))
 #else
                     // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
-                    if (((ICollection<KeyValuePair<K, LfuNode<K, V>>>)this.dictionary).Remove(kvp))
+                    if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp))
 #endif
                     {
                         node.WasRemoved = true;
@@ -357,12 +536,6 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        /// <summary>
-        /// Attempts to remove and return the value that has the specified key.
-        /// </summary>
-        /// <param name="key">The key of the element to remove.</param>
-        /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
-        /// <returns>true if the object was removed successfully; otherwise, false.</returns>
         public bool TryRemove(K key, out V value)
         {
             if (this.dictionary.TryRemove(key, out var node))
@@ -377,13 +550,11 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        ///<inheritdoc/>
         public bool TryRemove(K key)
         {
             return this.TryRemove(key, out var _);
         }
 
-        ///<inheritdoc/>
         public bool TryUpdate(K key, V value)
         {
             if (this.dictionary.TryGetValue(key, out var node))
@@ -400,27 +571,11 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        /// <summary>
-        /// Synchronously perform all pending policy maintenance. Drain the read and write buffers then
-        /// use the eviction policy to preserve bounded size and remove expired items.
-        /// </summary>
-        /// <remarks>
-        /// Note: maintenance is automatically performed asynchronously immediately following a read or write.
-        /// It is not necessary to call this method, <see cref="DoMaintenance"/> is provided purely to enable tests to reach a consistent state.
-        /// </remarks>
         public void DoMaintenance()
         {
             DrainBuffers();
         }
 
-        /// <summary>Returns an enumerator that iterates through the cache.</summary>
-        /// <returns>An enumerator for the cache.</returns>
-        /// <remarks>
-        /// The enumerator returned from the cache is safe to use concurrently with
-        /// reads and writes, however it does not represent a moment-in-time snapshot.  
-        /// The contents exposed through the enumerator may contain modifications
-        /// made after <see cref="GetEnumerator"/> was called.
-        /// </remarks>
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
         {
             foreach (var kvp in this.dictionary)
@@ -445,7 +600,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private void AfterWrite(LfuNode<K, V> node)
+        private void AfterWrite(N node)
         {
             for (int i = 0; i < MaxWriteBufferRetries; i++)
             {
@@ -507,11 +662,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((ConcurrentLfu<K, V>)this).GetEnumerator();
-        }
-
         private void TryScheduleDrain()
         {
             if (this.drainStatus.VolatileRead() >= DrainStatus.ProcessingToIdle)
@@ -546,7 +696,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private void DrainBuffers()
+        internal void DrainBuffers()
         {
             bool done = false;
 
@@ -570,7 +720,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private bool Maintenance(LfuNode<K, V> droppedWrite = null)
+        private bool Maintenance(N droppedWrite = null)
         {
             this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
 
@@ -859,7 +1009,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         [DebuggerDisplay("{Format(),nq}")]
-        private class DrainStatus
+        internal class DrainStatus
         {
             public const int Idle = 0;
             public const int Required = 1;
@@ -876,8 +1026,8 @@ namespace BitFaster.Caching.Lfu
                 {
                     Idle => !delayable,
                     Required => true,
-                    ProcessingToIdle or ProcessingToRequired => false,
-                    _ => false,// not reachable
+                    // ProcessingToIdle or ProcessingToRequired => false, undefined not reachable
+                    _ => false,
                 };
             }
 
@@ -971,40 +1121,6 @@ namespace BitFaster.Caching.Lfu
             return sb.ToString();
         }
 #endif
-
-        [ExcludeFromCodeCoverage]
-        internal class LfuDebugView
-        {
-            private readonly ConcurrentLfu<K, V> lfu;
-
-            public LfuDebugView(ConcurrentLfu<K, V> lfu)
-            {
-                this.lfu = lfu;
-            }
-
-            public string Maintenance => lfu.drainStatus.Format();
-
-            public ICacheMetrics Metrics => lfu.metrics;
-
-            public StripedMpscBuffer<LfuNode<K, V>> ReadBuffer => this.lfu.readBuffer;
-
-            public MpscBoundedBuffer<LfuNode<K, V>> WriteBuffer => this.lfu.writeBuffer;
-
-            public KeyValuePair<K, V>[] Items
-            {
-                get
-                {
-                    var items = new KeyValuePair<K, V>[lfu.Count];
-
-                    int index = 0;
-                    foreach (var kvp in lfu)
-                    {
-                        items[index++] = kvp;
-                    }
-                    return items;
-                }
-            }
-        }
     }
 
     // Explicit layout cannot be a generic class member
