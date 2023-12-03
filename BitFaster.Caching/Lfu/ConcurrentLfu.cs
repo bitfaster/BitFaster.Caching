@@ -205,7 +205,7 @@ namespace BitFaster.Caching.Lfu
         ///<inheritdoc/>
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return core.GetEnumerator();
+            return ((ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>)core).GetEnumerator();
         }
 
 #if DEBUG
