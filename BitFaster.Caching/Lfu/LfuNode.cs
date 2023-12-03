@@ -1,6 +1,6 @@
 ﻿namespace BitFaster.Caching.Lfu
 {
-    internal sealed class LfuNode<K, V>
+    internal class LfuNode<K, V>
     {
         internal LfuNodeList<K, V> list;
         internal LfuNode<K, V> next;
@@ -56,5 +56,12 @@
         Window,
         Probation,
         Protected,
+    }
+
+    internal sealed class AccessOrderNode<K, V> : LfuNode<K, V>
+    {
+        public AccessOrderNode(K k, V v) : base(k, v)
+        {
+        }
     }
 }
