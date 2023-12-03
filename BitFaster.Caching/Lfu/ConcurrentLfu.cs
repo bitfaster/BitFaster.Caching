@@ -21,8 +21,25 @@ using System.Text;
 namespace BitFaster.Caching.Lfu
 {
     /// <summary>
-    /// Facade to hide generics.
+    /// An approximate LFU based on the W-TinyLfu eviction policy. W-TinyLfu tracks items using a window LRU list, and 
+    /// a main space LRU divided into protected and probation segments. Reads and writes to the cache are stored in buffers
+    /// and later applied to the policy LRU lists in batches under a lock. Each read and write is tracked using a compact 
+    /// popularity sketch to probalistically estimate item frequency. Items proceed through the LRU lists as follows:
+    /// <list type="number">
+    ///   <item><description>New items are added to the window LRU. When acessed window items move to the window MRU position.</description></item>
+    ///   <item><description>When the window is full, candidate items are moved to the probation segment in LRU order.</description></item>
+    ///   <item><description>When the main space is full, the access frequency of each window candidate is compared 
+    ///   to probation victims in LRU order. The item with the lowest frequency is evicted until the cache size is within bounds.</description></item>
+    ///   <item><description>When a probation item is accessed, it is moved to the protected segment. If the protected segment is full, 
+    ///   the LRU protected item is demoted to probation.</description></item>
+    ///   <item><description>When a protected item is accessed, it is moved to the protected MRU position.</description></item>
+    /// </list>
+    /// The size of the admission window and main space are adapted over time to iteratively improve hit rate using a 
+    /// hill climbing algorithm. A larger window favors workloads with high recency bias, whereas a larger main space
+    /// favors workloads with frequency bias.
     /// </summary>
+    /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
+    /// https://github.com/ben-manes/caffeine
     [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView<>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
@@ -158,13 +175,22 @@ namespace BitFaster.Caching.Lfu
             return core.TryRemove(key);
         }
 
-        ///<inheritdoc/>
+        /// <summary>
+        /// Attempts to remove the specified key value pair.
+        /// </summary>
+        /// <param name="item">The item to remove.</param>
+        /// <returns>true if the item was removed successfully; otherwise, false.</returns>
         public bool TryRemove(KeyValuePair<K, V> item)
         {
             return core.TryRemove(item);
         }
 
-        ///<inheritdoc/>
+        /// <summary>
+        /// Attempts to remove and return the value that has the specified key.
+        /// </summary>
+        /// <param name="key">The key of the element to remove.</param>
+        /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
+        /// <returns>true if the object was removed successfully; otherwise, false.</returns>
         public bool TryRemove(K key, out V value)
         {
             return core.TryRemove(key, out value);
@@ -309,30 +335,20 @@ namespace BitFaster.Caching.Lfu
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
-        ///<inheritdoc/>
         public int Count => this.dictionary.Skip(0).Count();
 
-        ///<inheritdoc/>
         public int Capacity => this.capacity.Capacity;
 
-        ///<inheritdoc/>
         public Optional<ICacheMetrics> Metrics => new(this.metrics);
 
-        ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
 
-        ///<inheritdoc/>
         public CachePolicy Policy => new(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
-        ///<inheritdoc/>
         public ICollection<K> Keys => this.dictionary.Keys;
 
-        /// <summary>
-        /// Gets the scheduler.
-        /// </summary>
         public IScheduler Scheduler => scheduler;
 
-        ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
         {
             while (true)
@@ -351,7 +367,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        ///<inheritdoc/>
         public void Clear()
         {
             this.Trim(this.Count);
@@ -364,10 +379,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        /// <summary>
-        /// Trim the specified number of items from the cache.
-        /// </summary>
-        /// <param name="itemCount">The number of items to remove.</param>
         public void Trim(int itemCount)
         {
             itemCount = Math.Min(itemCount, this.Count);
@@ -409,7 +420,6 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        ///<inheritdoc/>
         public V GetOrAdd(K key, Func<K, V> valueFactory)
         {
             while (true)
@@ -427,16 +437,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        /// <summary>
-        /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
-        /// existing value if the key already exists.
-        /// </summary>
-        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
-        /// <param name="key">The key of the element to add.</param>
-        /// <param name="valueFactory">The factory function used to generate a value for the key.</param>
-        /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
-        /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
-        /// in the cache, or the new value if the key was not in the cache.</returns>
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
         {
             while (true)
@@ -454,7 +454,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        ///<inheritdoc/>
         public async ValueTask<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory)
         {
             while (true)
@@ -472,15 +471,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        /// <summary>
-        /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
-        /// existing value if the key already exists.
-        /// </summary>
-        /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
-        /// <param name="key">The key of the element to add.</param>
-        /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
-        /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
-        /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
         public async ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
         {
             while (true)
@@ -498,7 +488,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        ///<inheritdoc/>
         public bool TryGet(K key, out V value)
         {
             if (this.dictionary.TryGetValue(key, out var node))
@@ -519,11 +508,6 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        /// <summary>
-        /// Attempts to remove the specified key value pair.
-        /// </summary>
-        /// <param name="item">The item to remove.</param>
-        /// <returns>true if the item was removed successfully; otherwise, false.</returns>
         public bool TryRemove(KeyValuePair<K, V> item)
         {
             if (this.dictionary.TryGetValue(item.Key, out var node))
@@ -549,12 +533,6 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        /// <summary>
-        /// Attempts to remove and return the value that has the specified key.
-        /// </summary>
-        /// <param name="key">The key of the element to remove.</param>
-        /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
-        /// <returns>true if the object was removed successfully; otherwise, false.</returns>
         public bool TryRemove(K key, out V value)
         {
             if (this.dictionary.TryRemove(key, out var node))
@@ -569,13 +547,11 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        ///<inheritdoc/>
         public bool TryRemove(K key)
         {
             return this.TryRemove(key, out var _);
         }
 
-        ///<inheritdoc/>
         public bool TryUpdate(K key, V value)
         {
             if (this.dictionary.TryGetValue(key, out var node))
@@ -592,27 +568,11 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        /// <summary>
-        /// Synchronously perform all pending policy maintenance. Drain the read and write buffers then
-        /// use the eviction policy to preserve bounded size and remove expired items.
-        /// </summary>
-        /// <remarks>
-        /// Note: maintenance is automatically performed asynchronously immediately following a read or write.
-        /// It is not necessary to call this method, <see cref="DoMaintenance"/> is provided purely to enable tests to reach a consistent state.
-        /// </remarks>
         public void DoMaintenance()
         {
             DrainBuffers();
         }
 
-        /// <summary>Returns an enumerator that iterates through the cache.</summary>
-        /// <returns>An enumerator for the cache.</returns>
-        /// <remarks>
-        /// The enumerator returned from the cache is safe to use concurrently with
-        /// reads and writes, however it does not represent a moment-in-time snapshot.  
-        /// The contents exposed through the enumerator may contain modifications
-        /// made after <see cref="GetEnumerator"/> was called.
-        /// </remarks>
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
         {
             foreach (var kvp in this.dictionary)
