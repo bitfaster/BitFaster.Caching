@@ -765,6 +765,11 @@ namespace BitFaster.Caching.Lfu
             evictee.list.Remove(evictee);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
+
+            lock (evictee)
+            {
+                evictee.WasRemoved = evictee.WasDeleted = true;
+            }
         }
 
         private void ReFitProtected()

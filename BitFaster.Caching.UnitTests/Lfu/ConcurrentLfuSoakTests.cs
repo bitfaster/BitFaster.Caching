@@ -371,21 +371,15 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var node = lfuNodes.First;
 
-            while (node != null) 
+            while (node != null)
             {
-                node.WasRemoved.Should().BeFalse();
-                node.WasDeleted.Should().BeFalse();
+                lock (node)
+                {
+                    node.WasRemoved.Should().BeFalse();
+                    node.WasDeleted.Should().BeFalse();
+                }
 
                 cache.TryGet(node.Key, out _).Should().BeTrue($"Orphaned node with key {node.Key} detected.");
-
-                // This can occur if there is a race between:
-                // Thread 1: TryRemove, delete node from dictionary, set WasRemoved flag
-                // Thread 2: Check WasRemoved flag, if not add to lru
-                // It's not clear how WasRemoved can be false in this situation.
-                //if (!cache.TryGet(node.Key, out _))
-                //{
-                //    output.WriteLine($"Orphaned node with key {node.Key} detected.");
-                //}
 
                 node = node.Next;
             }
