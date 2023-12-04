@@ -302,6 +302,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             var scheduler = lfu.Scheduler as BackgroundThreadScheduler;
             scheduler.Dispose();
+
+            // https://devblogs.microsoft.com/oldnewthing/20220505-00/?p=106585
             var winner = await Task.WhenAny(scheduler.Completion, Task.Delay(TimeSpan.FromSeconds(10)));
             if (winner != scheduler.Completion)
             {
