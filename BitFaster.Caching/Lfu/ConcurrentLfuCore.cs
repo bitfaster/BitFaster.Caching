@@ -701,13 +701,17 @@ namespace BitFaster.Caching.Lfu
 
                 if (candidate.node.WasRemoved)
                 {
-                    Evict(candidate.node);
+                    var evictee = candidate.node;
+                    candidate.Next();
+                    Evict(evictee);
                     continue;
                 }
 
                 if (victim.node.WasRemoved)
                 {
-                    Evict(victim.node);
+                    var evictee = victim.node;
+                    victim.Next();
+                    Evict(evictee);
                     continue;
                 }
 
