@@ -28,7 +28,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         //Elapsed 411.6918ms - 0.0004116918ns/op
         //Cache hits 1689839 (sampled 16.89839%)
         //Maintenance ops 31
-        //[Fact]
+        [Fact]
         public void VerifyHitsWithBackgroundScheduler()
         {
             var cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
@@ -39,7 +39,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         //Elapsed 590.8154ms - 0.0005908154ns/op
         //Cache hits 3441470 (sampled 34.414699999999996%)
         //Maintenance ops 20
-        //[Fact]
+        [Fact]
         public void VerifyHitsWithThreadPoolScheduler()
         {
             // when running all tests in parallel, sample count drops significantly: set low bar for stability.
@@ -50,7 +50,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         //Elapsed 273.0148ms - 0.0002730148ns/op
         //Cache hits 0 (sampled 0%)
         //Maintenance ops 1
-       // [Fact]
+        [Fact]
         public void VerifyHitsWithNullScheduler()
         {
             var cache = new ConcurrentLfu<int, int>(1, 20, new NullScheduler(), EqualityComparer<int>.Default);
@@ -61,7 +61,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         //Elapsed 847.5331ms - 0.0008475331ns/op
         //Cache hits 10000000 (sampled 99.2248062015504%)
         //Maintenance ops 78126
-        //[Fact]
+        [Fact]
         public void VerifyHitsWithForegroundScheduler()
         {
             var cache = new ConcurrentLfu<int, int>(1, 20, new ForegroundScheduler(), EqualityComparer<int>.Default);
@@ -76,7 +76,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             VerifyHits(cache, iterations: iterations + dropped, minSamples: iterations);
         }
 
-       // [Fact]
+        [Fact]
         public void VerifyMisses()
         {
             var cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
@@ -302,7 +302,11 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             var scheduler = lfu.Scheduler as BackgroundThreadScheduler;
             scheduler.Dispose();
-            await scheduler.Completion;
+            var winner = await Task.WhenAny(scheduler.Completion, Task.Delay(TimeSpan.FromSeconds(10)));
+            if (winner != scheduler.Completion)
+            {
+                throw new TimeoutException("Timed out waiting for scheduler to complete.");
+            }
 
             RunIntegrityCheck(lfu, this.output);
         }
