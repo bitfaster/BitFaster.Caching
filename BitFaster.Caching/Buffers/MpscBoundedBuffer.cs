@@ -254,6 +254,9 @@ namespace BitFaster.Caching.Buffers
         /// <summary>
         /// Removes all values from the buffer.
         /// </summary>
+        /// <remarks>
+        /// Clear must be called from the single consumer thread.
+        /// </remarks>
         public void Clear()
         {
             while (TryTake(out _) != BufferStatus.Empty)
