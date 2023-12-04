@@ -699,6 +699,18 @@ namespace BitFaster.Caching.Lfu
                     break;
                 }
 
+                if (candidate.node.WasRemoved)
+                {
+                    Evict(candidate.node);
+                    continue;
+                }
+
+                if (victim.node.WasRemoved)
+                {
+                    Evict(victim.node);
+                    continue;
+                }
+
                 // Evict the entry with the lowest frequency
                 if (candidate.freq > victim.freq)
                 {
@@ -749,6 +761,9 @@ namespace BitFaster.Caching.Lfu
 
         private void Evict(LfuNode<K, V> evictee)
         {
+            evictee.WasRemoved = true;
+            evictee.WasDeleted = true;
+
             this.dictionary.TryRemove(evictee.Key, out var _);
             evictee.list.Remove(evictee);
             Disposer<V>.Dispose(evictee.Value);

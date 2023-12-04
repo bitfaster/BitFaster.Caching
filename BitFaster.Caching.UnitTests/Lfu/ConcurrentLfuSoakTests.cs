@@ -15,7 +15,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
     [Collection("Soak")]
     public class ConcurrentLfuSoakTests
     {
-        private const int soakIterations = 10;
+        private const int soakIterations = 100;
         private const int threads = 4;
         private const int loopIterations = 100_000;
 
@@ -376,14 +376,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 node.WasRemoved.Should().BeFalse();
                 node.WasDeleted.Should().BeFalse();
 
-                // This can occur if there is a race between:
-                // Thread 1: TryRemove, delete node from dictionary, set WasRemoved flag
-                // Thread 2: Check WasRemoved flag, if not add to lru
-                // It's not clear how WasRemoved can be false in this situation.
-                if (!cache.TryGet(node.Key, out _))
-                {
-                    output.WriteLine($"Orphaned node with key {node.Key} detected.");
-                }
+                cache.TryGet(node.Key, out _).Should().BeTrue($"Orphaned node with key {node.Key} detected.");
 
                 node = node.Next;
             }
