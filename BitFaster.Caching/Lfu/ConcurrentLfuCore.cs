@@ -107,8 +107,6 @@ namespace BitFaster.Caching.Lfu
 
         public Optional<ICacheMetrics> Metrics => new(this.metrics);
 
-        public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
-
         public CachePolicy Policy => new(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
         public ICollection<K> Keys => this.dictionary.Keys;
@@ -137,11 +135,10 @@ namespace BitFaster.Caching.Lfu
         {
             this.Trim(this.Count);
 
-            this.readBuffer.Clear();
-            this.writeBuffer.Clear();
-
             lock (maintenanceLock)
             {
+                this.readBuffer.Clear();
+                this.writeBuffer.Clear();
                 this.cmSketch.Clear();
             }
         }

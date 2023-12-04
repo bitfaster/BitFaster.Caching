@@ -123,7 +123,7 @@ namespace BitFaster.Caching.Buffers
         /// Removes all values from the buffer.
         /// </summary>
         /// <remarks>
-        /// Not thread safe.
+        /// Clear must be called from the single consumer thread.
         /// </remarks>
         public void Clear()
         {

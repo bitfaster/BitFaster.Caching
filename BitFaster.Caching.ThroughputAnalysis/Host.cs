@@ -8,6 +8,11 @@ namespace BitFaster.Caching.ThroughputAnalysis
     {
         public static void PrintInfo()
         {
+            var Reference = typeof(Host).Assembly;
+            var Version = Reference.GetName().Version;
+
+            Console.WriteLine($"Throughput Analysis {Version}");
+
             var hostinfo = HostEnvironmentInfo.GetCurrent();
 
             foreach (var segment in hostinfo.ToFormattedString())
@@ -35,8 +40,6 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
                 Console.ResetColor();
             }
-
-            Console.WriteLine();
         }
 
         public static int GetAvailableCoreCount()
