@@ -131,7 +131,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        public void Clear()
+        public void Clear2()
         {
             int lruCount = 0;
             lock (maintenanceLock)
@@ -149,23 +149,24 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        public void Clear()
+        {
+            Trim(int.MaxValue);
+        }
+
         public void Trim(int itemCount)
         {
-            int lruCount = 0;
+            List<LfuNode<K, V>> candidates;
             lock (maintenanceLock)
             {
-                lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
-            }
-
-            itemCount = Math.Min(itemCount, lruCount);
-            var candidates = new List<LfuNode<K, V>>(itemCount);
-
-            // TODO: this is LRU order eviction, Caffeine is based on frequency
-            lock (maintenanceLock)
-            {
-                // flush all buffers
                 Maintenance();
 
+                int lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
+
+                itemCount = Math.Min(itemCount, lruCount);
+                candidates = new (itemCount);
+
+                // Note: this is LRU order eviction, Caffeine is based on frequency
                 // walk in lru order, get itemCount keys to evict
                 TakeCandidatesInLruOrder(this.probationLru, candidates, itemCount);
                 TakeCandidatesInLruOrder(this.protectedLru, candidates, itemCount);
