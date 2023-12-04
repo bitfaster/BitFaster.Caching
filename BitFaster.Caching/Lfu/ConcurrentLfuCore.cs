@@ -131,24 +131,6 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        public void Clear2()
-        {
-            int lruCount = 0;
-            lock (maintenanceLock)
-            {
-                lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
-            }
-
-            this.Trim(lruCount);
-
-            lock (maintenanceLock)
-            {
-                this.readBuffer.Clear();
-                this.writeBuffer.Clear();
-                this.cmSketch.Clear();
-            }
-        }
-
         public void Clear()
         {
             Trim(int.MaxValue);
