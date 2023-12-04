@@ -133,7 +133,13 @@ namespace BitFaster.Caching.Lfu
 
         public void Clear()
         {
-            this.Trim(this.Count);
+            int lruCount = 0;
+            lock (maintenanceLock)
+            {
+                lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
+            }
+
+            this.Trim(lruCount);
 
             lock (maintenanceLock)
             {
@@ -145,7 +151,13 @@ namespace BitFaster.Caching.Lfu
 
         public void Trim(int itemCount)
         {
-            itemCount = Math.Min(itemCount, this.Count);
+            int lruCount = 0;
+            lock (maintenanceLock)
+            {
+                lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
+            }
+
+            itemCount = Math.Min(itemCount, lruCount);
             var candidates = new List<LfuNode<K, V>>(itemCount);
 
             // TODO: this is LRU order eviction, Caffeine is based on frequency
@@ -769,7 +781,7 @@ namespace BitFaster.Caching.Lfu
             evictee.WasDeleted = true;
 
             this.dictionary.TryRemove(evictee.Key, out var _);
-            evictee.list?.Remove(evictee);
+            evictee.list.Remove(evictee);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
         }
