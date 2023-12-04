@@ -13,7 +13,7 @@ namespace BitFaster.Caching.Buffers
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class MpscBoundedBuffer<T> where T : class
     {
-        private readonly T[] buffer;
+        private T[] buffer;
         private readonly int mask;
         private PaddedHeadAndTail headAndTail; // mutable struct, don't mark readonly
 
@@ -254,11 +254,13 @@ namespace BitFaster.Caching.Buffers
         /// <summary>
         /// Removes all values from the buffer.
         /// </summary>
+        /// <remarks>
+        /// Not thread safe.
+        /// </remarks>
         public void Clear()
         {
-            while (TryTake(out _) != BufferStatus.Empty)
-            {
-            }
+            buffer = new T[buffer.Length];
+            headAndTail = new PaddedHeadAndTail();
         }
     }
 }

@@ -12,7 +12,7 @@ namespace BitFaster.Caching.Buffers
     /// Based on the Segment internal class from the .NET ConcurrentQueue class.
     public sealed class MpmcBoundedBuffer<T>
     {
-        private readonly Slot[] slots;
+        private Slot[] slots;
         private readonly int slotsMask;
         private PaddedHeadAndTail headAndTail; // mutable struct, don't mark readonly
 
@@ -208,11 +208,13 @@ namespace BitFaster.Caching.Buffers
         /// <summary>
         /// Removes all values from the buffer.
         /// </summary>
+        /// <remarks>
+        /// Not thread safe.
+        /// </remarks>
         public void Clear()
         {
-            while (TryTake(out _) != BufferStatus.Empty)
-            { 
-            }
+            slots = new Slot[slots.Length];
+            headAndTail = new PaddedHeadAndTail();
         }
 
         [StructLayout(LayoutKind.Auto)]
