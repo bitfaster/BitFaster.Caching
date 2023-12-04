@@ -78,7 +78,7 @@ namespace BitFaster.Caching.Lfu
         public Optional<ICacheMetrics> Metrics => core.Metrics;
 
         ///<inheritdoc/>
-        public Optional<ICacheEvents<K, V>> Events => core.Events;
+        public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
 
         ///<inheritdoc/>
         public CachePolicy Policy => core.Policy;
