@@ -22,7 +22,9 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: |
+          6.0.x
+          8.0.x
     - name: Install dependencies
       run: dotnet restore
     - name: Build
@@ -57,7 +59,9 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: |
+          6.0.x
+          8.0.x
     - name: Install dependencies
       run: dotnet restore
     - name: Build
@@ -81,7 +85,9 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: |
+          6.0.x
+          8.0.x
     - name: Install dependencies
       run: dotnet restore
     - name: Build
