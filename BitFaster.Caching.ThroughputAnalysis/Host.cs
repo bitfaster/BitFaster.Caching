@@ -8,10 +8,9 @@ namespace BitFaster.Caching.ThroughputAnalysis
     {
         public static void PrintInfo()
         {
-            var Reference = typeof(Host).Assembly;
-            var Version = Reference.GetName().Version;
+            string branch = $"({ThisAssembly.Git.Branch}" + (ThisAssembly.Git.IsDirty ? " dirty)" : ")");
 
-            Console.WriteLine($"Throughput Analysis {Version}");
+            Console.WriteLine($"Throughput Analysis {ThisAssembly.Git.BaseTag} {ThisAssembly.Git.Commit} {branch}");
 
             var hostinfo = HostEnvironmentInfo.GetCurrent();
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using BitFaster.Caching.HitRateAnalysis;
 using BitFaster.Caching.HitRateAnalysis.Arc;
 
 var menu = new EasyConsole.Menu()
@@ -10,4 +11,5 @@ var menu = new EasyConsole.Menu()
     .Add("Arc Search", () => new BitFaster.Caching.HitRateAnalysis.Arc.Runner(RunnerConfig.Search).Run().Wait())
     .Add("Arc OLTP", () => new BitFaster.Caching.HitRateAnalysis.Arc.Runner(RunnerConfig.Oltp).Run().Wait());
 
+Splash.Display();
 menu.Display();
