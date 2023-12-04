@@ -765,7 +765,7 @@ namespace BitFaster.Caching.Lfu
             evictee.WasDeleted = true;
 
             this.dictionary.TryRemove(evictee.Key, out var _);
-            evictee.list.Remove(evictee);
+            evictee.list?.Remove(evictee);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
         }
