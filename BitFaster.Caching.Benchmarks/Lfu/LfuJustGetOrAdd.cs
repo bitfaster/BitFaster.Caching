@@ -13,6 +13,7 @@ namespace BitFaster.Caching.Benchmarks
     [SimpleJob(RuntimeMoniker.Net48)]
 #endif
     [SimpleJob(RuntimeMoniker.Net60)]
+    [SimpleJob(RuntimeMoniker.Net80)]
     //[DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser(displayGenColumns: false)]
     // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/
@@ -41,7 +42,7 @@ namespace BitFaster.Caching.Benchmarks
            background.Dispose();
         }
 
-        [Benchmark(Baseline = true)]
+//        [Benchmark(Baseline = true)]
         public void ConcurrentDictionary()
         {
             Func<int, int> func = x => x;
@@ -55,21 +56,21 @@ namespace BitFaster.Caching.Benchmarks
             concurrentLfu.GetOrAdd(1, func);
         }
 
-        [Benchmark()]
+       // [Benchmark()]
         public void ConcurrentLfuForeround()
         {
             Func<int, int> func = x => x;
             concurrentLfuFore.GetOrAdd(1, func);
         }
 
-        [Benchmark()]
+  //      [Benchmark()]
         public void ConcurrentLfuThreadPool()
         {
             Func<int, int> func = x => x;
             concurrentLfuTp.GetOrAdd(1, func);
         }
 
-        [Benchmark()]
+   //     [Benchmark()]
         public void ConcurrentLfuNull()
         {
             Func<int, int> func = x => x;

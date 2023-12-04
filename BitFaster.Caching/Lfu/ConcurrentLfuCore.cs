@@ -287,7 +287,10 @@ namespace BitFaster.Caching.Lfu
                     if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp))
 #endif
                     {
-                        node.WasRemoved = true;
+                        lock (node)
+                        {
+                            node.WasRemoved = true;
+                        }
                         AfterWrite(node);
                         return true;
                     }
@@ -301,7 +304,10 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryRemove(key, out var node))
             {
-                node.WasRemoved = true;
+                lock (node)
+                {
+                    node.WasRemoved = true;
+                }
                 AfterWrite(node);
                 value = node.Value;
                 return true;
@@ -573,7 +579,10 @@ namespace BitFaster.Caching.Lfu
                     // we mark as deleted to avoid double counting/disposing it
                     this.metrics.evictedCount++;
                     Disposer<V>.Dispose(node.Value);
-                    node.WasDeleted = true;
+                    lock (node)
+                    {
+                        node.WasDeleted = true;
+                    }
                 }
 
                 return;
