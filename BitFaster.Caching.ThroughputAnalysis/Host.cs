@@ -29,6 +29,14 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
 
             Console.WriteLine();
+#if DEBUG
+            var prev = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine("WARNING: Debug build (no optimizations)");
+            Console.ForegroundColor = prev;
+#endif
+
+            Console.WriteLine($"Runtime: {RuntimeInformation.FrameworkDescription}");
             Console.WriteLine($"Available CPU Count: {Host.GetAvailableCoreCount()}");
 
             if (Host.GetLogicalCoreCount() > Host.GetAvailableCoreCount())
