@@ -2,6 +2,8 @@
 using BitFaster.Caching.ThroughputAnalysis;
 
 Host.PrintInfo();
+PowerPlan.EnableHighPerformance();
+Console.WriteLine();
 
 var (mode, size) = CommandParser.Parse(args);
 
