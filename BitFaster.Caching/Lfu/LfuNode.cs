@@ -81,8 +81,8 @@
     // 2. Doubly linked list
     internal sealed class TimeOrderNode<K, V> : LfuNode<K, V>
     {
-        TimeOrderNode<K, V> prevV;
-        TimeOrderNode<K, V> nextV;
+        TimeOrderNode<K, V> prevTime;
+        TimeOrderNode<K, V> nextTime;
 
         private Duration timeToExpire;
 
@@ -90,16 +90,22 @@
         {
         }
 
+        public Duration TimeToExpire 
+        { 
+            get => timeToExpire;
+            set => timeToExpire = value;
+        }
+
         public static TimeOrderNode<K, V> CreateSentinel()
         {
             var s = new TimeOrderNode<K, V>(default, default);
-            s.nextV = s.prevV = s;
+            s.nextTime = s.prevTime = s;
             return s;
         }
 
-        public TimeOrderNode<K, V> getPreviousInVariableOrder()
+        public TimeOrderNode<K, V> GetPreviousInTimeOrder()
         {
-            return prevV;
+            return prevTime;
         }
 
         public long getVariableTime()
@@ -108,20 +114,21 @@
         }
 
         //override
-        public void setPreviousInVariableOrder(TimeOrderNode<K, V> prev)
+        public void SetPreviousInTimeOrder(TimeOrderNode<K, V> prev)
         {
-            this.prevV = prev;
+            this.prevTime = prev;
         }
+
         //override
-        public TimeOrderNode<K, V> getNextInVariableOrder()
+        public TimeOrderNode<K, V> GetNextInTimeOrder()
         {
-            return nextV;
+            return nextTime;
         }
 
         // override
-        public void setNextInVariableOrder(TimeOrderNode<K, V> next)
+        public void SetNextInTimeOrder(TimeOrderNode<K, V> next)
         {
-            this.nextV = next;
+            this.nextTime = next;
         }
     }
 }

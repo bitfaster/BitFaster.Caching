@@ -6,9 +6,9 @@ namespace BitFaster.Caching.Lfu
     // https://github.com/ben-manes/caffeine/blob/73d5011f9db373fc20a6e12d1f194f0d7a967d69/caffeine/src/main/java/com/github/benmanes/caffeine/cache/TimerWheel.java#L36
     internal class TimerWheel<K, V>
     {
-        static readonly int[] BUCKETS = { 64, 64, 32, 4, 1 };
+        private static readonly int[] BUCKETS = { 64, 64, 32, 4, 1 };
 
-        static readonly long[] SPANS = {
+        internal static readonly long[] SPANS = {
             BitOps.CeilingPowerOfTwo(Duration.FromSeconds(1).raw), // 1.07s
             BitOps.CeilingPowerOfTwo(Duration.FromMinutes(1).raw), // 1.14m
             BitOps.CeilingPowerOfTwo(Duration.FromMinutes(60).raw),   // 1.22h
@@ -17,7 +17,7 @@ namespace BitFaster.Caching.Lfu
             BUCKETS[3] * BitOps.CeilingPowerOfTwo(Duration.FromMinutes(60*24).raw), // 6.5d
         };
 
-        static readonly int[] SHIFT = {
+        private static readonly int[] SHIFT = {
             BitOps.TrailingZeroCount(SPANS[0]),
             BitOps.TrailingZeroCount(SPANS[1]),
             BitOps.TrailingZeroCount(SPANS[2]),
@@ -28,7 +28,7 @@ namespace BitFaster.Caching.Lfu
         private readonly TimeOrderNode<K, V>[][] wheel;
 
         // TODO: replace with Duration
-        long nanos;
+        internal long nanos;
 
         public TimerWheel()
         {
@@ -77,7 +77,7 @@ namespace BitFaster.Caching.Lfu
                     Expire(ref cache, i, previousTicks, delta);
                 }
             }
-            catch (Exception t)
+            catch (Exception)
             {
                 nanos = previousTimeNanos;
                 throw;
@@ -99,16 +99,16 @@ namespace BitFaster.Caching.Lfu
             for (int i = start; i < end; i++)
             {
                 TimeOrderNode<K, V> sentinel = timerWheel[i & mask];
-                TimeOrderNode<K, V> prev = sentinel.getPreviousInVariableOrder();
-                TimeOrderNode<K, V> node = sentinel.getNextInVariableOrder();
-                sentinel.setPreviousInVariableOrder(sentinel);
-                sentinel.setNextInVariableOrder(sentinel);
+                TimeOrderNode<K, V> prev = sentinel.GetPreviousInTimeOrder();
+                TimeOrderNode<K, V> node = sentinel.GetNextInTimeOrder();
+                sentinel.SetPreviousInTimeOrder(sentinel);
+                sentinel.SetNextInTimeOrder(sentinel);
 
                 while (node != sentinel)
                 {
-                    TimeOrderNode<K, V> next = node.getNextInVariableOrder();
-                    node.setPreviousInVariableOrder(null);
-                    node.setNextInVariableOrder(null);
+                    TimeOrderNode<K, V> next = node.GetNextInTimeOrder();
+                    node.SetPreviousInTimeOrder(null);
+                    node.SetNextInTimeOrder(null);
 
                     try
                     {
@@ -122,12 +122,12 @@ namespace BitFaster.Caching.Lfu
                         }
                         node = next;
                     }
-                    catch (Exception t)
+                    catch (Exception)
                     {
-                        node.setPreviousInVariableOrder(sentinel.getPreviousInVariableOrder());
-                        node.setNextInVariableOrder(next);
-                        sentinel.getPreviousInVariableOrder().setNextInVariableOrder(node);
-                        sentinel.setPreviousInVariableOrder(prev);
+                        node.SetPreviousInTimeOrder(sentinel.GetPreviousInTimeOrder());
+                        node.SetNextInTimeOrder(next);
+                        sentinel.GetPreviousInTimeOrder().SetNextInTimeOrder(node);
+                        sentinel.SetPreviousInTimeOrder(prev);
                         throw;
                     }
                 }
@@ -151,8 +151,8 @@ namespace BitFaster.Caching.Lfu
         public void Deschedule(TimeOrderNode<K, V> node)
         {
             Unlink(node);
-            node.setNextInVariableOrder(null);
-            node.setPreviousInVariableOrder(null);
+            node.SetNextInTimeOrder(null);
+            node.SetPreviousInTimeOrder(null);
         }
 
         // Determines the bucket that the timer event should be added to.
@@ -175,27 +175,27 @@ namespace BitFaster.Caching.Lfu
         // Adds the entry at the tail of the bucket's list.
         private static void Link(TimeOrderNode<K, V> sentinel, TimeOrderNode<K, V> node)
         {
-            node.setPreviousInVariableOrder(sentinel.getPreviousInVariableOrder());
-            node.setNextInVariableOrder(sentinel);
+            node.SetPreviousInTimeOrder(sentinel.GetPreviousInTimeOrder());
+            node.SetNextInTimeOrder(sentinel);
 
-            sentinel.getPreviousInVariableOrder().setNextInVariableOrder(node);
-            sentinel.setPreviousInVariableOrder(node);
+            sentinel.GetPreviousInTimeOrder().SetNextInTimeOrder(node);
+            sentinel.SetPreviousInTimeOrder(node);
         }
 
         // Removes the entry from its bucket, if scheduled.
         private static void Unlink(TimeOrderNode<K, V> node)
         {
-            TimeOrderNode<K, V> next = node.getNextInVariableOrder();
+            TimeOrderNode<K, V> next = node.GetNextInTimeOrder();
             if (next != null)
             {
-                TimeOrderNode<K, V> prev = node.getPreviousInVariableOrder();
-                next.setPreviousInVariableOrder(prev);
-                prev.setNextInVariableOrder(next);
+                TimeOrderNode<K, V> prev = node.GetPreviousInTimeOrder();
+                next.SetPreviousInTimeOrder(prev);
+                prev.SetNextInTimeOrder(next);
             }
         }
 
         // Returns the duration until the next bucket expires, or long.MaxValue if none.
-        public long getExpirationDelay()
+        public Duration GetExpirationDelay()
         {
             for (int i = 0; i < SHIFT.Length; i++)
             {
@@ -209,7 +209,7 @@ namespace BitFaster.Caching.Lfu
                 for (int j = start; j < end; j++)
                 {
                     TimeOrderNode<K, V> sentinel = timerWheel[(j & mask)];
-                    TimeOrderNode<K, V> next = sentinel.getNextInVariableOrder();
+                    TimeOrderNode<K, V> next = sentinel.GetNextInTimeOrder();
                     if (next == sentinel)
                     {
                         continue;
@@ -220,20 +220,20 @@ namespace BitFaster.Caching.Lfu
 
                     for (int k = i + 1; k < SHIFT.Length; k++)
                     {
-                        long nextDelay = peekAhead(k);
+                        long nextDelay = PeekAhead(k);
                         delay = Math.Min(delay, nextDelay);
                     }
 
-                    return delay;
+                    return new Duration(delay);
                 }
             }
 
-            // TODO: revisit as Duration
-            return long.MaxValue;
+            // TODO: revisit as Duration - is max value legal?
+            return new Duration(long.MaxValue);
         }
 
         // Returns the duration when the wheel's next bucket expires, or long.MaxValue if empty.
-        private long peekAhead(int index)
+        private long PeekAhead(int index)
         {
             // TODO: revisit time as Duration
             long ticks = (long)((ulong)nanos >> SHIFT[index]);
@@ -243,7 +243,7 @@ namespace BitFaster.Caching.Lfu
             int mask = timerWheel.Length - 1;
             int probe = (int)((ticks + 1) & mask);
             TimeOrderNode<K, V> sentinel = timerWheel[probe];
-            TimeOrderNode<K, V> next = sentinel.getNextInVariableOrder();
+            TimeOrderNode<K, V> next = sentinel.GetNextInTimeOrder();
             return (next == sentinel) ? long.MaxValue: (SPANS[index] - (nanos & spanMask));
         }
     }
