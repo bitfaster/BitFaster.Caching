@@ -358,9 +358,12 @@ namespace BitFaster.Caching.Lfu
             while (candidates.Count < itemCount && curr != null)
             {
                 // LRUs can contain items that are already removed, skip those 
-                if (!curr.WasRemoved)
-                { 
-                    candidates.Add(curr); 
+                lock (curr)
+                {
+                    if (!curr.WasRemoved)
+                    {
+                        candidates.Add(curr);
+                    }
                 }
 
                 curr = curr.Next;
@@ -569,23 +572,23 @@ namespace BitFaster.Caching.Lfu
         {
             // Nodes can be removed while they are in the write buffer, in which case they should
             // not be added back into the LRU.
-            if (node.WasRemoved)
+            lock (node)
             {
-                node.list?.Remove(node);
-
-                if (!node.WasDeleted)
+                if (node.WasRemoved)
                 {
-                    // if a write is in the buffer and is then removed in the buffer, it will enter OnWrite twice.
-                    // we mark as deleted to avoid double counting/disposing it
-                    this.metrics.evictedCount++;
-                    Disposer<V>.Dispose(node.Value);
-                    lock (node)
+                    node.list?.Remove(node);
+
+                    if (!node.WasDeleted)
                     {
+                        // if a write is in the buffer and is then removed in the buffer, it will enter OnWrite twice.
+                        // we mark as deleted to avoid double counting/disposing it
+                        this.metrics.evictedCount++;
+                        Disposer<V>.Dispose(node.Value);
                         node.WasDeleted = true;
                     }
-                }
 
-                return;
+                    return;
+                }
             }
 
             this.cmSketch.Increment(node.Key);
