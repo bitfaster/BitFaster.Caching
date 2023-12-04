@@ -23,6 +23,10 @@
     <PackageReference Include="EasyConsole" Version="1.1.0">
         <NoWarn>NU1701</NoWarn>
     </PackageReference>
+    <PackageReference Include="GitInfo" Version="3.3.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
       <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
       <PackageReference Include="Plotly.NET.CSharp" Version="0.11.1" />
