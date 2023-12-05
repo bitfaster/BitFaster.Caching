@@ -134,6 +134,13 @@ namespace BitFaster.Caching.Lfu
         public void Clear()
         {
             Trim(int.MaxValue);
+
+            lock (maintenanceLock)
+            {
+                this.readBuffer.Clear();
+                this.writeBuffer.Clear();
+                this.cmSketch.Clear();
+            }
         }
 
         public void Trim(int itemCount)
@@ -762,6 +769,8 @@ namespace BitFaster.Caching.Lfu
             evictee.WasRemoved = true;
             evictee.WasDeleted = true;
 
+            // This handles the case where the same key exists in the write buffer both
+            // as added and removed. Remove via KVP ensures we don't remove added nodes.
             var kvp = new KeyValuePair<K, N>(evictee.Key, (N)evictee);
 #if NET6_0_OR_GREATER
             this.dictionary.TryRemove(kvp);
