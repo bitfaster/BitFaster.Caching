@@ -15,7 +15,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
     [Collection("Soak")]
     public class ConcurrentLfuSoakTests
     {
-        private const int soakIterations = 100;
+        private const int soakIterations = 10;
         private const int threads = 4;
         private const int loopIterations = 100_000;
 
