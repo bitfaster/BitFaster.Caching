@@ -98,7 +98,7 @@ namespace BitFaster.Caching.Lru
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
         ///<inheritdoc/>
-        public int Count => this.dictionary.Skip(0).Count();
+        public int Count => this.dictionary.Where(i => !itemPolicy.ShouldDiscard(i.Value)).Count();
 
         ///<inheritdoc/>
         public int Capacity => this.capacity.Hot + this.capacity.Warm + this.capacity.Cold;
@@ -144,7 +144,10 @@ namespace BitFaster.Caching.Lru
         {
             foreach (var kvp in this.dictionary)
             {
-                yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.Value);
+                if (!itemPolicy.ShouldDiscard(kvp.Value))
+                { 
+                    yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.Value); 
+                }
             }
         }
 
