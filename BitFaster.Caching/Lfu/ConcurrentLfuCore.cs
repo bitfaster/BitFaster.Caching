@@ -144,7 +144,6 @@ namespace BitFaster.Caching.Lfu
                 Maintenance();
 
                 int lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
-
                 itemCount = Math.Min(itemCount, lruCount);
                 candidates = new (itemCount);
 
@@ -763,7 +762,12 @@ namespace BitFaster.Caching.Lfu
             evictee.WasRemoved = true;
             evictee.WasDeleted = true;
 
-            this.dictionary.TryRemove(evictee.Key, out var _);
+            var kvp = new KeyValuePair<K, N>(evictee.Key, (N)evictee);
+#if NET6_0_OR_GREATER
+            this.dictionary.TryRemove(kvp);
+#else
+            ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
+#endif
             evictee.list.Remove(evictee);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
