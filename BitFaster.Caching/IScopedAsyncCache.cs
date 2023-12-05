@@ -69,6 +69,7 @@ namespace BitFaster.Caching
         /// <param name="valueFactory">The factory function used to asynchronously generate a scoped value for the key.</param>
         /// <param name="factoryArgument"></param>
         /// <returns>A task that represents the asynchronous ScopedGetOrAdd operation.</returns>
+        /// <remarks>The default implementation given here is the fallback that provides backwards compatibility for classes that implement ICache on prior versions</remarks>
         ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TArg>(K key, Func<K, TArg, Task<Scoped<V>>> valueFactory, TArg factoryArgument) => this.ScopedGetOrAddAsync(key, (k) => valueFactory(k, factoryArgument));
 #endif
 

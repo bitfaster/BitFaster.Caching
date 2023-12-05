@@ -72,6 +72,7 @@ namespace BitFaster.Caching
         /// <returns>The lifetime for the value associated with the key. The lifetime will be either reference the 
         /// existing value for the key if the key is already in the cache, or the new value if the key was not in 
         /// the cache.</returns>
+        /// <remarks>The default implementation given here is the fallback that provides backwards compatibility for classes that implement ICache on prior versions</remarks>
         Lifetime<V> ScopedGetOrAdd<TArg>(K key, Func<K, TArg, Scoped<V>> valueFactory, TArg factoryArgument) => this.ScopedGetOrAdd(key, k => valueFactory(k, factoryArgument));
 #endif
 
