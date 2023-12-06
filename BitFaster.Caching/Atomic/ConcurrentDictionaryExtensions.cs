@@ -18,6 +18,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="valueFactory">The function used to generate a value for the key.</param>
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already in the dictionary, or the new value if the key was not in the dictionary.</returns>
         public static V GetOrAdd<K, V>(this ConcurrentDictionary<K, AtomicFactory<K, V>> dictionary, K key, Func<K, V> valueFactory)
+             where K : notnull
         {
             var atomicFactory = dictionary.GetOrAdd(key, _ => new AtomicFactory<K, V>());
             return atomicFactory.GetValue(key, valueFactory);
@@ -32,6 +33,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already in the dictionary, or the new value if the key was not in the dictionary.</returns>
         public static V GetOrAdd<K, V, TArg>(this ConcurrentDictionary<K, AtomicFactory<K, V>> dictionary, K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+             where K : notnull
         {
             var atomicFactory = dictionary.GetOrAdd(key, _ => new AtomicFactory<K, V>());
             return atomicFactory.GetValue(key, valueFactory, factoryArgument);
@@ -45,6 +47,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="valueFactory">The function used to generate a value for the key.</param>
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already in the dictionary, or the new value if the key was not in the dictionary.</returns>
         public static ValueTask<V> GetOrAddAsync<K, V>(this ConcurrentDictionary<K, AsyncAtomicFactory<K, V>> dictionary, K key, Func<K, Task<V>> valueFactory)
+             where K : notnull
         {
             var asyncAtomicFactory = dictionary.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
             return asyncAtomicFactory.GetValueAsync(key, valueFactory);
@@ -59,6 +62,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already in the dictionary, or the new value if the key was not in the dictionary.</returns>
         public static ValueTask<V> GetOrAddAsync<K, V, TArg>(this ConcurrentDictionary<K, AsyncAtomicFactory<K, V>> dictionary, K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+             where K : notnull
         {
             var asyncAtomicFactory = dictionary.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
             return asyncAtomicFactory.GetValueAsync(key, valueFactory, factoryArgument);
@@ -72,6 +76,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="value">When this method returns, contains the object from the ConcurrentDictionary that has the specified key, or the default value of the type if the operation failed.</param>
         /// <returns>true if the key was found in the ConcurrentDictionary; otherwise, false.</returns>
         public static bool TryGetValue<K, V>(this ConcurrentDictionary<K, AtomicFactory<K, V>> dictionary, K key, out V value)
+             where K : notnull
         {
             AtomicFactory<K, V> output;
             var ret = dictionary.TryGetValue(key, out output);
@@ -93,6 +98,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="key">The key of the value to get.</param>
         /// <param name="value">When this method returns, contains the object from the ConcurrentDictionary that has the specified key, or the default value of the type if the operation failed.</param>
         public static bool TryGetValue<K, V>(this ConcurrentDictionary<K, AsyncAtomicFactory<K, V>> dictionary, K key, out V value)
+             where K : notnull
         {
             AsyncAtomicFactory<K, V> output;
             var ret = dictionary.TryGetValue(key, out output);
@@ -114,6 +120,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="item">The KeyValuePair representing the key and value to remove.</param>
         /// <returns>true if the object was removed successfully; otherwise, false.</returns>
         public static bool TryRemove<K, V>(this ConcurrentDictionary<K, AtomicFactory<K, V>> dictionary, KeyValuePair<K, V> item)
+             where K : notnull
         {
             var kvp = new KeyValuePair<K, AtomicFactory<K, V>>(item.Key, new AtomicFactory<K, V>(item.Value));
 #if NET6_0_OR_GREATER
@@ -131,6 +138,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="item">The KeyValuePair representing the key and value to remove.</param>
         /// <returns>true if the object was removed successfully; otherwise, false.</returns>
         public static bool TryRemove<K, V>(this ConcurrentDictionary<K, AsyncAtomicFactory<K, V>> dictionary, KeyValuePair<K, V> item)
+             where K : notnull
         {
             var kvp = new KeyValuePair<K, AsyncAtomicFactory<K, V>>(item.Key, new AsyncAtomicFactory<K, V>(item.Value));
 #if NET6_0_OR_GREATER
@@ -149,6 +157,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="value">When this method returns, contains the object removed from the ConcurrentDictionary, or the default value of the TValue type if key does not exist.</param>
         /// <returns>true if the object was removed successfully; otherwise, false.</returns>
         public static bool TryRemove<K, V>(this ConcurrentDictionary<K, AtomicFactory<K, V>> dictionary, K key, out V value)
+             where K : notnull
         {
             if (dictionary.TryRemove(key, out var atomic))
             {
@@ -168,6 +177,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="value">When this method returns, contains the object removed from the ConcurrentDictionary, or the default value of the TValue type if key does not exist.</param>
         /// <returns>true if the object was removed successfully; otherwise, false.</returns>
         public static bool TryRemove<K, V>(this ConcurrentDictionary<K, AsyncAtomicFactory<K, V>> dictionary, K key, out V value)
+             where K : notnull
         {
             if (dictionary.TryRemove(key, out var atomic))
             {

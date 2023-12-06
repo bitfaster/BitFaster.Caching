@@ -8,7 +8,9 @@ namespace BitFaster.Caching.Lfu.Builder
     /// </summary>
     /// <typeparam name="K">The type of the cache key.</typeparam>
     /// <typeparam name="V">The type of the cache value.</typeparam>
-    public sealed class AtomicScopedConcurrentLfuBuilder<K, V> : LfuBuilderBase<K, V, AtomicScopedConcurrentLfuBuilder<K, V>, IScopedCache<K, V>> where V : IDisposable
+    public sealed class AtomicScopedConcurrentLfuBuilder<K, V> : LfuBuilderBase<K, V, AtomicScopedConcurrentLfuBuilder<K, V>, IScopedCache<K, V>>
+        where K : notnull
+        where V : IDisposable
     {
         private readonly ConcurrentLfuBuilder<K, ScopedAtomicFactory<K, V>> inner;
 
