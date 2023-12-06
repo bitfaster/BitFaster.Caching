@@ -101,7 +101,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
-        public int Count => this.dictionary.Where(n => !n.Value.WasRemoved).Count();
+        public int Count => this.dictionary.Skip(0).Count();
 
         public int Capacity => this.capacity.Capacity;
 
@@ -342,10 +342,7 @@ namespace BitFaster.Caching.Lfu
         {
             foreach (var kvp in this.dictionary)
             {
-                if (!kvp.Value.WasRemoved)
-                { 
-                    yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.Value); 
-                }
+                yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.Value); 
             }
         }
 
