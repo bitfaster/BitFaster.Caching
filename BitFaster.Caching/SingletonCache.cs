@@ -12,6 +12,7 @@ namespace BitFaster.Caching
     /// <typeparam name="TKey">The type of the key.</typeparam>
     /// <typeparam name="TValue">The type of the value.</typeparam>
     public class SingletonCache<TKey, TValue>
+        where TKey : notnull
     {
         private readonly ConcurrentDictionary<TKey, ReferenceCount<TValue>> cache;
 

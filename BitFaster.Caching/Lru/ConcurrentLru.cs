@@ -14,6 +14,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="info">The LruInfo</param>
         /// <returns>A ConcurrentLru</returns>
         internal static ICache<K, V> Create<K, V>(LruInfo<K> info)
+            where K : notnull
         {
             if (info.TimeToExpireAfterWrite.HasValue && info.TimeToExpireAfterAccess.HasValue)
                 Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfterAccess is not supported.");

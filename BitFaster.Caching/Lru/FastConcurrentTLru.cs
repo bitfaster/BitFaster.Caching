@@ -8,6 +8,7 @@ namespace BitFaster.Caching.Lru
     [DebuggerTypeProxy(typeof(CacheDebugView<,>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class FastConcurrentTLru<K, V> : ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TLruLongTicksPolicy<K, V>, NoTelemetryPolicy<K, V>>
+        where K : notnull
     {
         /// <summary>
         /// Initializes a new instance of the FastConcurrentTLru class with the specified capacity and time to live that has the default 
