@@ -342,7 +342,7 @@ namespace BitFaster.Caching.Lfu
         {
             foreach (var kvp in this.dictionary)
             {
-                yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.Value); 
+                yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.Value);
             }
         }
 
