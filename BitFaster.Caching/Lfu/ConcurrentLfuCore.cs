@@ -40,6 +40,7 @@ namespace BitFaster.Caching.Lfu
     /// https://github.com/ben-manes/caffeine
     
     internal struct ConcurrentLfuCore<K, V, N, P> : IBoundedPolicy
+        where K : notnull
         where N : LfuNode<K, V>
         where P : struct, INodePolicy<K, V, N>
     {

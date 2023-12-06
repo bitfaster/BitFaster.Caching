@@ -16,7 +16,9 @@ namespace BitFaster.Caching
     /// <typeparam name="V">The type of values in the cache.</typeparam>
     [DebuggerTypeProxy(typeof(ScopedAsyncCacheDebugView<,>))]
     [DebuggerDisplay("Count = {Count}")]
-    public sealed class ScopedAsyncCache<K, V> : IScopedAsyncCache<K, V> where V : IDisposable
+    public sealed class ScopedAsyncCache<K, V> : IScopedAsyncCache<K, V>
+        where K : notnull
+        where V : IDisposable
     {
         private readonly IAsyncCache<K, Scoped<V>> cache;
 

@@ -14,6 +14,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="info">The LruInfo</param>
         /// <returns>A ConcurrentLru</returns>
         internal static ICache<K, V> Create<K, V>(LruInfo<K> info)
+            where K : notnull
         {
             if (info.TimeToExpireAfterWrite.HasValue && info.TimeToExpireAfterAccess.HasValue)
                 Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfterAccess is not supported.");
@@ -39,13 +40,13 @@ namespace BitFaster.Caching.Lru
             };
         }
 
-        private static ICache<K, V> CreateExpireAfterAccess<K, V, TP>(LruInfo<K> info) where TP : struct, ITelemetryPolicy<K, V>
+        private static ICache<K, V> CreateExpireAfterAccess<K, V, TP>(LruInfo<K> info) where K : notnull where TP : struct, ITelemetryPolicy<K, V>
         {
             return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, AfterAccessPolicy<K, V>, TP>(
                 info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new AfterAccessPolicy<K, V>(info.TimeToExpireAfterAccess.Value), default);
         }
 
-        private static ICache<K, V> CreateExpireAfter<K, V, TP>(LruInfo<K> info, IExpiryCalculator<K, V> expiry) where TP : struct, ITelemetryPolicy<K, V>
+        private static ICache<K, V> CreateExpireAfter<K, V, TP>(LruInfo<K> info, IExpiryCalculator<K, V> expiry) where K : notnull where TP : struct, ITelemetryPolicy<K, V>
         {
             return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, DiscretePolicy<K, V>, TP>(
                 info.ConcurrencyLevel, info.Capacity, info.KeyComparer, new DiscretePolicy<K, V>(expiry), default);

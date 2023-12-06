@@ -27,7 +27,9 @@ namespace BitFaster.Caching.Atomic
     ///</list>
     /// </remarks>
     [DebuggerDisplay("IsScopeCreated={initializer == null}, Value={ScopeIfCreated}")]
-    public sealed class ScopedAtomicFactory<K, V> : IScoped<V>, IDisposable where V : IDisposable
+    public sealed class ScopedAtomicFactory<K, V> : IScoped<V>, IDisposable
+        where K : notnull
+        where V : IDisposable
     {
         private Scoped<V> scope;
         private Initializer initializer;

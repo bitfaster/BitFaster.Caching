@@ -32,6 +32,7 @@ namespace BitFaster.Caching.Lru
     ///</list>
     /// </remarks>
     public class ConcurrentLruCore<K, V, I, P, T> : ICache<K, V>, IAsyncCache<K, V>, IEnumerable<KeyValuePair<K, V>>
+        where K : notnull
         where I : LruItem<K, V>
         where P : struct, IItemPolicy<K, V, I>
         where T : struct, ITelemetryPolicy<K, V>

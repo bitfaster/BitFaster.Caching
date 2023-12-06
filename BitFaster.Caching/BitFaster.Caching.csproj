@@ -27,6 +27,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <IsTrimmable>true</IsTrimmable>
+    <Nullable>disable</Nullable>
     <!--Package Validation-->
     <EnablePackageValidation>true</EnablePackageValidation>
     <PackageValidationBaselineVersion>2.4.0</PackageValidationBaselineVersion>    

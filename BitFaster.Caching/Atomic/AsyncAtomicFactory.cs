@@ -14,6 +14,7 @@ namespace BitFaster.Caching.Atomic
     /// <typeparam name="V">The type of the value.</typeparam>
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
     public sealed class AsyncAtomicFactory<K, V> : IEquatable<AsyncAtomicFactory<K, V>>
+        where K : notnull
     {
         private Initializer initializer;
 

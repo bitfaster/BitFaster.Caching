@@ -7,6 +7,7 @@ namespace BitFaster.Caching.Lfu.Builder
     /// <typeparam name="K">The type of the cache key.</typeparam>
     /// <typeparam name="V">The type of the cache value.</typeparam>
     public sealed class AsyncConcurrentLfuBuilder<K, V> : LfuBuilderBase<K, V, AsyncConcurrentLfuBuilder<K, V>, IAsyncCache<K, V>>
+         where K : notnull
     {
         internal AsyncConcurrentLfuBuilder(LfuInfo<K> info)
             : base(info)
