@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -114,7 +115,7 @@ namespace BitFaster.Caching.Buffers
         /// <remarks>
         /// Thread safe for single try take/drain + multiple try add.
         /// </remarks>
-        public BufferStatus TryTake(out T? item)
+        public BufferStatus TryTake([MaybeNull] out T item)
         {
             int head = Volatile.Read(ref headAndTail.Head);
             int tail = headAndTail.Tail;
