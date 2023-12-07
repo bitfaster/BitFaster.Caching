@@ -28,7 +28,7 @@ namespace BitFaster.Caching.Lru.Builder
             // this is a legal type conversion due to the generic constraint on W
             var scopedInnerCache = inner.Build() as ICache<K, ScopedAsyncAtomicFactory<K, V>>;
 
-            return new AtomicFactoryScopedAsyncCache<K, V>(scopedInnerCache);
+            return new AtomicFactoryScopedAsyncCache<K, V>(scopedInnerCache!);
         }
     }
 }

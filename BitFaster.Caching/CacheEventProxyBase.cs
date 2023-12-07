@@ -10,12 +10,13 @@ namespace BitFaster.Caching
     /// <typeparam name="TInner">The inner value type</typeparam>
     /// <typeparam name="TOuter">The outer value type</typeparam>
     public abstract class CacheEventProxyBase<K, TInner, TOuter> : ICacheEvents<K, TOuter>
+        where K : notnull
     {
         private readonly ICacheEvents<K, TInner> events;
 
-        private event EventHandler<ItemRemovedEventArgs<K, TOuter>> itemRemovedProxy;
+        private event EventHandler<ItemRemovedEventArgs<K, TOuter>>? itemRemovedProxy;
 
-        private event EventHandler<ItemUpdatedEventArgs<K, TOuter>> itemUpdatedProxy;
+        private event EventHandler<ItemUpdatedEventArgs<K, TOuter>>? itemUpdatedProxy;
 
         /// <summary>
         /// Initializes a new instance of the CacheEventProxyBase class with the specified inner cache events.
@@ -79,14 +80,14 @@ namespace BitFaster.Caching
 #endif
         }
 
-        private void OnItemRemoved(object sender, ItemRemovedEventArgs<K, TInner> args)
+        private void OnItemRemoved(object? sender, ItemRemovedEventArgs<K, TInner> args)
         {
-            itemRemovedProxy(sender, TranslateOnRemoved(args));
+            itemRemovedProxy!(sender, TranslateOnRemoved(args));
         }
 
-        private void OnItemUpdated(object sender, ItemUpdatedEventArgs<K, TInner> args)
+        private void OnItemUpdated(object? sender, ItemUpdatedEventArgs<K, TInner> args)
         {
-            itemUpdatedProxy(sender, TranslateOnUpdated(args));
+            itemUpdatedProxy!(sender, TranslateOnUpdated(args));
         }
 
         /// <summary>

@@ -10,7 +10,7 @@ namespace BitFaster.Caching.Lru.Builder
     // backcompat: make class internal
     public sealed class LruInfo<K>
     {
-        private object expiry = null;
+        private object? expiry = null;
 
         /// <summary>
         /// Gets or sets the capacity partition.
@@ -42,7 +42,7 @@ namespace BitFaster.Caching.Lru.Builder
         /// Get the custom expiry.
         /// </summary>
         /// <returns>The expiry.</returns>
-        public IExpiryCalculator<K, V> GetExpiry<V>() 
+        public IExpiryCalculator<K, V>? GetExpiry<V>() 
         {
             if (this.expiry == null)
             {

@@ -4,6 +4,7 @@ namespace BitFaster.Caching.Lfu
 {
     /// <inheritdoc/>
     public sealed class CmSketch<T> : CmSketchCore<T, DetectIsa>
+        where T : notnull
     {
         /// <summary>
         /// Initializes a new instance of the CmSketch class with the specified maximum size and equality comparer.
