@@ -101,16 +101,11 @@ namespace BitFaster.Caching.UnitTests.Atomic
             cache.Events.Value.ItemRemoved += (s, args) => removedStrings.Add(args);
 
             // string is null here because value is not created
-            innerCache.AddOrUpdate(1, new AsyncAtomicFactory<int, string>());
+            innerCache.AddOrUpdate(1, null);
 
             cache.TryRemove(1);
 
             removedStrings.First().Value.Should().BeNull();
-        }
-
-        private void Value_ItemRemoved(object sender, ItemRemovedEventArgs<int, string> e)
-        {
-            throw new NotImplementedException();
         }
 
         // backcompat: remove conditional compile
@@ -138,8 +133,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
             cache.Events.Value.ItemUpdated += (s, args) => updatedStrings.Add(args);
 
             // string is null here because value is not created
-            innerCache.AddOrUpdate(1, new AsyncAtomicFactory<int, string>());
-            innerCache.AddOrUpdate(1, new AsyncAtomicFactory<int, string>());
+            innerCache.AddOrUpdate(1, null);
+            innerCache.AddOrUpdate(1, null);
 
             updatedStrings.First().OldValue.Should().BeNull();
             updatedStrings.First().NewValue.Should().BeNull();
