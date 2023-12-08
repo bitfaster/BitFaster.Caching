@@ -425,6 +425,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private void TryScheduleDrain()
         {
             if (this.drainStatus.VolatileRead() >= DrainStatus.ProcessingToIdle)
@@ -483,6 +484,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private bool Maintenance(N droppedWrite = null)
         {
             this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
@@ -536,6 +538,7 @@ namespace BitFaster.Caching.Lfu
             return done;
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private void OnAccess(LfuNode<K, V> node)
         {
             // there was a cache hit even if the item was removed or is not yet added.
@@ -561,6 +564,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private void OnWrite(LfuNode<K, V> node)
         {
             // Nodes can be removed while they are in the write buffer, in which case they should
@@ -608,6 +612,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private void PromoteProbation(LfuNode<K, V> node)
         {
             this.probationLru.Remove(node);
@@ -625,12 +630,14 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private void EvictEntries()
         {
             var candidate = EvictFromWindow();
             EvictFromMain(candidate);
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private LfuNode<K, V> EvictFromWindow()
         {
             LfuNode<K, V> first = null;
@@ -675,6 +682,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private void EvictFromMain(LfuNode<K, V> candidateNode)
         {
             var victim = new EvictIterator(this.cmSketch, this.probationLru.First); // victims are LRU position in probation
@@ -750,6 +758,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private bool AdmitCandidate(K candidateKey, K victimKey)
         {
             int victimFreq = this.cmSketch.EstimateFrequency(victimKey);

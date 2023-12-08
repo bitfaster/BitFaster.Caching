@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+
 
 #if !NETSTANDARD2_0
 using System.Runtime.Intrinsics;
@@ -122,6 +124,7 @@ namespace BitFaster.Caching.Lfu
             size = 0;
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private unsafe int EstimateFrequencyStd(T value)
         {
             var count = stackalloc int[4];
@@ -139,6 +142,7 @@ namespace BitFaster.Caching.Lfu
             return Math.Min(Math.Min(count[0], count[1]), Math.Min(count[2], count[3]));
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private unsafe void IncrementStd(T value)
         {
             var index = stackalloc int[8];
@@ -226,6 +230,7 @@ namespace BitFaster.Caching.Lfu
         }
 
 #if !NETSTANDARD2_0
+        [MethodImpl((MethodImplOptions)512)]
         private unsafe int EstimateFrequencyAvx(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
@@ -269,6 +274,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        [MethodImpl((MethodImplOptions)512)]
         private unsafe void IncrementAvx(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
