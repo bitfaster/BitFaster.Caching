@@ -899,7 +899,7 @@ namespace BitFaster.Caching.Lfu
             sb.Append(string.Join(",", this.protectedLru.Select(n => n.Key.ToString())));
             sb.Append("] Probation [");
             sb.Append(string.Join(",", this.probationLru.Select(n => n.Key.ToString())));
-            sb.Append("]");
+            sb.Append(']');
 
             return sb.ToString();
         }

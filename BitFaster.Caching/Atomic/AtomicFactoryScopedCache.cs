@@ -168,12 +168,12 @@ namespace BitFaster.Caching.Atomic
 
             protected override ItemRemovedEventArgs<K, Scoped<V>> TranslateOnRemoved(ItemRemovedEventArgs<K, ScopedAtomicFactory<K, V>> inner)
             {
-                return new ItemRemovedEventArgs<K, Scoped<V>>(inner.Key, inner.Value?.ScopeIfCreated, inner.Reason);
+                return new ItemRemovedEventArgs<K, Scoped<V>>(inner.Key, inner.Value!.ScopeIfCreated, inner.Reason);
             }
 
             protected override ItemUpdatedEventArgs<K, Scoped<V>> TranslateOnUpdated(ItemUpdatedEventArgs<K, ScopedAtomicFactory<K, V>> inner)
             {
-                return new ItemUpdatedEventArgs<K, Scoped<V>>(inner.Key, inner.OldValue?.ScopeIfCreated, inner.NewValue?.ScopeIfCreated);
+                return new ItemUpdatedEventArgs<K, Scoped<V>>(inner.Key, inner.OldValue!.ScopeIfCreated, inner.NewValue!.ScopeIfCreated);
             }
         }
     }

@@ -91,23 +91,6 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.removedItems.First().Key.Should().Be(1);
         }
 
-        [Fact]
-        public void WhenRemovedAndValueNotCreatedRemovedEventValueIsDefault()
-        {
-            var innerCache = new ConcurrentLru<int, AsyncAtomicFactory<int, string>>(capacity);
-            var cache = new AtomicFactoryAsyncCache<int, string>(innerCache);
-            var removedStrings = new List<ItemRemovedEventArgs<int, string>>();
-
-            cache.Events.Value.ItemRemoved += (s, args) => removedStrings.Add(args);
-
-            // string is null here because value is not created
-            innerCache.AddOrUpdate(1, null);
-
-            cache.TryRemove(1);
-
-            removedStrings.First().Value.Should().BeNull();
-        }
-
         // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
         [Fact]
@@ -121,23 +104,6 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.updatedItems.First().Key.Should().Be(1);
             this.updatedItems.First().OldValue.Should().Be(2);
             this.updatedItems.First().NewValue.Should().Be(3);
-        }
-
-        [Fact]
-        public void WhenUpdatedAndValueNotCreatedUpdateEventValueIsDefault()
-        {
-            var innerCache = new ConcurrentLru<int, AsyncAtomicFactory<int, string>>(capacity);
-            var cache = new AtomicFactoryAsyncCache<int, string>(innerCache);
-            var updatedStrings = new List<ItemUpdatedEventArgs<int, string>>();
-
-            cache.Events.Value.ItemUpdated += (s, args) => updatedStrings.Add(args);
-
-            // string is null here because value is not created
-            innerCache.AddOrUpdate(1, null);
-            innerCache.AddOrUpdate(1, null);
-
-            updatedStrings.First().OldValue.Should().BeNull();
-            updatedStrings.First().NewValue.Should().BeNull();
         }
 #endif
 
