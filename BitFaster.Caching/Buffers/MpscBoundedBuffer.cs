@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -13,7 +14,7 @@ namespace BitFaster.Caching.Buffers
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class MpscBoundedBuffer<T> where T : class
     {
-        private readonly T[] buffer;
+        private readonly T?[] buffer;
         private readonly int mask;
         private PaddedHeadAndTail headAndTail; // mutable struct, don't mark readonly
 
@@ -114,7 +115,7 @@ namespace BitFaster.Caching.Buffers
         /// <remarks>
         /// Thread safe for single try take/drain + multiple try add.
         /// </remarks>
-        public BufferStatus TryTake(out T item)
+        public BufferStatus TryTake([MaybeNull] out T item)
         {
             int head = Volatile.Read(ref headAndTail.Head);
             int tail = headAndTail.Tail;
@@ -206,7 +207,7 @@ namespace BitFaster.Caching.Buffers
             {
                 int index = head & mask;
 
-                T item = Volatile.Read(ref localBuffer[index]);
+                T? item = Volatile.Read(ref localBuffer[index]);
 
                 if (item == null)
                 {

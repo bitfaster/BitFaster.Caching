@@ -7,35 +7,23 @@ namespace BitFaster.Caching
 {
     internal static class Throw
     {
-#if NETCOREAPP3_0_OR_GREATER
         [DoesNotReturn]
-#endif
         public static void ArgNull(ExceptionArgument arg) => throw CreateArgumentNullException(arg);
 
-#if NETCOREAPP3_0_OR_GREATER
         [DoesNotReturn]
-#endif
         public static void ArgOutOfRange(string paramName) => throw CreateArgumentOutOfRangeException(paramName);
 
-#if NETCOREAPP3_0_OR_GREATER
         [DoesNotReturn]
-#endif
         public static void ArgOutOfRange(string paramName, string message) => throw CreateArgumentOutOfRangeException(paramName, message);
 
         [ExcludeFromCodeCoverage]
-#if NETCOREAPP3_0_OR_GREATER
         [DoesNotReturn]
-#endif
         public static void InvalidOp(string message) => throw CreateInvalidOperationException(message);
 
-#if NETCOREAPP3_0_OR_GREATER
         [DoesNotReturn]
-#endif
         public static void ScopedRetryFailure() => throw CreateScopedRetryFailure();
 
-#if NETCOREAPP3_0_OR_GREATER
         [DoesNotReturn]
-#endif
         public static void Disposed<T>() => throw CreateObjectDisposedException<T>();
 
         [MethodImpl(MethodImplOptions.NoInlining)]

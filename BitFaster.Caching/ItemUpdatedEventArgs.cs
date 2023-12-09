@@ -15,7 +15,7 @@ namespace BitFaster.Caching
         /// <param name="key">The key of the item that was updated.</param>
         /// <param name="oldValue">The old cache value.</param>
         /// <param name="newValue">The new cache value.</param>
-        public ItemUpdatedEventArgs(K key, V oldValue, V newValue)
+        public ItemUpdatedEventArgs(K key, V? oldValue, V? newValue)
         {
             this.Key = key;
             this.OldValue = oldValue;
@@ -30,11 +30,11 @@ namespace BitFaster.Caching
         /// <summary>
         /// Gets the old value of the item.
         /// </summary>
-        public V OldValue { get; }
+        public V? OldValue { get; }
 
         /// <summary>
         /// Gets the new value of the item.
         /// </summary>
-        public V NewValue { get; }
+        public V? NewValue { get; }
     }
 }

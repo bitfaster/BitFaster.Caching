@@ -16,10 +16,10 @@ namespace BitFaster.Caching.Atomic
     public sealed class AsyncAtomicFactory<K, V> : IEquatable<AsyncAtomicFactory<K, V>>
         where K : notnull
     {
-        private Initializer initializer;
+        private Initializer? initializer;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private V value;
+        private V? value;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncAtomicFactory{K, V}"/> class.
@@ -49,7 +49,7 @@ namespace BitFaster.Caching.Atomic
         {
             if (initializer == null)
             {
-                return value;
+                return value!;
             }
 
             return await CreateValueAsync(key, new AsyncValueFactory<K, V>(valueFactory)).ConfigureAwait(false);
@@ -67,7 +67,7 @@ namespace BitFaster.Caching.Atomic
         {
             if (initializer == null)
             {
-                return value;
+                return value!;
             }
 
             return await CreateValueAsync(key, new AsyncValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument)).ConfigureAwait(false);
@@ -81,7 +81,7 @@ namespace BitFaster.Caching.Atomic
         /// <summary>
         /// Gets the value if it has been initialized, else default.
         /// </summary>
-        public V ValueIfCreated
+        public V? ValueIfCreated
         {
             get
             {
@@ -95,13 +95,13 @@ namespace BitFaster.Caching.Atomic
         }
 
         ///<inheritdoc/>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as AsyncAtomicFactory<K, V>);
         }
 
         ///<inheritdoc/>
-        public bool Equals(AsyncAtomicFactory<K, V> other)
+        public bool Equals(AsyncAtomicFactory<K, V>? other)
         {
             if (other is null || !IsValueCreated || !other.IsValueCreated)
             {
@@ -119,7 +119,7 @@ namespace BitFaster.Caching.Atomic
                 return 0;
             }
 
-            return ValueIfCreated.GetHashCode();
+            return ValueIfCreated!.GetHashCode();
         }
 
         private async ValueTask<V> CreateValueAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, V>
@@ -132,13 +132,13 @@ namespace BitFaster.Caching.Atomic
                 Volatile.Write(ref initializer, null);
             }
 
-            return value;
+            return value!;
         }
 
         private class Initializer
         {
             private bool isInitialized;
-            private Task<V> valueTask;
+            private Task<V>? valueTask;
 
             public async ValueTask<V> CreateValueAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, V>
             {
@@ -172,7 +172,7 @@ namespace BitFaster.Caching.Atomic
                 // Fast path
                 if (Volatile.Read(ref isInitialized))
                 {
-                    return valueTask;
+                    return valueTask!;
                 }
 
                 lock (this)
@@ -184,7 +184,7 @@ namespace BitFaster.Caching.Atomic
                     }
                 }
 
-                return valueTask;
+                return valueTask!;
             }
 #pragma warning restore CA2002 // Do not lock on objects with weak identity
         }

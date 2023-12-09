@@ -8,7 +8,7 @@ namespace BitFaster.Caching
     [DebuggerDisplay("{Value}")]
     public class Optional<T> 
     {
-        private readonly T value;
+        private readonly T? value;
         private readonly bool hasValue;
 
         /// <summary>
@@ -31,7 +31,7 @@ namespace BitFaster.Caching
         /// <summary>
         /// Gets the value of the current Optional object if it has been assigned a valid underlying value.
         /// </summary>
-        public T Value => this.value;
+        public T? Value => this.value;
 
         /// <summary>
         /// Gets a value indicating whether the current Optional object has a valid value of its underlying type.

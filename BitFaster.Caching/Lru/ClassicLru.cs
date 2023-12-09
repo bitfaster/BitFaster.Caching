@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -95,7 +96,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
-        public bool TryGet(K key, out V value)
+        public bool TryGet(K key, [MaybeNullWhen(false)] out V value)
         {
             Interlocked.Increment(ref this.metrics.requestTotalCount);
 
@@ -117,7 +118,7 @@ namespace BitFaster.Caching.Lru
 
             if (this.dictionary.TryAdd(key, node))
             {
-                LinkedListNode<LruItem> first = null;
+                LinkedListNode<LruItem>? first = null;
 
                 lock (this.linkedList)
                 {
@@ -138,10 +139,11 @@ namespace BitFaster.Caching.Lru
                 // However, all operations inside the lock are extremely fast, so contention is minimized.
                 if (first != null)
                 {
-                    dictionary.TryRemove(first.Value.Key, out var removed);
-
-                    Interlocked.Increment(ref this.metrics.evictedCount);
-                    Disposer<V>.Dispose(removed.Value.Value);
+                    if (dictionary.TryRemove(first.Value.Key, out var removed))
+                    {
+                        Interlocked.Increment(ref this.metrics.evictedCount);
+                        Disposer<V>.Dispose(removed.Value.Value);
+                    }
                 }
 
                 return true;
@@ -274,7 +276,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="key">The key of the element to remove.</param>
         /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
         /// <returns>true if the object was removed successfully; otherwise, false.</returns>
-        public bool TryRemove(K key, out V value)
+        public bool TryRemove(K key, [MaybeNullWhen(false)] out V value)
         {
             if (dictionary.TryRemove(key, out var node))
             {
@@ -346,7 +348,7 @@ namespace BitFaster.Caching.Lru
 
             if (this.dictionary.TryAdd(key, newNode))
             {
-                LinkedListNode<LruItem> first = null;
+                LinkedListNode<LruItem>? first = null;
 
                 lock (this.linkedList)
                 {
@@ -367,10 +369,11 @@ namespace BitFaster.Caching.Lru
                 // However, all operations inside the lock are extremely fast, so contention is minimized.
                 if (first != null)
                 {
-                    dictionary.TryRemove(first.Value.Key, out var removed);
-
-                    Interlocked.Increment(ref this.metrics.evictedCount);
-                    Disposer<V>.Dispose(removed.Value.Value);
+                    if (dictionary.TryRemove(first.Value.Key, out var removed))
+                    {
+                        Interlocked.Increment(ref this.metrics.evictedCount);
+                        Disposer<V>.Dispose(removed.Value.Value);
+                    }
                 }
 
                 return;
@@ -405,7 +408,7 @@ namespace BitFaster.Caching.Lru
 
             for (int i = 0; i < itemCount; i++)
             {
-                LinkedListNode<LruItem> first = null;
+                LinkedListNode<LruItem>? first = null;
 
                 lock (this.linkedList)
                 {
@@ -418,8 +421,10 @@ namespace BitFaster.Caching.Lru
 
                 if (first != null)
                 {
-                    dictionary.TryRemove(first.Value.Key, out var removed);
-                    Disposer<V>.Dispose(removed.Value.Value);
+                    if (dictionary.TryRemove(first.Value.Key, out var removed))
+                    {
+                        Disposer<V>.Dispose(removed.Value.Value);
+                    }
                 }
             }
         }

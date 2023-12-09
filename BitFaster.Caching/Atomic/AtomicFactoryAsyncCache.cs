@@ -33,7 +33,7 @@ namespace BitFaster.Caching.Atomic
 
             if (cache.Events.HasValue)
             {
-                this.events = new Optional<ICacheEvents<K, V>>(new EventProxy(cache.Events.Value));
+                this.events = new Optional<ICacheEvents<K, V>>(new EventProxy(cache.Events.Value!));
             }
             else
             {
@@ -91,14 +91,14 @@ namespace BitFaster.Caching.Atomic
         }
 
         ///<inheritdoc/>
-        public bool TryGet(K key, out V value)
+        public bool TryGet(K key, [MaybeNullWhen(false)] out V value)
         {
-            AsyncAtomicFactory<K, V> output;
+            AsyncAtomicFactory<K, V>? output;
             var ret = cache.TryGet(key, out output);
 
-            if (ret && output.IsValueCreated)
+            if (ret && output!.IsValueCreated)
             {
-                value = output.ValueIfCreated;
+                value = output.ValueIfCreated!;
                 return true;
             }
 
@@ -128,11 +128,11 @@ namespace BitFaster.Caching.Atomic
         /// <remarks>
         /// If the value factory is still executing, the default value will be returned.
         /// </remarks>
-        public bool TryRemove(K key, out V value)
+        public bool TryRemove(K key, [MaybeNullWhen(false)] out V value)
         {
             if (cache.TryRemove(key, out var atomic))
             {
-                value = atomic.ValueIfCreated;
+                value = atomic.ValueIfCreated!;
                 return true;
             }
 
@@ -154,7 +154,7 @@ namespace BitFaster.Caching.Atomic
             {
                 if (kvp.Value.IsValueCreated)
                 { 
-                    yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.ValueIfCreated); 
+                    yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.ValueIfCreated!); 
                 }
             }
         }
@@ -173,12 +173,12 @@ namespace BitFaster.Caching.Atomic
 
             protected override ItemRemovedEventArgs<K, V> TranslateOnRemoved(ItemRemovedEventArgs<K, AsyncAtomicFactory<K, V>> inner)
             {
-                return new ItemRemovedEventArgs<K, V>(inner.Key, inner.Value.ValueIfCreated, inner.Reason);
+                return new ItemRemovedEventArgs<K, V>(inner.Key, inner.Value!.ValueIfCreated, inner.Reason);
             }
 
             protected override ItemUpdatedEventArgs<K, V> TranslateOnUpdated(ItemUpdatedEventArgs<K, AsyncAtomicFactory<K, V>> inner)
             {
-                return new ItemUpdatedEventArgs<K, V>(inner.Key, inner.OldValue.ValueIfCreated, inner.NewValue.ValueIfCreated);
+                return new ItemUpdatedEventArgs<K, V>(inner.Key, inner.OldValue!.ValueIfCreated, inner.NewValue!.ValueIfCreated);
             }
         }
 
@@ -207,7 +207,7 @@ namespace BitFaster.Caching.Atomic
                 }
             }
 
-            public ICacheMetrics Metrics => cache.Metrics.Value;
+            public ICacheMetrics? Metrics => cache.Metrics.Value;
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -100,7 +101,7 @@ namespace BitFaster.Caching.Buffers
         /// </summary>
         /// <param name="item">The item to be removed.</param>
         /// <returns>A BufferStatus value indicating whether the operation succeeded.</returns>
-        public BufferStatus TryTake(out T item)
+        public BufferStatus TryTake([MaybeNull] out T item)
         {
             // Get the head at which to try to dequeue.
             var currentHead = Volatile.Read(ref headAndTail.Head);
@@ -220,7 +221,7 @@ namespace BitFaster.Caching.Buffers
         internal struct Slot
         {
             /// <summary>The item.</summary>
-            public T Item;
+            public T? Item;
             /// <summary>The sequence number for this slot, used to synchronize between enqueuers and dequeuers.</summary>
             public int SequenceNumber;
         }

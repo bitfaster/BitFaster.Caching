@@ -149,7 +149,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         ///<inheritdoc/>
-        public bool TryGet(K key, out V value)
+        public bool TryGet(K key, [MaybeNullWhen(false)] out V value)
         {
             return core.TryGet(key, out value);
         }
@@ -176,7 +176,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="key">The key of the element to remove.</param>
         /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
         /// <returns>true if the object was removed successfully; otherwise, false.</returns>
-        public bool TryRemove(K key, out V value)
+        public bool TryRemove(K key, [MaybeNullWhen(false)] out V value)
         {
             return core.TryRemove(key, out value);
         }
@@ -223,11 +223,11 @@ namespace BitFaster.Caching.Lfu
 
             public string Maintenance => lfu.core.drainStatus.Format();
 
-            public ICacheMetrics Metrics => lfu.Metrics.Value;
+            public ICacheMetrics? Metrics => lfu.Metrics.Value;
 
-            public StripedMpscBuffer<N> ReadBuffer => this.lfu.core.readBuffer as StripedMpscBuffer<N>;
+            public StripedMpscBuffer<N> ReadBuffer => (this.lfu.core.readBuffer as StripedMpscBuffer<N>)!;
 
-            public MpscBoundedBuffer<N> WriteBuffer => this.lfu.core.writeBuffer as MpscBoundedBuffer<N>;
+            public MpscBoundedBuffer<N> WriteBuffer => (this.lfu.core.writeBuffer as MpscBoundedBuffer<N>)!;
 
             public KeyValuePair<K, V>[] Items
             {

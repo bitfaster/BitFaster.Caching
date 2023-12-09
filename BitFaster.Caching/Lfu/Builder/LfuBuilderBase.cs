@@ -28,7 +28,7 @@ namespace BitFaster.Caching.Lfu.Builder
         public TBuilder WithCapacity(int capacity)
         {
             this.info.Capacity = capacity;
-            return this as TBuilder;
+            return (this as TBuilder)!;
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace BitFaster.Caching.Lfu.Builder
         public TBuilder WithConcurrencyLevel(int concurrencyLevel)
         {
             this.info.ConcurrencyLevel = concurrencyLevel;
-            return this as TBuilder;
+            return (this as TBuilder)!;
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace BitFaster.Caching.Lfu.Builder
         public TBuilder WithScheduler(IScheduler scheduler)
         {
             this.info.Scheduler = scheduler;
-            return this as TBuilder;
+            return (this as TBuilder)!;
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace BitFaster.Caching.Lfu.Builder
         public TBuilder WithKeyComparer(IEqualityComparer<K> comparer)
         {
             this.info.KeyComparer = comparer;
-            return this as TBuilder;
+            return (this as TBuilder)!;
         }
 
         /// <summary>
