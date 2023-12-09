@@ -53,7 +53,6 @@ namespace BitFaster.Caching.Lfu
             long previousTimeNanos = nanos;
             nanos = currentTimeNanos;
 
-            // TODO: handle wrapping
             // If wrapping then temporarily shift the clock for a positive comparison. We assume that the
             // advancements never exceed a total running time of Long.MAX_VALUE nanoseconds (292 years)
             // so that an overflow only occurs due to using an arbitrary origin time (System.nanoTime()).
