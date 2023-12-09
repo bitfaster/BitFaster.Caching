@@ -6,23 +6,23 @@ namespace BitFaster.Caching.Lfu
     // https://github.com/ben-manes/caffeine/blob/73d5011f9db373fc20a6e12d1f194f0d7a967d69/caffeine/src/main/java/com/github/benmanes/caffeine/cache/TimerWheel.java#L36
     internal class TimerWheel<K, V>
     {
-        private static readonly int[] BUCKETS = { 64, 64, 32, 4, 1 };
+        internal static readonly int[] Buckets = { 64, 64, 32, 4, 1 };
 
-        internal static readonly long[] SPANS = {
+        internal static readonly long[] Spans = {
             BitOps.CeilingPowerOfTwo(Duration.FromSeconds(1).raw), // 1.07s
             BitOps.CeilingPowerOfTwo(Duration.FromMinutes(1).raw), // 1.14m
             BitOps.CeilingPowerOfTwo(Duration.FromMinutes(60).raw),   // 1.22h
             BitOps.CeilingPowerOfTwo(Duration.FromMinutes(60*24).raw),    // 1.63d
-            BUCKETS[3] * BitOps.CeilingPowerOfTwo(Duration.FromMinutes(60*24).raw), // 6.5d
-            BUCKETS[3] * BitOps.CeilingPowerOfTwo(Duration.FromMinutes(60*24).raw), // 6.5d
+            Buckets[3] * BitOps.CeilingPowerOfTwo(Duration.FromMinutes(60*24*6).raw), // 6.5d
+            Buckets[3] * BitOps.CeilingPowerOfTwo(Duration.FromMinutes(60*24*6).raw), // 6.5d
         };
 
-        private static readonly int[] SHIFT = {
-            BitOps.TrailingZeroCount(SPANS[0]),
-            BitOps.TrailingZeroCount(SPANS[1]),
-            BitOps.TrailingZeroCount(SPANS[2]),
-            BitOps.TrailingZeroCount(SPANS[3]),
-            BitOps.TrailingZeroCount(SPANS[4]),
+        private static readonly int[] Shift = {
+            BitOps.TrailingZeroCount(Spans[0]),
+            BitOps.TrailingZeroCount(Spans[1]),
+            BitOps.TrailingZeroCount(Spans[2]),
+            BitOps.TrailingZeroCount(Spans[3]),
+            BitOps.TrailingZeroCount(Spans[4]),
         };
 
         private readonly TimeOrderNode<K, V>[][] wheel;
@@ -32,10 +32,10 @@ namespace BitFaster.Caching.Lfu
 
         public TimerWheel()
         {
-            wheel = new TimeOrderNode<K, V>[BUCKETS.Length][];
+            wheel = new TimeOrderNode<K, V>[Buckets.Length][];
             for (int i = 0; i < wheel.Length; i++)
             {
-                wheel[i] = new TimeOrderNode<K, V>[BUCKETS[i]];
+                wheel[i] = new TimeOrderNode<K, V>[Buckets[i]];
                 for (int j = 0; j < wheel[i].Length; j++)
                 {
                     wheel[i][j] = TimeOrderNode< K, V>.CreateSentinel();
@@ -57,18 +57,18 @@ namespace BitFaster.Caching.Lfu
             // If wrapping then temporarily shift the clock for a positive comparison. We assume that the
             // advancements never exceed a total running time of Long.MAX_VALUE nanoseconds (292 years)
             // so that an overflow only occurs due to using an arbitrary origin time (System.nanoTime()).
-            //if ((previousTimeNanos < 0) && (currentTimeNanos > 0))
-            //{
-            //    previousTimeNanos += Long.MAX_VALUE;
-            //    currentTimeNanos += Long.MAX_VALUE;
-            //}
+            if ((previousTimeNanos < 0) && (currentTimeNanos > 0))
+            {
+                previousTimeNanos += long.MaxValue;
+                currentTimeNanos += long.MaxValue;
+            }
 
             try
             {
-                for (int i = 0; i < SHIFT.Length; i++)
+                for (int i = 0; i < Shift.Length; i++)
                 {
-                    long previousTicks = (long)(((ulong)previousTimeNanos) >> SHIFT[i]);
-                    long currentTicks = (long)(((ulong)currentTimeNanos) >> SHIFT[i]);
+                    long previousTicks = (long)(((ulong)previousTimeNanos) >> Shift[i]);
+                    long currentTicks = (long)(((ulong)currentTimeNanos) >> Shift[i]);
                     long delta = (currentTicks - previousTicks);
                     if (delta <= 0L)
                     {
@@ -114,7 +114,7 @@ namespace BitFaster.Caching.Lfu
                     {
                         // TODO: Caffeine passes the time into evict here, and can resurrect
                         // https://github.com/ben-manes/caffeine/blob/73d5011f9db373fc20a6e12d1f194f0d7a967d69/caffeine/src/main/java/com/github/benmanes/caffeine/cache/BoundedLocalCache.java#L1023
-                        if (((node.getVariableTime() - nanos) > 0))
+                        if (((node.GetTimeStamp() - nanos) < 0))
                             //|| !cache.evictEntry(node, ItemRemovedReason.Expired, nanos))
                         {
                             cache.Evict(node);
@@ -140,7 +140,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="node"></param>
         public void Schedule(TimeOrderNode<K, V> node)
         {
-            TimeOrderNode<K, V> sentinel = FindBucket(node.getVariableTime());
+            TimeOrderNode<K, V> sentinel = FindBucket(node.GetTimeStamp());
             Link(sentinel, node);
         }
 
@@ -162,9 +162,9 @@ namespace BitFaster.Caching.Lfu
             int length = wheel.Length - 1;
             for (int i = 0; i < length; i++)
             {
-                if (duration < SPANS[i + 1])
+                if (duration < Spans[i + 1])
                 {
-                    long ticks = (long)((ulong)time >> SHIFT[i]);
+                    long ticks = (long)((ulong)time >> Shift[i]);
                     int index = (int)(ticks & (wheel[i].Length - 1));
                     return wheel[i][index];
                 }
@@ -197,12 +197,12 @@ namespace BitFaster.Caching.Lfu
         // Returns the duration until the next bucket expires, or long.MaxValue if none.
         public Duration GetExpirationDelay()
         {
-            for (int i = 0; i < SHIFT.Length; i++)
+            for (int i = 0; i < Shift.Length; i++)
             {
                 TimeOrderNode<K, V>[] timerWheel = wheel[i];
-                long ticks = (long)((ulong)nanos >> SHIFT[i]);
+                long ticks = (long)((ulong)nanos >> Shift[i]);
 
-                long spanMask = SPANS[i] - 1;
+                long spanMask = Spans[i] - 1;
                 int start = (int)(ticks & spanMask);
                 int end = start + timerWheel.Length;
                 int mask = timerWheel.Length - 1;
@@ -215,10 +215,10 @@ namespace BitFaster.Caching.Lfu
                         continue;
                     }
                     long buckets = (j - start);
-                    long delay = (buckets << SHIFT[i]) - (nanos & spanMask);
-                    delay = (delay > 0) ? delay : SPANS[i];
+                    long delay = (buckets << Shift[i]) - (nanos & spanMask);
+                    delay = (delay > 0) ? delay : Spans[i];
 
-                    for (int k = i + 1; k < SHIFT.Length; k++)
+                    for (int k = i + 1; k < Shift.Length; k++)
                     {
                         long nextDelay = PeekAhead(k);
                         delay = Math.Min(delay, nextDelay);
@@ -236,15 +236,15 @@ namespace BitFaster.Caching.Lfu
         private long PeekAhead(int index)
         {
             // TODO: revisit time as Duration
-            long ticks = (long)((ulong)nanos >> SHIFT[index]);
+            long ticks = (long)((ulong)nanos >> Shift[index]);
             TimeOrderNode<K, V>[] timerWheel = wheel[index];
 
-            long spanMask = SPANS[index] - 1;
+            long spanMask = Spans[index] - 1;
             int mask = timerWheel.Length - 1;
             int probe = (int)((ticks + 1) & mask);
             TimeOrderNode<K, V> sentinel = timerWheel[probe];
             TimeOrderNode<K, V> next = sentinel.GetNextInTimeOrder();
-            return (next == sentinel) ? long.MaxValue: (SPANS[index] - (nanos & spanMask));
+            return (next == sentinel) ? long.MaxValue: (Spans[index] - (nanos & spanMask));
         }
     }
 }

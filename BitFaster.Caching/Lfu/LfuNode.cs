@@ -108,7 +108,7 @@
             return prevTime;
         }
 
-        public long getVariableTime()
+        public long GetTimeStamp()
         {
             return timeToExpire.raw;
         }
