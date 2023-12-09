@@ -7,11 +7,11 @@ using System.Runtime.InteropServices;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public abstract class ConcurrentTLruTests
+    public class ConcurrentTLruTests
     {
         private readonly TimeSpan timeToLive = TimeSpan.FromMilliseconds(10);
         private readonly ICapacityPartition capacity = new EqualCapacityPartition(9);
-        private ICache<int, string> lru;
+        private ConcurrentTLru<int, string> lru;
 
         private ValueFactory valueFactory = new ValueFactory();
 
@@ -25,7 +25,12 @@ namespace BitFaster.Caching.UnitTests.Lru
             removedItems.Add(e);
         }
 
-        protected abstract ICache<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive);
+        public ConcurrentTLru<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive)
+        {
+            // backcompat: use TLruTickCount64Policy
+            return new ConcurrentTLru<K, V>(1, capacity, EqualityComparer<K>.Default, timeToLive);
+
+        }
 
         public ConcurrentTLruTests()
         {
@@ -159,7 +164,9 @@ namespace BitFaster.Caching.UnitTests.Lru
                 {
                     lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
-                    lru.Count.Should().Be(0);
+                    lru.HotCount.Should().Be(0);
+                    lru.WarmCount.Should().Be(0);
+                    lru.ColdCount.Should().Be(0);
                 }
             );
         }
@@ -199,6 +206,9 @@ namespace BitFaster.Caching.UnitTests.Lru
                     }
 
                     lru.Count.Should().Be(lru.Policy.Eviction.Value.Capacity);
+
+                    var total = lru.HotCount + lru.WarmCount + lru.ColdCount;
+                    total.Should().Be(lru.Policy.Eviction.Value.Capacity);
                 }
             );
         }
@@ -230,6 +240,9 @@ namespace BitFaster.Caching.UnitTests.Lru
                   lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
                   lru.Count.Should().Be(3);
+
+                  var total = lru.HotCount + lru.WarmCount + lru.ColdCount;
+                  total.Should().Be(3);
               }
           );
         }
@@ -253,17 +266,54 @@ namespace BitFaster.Caching.UnitTests.Lru
                     lru.Policy.Eviction.Value.Trim(1);
 
                     lru.Count.Should().Be(0);
+
+                    lru.HotCount.Should().Be(0);
+                    lru.WarmCount.Should().Be(0);
+                    lru.ColdCount.Should().Be(0);
                 }
             );
         }
-    }
 
-    public class ConcurrentTLruDefaultClockTests : ConcurrentTLruTests
-    {
-        protected override ICache<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive)
+        [Fact]
+        public void WhenItemsAreExpiredCountFiltersExpiredItems()
         {
-            // backcompat: use TLruTickCount64Policy
-            return new ConcurrentTLru<K, V>(1, capacity, EqualityComparer<K>.Default, timeToLive);
+            Timed.Execute(
+                lru,
+                lru =>
+                {
+                    lru.AddOrUpdate(1, "1");
+                    lru.AddOrUpdate(2, "2");
+                    lru.AddOrUpdate(3, "3");
+
+                    return lru;
+                },
+                timeToLive.MultiplyBy(ttlWaitMlutiplier),
+                lru =>
+                {
+                    lru.Count.Should().Be(0);
+                }
+            );
+        }
+
+        [Fact]
+        public void WhenItemsAreExpiredEnumerateFiltersExpiredItems()
+        {
+            Timed.Execute(
+                lru,
+                lru =>
+                {
+                    lru.AddOrUpdate(1, "1");
+                    lru.AddOrUpdate(2, "2");
+                    lru.AddOrUpdate(3, "3");
+
+                    return lru;
+                },
+                timeToLive.MultiplyBy(ttlWaitMlutiplier),
+                lru =>
+                {
+                    lru.Should().BeEquivalentTo(Array.Empty<KeyValuePair<int, string>>());
+                }
+            );
         }
 
         [Fact]
@@ -288,15 +338,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             var x = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(3), EqualityComparer<int>.Default, TimeSpan.FromSeconds(1));
 
             x.Capacity.Should().Be(3);
-        }
-    }
-
-    public class ConcurrentTLruHighResClockTests : ConcurrentTLruTests
-    {
-        protected override ICache<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive)
-        {
-            // backcompat: use TlruStopwatchPolicy
-            return new ConcurrentLruCore<K, V, LongTickCountLruItem<K, V>, TLruLongTicksPolicy<K, V>, TelemetryPolicy<K, V>>(1, capacity, EqualityComparer<K>.Default, new TLruLongTicksPolicy<K, V>(timeToLive), default);
         }
     }
 }
