@@ -18,6 +18,7 @@ namespace BitFaster.Caching.Lfu
     }
 
     internal struct AccessOrderPolicy<K, V> : INodePolicy<K, V, AccessOrderNode<K, V>>
+        where K : notnull
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public AccessOrderNode<K, V> Create(K key, V value)
@@ -58,6 +59,7 @@ namespace BitFaster.Caching.Lfu
     }
 
     internal struct ExpireAfterPolicy<K, V> : INodePolicy<K, V, TimeOrderNode<K, V>>
+        where K : notnull
     {
         private readonly IExpiryCalculator<K, V> expiryCalculator;
         private readonly TimerWheel<K, V> wheel;

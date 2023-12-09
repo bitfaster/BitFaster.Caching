@@ -5,6 +5,7 @@ namespace BitFaster.Caching.Lfu
     // Port TimerWheel from Caffeine
     // https://github.com/ben-manes/caffeine/blob/73d5011f9db373fc20a6e12d1f194f0d7a967d69/caffeine/src/main/java/com/github/benmanes/caffeine/cache/TimerWheel.java#L36
     internal class TimerWheel<K, V>
+        where K : notnull
     {
         internal static readonly int[] Buckets = { 64, 64, 32, 4, 1 };
 
