@@ -15,6 +15,7 @@ namespace BitFaster.Caching.Atomic
     [DebuggerTypeProxy(typeof(AtomicFactoryAsyncCache<,>.AsyncCacheDebugView))]
     [DebuggerDisplay("Count = {Count}")]
     public sealed class AtomicFactoryAsyncCache<K, V> : IAsyncCache<K, V>
+        where K : notnull
     {
         private readonly ICache<K, AsyncAtomicFactory<K, V>> cache;
         private readonly Optional<ICacheEvents<K, V>> events;

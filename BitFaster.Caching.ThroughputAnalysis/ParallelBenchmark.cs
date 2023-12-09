@@ -1,31 +1,27 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitFaster.Caching.ThroughputAnalysis
 {
     public class ParallelBenchmark
     {
-        public static TimeSpan Run(Action<int> action, int threads)
+        public static TimeSpan Run(Action<int> action, int threadCount)
         {
-            Task[] tasks = new Task[threads];
-            ManualResetEventSlim mre = new ManualResetEventSlim();
+            Thread[] threads = new Thread[threadCount];
+            using ManualResetEventSlim signalStart = new ManualResetEventSlim();
 
-            Action<int> syncStart = taskId =>
+            Action<int> syncStart = (taskId) =>
             {
-                mre.Wait();
+                signalStart.Wait();
                 action(taskId);
             };
 
-            for (int i = 0; i < tasks.Length; i++)
+            for (int i = 0; i < threads.Length; i++)
             {
                 int index = i;
-                tasks[i] = Task.Factory.StartNew(() => syncStart(index), TaskCreationOptions.LongRunning);
+                threads[i] = new Thread(() => syncStart(index));
+                threads[i].Start();
             }
 
             // try to mitigate spam from MemoryCache
@@ -35,8 +31,12 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
 
             var sw = Stopwatch.StartNew();
-            mre.Set();
-            Task.WaitAll(tasks);
+            signalStart.Set();
+            for (int i = 0; i < threads.Length; i++)
+            {
+                threads[i].Join();
+            }
+
             return sw.Elapsed;
         }
     }

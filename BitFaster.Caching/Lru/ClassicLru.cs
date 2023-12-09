@@ -18,6 +18,7 @@ namespace BitFaster.Caching.Lru
     /// <typeparam name="K">The type of the key</typeparam>
     /// <typeparam name="V">The type of the value</typeparam>
     public sealed class ClassicLru<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy, IEnumerable<KeyValuePair<K, V>>
+        where K : notnull
     {
         private readonly int capacity;
         private readonly ConcurrentDictionary<K, LinkedListNode<LruItem>> dictionary;
@@ -318,6 +319,7 @@ namespace BitFaster.Caching.Lru
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
+                LockAndMoveToEnd(node);
                 node.Value.Value = value;
                 Interlocked.Increment(ref this.metrics.updatedCount);
                 return true;
@@ -333,6 +335,7 @@ namespace BitFaster.Caching.Lru
             // first, try to update
             if (this.dictionary.TryGetValue(key, out var existingNode))
             {
+                LockAndMoveToEnd(existingNode);
                 existingNode.Value.Value = value;
                 Interlocked.Increment(ref this.metrics.updatedCount);
                 return;

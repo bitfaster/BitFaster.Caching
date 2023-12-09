@@ -8,6 +8,10 @@ namespace BitFaster.Caching.ThroughputAnalysis
     {
         public static void PrintInfo()
         {
+            string branch = $"({ThisAssembly.Git.Branch}" + (ThisAssembly.Git.IsDirty ? " dirty)" : ")");
+
+            Console.WriteLine($"Throughput Analysis {ThisAssembly.Git.BaseTag} {ThisAssembly.Git.Commit} {branch}");
+
             var hostinfo = HostEnvironmentInfo.GetCurrent();
 
             foreach (var segment in hostinfo.ToFormattedString())
@@ -24,6 +28,14 @@ namespace BitFaster.Caching.ThroughputAnalysis
             }
 
             Console.WriteLine();
+#if DEBUG
+            var prev = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine("WARNING: Debug build (no optimizations)");
+            Console.ForegroundColor = prev;
+#endif
+
+            Console.WriteLine($"Runtime: {RuntimeInformation.FrameworkDescription}");
             Console.WriteLine($"Available CPU Count: {Host.GetAvailableCoreCount()}");
 
             if (Host.GetLogicalCoreCount() > Host.GetAvailableCoreCount())
@@ -35,8 +47,6 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
                 Console.ResetColor();
             }
-
-            Console.WriteLine();
         }
 
         public static int GetAvailableCoreCount()

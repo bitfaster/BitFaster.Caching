@@ -33,6 +33,7 @@ namespace BitFaster.Caching.Lfu
     [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView<>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
+        where K : notnull
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
         private ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> core;
@@ -78,7 +79,7 @@ namespace BitFaster.Caching.Lfu
         public Optional<ICacheMetrics> Metrics => core.Metrics;
 
         ///<inheritdoc/>
-        public Optional<ICacheEvents<K, V>> Events => core.Events;
+        public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
 
         ///<inheritdoc/>
         public CachePolicy Policy => core.Policy;

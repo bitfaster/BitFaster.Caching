@@ -35,7 +35,7 @@ namespace BitFaster.Caching.Scheduler
         public BackgroundThreadScheduler()
         {
             // dedicated thread
-            Task.Factory.StartNew(() => Background(), cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            _ = Task.Factory.StartNew(async () => await Background().ConfigureAwait(false), cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         ///<inheritdoc/>

@@ -21,12 +21,18 @@
 
         public Position Position { get; set; }
 
+        /// <summary>
+        /// Node was removed from the dictionary, but is still present in the LRU lists.
+        /// </summary>
         public bool WasRemoved
         {
             get => this.wasRemoved;
             set => this.wasRemoved = value;
         }
 
+        /// <summary>
+        /// Node has been removed both from the dictionary and the LRU lists.
+        /// </summary>
         public bool WasDeleted
         {
             get => this.wasDeleted;

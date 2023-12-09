@@ -12,7 +12,9 @@ namespace BitFaster.Caching.Atomic
     /// <typeparam name="K">The type of the key.</typeparam>
     /// <typeparam name="V">The type of the value.</typeparam>
     [DebuggerDisplay("IsScopeCreated={initializer == null}, Value={ScopeIfCreated}")]
-    public sealed class ScopedAsyncAtomicFactory<K, V> : IScoped<V>, IDisposable where V : IDisposable
+    public sealed class ScopedAsyncAtomicFactory<K, V> : IScoped<V>, IDisposable
+        where K : notnull
+        where V : IDisposable
     {
         private Scoped<V> scope;
         private Initializer initializer;

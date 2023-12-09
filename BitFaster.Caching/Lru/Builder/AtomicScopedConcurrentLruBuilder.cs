@@ -8,7 +8,9 @@ namespace BitFaster.Caching.Lru.Builder
     /// </summary>
     /// <typeparam name="K">The type of the cache key.</typeparam>
     /// <typeparam name="V">The type of the cache value.</typeparam>
-    public class AtomicScopedConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, AtomicScopedConcurrentLruBuilder<K, V>, IScopedCache<K, V>> where V : IDisposable
+    public class AtomicScopedConcurrentLruBuilder<K, V> : LruBuilderBase<K, V, AtomicScopedConcurrentLruBuilder<K, V>, IScopedCache<K, V>>
+        where K : notnull
+        where V : IDisposable
     {
         private readonly ConcurrentLruBuilder<K, ScopedAtomicFactory<K, V>> inner;
 

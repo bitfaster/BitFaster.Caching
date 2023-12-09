@@ -16,6 +16,7 @@ namespace BitFaster.Caching
     [DebuggerTypeProxy(typeof(ScopedCacheDebugView<,>))]
     [DebuggerDisplay("Count = {Count}")]
     public sealed class ScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
+        where K : notnull
     {
         private readonly ICache<K, Scoped<V>> cache;
 

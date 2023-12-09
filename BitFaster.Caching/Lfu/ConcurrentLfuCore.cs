@@ -40,6 +40,7 @@ namespace BitFaster.Caching.Lfu
     /// https://github.com/ben-manes/caffeine
     
     internal struct ConcurrentLfuCore<K, V, N, P> : IBoundedPolicy
+        where K : notnull
         where N : LfuNode<K, V>
         where P : struct, INodePolicy<K, V, N>
     {
@@ -111,8 +112,6 @@ namespace BitFaster.Caching.Lfu
 
         public Optional<ICacheMetrics> Metrics => new(this.metrics);
 
-        public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
-
         public CachePolicy Policy => new(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
         public ICollection<K> Keys => this.dictionary.Keys;
@@ -139,27 +138,28 @@ namespace BitFaster.Caching.Lfu
 
         public void Clear()
         {
-            this.Trim(this.Count);
+            Trim(int.MaxValue);
 
             lock (maintenanceLock)
             {
-                this.cmSketch.Clear();
                 this.readBuffer.Clear();
                 this.writeBuffer.Clear();
+                this.cmSketch.Clear();
             }
         }
 
         public void Trim(int itemCount)
         {
-            itemCount = Math.Min(itemCount, this.Count);
-            var candidates = new List<LfuNode<K, V>>(itemCount);
-
-            // TODO: this is LRU order eviction, Caffeine is based on frequency
+            List<LfuNode<K, V>> candidates;
             lock (maintenanceLock)
             {
-                // flush all buffers
                 Maintenance();
 
+                int lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
+                itemCount = Math.Min(itemCount, lruCount);
+                candidates = new (itemCount);
+
+                // Note: this is LRU order eviction, Caffeine is based on frequency
                 // walk in lru order, get itemCount keys to evict
                 TakeCandidatesInLruOrder(this.probationLru, candidates, itemCount);
                 TakeCandidatesInLruOrder(this.protectedLru, candidates, itemCount);
@@ -614,12 +614,6 @@ namespace BitFaster.Caching.Lfu
 
         private void PromoteProbation(LfuNode<K, V> node)
         {
-            if (node.list == null)
-            {
-                // Ignore stale accesses for an entry that is no longer present
-                return;
-            }
-
             this.probationLru.Remove(node);
             this.protectedLru.AddLast(node);
             node.Position = Position.Protected;
@@ -705,6 +699,22 @@ namespace BitFaster.Caching.Lfu
                     break;
                 }
 
+                if (candidate.node.WasRemoved)
+                {
+                    var evictee = candidate.node;
+                    candidate.Next();
+                    Evict(evictee);
+                    continue;
+                }
+
+                if (victim.node.WasRemoved)
+                {
+                    var evictee = victim.node;
+                    victim.Next();
+                    Evict(evictee);
+                    continue;
+                }
+
                 // Evict the entry with the lowest frequency
                 if (candidate.freq > victim.freq)
                 {
@@ -755,7 +765,17 @@ namespace BitFaster.Caching.Lfu
 
         internal void Evict(LfuNode<K, V> evictee)
         {
-            this.dictionary.TryRemove(evictee.Key, out var _);
+            evictee.WasRemoved = true;
+            evictee.WasDeleted = true;
+
+            // This handles the case where the same key exists in the write buffer both
+            // as added and removed. Remove via KVP ensures we don't remove added nodes.
+            var kvp = new KeyValuePair<K, N>(evictee.Key, (N)evictee);
+#if NET6_0_OR_GREATER
+            this.dictionary.TryRemove(kvp);
+#else
+            ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
+#endif
             evictee.list.Remove(evictee);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
