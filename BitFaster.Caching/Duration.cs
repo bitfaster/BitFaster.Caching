@@ -23,6 +23,8 @@ namespace BitFaster.Caching
         // this also avoids overflow when multipling long.MaxValue by 1.0
         internal static readonly TimeSpan MaxRepresentable = TimeSpan.FromTicks((long)(long.MaxValue / 100.0d));
 
+        internal static readonly Duration Zero = new Duration(0);
+
         internal Duration(long raw)
         { 
             this.raw = raw; 
@@ -116,5 +118,21 @@ namespace BitFaster.Caching
         /// <param name="b">The subtrahend.</param>
         /// <returns>An duration whose value is the result of the value of a minus the value of b.</returns>
         public static Duration operator -(Duration a, Duration b) => new Duration(a.raw - b.raw);
+
+        /// <summary>
+        /// Returns a value that indicates whether a specified Duration is greater than another specified Duration.    
+        /// </summary>
+        /// <param name="a">The first duration to compare.</param>
+        /// <param name="b">The second duration to compare.</param>
+        /// <returns>true if the value of a is greater than the value of b; otherwise, false.</returns>
+        public static bool operator >(Duration a, Duration b) => a.raw > b.raw;
+
+        /// <summary>
+        /// Returns a value that indicates whether a specified Duration is less than another specified Duration.    
+        /// </summary>
+        /// <param name="a">The first duration to compare.</param>
+        /// <param name="b">The second duration to compare.</param>
+        /// <returns>true if the value of a is less than the value of b; otherwise, false.</returns>
+        public static bool operator <(Duration a, Duration b) => a.raw < b.raw;
     }
 }

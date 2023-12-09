@@ -57,7 +57,7 @@
         }
     }
 
-    public enum Position
+    internal enum Position
     {
         Window,
         Probation,
@@ -79,6 +79,12 @@
 
         public AccessOrderExpiringNode(K k, V v) : base(k, v)
         {
+        }
+
+        public Duration TimeToExpire
+        {
+            get => timeToExpire;
+            set => timeToExpire = value;
         }
     }
 
@@ -114,7 +120,7 @@
             return prevTime;
         }
 
-        public long GetTimeStamp()
+        public long GetTimestamp()
         {
             return timeToExpire.raw;
         }

@@ -27,8 +27,7 @@ namespace BitFaster.Caching.Lfu
 
         private readonly TimeOrderNode<K, V>[][] wheel;
 
-        // TODO: replace with Duration
-        internal long nanos;
+        internal long time;
 
         public TimerWheel()
         {
@@ -47,38 +46,40 @@ namespace BitFaster.Caching.Lfu
         ///  Advances the timer and evicts entries that have expired.
         /// </summary>
         /// <param name="cache"></param>
-        /// <param name="currentTimeNanos"></param>
-        public void Advance(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V>> cache, long currentTimeNanos)
+        /// <param name="currentTime"></param>
+        public void Advance(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V>> cache, Duration currentTime)
         {
-            long previousTimeNanos = nanos;
-            nanos = currentTimeNanos;
+            long previousTime = time;
+            time = currentTime.raw;
 
             // If wrapping then temporarily shift the clock for a positive comparison. We assume that the
             // advancements never exceed a total running time of Long.MAX_VALUE nanoseconds (292 years)
             // so that an overflow only occurs due to using an arbitrary origin time (System.nanoTime()).
-            if ((previousTimeNanos < 0) && (currentTimeNanos > 0))
+            if ((previousTime < 0) && (currentTime > Duration.Zero))
             {
-                previousTimeNanos += long.MaxValue;
-                currentTimeNanos += long.MaxValue;
+                previousTime += long.MaxValue;
+                currentTime += new Duration(long.MaxValue);
             }
 
             try
             {
                 for (int i = 0; i < Shift.Length; i++)
                 {
-                    long previousTicks = (long)(((ulong)previousTimeNanos) >> Shift[i]);
-                    long currentTicks = (long)(((ulong)currentTimeNanos) >> Shift[i]);
+                    long previousTicks = (long)(((ulong)previousTime) >> Shift[i]);
+                    long currentTicks = (long)(((ulong)currentTime.raw) >> Shift[i]);
                     long delta = (currentTicks - previousTicks);
+                    
                     if (delta <= 0L)
                     {
                         break;
                     }
+                    
                     Expire(ref cache, i, previousTicks, delta);
                 }
             }
             catch (Exception)
             {
-                nanos = previousTimeNanos;
+                time = previousTime;
                 throw;
             }
         }
@@ -113,11 +114,9 @@ namespace BitFaster.Caching.Lfu
                     {
                         // TODO: Caffeine passes the time into evict here, and can resurrect
                         // https://github.com/ben-manes/caffeine/blob/73d5011f9db373fc20a6e12d1f194f0d7a967d69/caffeine/src/main/java/com/github/benmanes/caffeine/cache/BoundedLocalCache.java#L1023
-                        if (((node.GetTimeStamp() - nanos) < 0))
-                            //|| !cache.evictEntry(node, ItemRemovedReason.Expired, nanos))
+                        if ((node.GetTimestamp() - time) < 0)
                         {
                             cache.Evict(node);
-                            //schedule(node);
                         }
                         node = next;
                     }
@@ -139,7 +138,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="node"></param>
         public void Schedule(TimeOrderNode<K, V> node)
         {
-            TimeOrderNode<K, V> sentinel = FindBucket(node.GetTimeStamp());
+            TimeOrderNode<K, V> sentinel = FindBucket(node.GetTimestamp());
             Link(sentinel, node);
         }
 
@@ -157,7 +156,7 @@ namespace BitFaster.Caching.Lfu
         // Determines the bucket that the timer event should be added to.
         private TimeOrderNode<K, V> FindBucket(long time)
         {
-            long duration = time - nanos;
+            long duration = time - this.time;
             int length = wheel.Length - 1;
             for (int i = 0; i < length; i++)
             {
@@ -199,7 +198,7 @@ namespace BitFaster.Caching.Lfu
             for (int i = 0; i < Shift.Length; i++)
             {
                 TimeOrderNode<K, V>[] timerWheel = wheel[i];
-                long ticks = (long)((ulong)nanos >> Shift[i]);
+                long ticks = (long)((ulong)time >> Shift[i]);
 
                 long spanMask = Spans[i] - 1;
                 int start = (int)(ticks & spanMask);
@@ -214,7 +213,7 @@ namespace BitFaster.Caching.Lfu
                         continue;
                     }
                     long buckets = (j - start);
-                    long delay = (buckets << Shift[i]) - (nanos & spanMask);
+                    long delay = (buckets << Shift[i]) - (time & spanMask);
                     delay = (delay > 0) ? delay : Spans[i];
 
                     for (int k = i + 1; k < Shift.Length; k++)
@@ -227,15 +226,13 @@ namespace BitFaster.Caching.Lfu
                 }
             }
 
-            // TODO: revisit as Duration - is max value legal?
             return new Duration(long.MaxValue);
         }
 
         // Returns the duration when the wheel's next bucket expires, or long.MaxValue if empty.
         private long PeekAhead(int index)
         {
-            // TODO: revisit time as Duration
-            long ticks = (long)((ulong)nanos >> Shift[index]);
+            long ticks = (long)((ulong)time >> Shift[index]);
             TimeOrderNode<K, V>[] timerWheel = wheel[index];
 
             long spanMask = Spans[index] - 1;
@@ -243,7 +240,7 @@ namespace BitFaster.Caching.Lfu
             int probe = (int)((ticks + 1) & mask);
             TimeOrderNode<K, V> sentinel = timerWheel[probe];
             TimeOrderNode<K, V> next = sentinel.GetNextInTimeOrder();
-            return (next == sentinel) ? long.MaxValue: (Spans[index] - (nanos & spanMask));
+            return (next == sentinel) ? long.MaxValue: (Spans[index] - (time & spanMask));
         }
     }
 }
