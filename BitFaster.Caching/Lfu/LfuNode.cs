@@ -125,19 +125,16 @@
             return timeToExpire.raw;
         }
 
-        //override
         public void SetPreviousInTimeOrder(TimeOrderNode<K, V> prev)
         {
             this.prevTime = prev;
         }
 
-        //override
         public TimeOrderNode<K, V> GetNextInTimeOrder()
         {
             return nextTime;
         }
 
-        // override
         public void SetNextInTimeOrder(TimeOrderNode<K, V> next)
         {
             this.nextTime = next;

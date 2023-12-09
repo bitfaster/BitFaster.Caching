@@ -20,7 +20,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             lfuNodeList = new();
             timerWheel = new();
-            policy = new ExpireAfterPolicy<int, IDisposable>(timerWheel);
+            policy = new ExpireAfterPolicy<int, IDisposable>(new TestExpiryCalculator<int,IDisposable>());
             cache = new(
                 Defaults.ConcurrencyLevel, 3, new ThreadPoolScheduler(), EqualityComparer<int>.Default, () => { }, policy);
         }

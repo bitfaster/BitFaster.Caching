@@ -32,9 +32,11 @@ namespace BitFaster.Caching.Lfu
         public TimerWheel()
         {
             wheel = new TimeOrderNode<K, V>[Buckets.Length][];
+
             for (int i = 0; i < wheel.Length; i++)
             {
                 wheel[i] = new TimeOrderNode<K, V>[Buckets[i]];
+
                 for (int j = 0; j < wheel[i].Length; j++)
                 {
                     wheel[i][j] = TimeOrderNode< K, V>.CreateSentinel();
@@ -47,7 +49,9 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <param name="cache"></param>
         /// <param name="currentTime"></param>
-        public void Advance(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V>> cache, Duration currentTime)
+        public void Advance<N, P>(ref ConcurrentLfuCore<K, V, N, P> cache, Duration currentTime)
+            where N : LfuNode<K, V>
+            where P : struct, INodePolicy<K, V, N>
         {
             long previousTime = time;
             time = currentTime.raw;
@@ -85,7 +89,9 @@ namespace BitFaster.Caching.Lfu
         }
 
         // Expires entries or reschedules into the proper bucket if still active.
-        private void Expire(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V>> cache, int index, long previousTicks, long delta)
+        private void Expire<N, P>(ref ConcurrentLfuCore<K, V, N, P> cache, int index, long previousTicks, long delta)
+            where N : LfuNode<K, V>
+            where P : struct, INodePolicy<K, V, N>
         {
             TimeOrderNode<K, V>[] timerWheel = wheel[index];
             int mask = timerWheel.Length - 1;
@@ -143,10 +149,23 @@ namespace BitFaster.Caching.Lfu
         }
 
         /// <summary>
+        /// Reschedules an active timer event for the node.
+        /// </summary>
+        /// <param name="node"></param>
+        public void Reschedule(TimeOrderNode<K, V> node)
+        {
+            if (node.GetNextInTimeOrder() != null)
+            {
+                Unlink(node);
+                Schedule(node);
+            }
+        }
+
+        /// <summary>
         /// Removes a timer event for this entry if present.
         /// </summary>
         /// <param name="node"></param>
-        public void Deschedule(TimeOrderNode<K, V> node)
+        public static void Deschedule(TimeOrderNode<K, V> node)
         {
             Unlink(node);
             node.SetNextInTimeOrder(null);
@@ -158,15 +177,18 @@ namespace BitFaster.Caching.Lfu
         {
             long duration = time - this.time;
             int length = wheel.Length - 1;
+
             for (int i = 0; i < length; i++)
             {
                 if (duration < Spans[i + 1])
                 {
                     long ticks = (long)((ulong)time >> Shift[i]);
                     int index = (int)(ticks & (wheel[i].Length - 1));
+
                     return wheel[i][index];
                 }
             }
+
             return wheel[length][0];
         }
 
@@ -184,6 +206,7 @@ namespace BitFaster.Caching.Lfu
         private static void Unlink(TimeOrderNode<K, V> node)
         {
             TimeOrderNode<K, V> next = node.GetNextInTimeOrder();
+
             if (next != null)
             {
                 TimeOrderNode<K, V> prev = node.GetPreviousInTimeOrder();
@@ -204,14 +227,17 @@ namespace BitFaster.Caching.Lfu
                 int start = (int)(ticks & spanMask);
                 int end = start + timerWheel.Length;
                 int mask = timerWheel.Length - 1;
+
                 for (int j = start; j < end; j++)
                 {
                     TimeOrderNode<K, V> sentinel = timerWheel[(j & mask)];
                     TimeOrderNode<K, V> next = sentinel.GetNextInTimeOrder();
+
                     if (next == sentinel)
                     {
                         continue;
                     }
+
                     long buckets = (j - start);
                     long delay = (buckets << Shift[i]) - (time & spanMask);
                     delay = (delay > 0) ? delay : Spans[i];
@@ -240,6 +266,7 @@ namespace BitFaster.Caching.Lfu
             int probe = (int)((ticks + 1) & mask);
             TimeOrderNode<K, V> sentinel = timerWheel[probe];
             TimeOrderNode<K, V> next = sentinel.GetNextInTimeOrder();
+
             return (next == sentinel) ? long.MaxValue: (Spans[index] - (time & spanMask));
         }
     }

@@ -260,7 +260,7 @@ namespace BitFaster.Caching.Lfu
 
         public bool TryGet(K key, out V value)
         {
-            if (this.dictionary.TryGetValue(key, out var node))
+            if (this.dictionary.TryGetValue(key, out var node) && !policy.IsExpired(node))
             {
                 bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
 
@@ -491,6 +491,8 @@ namespace BitFaster.Caching.Lfu
         {
             this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
 
+            policy.AdvanceTime();
+
             // Note: this is only Span on .NET Core 3.1+, else this is no-op and it is still an array
             var buffer = this.drainBuffer.AsSpanOrArray();
 
@@ -523,6 +525,7 @@ namespace BitFaster.Caching.Lfu
                 done = true;
             }
 
+            policy.ExpireEntries(ref this);
             EvictEntries();
             this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
             ReFitProtected();
@@ -540,7 +543,7 @@ namespace BitFaster.Caching.Lfu
             return done;
         }
 
-        private void OnAccess(LfuNode<K, V> node)
+        private void OnAccess(N node)
         {
             // there was a cache hit even if the item was removed or is not yet added.
             this.metrics.requestHitCount++;
@@ -563,9 +566,11 @@ namespace BitFaster.Caching.Lfu
                     this.protectedLru.MoveToEnd(node);
                     break;
             }
+
+            policy.OnRead(node);
         }
 
-        private void OnWrite(LfuNode<K, V> node)
+        private void OnWrite(N node)
         {
             // Nodes can be removed while they are in the write buffer, in which case they should
             // not be added back into the LRU.
@@ -610,6 +615,8 @@ namespace BitFaster.Caching.Lfu
                     this.metrics.updatedCount++;
                     break;
             }
+
+            policy.OnWrite(node);
         }
 
         private void PromoteProbation(LfuNode<K, V> node)
@@ -779,6 +786,8 @@ namespace BitFaster.Caching.Lfu
             evictee.list.Remove(evictee);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
+
+            this.policy.OnEvict((N)evictee);
         }
 
         private void ReFitProtected()
