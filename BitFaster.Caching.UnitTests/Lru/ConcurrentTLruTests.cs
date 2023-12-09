@@ -27,9 +27,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
         public ConcurrentTLru<K, V> CreateTLru<K, V>(ICapacityPartition capacity, TimeSpan timeToLive)
         {
-            // backcompat: use TLruTickCount64Policy
             return new ConcurrentTLru<K, V>(1, capacity, EqualityComparer<K>.Default, timeToLive);
-
         }
 
         public ConcurrentTLruTests()
