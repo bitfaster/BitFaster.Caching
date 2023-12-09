@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace BitFaster.Caching.Atomic
@@ -27,10 +28,12 @@ namespace BitFaster.Caching.Atomic
     ///</list>
     /// </remarks>
     [DebuggerDisplay("IsScopeCreated={initializer == null}, Value={ScopeIfCreated}")]
-    public sealed class ScopedAtomicFactory<K, V> : IScoped<V>, IDisposable where V : IDisposable
+    public sealed class ScopedAtomicFactory<K, V> : IScoped<V>, IDisposable
+        where K : notnull
+        where V : IDisposable
     {
-        private Scoped<V> scope;
-        private Initializer initializer;
+        private Scoped<V>? scope;
+        private Initializer? initializer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ScopedAtomicFactory{K, V}"/> class.
@@ -58,7 +61,7 @@ namespace BitFaster.Caching.Atomic
         /// <summary>
         /// Gets the scope if it has been initialized, else default.
         /// </summary>
-        public Scoped<V> ScopeIfCreated
+        public Scoped<V>? ScopeIfCreated
         {
             get
             {
@@ -77,7 +80,7 @@ namespace BitFaster.Caching.Atomic
         /// </summary>
         /// <param name="lifetime">When this method returns, contains the Lifetime that was created, or the default value of the type if the operation failed.</param>
         /// <returns>true if the Lifetime was created; otherwise false.</returns>
-        public bool TryCreateLifetime(out Lifetime<V> lifetime)
+        public bool TryCreateLifetime([MaybeNullWhen(false)] out Lifetime<V> lifetime)
         {
             if (scope?.IsDisposed ?? false || initializer != null)
             {
@@ -85,7 +88,7 @@ namespace BitFaster.Caching.Atomic
                 return false;
             }
 
-            return scope.TryCreateLifetime(out lifetime);
+            return scope!.TryCreateLifetime(out lifetime);
         }
 
         /// <summary>
@@ -97,7 +100,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="lifetime">When this method returns, contains the Lifetime that was created, or the default value of the type if the operation failed.</param>
         /// <returns>true if the Lifetime was created; otherwise false.</returns>
         // backcompat: remove
-        public bool TryCreateLifetime(K key, Func<K, Scoped<V>> valueFactory, out Lifetime<V> lifetime)
+        public bool TryCreateLifetime(K key, Func<K, Scoped<V>> valueFactory, [MaybeNullWhen(false)] out Lifetime<V> lifetime)
         {
             // backcompat
             return TryCreateLifetime(key, new ValueFactory<K, Scoped<V>>(valueFactory), out lifetime);
@@ -112,7 +115,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="valueFactory">The value factory to use to create the scoped value when it is not initialized.</param>
         /// <param name="lifetime">When this method returns, contains the Lifetime that was created, or the default value of the type if the operation failed.</param>
         /// <returns>true if the Lifetime was created; otherwise false.</returns>
-        public bool TryCreateLifetime<TFactory>(K key, TFactory valueFactory, out Lifetime<V> lifetime) where TFactory : struct, IValueFactory<K, Scoped<V>>
+        public bool TryCreateLifetime<TFactory>(K key, TFactory valueFactory, [MaybeNullWhen(false)] out Lifetime<V> lifetime) where TFactory : struct, IValueFactory<K, Scoped<V>>
         {
             if (scope?.IsDisposed ?? false)
             {
@@ -126,7 +129,7 @@ namespace BitFaster.Caching.Atomic
                 InitializeScope(key, valueFactory);
             }
 
-            return scope.TryCreateLifetime(out lifetime);
+            return scope!.TryCreateLifetime(out lifetime);
         }
 
         private void InitializeScope<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
@@ -153,14 +156,14 @@ namespace BitFaster.Caching.Atomic
                 scope = init.TryCreateDisposedScope();
             }
 
-            scope.Dispose();
+            scope!.Dispose();
         }
 
 #pragma warning disable CA2002 // Do not lock on objects with weak identity
         private class Initializer
         {
             private bool isInitialized;
-            private Scoped<V> value;
+            private Scoped<V>? value;
 
             public Scoped<V> CreateScope<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
             {
@@ -168,7 +171,7 @@ namespace BitFaster.Caching.Atomic
                 {
                     if (isInitialized)
                     {
-                        return value;
+                        return value!;
                     }
 
                     value = valueFactory.Create(key);
@@ -184,11 +187,12 @@ namespace BitFaster.Caching.Atomic
                 {
                     if (isInitialized)
                     {
-                        return value;
+                        return value!;
                     }
 
                     // don't expose to other threads until disposed (else they may use the invalid default value)
-                    var temp = new Scoped<V>(default);
+                    // because the scope is disposed before assigning to value, the null value is not accessible
+                    var temp = new Scoped<V>(default!);
                     temp.Dispose();
                     value = temp;
                     isInitialized = true;

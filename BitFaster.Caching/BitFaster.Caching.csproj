@@ -27,6 +27,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <IsTrimmable>true</IsTrimmable>
+    <Nullable>enable</Nullable>
     <!--Package Validation-->
     <EnablePackageValidation>true</EnablePackageValidation>
     <PackageValidationBaselineVersion>2.4.0</PackageValidationBaselineVersion>    
@@ -58,5 +59,9 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
      <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
   </ItemGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <NoWarn>$(NoWarn);nullable</NoWarn>
+  </PropertyGroup>
 
 </Project>

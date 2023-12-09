@@ -70,13 +70,13 @@ namespace BitFaster.Caching
         }
 
         ///<inheritdoc/>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as ReferenceCount<TValue>);
         }
 
         ///<inheritdoc/>
-        public bool Equals(ReferenceCount<TValue> other)
+        public bool Equals(ReferenceCount<TValue>? other)
         {
             return other != null &&
                    EqualityComparer<TValue>.Default.Equals(value, other.value) &&
@@ -87,7 +87,7 @@ namespace BitFaster.Caching
         public override int GetHashCode()
         {
             var hashCode = -1491496004;
-            hashCode = hashCode * -1521134295 + EqualityComparer<TValue>.Default.GetHashCode(value);
+            hashCode = hashCode * -1521134295 + EqualityComparer<TValue>.Default.GetHashCode(value!);
             hashCode = hashCode * -1521134295 + count.GetHashCode();
             return hashCode;
         }
@@ -98,7 +98,7 @@ namespace BitFaster.Caching
         /// <param name="left">The left ReferenceCount to compare, or null.</param>
         /// <param name="right">The right ReferenceCount to compare, or null.</param>
         /// <returns>true if the value of left is the same as the value of right; otherwise, false.</returns>
-        public static bool operator ==(ReferenceCount<TValue> left, ReferenceCount<TValue> right)
+        public static bool operator ==(ReferenceCount<TValue>? left, ReferenceCount<TValue>? right)
         {
             return object.ReferenceEquals(left, right);
         }
@@ -109,7 +109,7 @@ namespace BitFaster.Caching
         /// <param name="left">The left ReferenceCount to compare, or null.</param>
         /// <param name="right">The right ReferenceCount to compare, or null.</param>
         /// <returns>true if the value of left is different from the value of right; otherwise, false.</returns>
-        public static bool operator !=(ReferenceCount<TValue> left, ReferenceCount<TValue> right)
+        public static bool operator !=(ReferenceCount<TValue>? left, ReferenceCount<TValue>? right)
         {
             return !(left == right);
         }

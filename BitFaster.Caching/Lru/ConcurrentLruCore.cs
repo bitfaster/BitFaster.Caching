@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -32,6 +33,7 @@ namespace BitFaster.Caching.Lru
     ///</list>
     /// </remarks>
     public class ConcurrentLruCore<K, V, I, P, T> : ICache<K, V>, IAsyncCache<K, V>, IEnumerable<KeyValuePair<K, V>>
+        where K : notnull
         where I : LruItem<K, V>
         where P : struct, IItemPolicy<K, V, I>
         where T : struct, ITelemetryPolicy<K, V>
@@ -152,7 +154,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
-        public bool TryGet(K key, out V value)
+        public bool TryGet(K key, [MaybeNullWhen(false)] out V value)
         {
             if (dictionary.TryGetValue(key, out var item))
             {
@@ -167,7 +169,7 @@ namespace BitFaster.Caching.Lru
         // AggressiveInlining forces the JIT to inline policy.ShouldDiscard(). For LRU policy 
         // the first branch is completely eliminated due to JIT time constant propogation.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool GetOrDiscard(I item, out V value)
+        private bool GetOrDiscard(I item, [MaybeNullWhen(false)] out V value)
         {
             if (this.itemPolicy.ShouldDiscard(item))
             {
@@ -332,7 +334,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="key">The key of the element to remove.</param>
         /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
         /// <returns>true if the object was removed successfully; otherwise, false.</returns>
-        public bool TryRemove(K key, out V value)
+        public bool TryRemove(K key, [MaybeNullWhen(false)] out V value)
         {
             if (this.dictionary.TryRemove(key, out var item))
             {
@@ -925,8 +927,8 @@ namespace BitFaster.Caching.Lru
             {
                 if (key is K k && lru.dictionary.TryGetValue(k, out var item))
                 {
-                    LongTickCountLruItem<K, V> tickItem = item as LongTickCountLruItem<K, V>;
-                    timeToLive = (new Duration(tickItem.TickCount) - Duration.SinceEpoch()).ToTimeSpan();
+                    LongTickCountLruItem<K, V>? tickItem = item as LongTickCountLruItem<K, V>;
+                    timeToLive = (new Duration(tickItem!.TickCount) - Duration.SinceEpoch()).ToTimeSpan();
                     return true;
                 }
 

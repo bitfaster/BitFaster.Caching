@@ -40,6 +40,7 @@ namespace BitFaster.Caching.Lfu
     /// https://github.com/ben-manes/caffeine
     
     internal struct ConcurrentLfuCore<K, V, N, P> : IBoundedPolicy
+        where K : notnull
         where N : LfuNode<K, V>
         where P : struct, INodePolicy<K, V, N>
     {
@@ -189,7 +190,7 @@ namespace BitFaster.Caching.Lfu
         {
             while (true)
             {
-                if (this.TryGet(key, out V value))
+                if (this.TryGet(key, out V? value))
                 {
                     return value;
                 }
@@ -206,7 +207,7 @@ namespace BitFaster.Caching.Lfu
         {
             while (true)
             {
-                if (this.TryGet(key, out V value))
+                if (this.TryGet(key, out V? value))
                 {
                     return value;
                 }
@@ -223,7 +224,7 @@ namespace BitFaster.Caching.Lfu
         {
             while (true)
             {
-                if (this.TryGet(key, out V value))
+                if (this.TryGet(key, out V? value))
                 {
                     return value;
                 }
@@ -240,7 +241,7 @@ namespace BitFaster.Caching.Lfu
         {
             while (true)
             {
-                if (this.TryGet(key, out V value))
+                if (this.TryGet(key, out V? value))
                 {
                     return value;
                 }
@@ -253,7 +254,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        public bool TryGet(K key, out V value)
+        public bool TryGet(K key, [MaybeNullWhen(false)] out V value)
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
@@ -298,7 +299,7 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        public bool TryRemove(K key, out V value)
+        public bool TryRemove(K key, [MaybeNullWhen(false)] out V value)
         {
             if (this.dictionary.TryRemove(key, out var node))
             {
@@ -482,7 +483,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private bool Maintenance(N droppedWrite = null)
+        private bool Maintenance(N? droppedWrite = null)
         {
             this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
 
@@ -632,7 +633,7 @@ namespace BitFaster.Caching.Lfu
 
         private LfuNode<K, V> EvictFromWindow()
         {
-            LfuNode<K, V> first = null;
+            LfuNode<K, V>? first = null;
 
             while (this.windowLru.Count > this.capacity.Window)
             {
@@ -645,7 +646,7 @@ namespace BitFaster.Caching.Lfu
                 node.Position = Position.Probation;
             }
 
-            return first;
+            return first!;
         }
 
         private ref struct EvictIterator
@@ -690,11 +691,11 @@ namespace BitFaster.Caching.Lfu
 
                 if (victim.node == candidate.node)
                 {
-                    Evict(candidate.node);
+                    Evict(candidate.node!);
                     break;
                 }
 
-                if (candidate.node.WasRemoved)
+                if (candidate.node!.WasRemoved)
                 {
                     var evictee = candidate.node;
                     candidate.Next();
@@ -702,7 +703,7 @@ namespace BitFaster.Caching.Lfu
                     continue;
                 }
 
-                if (victim.node.WasRemoved)
+                if (victim.node!.WasRemoved)
                 {
                     var evictee = victim.node;
                     victim.Next();
@@ -898,7 +899,7 @@ namespace BitFaster.Caching.Lfu
             sb.Append(string.Join(",", this.protectedLru.Select(n => n.Key.ToString())));
             sb.Append("] Probation [");
             sb.Append(string.Join(",", this.probationLru.Select(n => n.Key.ToString())));
-            sb.Append("]");
+            sb.Append(']');
 
             return sb.ToString();
         }

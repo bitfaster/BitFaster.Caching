@@ -19,7 +19,7 @@ namespace BitFaster.Caching
         /// <param name="key">The key of the item that was removed from the cache.</param>
         /// <param name="value">The value of the item that was removed from the cache.</param>
         /// <param name="reason">The reason the item was removed from the cache.</param>
-        public ItemRemovedEventArgs(K key, V value, ItemRemovedReason reason)
+        public ItemRemovedEventArgs(K key, V? value, ItemRemovedReason reason)
         {
             Key = key;
             Value = value;
@@ -34,7 +34,7 @@ namespace BitFaster.Caching
         /// <summary>
         /// Gets the value of the item that was removed from the cache.
         /// </summary>
-        public V Value { get; }
+        public V? Value { get; }
 
         /// <summary>
         /// Gets the reason the item was removed from the cache.

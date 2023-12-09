@@ -1,4 +1,5 @@
-﻿namespace BitFaster.Caching.Lfu
+﻿#nullable disable
+namespace BitFaster.Caching.Lfu
 {
     internal class LfuNode<K, V>
     {

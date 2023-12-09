@@ -33,6 +33,7 @@ namespace BitFaster.Caching.Lfu
     [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView<>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
+        where K : notnull
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
         private ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> core;
@@ -148,7 +149,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         ///<inheritdoc/>
-        public bool TryGet(K key, out V value)
+        public bool TryGet(K key, [MaybeNullWhen(false)] out V value)
         {
             return core.TryGet(key, out value);
         }
@@ -175,7 +176,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="key">The key of the element to remove.</param>
         /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
         /// <returns>true if the object was removed successfully; otherwise, false.</returns>
-        public bool TryRemove(K key, out V value)
+        public bool TryRemove(K key, [MaybeNullWhen(false)] out V value)
         {
             return core.TryRemove(key, out value);
         }
@@ -222,11 +223,11 @@ namespace BitFaster.Caching.Lfu
 
             public string Maintenance => lfu.core.drainStatus.Format();
 
-            public ICacheMetrics Metrics => lfu.Metrics.Value;
+            public ICacheMetrics? Metrics => lfu.Metrics.Value;
 
-            public StripedMpscBuffer<N> ReadBuffer => this.lfu.core.readBuffer as StripedMpscBuffer<N>;
+            public StripedMpscBuffer<N> ReadBuffer => (this.lfu.core.readBuffer as StripedMpscBuffer<N>)!;
 
-            public MpscBoundedBuffer<N> WriteBuffer => this.lfu.core.writeBuffer as MpscBoundedBuffer<N>;
+            public MpscBoundedBuffer<N> WriteBuffer => (this.lfu.core.writeBuffer as MpscBoundedBuffer<N>)!;
 
             public KeyValuePair<K, V>[] Items
             {

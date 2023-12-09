@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace BitFaster.Caching
@@ -16,6 +17,7 @@ namespace BitFaster.Caching
     [DebuggerTypeProxy(typeof(ScopedCacheDebugView<,>))]
     [DebuggerDisplay("Count = {Count}")]
     public sealed class ScopedCache<K, V> : IScopedCache<K, V> where V : IDisposable
+        where K : notnull
     {
         private readonly ICache<K, Scoped<V>> cache;
 
@@ -103,7 +105,7 @@ namespace BitFaster.Caching
         }
 
         ///<inheritdoc/>
-        public bool ScopedTryGet(K key, out Lifetime<V> lifetime)
+        public bool ScopedTryGet(K key, [MaybeNullWhen(false)] out Lifetime<V> lifetime)
         {
             if (this.cache.TryGet(key, out var scope))
             {
