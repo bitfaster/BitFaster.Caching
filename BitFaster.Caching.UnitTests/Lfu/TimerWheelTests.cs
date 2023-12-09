@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
@@ -32,22 +31,51 @@ namespace BitFaster.Caching.UnitTests.Lfu
             timerWheel.time = clock2;
 
             var item = new DisposeTracker();
-            timerWheel.Schedule(AddNode(1, item, new Duration(clock2 + TimerWheel<int, int>.Spans[0])));
+            timerWheel.Schedule(AddNode(1, item, new Duration(clock2 + TimerWheel.Spans[0])));
 
-            timerWheel.Advance(ref cache, new Duration(clock2 + 13 * TimerWheel<int, int>.Spans[0]));
+            timerWheel.Advance(ref cache, new Duration(clock2 + 13 * TimerWheel.Spans[0]));
 
             // this should be disposed
             item.Disposed.Should().BeTrue();
         }
 
+        [Theory]
+        [MemberData(nameof(ClockData))]
+        public void WhenAdvanceDifferentWheelsNodeIsRescheduled(long clock)
+        {
+            var clockD = new Duration(clock);
+            timerWheel.time = clock;
+
+            Duration t15 = clockD + Duration.FromSeconds(15);
+            Duration t80 = clockD + Duration.FromSeconds(80);
+
+            timerWheel.Schedule(AddNode(1, new DisposeTracker(), t15)); // wheel 0
+            timerWheel.Schedule(AddNode(2, new DisposeTracker(), t80)); // wheel 1
+
+            Duration t45 = clockD + Duration.FromSeconds(45); // discard T15, T80 in wheel[1]
+            timerWheel.Advance(ref cache, t45);
+
+            lfuNodeList.Count.Should().Be(1); // verify discarded T15
+
+            Duration t70 = clockD + Duration.FromSeconds(70);
+            timerWheel.Advance(ref cache, t70);
+
+            lfuNodeList.Count.Should().Be(1); // verify not discarded, T80 in wheel[0]
+
+            Duration t90 = clockD + Duration.FromSeconds(90);
+            timerWheel.Advance(ref cache, t90);
+
+            lfuNodeList.Count.Should().Be(0); // verify discarded T80
+        }
+
         [Fact]
         public void WhenAdvanceOverflowsAndItemIsExpiredItemIsEvicted()
         {
-            timerWheel.time = -(TimerWheel<int, int>.Spans[3] * 365) / 2;
+            timerWheel.time = -(TimerWheel.Spans[3] * 365) / 2;
             var item = new DisposeTracker();
-            timerWheel.Schedule(AddNode(1, item, new Duration(timerWheel.time + TimerWheel<int, int>.Spans[0])));
+            timerWheel.Schedule(AddNode(1, item, new Duration(timerWheel.time + TimerWheel.Spans[0])));
 
-            timerWheel.Advance(ref cache, new Duration(timerWheel.time + (TimerWheel<int, int>.Spans[3] * 365)));
+            timerWheel.Advance(ref cache, new Duration(timerWheel.time + (TimerWheel.Spans[3] * 365)));
 
             this.lfuNodeList.Count.Should().Be(0);
         }
@@ -67,9 +95,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 timerWheel.Schedule(AddNode(i, new DisposeTracker(), new Duration(clock + duration)));
             }
 
-            for (int i = 0; i < TimerWheel<int, IDisposable>.Buckets.Length; i++)
+            for (int i = 0; i < TimerWheel.Buckets.Length; i++)
             {
-                timerWheel.Advance(ref cache, new Duration(clock - 3 * TimerWheel<int, int>.Spans[i]));
+                timerWheel.Advance(ref cache, new Duration(clock - 3 * TimerWheel.Spans[i]));
             }
 
             this.lfuNodeList.Count.Should().Be(1_000);
@@ -82,7 +110,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             Duration clock = Duration.SinceEpoch();
             timerWheel.time = clock.raw;
 
-            timerWheel.Schedule(AddNode(1, new DisposeThrows(), new Duration(clock.raw + TimerWheel<int, int>.Spans[1])));
+            timerWheel.Schedule(AddNode(1, new DisposeThrows(), new Duration(clock.raw + TimerWheel.Spans[1])));
 
             // This should expire the node, call evict, then throw via DisposeThrows.Dispose()
             Action advance = () => timerWheel.Advance(ref cache, new Duration(clock.raw + int.MaxValue));
@@ -109,7 +137,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             timerWheel.Schedule(new TimeOrderNode<int, IDisposable>(1, new DisposeTracker()) { TimeToExpire = new Duration(clock) + delay });
 
-            timerWheel.GetExpirationDelay().raw.Should().BeLessThanOrEqualTo(TimerWheel<int, int>.Spans[0]);
+            timerWheel.GetExpirationDelay().raw.Should().BeLessThanOrEqualTo(TimerWheel.Spans[0]);
         }
 
         [Theory]
@@ -148,7 +176,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             Duration expectedDelay = (t80 - t45);
             var delay = timerWheel.GetExpirationDelay();
-            delay.raw.Should().BeLessThan(expectedDelay.raw + TimerWheel<int, int>.Spans[0]);
+            delay.raw.Should().BeLessThan(expectedDelay.raw + TimerWheel.Spans[0]);
         }
 
         private TimeOrderNode<int, IDisposable> AddNode(int key, IDisposable value, Duration timeToExpire)
@@ -162,10 +190,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 new List<object[]>
                 {
                     new object[] { long.MinValue },
-                    new object[] { -TimerWheel<int, int>.Spans[1] + 1 },
+                    new object[] { -TimerWheel.Spans[1] + 1 },
                     new object[] { 0L },
                     new object[] { 0xfffffffc0000000L },
-                    new object[] { long.MaxValue - TimerWheel<int, int>.Spans[1] + 1 },
+                    new object[] { long.MaxValue - TimerWheel.Spans[1] + 1 },
                     new object[] { long.MaxValue },
                 };
     }
