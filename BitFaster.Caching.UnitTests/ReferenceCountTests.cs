@@ -58,5 +58,15 @@ namespace BitFaster.Caching.UnitTests
 
             a.GetHashCode().Should().NotBe(b.GetHashCode());
         }
+
+        [Fact]
+        public void WhenObjectIsNullGetHashCodeDoesntThrow()
+        {
+            var a = new ReferenceCount<object>(null);
+
+            // nullable static analysis suggests this is broken, but it is legal to call
+            // EqualityComparer<TValue>.Default.GetHashCode(null)
+            a.GetHashCode();
+        }
     }
 }
