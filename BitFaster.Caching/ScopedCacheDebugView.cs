@@ -32,6 +32,6 @@ namespace BitFaster.Caching
             }
         }
 
-        public ICacheMetrics Metrics => cache.Metrics.Value;
+        public ICacheMetrics? Metrics => cache.Metrics.Value;
     }
 }

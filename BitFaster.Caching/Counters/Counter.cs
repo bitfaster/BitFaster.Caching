@@ -50,7 +50,7 @@ namespace BitFaster.Caching.Counters
         /// <param name="value">The value to add.</param>
         public void Add(long value)
         {
-            Cell[] @as;
+            Cell[]? @as;
             long b, v;
             int m;
             Cell a;

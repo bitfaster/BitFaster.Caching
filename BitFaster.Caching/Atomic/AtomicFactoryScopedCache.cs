@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace BitFaster.Caching.Atomic
@@ -33,7 +34,7 @@ namespace BitFaster.Caching.Atomic
             
             if (cache.Events.HasValue)
             {
-                this.events = new Optional<ICacheEvents<K, Scoped<V>>>(new EventProxy(cache.Events.Value));
+                this.events = new Optional<ICacheEvents<K, Scoped<V>>>(new EventProxy(cache.Events.Value!));
             }
             else
             {
@@ -113,7 +114,7 @@ namespace BitFaster.Caching.Atomic
         }
 
         ///<inheritdoc/>
-        public bool ScopedTryGet(K key, out Lifetime<V> lifetime)
+        public bool ScopedTryGet(K key, [MaybeNullWhen(false)] out Lifetime<V> lifetime)
         {
             if (this.cache.TryGet(key, out var scope))
             {
@@ -148,7 +149,7 @@ namespace BitFaster.Caching.Atomic
             {
                 if (kvp.Value.IsScopeCreated)
                 { 
-                    yield return new KeyValuePair<K, Scoped<V>>(kvp.Key, kvp.Value.ScopeIfCreated); 
+                    yield return new KeyValuePair<K, Scoped<V>>(kvp.Key, kvp.Value.ScopeIfCreated!); 
                 }
             }
         }
@@ -167,12 +168,12 @@ namespace BitFaster.Caching.Atomic
 
             protected override ItemRemovedEventArgs<K, Scoped<V>> TranslateOnRemoved(ItemRemovedEventArgs<K, ScopedAtomicFactory<K, V>> inner)
             {
-                return new ItemRemovedEventArgs<K, Scoped<V>>(inner.Key, inner.Value.ScopeIfCreated, inner.Reason);
+                return new ItemRemovedEventArgs<K, Scoped<V>>(inner.Key, inner.Value!.ScopeIfCreated, inner.Reason);
             }
 
             protected override ItemUpdatedEventArgs<K, Scoped<V>> TranslateOnUpdated(ItemUpdatedEventArgs<K, ScopedAtomicFactory<K, V>> inner)
             {
-                return new ItemUpdatedEventArgs<K, Scoped<V>>(inner.Key, inner.OldValue.ScopeIfCreated, inner.NewValue.ScopeIfCreated);
+                return new ItemUpdatedEventArgs<K, Scoped<V>>(inner.Key, inner.OldValue!.ScopeIfCreated, inner.NewValue!.ScopeIfCreated);
             }
         }
     }

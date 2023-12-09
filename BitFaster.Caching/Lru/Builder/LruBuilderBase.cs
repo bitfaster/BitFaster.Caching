@@ -29,7 +29,7 @@ namespace BitFaster.Caching.Lru.Builder
         public TBuilder WithCapacity(int capacity)
         {
             this.info.Capacity = new FavorWarmPartition(capacity);
-            return this as TBuilder;
+            return (this as TBuilder)!;
         }
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace BitFaster.Caching.Lru.Builder
         public TBuilder WithCapacity(ICapacityPartition capacity)
         {
             this.info.Capacity = capacity;
-            return this as TBuilder;
+            return (this as TBuilder)!;
         }
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace BitFaster.Caching.Lru.Builder
         public TBuilder WithConcurrencyLevel(int concurrencyLevel)
         {
             this.info.ConcurrencyLevel = concurrencyLevel;
-            return this as TBuilder;
+            return (this as TBuilder)!;
         }
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace BitFaster.Caching.Lru.Builder
         public TBuilder WithKeyComparer(IEqualityComparer<K> comparer)
         {
             this.info.KeyComparer = comparer;
-            return this as TBuilder;
+            return (this as TBuilder)!;
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace BitFaster.Caching.Lru.Builder
         public TBuilder WithMetrics()
         {
             this.info.WithMetrics = true;
-            return this as TBuilder;
+            return (this as TBuilder)!;
         }
 
         /// <summary>
@@ -84,7 +84,7 @@ namespace BitFaster.Caching.Lru.Builder
         public TBuilder WithExpireAfterWrite(TimeSpan expiration)
         {
             this.info.TimeToExpireAfterWrite = expiration;
-            return this as TBuilder;
+            return (this as TBuilder)!;
         }
 
         /// <summary>
@@ -95,7 +95,7 @@ namespace BitFaster.Caching.Lru.Builder
         public TBuilder WithExpireAfterAccess(TimeSpan expiration)
         {
             this.info.TimeToExpireAfterAccess = expiration;
-            return this as TBuilder;
+            return (this as TBuilder)!;
         }
 
         /// <summary>

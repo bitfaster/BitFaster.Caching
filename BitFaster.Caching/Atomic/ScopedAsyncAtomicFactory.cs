@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,8 +17,8 @@ namespace BitFaster.Caching.Atomic
         where K : notnull
         where V : IDisposable
     {
-        private Scoped<V> scope;
-        private Initializer initializer;
+        private Scoped<V>? scope;
+        private Initializer? initializer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ScopedAsyncAtomicFactory{K, V}"/> class.
@@ -45,7 +46,7 @@ namespace BitFaster.Caching.Atomic
         /// <summary>
         /// Gets the scope if it has been initialized, else default.
         /// </summary>
-        public Scoped<V> ScopeIfCreated
+        public Scoped<V>? ScopeIfCreated
         {
             get
             {
@@ -64,7 +65,7 @@ namespace BitFaster.Caching.Atomic
         /// </summary>
         /// <param name="lifetime">When this method returns, contains the Lifetime that was created, or the default value of the type if the operation failed.</param>
         /// <returns>true if the Lifetime was created; otherwise false.</returns>
-        public bool TryCreateLifetime(out Lifetime<V> lifetime)
+        public bool TryCreateLifetime([MaybeNullWhen(false)] out Lifetime<V> lifetime)
         {
             if (scope?.IsDisposed ?? false || initializer != null)
             {
@@ -72,7 +73,7 @@ namespace BitFaster.Caching.Atomic
                 return false;
             }
 
-            return scope.TryCreateLifetime(out lifetime);
+            return scope!.TryCreateLifetime(out lifetime);
         }
 
         /// <summary>
@@ -83,7 +84,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="valueFactory">The value factory to use to create the scoped value when it is not initialized.</param>
         /// <returns>true if the Lifetime was created; otherwise false. If the lifetime was created, the new lifetime is also returned.</returns>
         // backcompat: remove
-        public ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
+        public ValueTask<(bool success, Lifetime<V>? lifetime)> TryCreateLifetimeAsync(K key, Func<K, Task<Scoped<V>>> valueFactory)
         {
             return TryCreateLifetimeAsync(key, new AsyncValueFactory<K, Scoped<V>>(valueFactory));
         }
@@ -96,7 +97,7 @@ namespace BitFaster.Caching.Atomic
         /// <param name="key">The key associated with the scoped value.</param>
         /// <param name="valueFactory">The value factory to use to create the scoped value when it is not initialized.</param>
         /// <returns>true if the Lifetime was created; otherwise false. If the lifetime was created, the new lifetime is also returned.</returns>
-        public async ValueTask<(bool success, Lifetime<V> lifetime)> TryCreateLifetimeAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
+        public async ValueTask<(bool success, Lifetime<V>? lifetime)> TryCreateLifetimeAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
         {
             // if disposed, return
             if (scope?.IsDisposed ?? false)
@@ -110,7 +111,7 @@ namespace BitFaster.Caching.Atomic
                 await InitializeScopeAsync(key, valueFactory).ConfigureAwait(false);
             }
 
-            bool res = scope.TryCreateLifetime(out var lifetime);
+            bool res = scope!.TryCreateLifetime(out var lifetime);
             return (res, lifetime);
         }
 
@@ -149,7 +150,7 @@ namespace BitFaster.Caching.Atomic
             private bool isTaskInitialized;
             private bool isTaskCompleted;
             private bool isDisposeRequested;
-            private Task<Scoped<V>> task;
+            private Task<Scoped<V>>? task;
 
             public async ValueTask<Scoped<V>> CreateScopeAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
             {
@@ -190,7 +191,7 @@ namespace BitFaster.Caching.Atomic
                 // Fast path
                 if (Volatile.Read(ref isTaskInitialized))
                 {
-                    return task;
+                    return task!;
                 }
 
                 lock (this)
@@ -202,7 +203,7 @@ namespace BitFaster.Caching.Atomic
                     }
                 }
 
-                return task;
+                return task!;
             }
 #pragma warning restore CA2002 // Do not lock on objects with weak identity
 
@@ -220,14 +221,14 @@ namespace BitFaster.Caching.Atomic
             // 2. If it is not yet completed, it is guaranteed to dispose on completion because volatile writes cannot be re-ordered.
             // If the value factory continuously throws, the object will be neither created nor disposed. This is considered benign.
             // </remarks>
-            public bool TryGetScope(out Scoped<V> scope)
+            public bool TryGetScope([MaybeNullWhen(false)] out Scoped<V> scope)
             {
                 Volatile.Write(ref this.isDisposeRequested, true);
 
                 if (Volatile.Read(ref isTaskCompleted))
                 {
                     // isTaskCompleted is only set when there is no exception, so this is safe to return
-                    scope = task.Result;
+                    scope = task!.Result;
                     return true;
                 }
 

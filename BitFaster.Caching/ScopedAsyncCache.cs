@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -118,7 +119,7 @@ namespace BitFaster.Caching
 #endif
 
         ///<inheritdoc/>
-        public bool ScopedTryGet(K key, out Lifetime<V> lifetime)
+        public bool ScopedTryGet(K key, [MaybeNullWhen(false)] out Lifetime<V> lifetime)
         {
             if (this.cache.TryGet(key, out var scope))
             {
