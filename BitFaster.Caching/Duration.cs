@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching
@@ -36,7 +37,14 @@ namespace BitFaster.Caching
         public static Duration SinceEpoch()
         {
 #if NETCOREAPP3_0_OR_GREATER
-            return new Duration(Environment.TickCount64);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return new Duration(Stopwatch.GetTimestamp());
+            }
+            else
+            {
+                return new Duration(Environment.TickCount64);
+            }
 #else
             return new Duration(Stopwatch.GetTimestamp());
 #endif
@@ -49,8 +57,15 @@ namespace BitFaster.Caching
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TimeSpan ToTimeSpan()
         {
-#if NETCOREAPP3_0_OR_GREATER
-            return TimeSpan.FromMilliseconds(raw);
+#if NETCOREAPP3_0_OR_GREATER    
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return StopwatchTickConverter.FromTicks(raw);
+            }
+            else
+            {
+                return TimeSpan.FromMilliseconds(raw);
+            }
 #else
             return StopwatchTickConverter.FromTicks(raw);
 #endif    
@@ -65,7 +80,14 @@ namespace BitFaster.Caching
         public static Duration FromTimeSpan(TimeSpan timeSpan)
         {
 #if NETCOREAPP3_0_OR_GREATER
-            return new Duration((long)timeSpan.TotalMilliseconds);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return new Duration(StopwatchTickConverter.ToTicks(timeSpan));
+            }
+            else
+            {
+                return new Duration((long)timeSpan.TotalMilliseconds);
+            }
 #else
             return new Duration(StopwatchTickConverter.ToTicks(timeSpan));
 #endif       
