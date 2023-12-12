@@ -26,25 +26,32 @@ namespace BitFaster.Caching.Lfu
             BitOps.TrailingZeroCount(Spans[4]),
         };
     }
-    
+
+    // A hierarchical timer wheel to add, remove, and fire expiration events in amortized O(1) time. The
+    // expiration events are deferred until the timer is advanced, which is performed as part of the
+    // cache's maintenance cycle.
+    //
+    // This is a direct port of TimerWheel from Java's Caffeine.
+    // @author ben.manes@gmail.com (Ben Manes)
+    // https://github.com/ben-manes/caffeine/blob/master/caffeine/src/main/java/com/github/benmanes/caffeine/cache/TimerWheel.java
     internal class TimerWheel<K, V>
         where K : notnull
     {
-        private readonly TimeOrderNode<K, V>[][] wheel;
+        internal readonly TimeOrderNode<K, V>[][] wheels;
 
         internal long time;
 
         public TimerWheel()
         {
-            wheel = new TimeOrderNode<K, V>[TimerWheel.Buckets.Length][];
+            wheels = new TimeOrderNode<K, V>[TimerWheel.Buckets.Length][];
 
-            for (int i = 0; i < wheel.Length; i++)
+            for (int i = 0; i < wheels.Length; i++)
             {
-                wheel[i] = new TimeOrderNode<K, V>[TimerWheel.Buckets[i]];
+                wheels[i] = new TimeOrderNode<K, V>[TimerWheel.Buckets[i]];
 
-                for (int j = 0; j < wheel[i].Length; j++)
+                for (int j = 0; j < wheels[i].Length; j++)
                 {
-                    wheel[i][j] = TimeOrderNode< K, V>.CreateSentinel();
+                    wheels[i][j] = TimeOrderNode< K, V>.CreateSentinel();
                 }
             }
         }
@@ -98,7 +105,7 @@ namespace BitFaster.Caching.Lfu
             where N : LfuNode<K, V>
             where P : struct, INodePolicy<K, V, N>
         {
-            TimeOrderNode<K, V>[] timerWheel = wheel[index];
+            TimeOrderNode<K, V>[] timerWheel = wheels[index];
             int mask = timerWheel.Length - 1;
 
             // We assume that the delta does not overflow an integer and cause negative steps. This can
@@ -185,20 +192,20 @@ namespace BitFaster.Caching.Lfu
         private TimeOrderNode<K, V> FindBucket(long time)
         {
             long duration = time - this.time;
-            int length = wheel.Length - 1;
+            int length = wheels.Length - 1;
 
             for (int i = 0; i < length; i++)
             {
                 if (duration < TimerWheel.Spans[i + 1])
                 {
                     long ticks = (long)((ulong)time >> TimerWheel.Shift[i]);
-                    int index = (int)(ticks & (wheel[i].Length - 1));
+                    int index = (int)(ticks & (wheels[i].Length - 1));
 
-                    return wheel[i][index];
+                    return wheels[i][index];
                 }
             }
 
-            return wheel[length][0];
+            return wheels[length][0];
         }
 
         // Adds the entry at the tail of the bucket's list.
@@ -229,7 +236,7 @@ namespace BitFaster.Caching.Lfu
         {
             for (int i = 0; i < TimerWheel.Shift.Length; i++)
             {
-                TimeOrderNode<K, V>[] timerWheel = wheel[i];
+                TimeOrderNode<K, V>[] timerWheel = wheels[i];
                 long ticks = (long)((ulong)time >> TimerWheel.Shift[i]);
 
                 long spanMask = TimerWheel.Spans[i] - 1;
@@ -268,7 +275,7 @@ namespace BitFaster.Caching.Lfu
         private long PeekAhead(int index)
         {
             long ticks = (long)((ulong)time >> TimerWheel.Shift[index]);
-            TimeOrderNode<K, V>[] timerWheel = wheel[index];
+            TimeOrderNode<K, V>[] timerWheel = wheels[index];
 
             long spanMask = TimerWheel.Spans[index] - 1;
             int mask = timerWheel.Length - 1;

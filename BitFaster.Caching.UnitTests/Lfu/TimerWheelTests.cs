@@ -1,24 +1,29 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace BitFaster.Caching.UnitTests.Lfu
 {
     public class TimerWheelTests
     {
         private readonly TimerWheel<int, IDisposable> timerWheel;
+        private readonly WheelEnumerator<int, IDisposable> wheelEnumerator;
         private readonly LfuNodeList<int, IDisposable> lfuNodeList;
         private readonly ExpireAfterPolicy<int, IDisposable> policy;
         private ConcurrentLfuCore<int, IDisposable, TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable>> cache;
 
-        public TimerWheelTests()
+        public TimerWheelTests(ITestOutputHelper testOutputHelper)
         {
             lfuNodeList = new();
             timerWheel = new();
+            wheelEnumerator = new (timerWheel, testOutputHelper);
             policy = new ExpireAfterPolicy<int, IDisposable>(new TestExpiryCalculator<int,IDisposable>());
             cache = new(
                 Defaults.ConcurrencyLevel, 3, new ThreadPoolScheduler(), EqualityComparer<int>.Default, () => { }, policy);
@@ -47,25 +52,33 @@ namespace BitFaster.Caching.UnitTests.Lfu
             timerWheel.time = clock;
 
             Duration t15 = clockD + Duration.FromSeconds(15);
-            Duration t80 = clockD + Duration.FromSeconds(80);
+            Duration t120 = clockD + Duration.FromSeconds(120);
 
-            timerWheel.Schedule(AddNode(1, new DisposeTracker(), t15)); // wheel 0
-            timerWheel.Schedule(AddNode(2, new DisposeTracker(), t80)); // wheel 1
+            timerWheel.Schedule(AddNode(15, new DisposeTracker(), t15)); // wheel 0
+            timerWheel.Schedule(AddNode(120, new DisposeTracker(), t120)); // wheel 1
 
-            Duration t45 = clockD + Duration.FromSeconds(45); // discard T15, T80 in wheel[1]
+            wheelEnumerator.Count().Should().Be(2);
+            var initialPosition = wheelEnumerator.PositionOf(120);
+
+            Duration t45 = clockD + Duration.FromSeconds(45); // discard T15, T120 in wheel[1]
             timerWheel.Advance(ref cache, t45);
 
             lfuNodeList.Count.Should().Be(1); // verify discarded T15
+            wheelEnumerator.PositionOf(15).Should().Be(WheelPosition.None);
 
-            Duration t70 = clockD + Duration.FromSeconds(70);
-            timerWheel.Advance(ref cache, t70);
+            Duration t110 = clockD + Duration.FromSeconds(110);
+            timerWheel.Advance(ref cache, t110);
 
-            lfuNodeList.Count.Should().Be(1); // verify not discarded, T80 in wheel[0]
+            lfuNodeList.Count.Should().Be(1); // verify not discarded, T120 in wheel[0]
+            var rescheduledPosition = wheelEnumerator.PositionOf(120);
 
-            Duration t90 = clockD + Duration.FromSeconds(90);
-            timerWheel.Advance(ref cache, t90);
+            rescheduledPosition.Should().BeLessThan(initialPosition);
 
-            lfuNodeList.Count.Should().Be(0); // verify discarded T80
+            Duration t130 = clockD + Duration.FromSeconds(130);
+            timerWheel.Advance(ref cache, t130);
+
+            lfuNodeList.Count.Should().Be(0); // verify discarded T120
+            wheelEnumerator.PositionOf(120).Should().Be(WheelPosition.None);
         }
 
         [Fact]
@@ -179,6 +192,44 @@ namespace BitFaster.Caching.UnitTests.Lfu
             delay.raw.Should().BeLessThan(expectedDelay.raw + TimerWheel.Spans[0]);
         }
 
+        [Fact]
+        public void WhenScheduledThenDescheduledNodeIsRemoved()
+        {
+            var node = AddNode(1, new DisposeTracker(), Duration.SinceEpoch());
+
+            timerWheel.Schedule(node);
+            wheelEnumerator.PositionOf(1).Should().NotBe(WheelPosition.None);
+
+            TimerWheel<int, IDisposable>.Deschedule(node);
+            wheelEnumerator.PositionOf(1).Should().Be(WheelPosition.None);
+            node.GetNextInTimeOrder().Should().BeNull();
+            node.GetPreviousInTimeOrder().Should().BeNull();
+        }
+
+        [Fact]
+        public void WhenRescheduledLaterNodeIsMoved()
+        {
+            var time = Duration.SinceEpoch();
+            var node = AddNode(1, new DisposeTracker(), time);
+
+            timerWheel.Schedule(node);
+            var initial = wheelEnumerator.PositionOf(1);
+
+            node.TimeToExpire = time + Duration.FromMinutes(60 * 24);
+            timerWheel.Reschedule(node);
+            wheelEnumerator.PositionOf(1).Should().BeGreaterThan(initial);
+        }
+
+        [Fact]
+        public void WhenDetachedRescheduleIsNoOp()
+        {
+            var time = Duration.SinceEpoch();
+            var node = AddNode(1, new DisposeTracker(), time);
+
+            timerWheel.Reschedule(node);
+            wheelEnumerator.PositionOf(1).Should().Be(WheelPosition.None);
+        }
+
         private TimeOrderNode<int, IDisposable> AddNode(int key, IDisposable value, Duration timeToExpire)
         {
             var node = new TimeOrderNode<int, IDisposable>(key, value) { TimeToExpire = timeToExpire };
@@ -213,6 +264,100 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void Dispose()
         {
             throw new InvalidOperationException();
+        }
+    }
+
+    internal class WheelEnumerator<K, V> : IEnumerable<KeyValuePair<WheelPosition, TimeOrderNode<K, V>>>
+        where K : notnull
+    {
+        private readonly TimerWheel<K, V> timerWheel;
+        private readonly ITestOutputHelper testOutputHelper;
+
+        public WheelEnumerator(TimerWheel<K, V> timerWheel, ITestOutputHelper testOutputHelper)
+        {
+            this.timerWheel = timerWheel;
+            this.testOutputHelper = testOutputHelper;
+        }
+
+        public void Dump(string tag = null)
+        {
+            this.testOutputHelper.WriteLine(tag);
+            int count = 0;
+
+            foreach (KeyValuePair<WheelPosition, TimeOrderNode<K, V>> kvp in this)
+            {
+                this.testOutputHelper.WriteLine($"[{kvp.Key.wheel},{kvp.Key.bucket}] {kvp.Value.Key}");
+                count++;
+            }
+
+            if (count == 0)
+            {
+                this.testOutputHelper.WriteLine("empty");
+            }
+        }
+
+        public WheelPosition PositionOf(K key)
+        {
+            var v = this.Where(kvp => EqualityComparer<K>.Default.Equals(kvp.Value.Key, key));
+
+            if (v.Any())
+            {
+                return v.First().Key;
+            }
+
+            return WheelPosition.None;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((WheelEnumerator<K, V>)this).GetEnumerator();
+        }
+
+        public IEnumerator<KeyValuePair<WheelPosition, TimeOrderNode<K, V>>> GetEnumerator()
+        {
+            for (int w = 0; w < timerWheel.wheels.Length; w++)
+            {
+                var wheel = timerWheel.wheels[w];
+
+                for (int b = 0; b < wheel.Length; b++)
+                {
+                    var sentinel = wheel[b];
+                    var node = sentinel.GetNextInTimeOrder();
+
+                    while (node != sentinel)
+                    {
+                        yield return new KeyValuePair<WheelPosition, TimeOrderNode<K, V>>(new WheelPosition(w, b), node);
+                        node = node.GetNextInTimeOrder();
+                    }
+                }
+            }
+        }
+    }
+
+    internal struct WheelPosition : IComparable<WheelPosition>
+    {
+        public readonly int wheel;
+        public readonly int bucket;
+
+        public static readonly WheelPosition None = new(-1, -1);
+
+        public WheelPosition(int wheel, int bucket)
+        {
+            this.wheel = wheel;
+            this.bucket = bucket;
+        }
+
+        public static bool operator >(WheelPosition a, WheelPosition b) => a.wheel > b.wheel | (a.wheel == b.wheel && a.bucket > b.bucket);
+        public static bool operator <(WheelPosition a, WheelPosition b) => a.wheel < b.wheel | (a.wheel == b.wheel && a.bucket < b.bucket);
+
+        public int CompareTo(WheelPosition that)
+        {
+            if (this.wheel == that.wheel)
+            {
+                return this.bucket.CompareTo(that.bucket);
+            }
+
+            return this.wheel.CompareTo(that.wheel);
         }
     }
 }
