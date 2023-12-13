@@ -9,7 +9,7 @@ using BitFaster.Caching.Scheduler;
 namespace BitFaster.Caching.Lfu
 {
     // LFU with time-based expiry policy.
-    internal class ConcurrentTLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
+    internal class ConcurrentTLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy, ITimePolicy, IDiscreteTimePolicy
         where K : notnull
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
@@ -43,7 +43,7 @@ namespace BitFaster.Caching.Lfu
         public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
 
         ///<inheritdoc/>
-        public CachePolicy Policy => core.Policy;
+        public CachePolicy Policy => CreatePolicy();
 
         ///<inheritdoc/>
         public ICollection<K> Keys => core.Keys;
@@ -141,6 +141,54 @@ namespace BitFaster.Caching.Lfu
             return core.GetEnumerator();
         }
 
+        public CachePolicy CreatePolicy()
+        {
+            var afterWrite = Optional<ITimePolicy>.None();
+            var afterAccess = Optional<ITimePolicy>.None();
+            var afterCustom = Optional<IDiscreteTimePolicy>.None();
+
+            var calc = core.policy.ExpiryCalculator;
+
+            switch (calc)
+            {
+                case ExpireAfterAccess<K, V>:
+                    afterAccess = new Optional<ITimePolicy>(this);
+                    break;
+                case ExpireAfterWrite<K, V>:
+                    afterWrite = new Optional<ITimePolicy>(this);
+                    break;
+                default:
+                    afterCustom = new Optional<IDiscreteTimePolicy>(this);
+                    break;
+            };
+
+            return new CachePolicy(new Optional<IBoundedPolicy>(this), afterWrite, afterAccess, afterCustom);
+        }
+
+        public TimeSpan TimeToLive => (this.core.policy.ExpiryCalculator) switch
+        {
+            ExpireAfterAccess<K, V> aa => aa.TimeToExpire,
+            ExpireAfterWrite<K, V> aw => aw.TimeToExpire,
+            _ => TimeSpan.Zero,
+        };
+
+        public bool TryGetTimeToExpire<K1>(K1 key, out TimeSpan timeToExpire)
+        {
+            if (key is K k && core.TryGetNode(k, out TimeOrderNode<K, V>? node))
+            {
+                timeToExpire = new Duration(node.GetTimestamp()).ToTimeSpan();
+                return true;
+            }
+
+            timeToExpire = default;
+            return false;
+        }
+
+        public void TrimExpired()
+        {
+            DoMaintenance();
+        }
+
 #if DEBUG
         /// <summary>
         /// Format the LFU as a string by converting all the keys to strings.
@@ -151,6 +199,5 @@ namespace BitFaster.Caching.Lfu
             return core.FormatLfuString();
         }
 #endif
-
     }
 }

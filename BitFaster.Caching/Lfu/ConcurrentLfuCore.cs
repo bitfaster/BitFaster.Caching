@@ -71,7 +71,7 @@ namespace BitFaster.Caching.Lfu
 
         private readonly N[] drainBuffer;
 
-        private P policy;
+        internal P policy;
 
         public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers, P policy)
         {
@@ -261,6 +261,11 @@ namespace BitFaster.Caching.Lfu
         public bool TryGet(K key, [MaybeNullWhen(false)] out V value)
         {
             return TryGetImpl(key, out value);
+        }
+
+        internal bool TryGetNode(K key, [MaybeNullWhen(false)] out N node)
+        { 
+            return this.dictionary.TryGetValue(key, out node);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -813,7 +818,7 @@ namespace BitFaster.Caching.Lfu
 #else
             ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
 #endif
-            evictee.list.Remove(evictee);
+            evictee.list?.Remove(evictee);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
 

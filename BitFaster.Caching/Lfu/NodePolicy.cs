@@ -70,7 +70,10 @@ namespace BitFaster.Caching.Lfu
             this.wheel = new TimerWheel<K, V>();
             this.expiryCalculator = expiryCalculator;
             this.current = Duration.Zero;
+            this.wheel.time = Duration.SinceEpoch().raw;
         }
+
+        public IExpiryCalculator<K, V> ExpiryCalculator => expiryCalculator;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TimeOrderNode<K, V> Create(K key, V value)

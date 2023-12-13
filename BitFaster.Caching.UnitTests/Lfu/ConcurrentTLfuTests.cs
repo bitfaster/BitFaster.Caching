@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
 using FluentAssertions;
 using Xunit;
@@ -25,6 +21,30 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public ConcurrentTLfuTests()
         {
             lfu = new ConcurrentTLfu<int, string>(capacity, new ExpireAfterWrite<int, string>(timeToLive));
+        }
+
+        [Fact]
+        public void WhenCalculatorIsAfterWritePolicyIsAfterWrite()
+        { 
+            lfu.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
+            lfu.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(timeToLive);
+        }
+
+        [Fact]
+        public void WhenCalculatorIsAfterAccessPolicyIsAfterAccess()
+        {
+            lfu = new ConcurrentTLfu<int, string>(capacity, new ExpireAfterAccess<int, string>(timeToLive));
+
+            lfu.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
+            lfu.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(timeToLive);
+        }
+
+        [Fact]
+        public void WhenCalculatorIsCustomPolicyIsAfter()
+        {
+            lfu = new ConcurrentTLfu<int, string>(capacity, new TestExpiryCalculator<int, string>());
+
+            lfu.Policy.ExpireAfter.HasValue.Should().BeTrue();
         }
 
         // policy can expire after write
@@ -70,12 +90,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
                     lfu.GetOrAdd(1, valueFactory.Create);
                     return lfu;
                 },
-                timeToLive.MultiplyBy(ttlWaitMlutiplier),
+                TimeSpan.FromSeconds(2),
                 lfu =>
                 {
                     // This is a bit flaky - seems like it doesnt always
                     // remove the item
-                    lfu.DoMaintenance();
+                    lfu.Policy.ExpireAfterWrite.Value.TrimExpired();
                     lfu.Count.Should().Be(0);
                 }
             );
