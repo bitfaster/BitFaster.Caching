@@ -75,13 +75,14 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TimeOrderNode<K, V> Create(K key, V value)
         {
-            return new TimeOrderNode<K, V>(key, value);
+            var expiry = expiryCalculator.GetExpireAfterCreate(key, value);
+            return new TimeOrderNode<K, V>(key, value) { TimeToExpire = Duration.SinceEpoch() + expiry };
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsExpired(TimeOrderNode<K, V> node)
         {
-            return node.TimeToExpire < current;
+            return node.TimeToExpire < Duration.SinceEpoch();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -102,10 +103,9 @@ namespace BitFaster.Caching.Lfu
         public void OnWrite(TimeOrderNode<K, V> node)
         {
             // if the node is not yet scheduled, it is being created
+            // the time is set on create in case it is read before the buffer is processed
             if (node.GetNextInTimeOrder() == null)
             {
-                var expiry = expiryCalculator.GetExpireAfterCreate(node.Key, node.Value);
-                node.TimeToExpire = current + expiry;
                 wheel.Schedule(node);
             }
             else

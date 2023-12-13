@@ -260,22 +260,52 @@ namespace BitFaster.Caching.Lfu
 
         public bool TryGet(K key, [MaybeNullWhen(false)] out V value)
         {
-            if (this.dictionary.TryGetValue(key, out var node) && !policy.IsExpired(node))
-            {
-                bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
+            return TryGetImpl(key, out value);
+        }
 
-                if (this.drainStatus.ShouldDrain(delayable))
-                { 
-                    TryScheduleDrain(); 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryGetImpl(K key, [MaybeNullWhen(false)] out V value)
+        {
+            if (this.dictionary.TryGetValue(key, out var node))
+            {
+                // TODO: verify whether this is elided via disassembly
+                if (!policy.IsExpired(node))
+                {
+                    bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
+
+                    if (this.drainStatus.ShouldDrain(delayable))
+                    {
+                        TryScheduleDrain();
+                    }
+                    value = node.Value;
+                    return true;
                 }
-                value = node.Value;               
-                return true;
+                else
+                {
+                    // expired case, immediately remove from the dictionary
+                    TryRemove(node);
+                }
             }
 
             this.metrics.requestMissCount.Increment();
 
             value = default;
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        void TryRemove(N node)
+        {
+#if NET6_0_OR_GREATER
+                if (this.dictionary.TryRemove(new KeyValuePair<K, N>(node.Key, node)))
+#else
+                // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(new KeyValuePair<K, N>(node.Key, node)))
+#endif
+            {
+                node.WasRemoved = true;
+                AfterWrite(node);
+            }
         }
 
         public bool TryRemove(KeyValuePair<K, V> item)
