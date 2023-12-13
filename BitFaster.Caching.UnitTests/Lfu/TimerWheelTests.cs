@@ -2,10 +2,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 using FluentAssertions;
+using FluentAssertions.Common;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -13,6 +15,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
 {
     public class TimerWheelTests
     {
+        private readonly ITestOutputHelper output;
+
         private readonly TimerWheel<int, IDisposable> timerWheel;
         private readonly WheelEnumerator<int, IDisposable> wheelEnumerator;
         private readonly LfuNodeList<int, IDisposable> lfuNodeList;
@@ -21,12 +25,38 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         public TimerWheelTests(ITestOutputHelper testOutputHelper)
         {
+            output = testOutputHelper;
             lfuNodeList = new();
             timerWheel = new();
-            wheelEnumerator = new (timerWheel, testOutputHelper);
-            policy = new ExpireAfterPolicy<int, IDisposable>(new TestExpiryCalculator<int,IDisposable>());
+            wheelEnumerator = new(timerWheel, testOutputHelper);
+            policy = new ExpireAfterPolicy<int, IDisposable>(new TestExpiryCalculator<int, IDisposable>());
             cache = new(
                 Defaults.ConcurrencyLevel, 3, new ThreadPoolScheduler(), EqualityComparer<int>.Default, () => { }, policy);
+        }
+
+        [Theory]
+        [MemberData(nameof(ScheduleData))]
+        public void WhenAdvanceExpiredNodesExpire(long clock, Duration duration, int expiredCount)
+        {
+            var items = new List<TimeOrderNode<int, IDisposable>>();
+            timerWheel.time = clock;
+
+            foreach (int timeout in new int[] { 25, 90, 240 })
+            {
+                var node = AddNode(1, new DisposeTracker(), new Duration(clock) + Duration.FromSeconds(timeout));
+                items.Add(node);
+                timerWheel.Schedule(node);
+            }
+
+            timerWheel.Advance(ref cache, new Duration(clock) + duration);
+
+            var expired = items.Where(n => ((DisposeTracker)n.Value).Expired);
+            expired.Count().Should().Be(expiredCount);
+
+            foreach (var node in expired)
+            {
+                node.GetTimestamp().Should().BeLessThanOrEqualTo(clock + duration.raw);
+            }
         }
 
         [Theory]
@@ -40,8 +70,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             timerWheel.Advance(ref cache, new Duration(clock2 + 13 * TimerWheel.Spans[0]));
 
-            // this should be disposed
-            item.Disposed.Should().BeTrue();
+            item.Expired.Should().BeTrue();
         }
 
         [Theory]
@@ -142,6 +171,21 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         [Theory]
         [MemberData(nameof(ClockData))]
+        public void WhenScheduledMaxNodeIsInOuterWheel(long clock)
+        {
+            var clockD = new Duration(clock);
+            timerWheel.time = clock;
+
+            Duration tMax = clockD + new Duration(long.MaxValue);
+
+            timerWheel.Schedule(AddNode(1, new DisposeTracker(), tMax));
+
+            var initialPosition = wheelEnumerator.PositionOf(1);
+            initialPosition.wheel.Should().Be(4);
+        }
+
+        [Theory]
+        [MemberData(nameof(ClockData))]
         public void WhenScheduledInFirstWheelDelayIsUpdated(long clock)
         {
             timerWheel.time = clock;
@@ -176,8 +220,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             Duration t15 = clockD + Duration.FromSeconds(15);
             Duration t80 = clockD + Duration.FromSeconds(80);
 
-            timerWheel.Schedule(AddNode(1, new DisposeTracker(), t15 )); // wheel 0
-            timerWheel.Schedule(AddNode(2, new DisposeTracker(), t80 )); // wheel 1
+            timerWheel.Schedule(AddNode(1, new DisposeTracker(), t15)); // wheel 0
+            timerWheel.Schedule(AddNode(2, new DisposeTracker(), t80)); // wheel 1
 
             Duration t45 = clockD + Duration.FromSeconds(45); // discard T15, T80 in wheel[1]
             timerWheel.Advance(ref cache, t45);
@@ -185,7 +229,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfuNodeList.Count.Should().Be(1); // verify discarded
 
             Duration t95 = clockD + Duration.FromSeconds(95);
-            timerWheel.Schedule(AddNode(3, new DisposeTracker(), t95 )); // wheel 0
+            timerWheel.Schedule(AddNode(3, new DisposeTracker(), t95)); // wheel 0
 
             Duration expectedDelay = (t80 - t45);
             var delay = timerWheel.GetExpirationDelay();
@@ -241,21 +285,37 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 new List<object[]>
                 {
                     new object[] { long.MinValue },
-                    new object[] { -TimerWheel.Spans[1] + 1 },
+                    new object[] { -TimerWheel.Spans[0] + 1 },
                     new object[] { 0L },
                     new object[] { 0xfffffffc0000000L },
-                    new object[] { long.MaxValue - TimerWheel.Spans[1] + 1 },
+                    new object[] { long.MaxValue - TimerWheel.Spans[0] + 1 },
                     new object[] { long.MaxValue },
                 };
-    }
 
+        public static IEnumerable<object[]> ScheduleData = CreateSchedule();
+
+        private static IEnumerable<object[]> CreateSchedule()
+        {
+            var schedule = new List<object[]>();
+
+            foreach (var clock in ClockData)
+            {
+                schedule.Add(new object[] { clock.First(), Duration.FromSeconds(10), 0 });
+                schedule.Add(new object[] { clock.First(), Duration.FromMinutes(3), 2 });
+                schedule.Add(new object[] { clock.First(), Duration.FromMinutes(10), 3 });
+            }
+
+            return schedule;
+        }
+    }
+    
     public class DisposeTracker : IDisposable
     {
-        public bool Disposed { get; set; }
+        public bool Expired { get; set; }
 
         public void Dispose()
         {
-            Disposed = true;
+            Expired = true;
         }
     }
 
