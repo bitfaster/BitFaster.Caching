@@ -45,6 +45,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu = new ConcurrentTLfu<int, string>(capacity, new TestExpiryCalculator<int, string>());
 
             lfu.Policy.ExpireAfter.HasValue.Should().BeTrue();
+            lfu.TimeToLive.Should().Be(TimeSpan.Zero);
         }
 
         // policy can expire after write
@@ -78,11 +79,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WhenItemIsExpiredItIsRemoved2()
         {
-            lfu.GetOrAdd(-1, valueFactory.Create);
-            lfu.DoMaintenance();
-            _ = lfu.Count;
-            lfu.Clear();
-
             Timed.Execute(
                 lfu,
                 lfu =>
@@ -123,10 +119,5 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             );
         }
-
-        // TrimExpired - this just calls maintenance
-        // Trim - hard to match LRU impl
-        // - for non-time-based, it runs maintenance, then trims n items
-        // - has no way to know how many expired items have been removed
     }
 }

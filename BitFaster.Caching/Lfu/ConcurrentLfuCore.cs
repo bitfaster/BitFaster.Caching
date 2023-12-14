@@ -263,11 +263,6 @@ namespace BitFaster.Caching.Lfu
             return TryGetImpl(key, out value);
         }
 
-        internal bool TryGetNode(K key, [MaybeNullWhen(false)] out N node)
-        { 
-            return this.dictionary.TryGetValue(key, out node);
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryGetImpl(K key, [MaybeNullWhen(false)] out V value)
         {
@@ -296,6 +291,11 @@ namespace BitFaster.Caching.Lfu
 
             value = default;
             return false;
+        }
+
+        internal bool TryGetNode(K key, [MaybeNullWhen(false)] out N node)
+        {
+            return this.dictionary.TryGetValue(key, out node);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
