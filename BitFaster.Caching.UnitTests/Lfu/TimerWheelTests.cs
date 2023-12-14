@@ -259,7 +259,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             timerWheel.Schedule(node);
             var initial = wheelEnumerator.PositionOf(1);
 
-            node.TimeToExpire = time + Duration.FromMinutes(60 * 24);
+            node.TimeToExpire = time + Duration.FromMinutes(60 * 30);
             timerWheel.Reschedule(node);
             wheelEnumerator.PositionOf(1).Should().BeGreaterThan(initial);
         }

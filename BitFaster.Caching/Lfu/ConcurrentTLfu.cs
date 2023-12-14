@@ -8,8 +8,8 @@ using BitFaster.Caching.Scheduler;
 
 namespace BitFaster.Caching.Lfu
 {
-    // LFU with time-based expiry policy.
-    internal class ConcurrentTLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy, ITimePolicy, IDiscreteTimePolicy
+    // LFU with time-based expiry policy. Provided as a wrapper around ConcurrentLfuCore to hide generic item and policy.
+    internal sealed class ConcurrentTLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy, ITimePolicy, IDiscreteTimePolicy
         where K : notnull
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
@@ -24,8 +24,6 @@ namespace BitFaster.Caching.Lfu
         {
             this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), new(expiryCalculator));
         }
-
-        internal ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V>> Core => core;
 
         // structs cannot declare self referencing lambda functions, therefore pass this in from the ctor
         private void DrainBuffers()
@@ -176,7 +174,8 @@ namespace BitFaster.Caching.Lfu
         {
             if (key is K k && core.TryGetNode(k, out TimeOrderNode<K, V>? node))
             {
-                timeToExpire = new Duration(node.GetTimestamp()).ToTimeSpan();
+                var tte = new Duration(node.GetTimestamp()) - Duration.SinceEpoch();
+                timeToExpire = tte.ToTimeSpan();
                 return true;
             }
 
@@ -188,16 +187,5 @@ namespace BitFaster.Caching.Lfu
         {
             DoMaintenance();
         }
-
-#if DEBUG
-        /// <summary>
-        /// Format the LFU as a string by converting all the keys to strings.
-        /// </summary>
-        /// <returns>The LFU formatted as a string.</returns>
-        public string FormatLfuString()
-        {
-            return core.FormatLfuString();
-        }
-#endif
     }
 }

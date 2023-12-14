@@ -34,7 +34,7 @@ namespace BitFaster.Caching.Lfu
     // This is a direct port of TimerWheel from Java's Caffeine.
     // @author ben.manes@gmail.com (Ben Manes)
     // https://github.com/ben-manes/caffeine/blob/master/caffeine/src/main/java/com/github/benmanes/caffeine/cache/TimerWheel.java
-    internal class TimerWheel<K, V>
+    internal sealed class TimerWheel<K, V>
         where K : notnull
     {
         internal readonly TimeOrderNode<K, V>[][] wheels;

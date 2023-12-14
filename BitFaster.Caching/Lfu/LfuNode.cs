@@ -65,7 +65,6 @@ namespace BitFaster.Caching.Lfu
         Protected,
     }
 
-    // existing scheme is purely access order
     internal sealed class AccessOrderNode<K, V> : LfuNode<K, V>
     {
         public AccessOrderNode(K k, V v) : base(k, v)
@@ -73,25 +72,6 @@ namespace BitFaster.Caching.Lfu
         }
     }
 
-    // expire after access requires time to expire
-    internal sealed class AccessOrderExpiringNode<K, V> : LfuNode<K, V>
-    {
-        private Duration timeToExpire;
-
-        public AccessOrderExpiringNode(K k, V v) : base(k, v)
-        {
-        }
-
-        public Duration TimeToExpire
-        {
-            get => timeToExpire;
-            set => timeToExpire = value;
-        }
-    }
-
-    // both ExpireAfter and ExpireAfterWrite require
-    // 1. Duration
-    // 2. Doubly linked list
     internal sealed class TimeOrderNode<K, V> : LfuNode<K, V>
         where K : notnull
     {

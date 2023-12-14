@@ -2,7 +2,7 @@
 
 namespace BitFaster.Caching
 {
-    internal class ExpireAfterWrite<K, V> : IExpiryCalculator<K, V>
+    internal sealed class ExpireAfterWrite<K, V> : IExpiryCalculator<K, V>
     {
         private readonly Duration timeToExpire;
 
