@@ -268,7 +268,6 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                // TODO: verify whether this is elided via disassembly
                 if (!policy.IsExpired(node))
                 {
                     bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
