@@ -139,7 +139,7 @@ namespace BitFaster.Caching.Lfu
             return core.GetEnumerator();
         }
 
-        public CachePolicy CreatePolicy()
+        private CachePolicy CreatePolicy()
         {
             var afterWrite = Optional<ITimePolicy>.None();
             var afterAccess = Optional<ITimePolicy>.None();
@@ -163,13 +163,14 @@ namespace BitFaster.Caching.Lfu
             return new CachePolicy(new Optional<IBoundedPolicy>(this), afterWrite, afterAccess, afterCustom);
         }
 
-        public TimeSpan TimeToLive => (this.core.policy.ExpiryCalculator) switch
+        TimeSpan ITimePolicy.TimeToLive => (this.core.policy.ExpiryCalculator) switch
         {
             ExpireAfterAccess<K, V> aa => aa.TimeToExpire,
             ExpireAfterWrite<K, V> aw => aw.TimeToExpire,
             _ => TimeSpan.Zero,
         };
 
+        ///<inheritdoc/>
         public bool TryGetTimeToExpire<K1>(K1 key, out TimeSpan timeToExpire)
         {
             if (key is K k && core.TryGetNode(k, out TimeOrderNode<K, V>? node))
@@ -183,6 +184,7 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
+        ///<inheritdoc/>
         public void TrimExpired()
         {
             DoMaintenance();

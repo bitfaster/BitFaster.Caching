@@ -69,8 +69,8 @@ namespace BitFaster.Caching.Lfu
             time = currentTime.raw;
 
             // If wrapping then temporarily shift the clock for a positive comparison. We assume that the
-            // advancements never exceed a total running time of Long.MAX_VALUE nanoseconds (292 years)
-            // so that an overflow only occurs due to using an arbitrary origin time (System.nanoTime()).
+            // advancements never exceed a total running time of long.MaxValue nanoseconds (292 years)
+            // so that an overflow only occurs due to using an arbitrary origin time.
             if ((previousTime < 0) && (currentTime > Duration.Zero))
             {
                 previousTime += long.MaxValue;
@@ -130,8 +130,6 @@ namespace BitFaster.Caching.Lfu
 
                     try
                     {
-                        // TODO: Caffeine passes the time into evict here, and can resurrect
-                        // https://github.com/ben-manes/caffeine/blob/73d5011f9db373fc20a6e12d1f194f0d7a967d69/caffeine/src/main/java/com/github/benmanes/caffeine/cache/BoundedLocalCache.java#L1023
                         if ((node.GetTimestamp() - time) < 0)
                         {
                             cache.Evict(node);

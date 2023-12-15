@@ -77,7 +77,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu = new ConcurrentTLfu<int, string>(capacity, new TestExpiryCalculator<int, string>());
 
             lfu.Policy.ExpireAfter.HasValue.Should().BeTrue();
-            lfu.TimeToLive.Should().Be(TimeSpan.Zero);
+            (lfu as ITimePolicy).TimeToLive.Should().Be(TimeSpan.Zero);
         }
 
         [Fact]

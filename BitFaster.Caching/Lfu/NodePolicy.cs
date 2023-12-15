@@ -69,8 +69,8 @@ namespace BitFaster.Caching.Lfu
         {
             this.wheel = new TimerWheel<K, V>();
             this.expiryCalculator = expiryCalculator;
-            this.current = Duration.Zero;
-            this.wheel.time = Duration.SinceEpoch().raw;
+            this.current = Duration.SinceEpoch();
+            this.wheel.time = current.raw;
         }
 
         public IExpiryCalculator<K, V> ExpiryCalculator => expiryCalculator;
