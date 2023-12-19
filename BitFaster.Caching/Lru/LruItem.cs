@@ -1,4 +1,7 @@
 ﻿
+using System;
+using System.Collections.Generic;
+
 namespace BitFaster.Caching.Lru
 {
     /// <summary>
@@ -6,7 +9,7 @@ namespace BitFaster.Caching.Lru
     /// </summary>
     /// <typeparam name="K">The type of the key.</typeparam>
     /// <typeparam name="V">The type of the value.</typeparam>
-    public class LruItem<K, V>
+    public class LruItem<K, V> : IEquatable<LruItem<K, V>?>
     {
         private volatile bool wasAccessed;
         private volatile bool wasRemoved;
@@ -48,6 +51,26 @@ namespace BitFaster.Caching.Lru
         {
             get => this.wasRemoved;
             set => this.wasRemoved = value;
+        }
+
+        ///<inheritdoc/>
+        public override bool Equals(object? obj)
+        {
+            return Equals(obj as LruItem<K, V>);
+        }
+
+        ///<inheritdoc/>
+        public bool Equals(LruItem<K, V>? other)
+        {
+            return other is not null &&
+                   EqualityComparer<K>.Default.Equals(Key, other.Key) &&
+                   EqualityComparer<V>.Default.Equals(Value, other.Value);
+        }
+
+        ///<inheritdoc/>
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Key, Value);
         }
     }
 }
