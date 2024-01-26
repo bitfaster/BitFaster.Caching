@@ -7,15 +7,19 @@ namespace BitFaster.Caching.HitRateAnalysis
     {
         public static void WaitForEmpty()
         {
-            int count = 0;
             while (ThreadPool.PendingWorkItemCount > 0)
             {
                 Thread.Yield();
-                Thread.Sleep(1);
 
-                if (count++ > 10)
+                // This is very hacky, but by experimentation 300 Sleep(0) consistently takes longer 
+                // than cache maintenance giving stable results with around 25% run time penalty.
+                // Sleep(1) makes the test take 50x longer.
+                if (ThreadPool.PendingWorkItemCount == 0)
                 {
-                    Console.WriteLine("Waiting for thread pool to flush...");
+                    for (int i = 0; i < 300; i++)
+                    {
+                        Thread.Sleep(0);
+                    }
                 }
             }
         }
