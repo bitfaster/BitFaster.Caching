@@ -49,7 +49,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="capacity">The capacity.</param>
         public ConcurrentLfu(int capacity)
         {
-            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers());
+            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers(), default);
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="comparer">The equality comparer.</param>
         public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
-            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers());
+            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), default);
         }
 
         internal ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> Core => core;

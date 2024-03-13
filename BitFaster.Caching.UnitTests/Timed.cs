@@ -35,7 +35,11 @@ namespace BitFaster.Caching.UnitTests
                 }
 
                 Thread.Sleep(200);
-                attempts++.Should().BeLessThan(128, "Unable to run test within verification margin");
+
+                if (attempts++ > 128)
+                {
+                    throw new Exception("Unable to run test within verification margin");
+                }
             }
         }
 

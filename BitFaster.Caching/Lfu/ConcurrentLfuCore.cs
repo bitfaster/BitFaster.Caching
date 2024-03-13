@@ -71,7 +71,9 @@ namespace BitFaster.Caching.Lfu
 
         private readonly N[] drainBuffer;
 
-        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers)
+        internal P policy;
+
+        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers, P policy)
         {
             if (capacity < 3)
                 Throw.ArgOutOfRange(nameof(capacity));
@@ -99,6 +101,8 @@ namespace BitFaster.Caching.Lfu
             this.drainBuffer = new N[this.readBuffer.Capacity];
 
             this.drainBuffers = drainBuffers;
+
+            this.policy = policy;
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -123,7 +127,7 @@ namespace BitFaster.Caching.Lfu
                     return;
                 }
 
-                var node = default(P).Create(key, value);
+                var node = policy.Create(key, value);
                 if (this.dictionary.TryAdd(key, node))
                 {
                     AfterWrite(node);
@@ -174,7 +178,7 @@ namespace BitFaster.Caching.Lfu
 
         private bool TryAdd(K key, V value)
         {
-            var node = default(P).Create(key, value);
+            var node = policy.Create(key, value);
 
             if (this.dictionary.TryAdd(key, node))
             {
@@ -256,22 +260,56 @@ namespace BitFaster.Caching.Lfu
 
         public bool TryGet(K key, [MaybeNullWhen(false)] out V value)
         {
+            return TryGetImpl(key, out value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryGetImpl(K key, [MaybeNullWhen(false)] out V value)
+        {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
+                if (!policy.IsExpired(node))
+                {
+                    bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
 
-                if (this.drainStatus.ShouldDrain(delayable))
-                { 
-                    TryScheduleDrain(); 
+                    if (this.drainStatus.ShouldDrain(delayable))
+                    {
+                        TryScheduleDrain();
+                    }
+                    value = node.Value;
+                    return true;
                 }
-                value = node.Value;               
-                return true;
+                else
+                {
+                    // expired case, immediately remove from the dictionary
+                    TryRemove(node);
+                }
             }
 
             this.metrics.requestMissCount.Increment();
 
             value = default;
             return false;
+        }
+
+        internal bool TryGetNode(K key, [MaybeNullWhen(false)] out N node)
+        {
+            return this.dictionary.TryGetValue(key, out node);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        void TryRemove(N node)
+        {
+#if NET6_0_OR_GREATER
+                if (this.dictionary.TryRemove(new KeyValuePair<K, N>(node.Key, node)))
+#else
+                // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(new KeyValuePair<K, N>(node.Key, node)))
+#endif
+            {
+                node.WasRemoved = true;
+                AfterWrite(node);
+            }
         }
 
         public bool TryRemove(KeyValuePair<K, V> item)
@@ -487,6 +525,8 @@ namespace BitFaster.Caching.Lfu
         {
             this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
 
+            policy.AdvanceTime();
+
             // Note: this is only Span on .NET Core 3.1+, else this is no-op and it is still an array
             var buffer = this.drainBuffer.AsSpanOrArray();
 
@@ -519,6 +559,7 @@ namespace BitFaster.Caching.Lfu
                 done = true;
             }
 
+            policy.ExpireEntries(ref this);
             EvictEntries();
             this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
             ReFitProtected();
@@ -536,7 +577,7 @@ namespace BitFaster.Caching.Lfu
             return done;
         }
 
-        private void OnAccess(LfuNode<K, V> node)
+        private void OnAccess(N node)
         {
             // there was a cache hit even if the item was removed or is not yet added.
             this.metrics.requestHitCount++;
@@ -559,9 +600,11 @@ namespace BitFaster.Caching.Lfu
                     this.protectedLru.MoveToEnd(node);
                     break;
             }
+
+            policy.OnRead(node);
         }
 
-        private void OnWrite(LfuNode<K, V> node)
+        private void OnWrite(N node)
         {
             // Nodes can be removed while they are in the write buffer, in which case they should
             // not be added back into the LRU.
@@ -606,6 +649,8 @@ namespace BitFaster.Caching.Lfu
                     this.metrics.updatedCount++;
                     break;
             }
+
+            policy.OnWrite(node);
         }
 
         private void PromoteProbation(LfuNode<K, V> node)
@@ -759,7 +804,7 @@ namespace BitFaster.Caching.Lfu
             return candidateFreq > victimFreq;
         }
 
-        private void Evict(LfuNode<K, V> evictee)
+        internal void Evict(LfuNode<K, V> evictee)
         {
             evictee.WasRemoved = true;
             evictee.WasDeleted = true;
@@ -772,9 +817,11 @@ namespace BitFaster.Caching.Lfu
 #else
             ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
 #endif
-            evictee.list.Remove(evictee);
+            evictee.list?.Remove(evictee);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
+
+            this.policy.OnEvict((N)evictee);
         }
 
         private void ReFitProtected()

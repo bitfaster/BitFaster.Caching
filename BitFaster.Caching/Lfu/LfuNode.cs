@@ -71,4 +71,55 @@ namespace BitFaster.Caching.Lfu
         {
         }
     }
+
+    internal sealed class TimeOrderNode<K, V> : LfuNode<K, V>
+        where K : notnull
+    {
+        TimeOrderNode<K, V> prevTime;
+        TimeOrderNode<K, V> nextTime;
+
+        private Duration timeToExpire;
+
+        public TimeOrderNode(K k, V v) : base(k, v)
+        {
+        }
+
+        public Duration TimeToExpire 
+        { 
+            get => timeToExpire;
+            set => timeToExpire = value;
+        }
+
+        public static TimeOrderNode<K, V> CreateSentinel()
+        {
+            var s = new TimeOrderNode<K, V>(default, default);
+            s.nextTime = s.prevTime = s;
+            return s;
+        }
+
+        public TimeOrderNode<K, V> GetPreviousInTimeOrder()
+        {
+            return prevTime;
+        }
+
+        public long GetTimestamp()
+        {
+            return timeToExpire.raw;
+        }
+
+        public void SetPreviousInTimeOrder(TimeOrderNode<K, V> prev)
+        {
+            this.prevTime = prev;
+        }
+
+        public TimeOrderNode<K, V> GetNextInTimeOrder()
+        {
+            return nextTime;
+        }
+
+        public void SetNextInTimeOrder(TimeOrderNode<K, V> next)
+        {
+            this.nextTime = next;
+        }
+    }
 }
