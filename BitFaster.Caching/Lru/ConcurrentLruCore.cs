@@ -382,7 +382,25 @@ namespace BitFaster.Caching.Lru
                     if (!existing.WasRemoved)
                     {
                         V oldValue = existing.Value;
-                        existing.Value = value;
+
+                        if (TypeProps<T>.IsWriteAtomic)
+                        {
+                            existing.Value = value;
+                        }
+                        else
+                        {
+                            var newItem = this.itemPolicy.CreateItem(key, value);
+                            if (!this.dictionary.TryUpdate(key, newItem, existing))
+                            {
+                                return false;
+                            }
+
+                            existing.Value = value;
+#pragma warning disable CS0728 // Possibly incorrect assignment to local which is the argument to a using or lock statement
+                            existing = newItem;
+#pragma warning restore CS0728 // Possibly incorrect assignment to local which is the argument to a using or lock statement
+                        }
+
                         this.itemPolicy.Update(existing);
 // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
