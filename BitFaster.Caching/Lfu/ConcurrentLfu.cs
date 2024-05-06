@@ -32,7 +32,7 @@ namespace BitFaster.Caching.Lfu
     /// https://github.com/ben-manes/caffeine
     [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView<>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
-    public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
+    public sealed class ConcurrentLfu<K, V> : ICache2<K, V>, IAsyncCache<K, V>, IBoundedPolicy
         where K : notnull
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
