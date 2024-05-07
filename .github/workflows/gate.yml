@@ -31,8 +31,6 @@ jobs:
 
     - name: Test (4.8)
       run: dotnet test --no-restore --verbosity normal -f net48 --logger "trx;LogFileName=results4.trx"
-    - name: Trap status
-
     - name: Upload test results (4.8)
       uses: actions/upload-artifact@v4  # upload test results
       if: success() || failure()        # run this step even if previous step failed
