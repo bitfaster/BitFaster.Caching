@@ -31,27 +31,21 @@ jobs:
 
     - name: Test (4.8)
       run: dotnet test --no-restore --verbosity normal -f net48 --logger "trx;LogFileName=results4.trx"
-    - name: Generate unit test report (4.8)
-      uses: phoenix-actions/test-reporting@v12
-      id: unit-test-report-win48
-      if: success() || failure() 
+    - name: Upload test results (4.8)
+      uses: actions/upload-artifact@v4  # upload test results
+      if: success() || failure()        # run this step even if previous step failed
       with:
-        name: test results (win net4.8)
-        path: BitFaster.Caching.UnitTests/TestResults/results4.trx
-        reporter: dotnet-trx 
-        only-summary: 'true'
-    
+          name: test-results-win48
+          path: BitFaster.Caching.UnitTests/TestResults/results4.trx
+ 
     - name: Test (3.1)
       run: dotnet test --no-restore --verbosity normal -f netcoreapp3.1 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results3.trx"
-    - name: Generate unit test report (3.1)
-      uses: phoenix-actions/test-reporting@v12
-      id: unit-test-report-win3
-      if: success() || failure() 
+    - name: Upload test results (3.1)
+      uses: actions/upload-artifact@v4  # upload test results
+      if: success() || failure()        # run this step even if previous step failed
       with:
-        name: test results (win net3.1)
-        path: BitFaster.Caching.UnitTests/TestResults/results3.trx
-        reporter: dotnet-trx 
-        only-summary: 'true'
+          name: test-results-win3
+          path: BitFaster.Caching.UnitTests/TestResults/results3.trx
     - name: Publish coverage report to coveralls.io (3.1)
       uses: coverallsapp/github-action@master   
       with:
@@ -61,16 +55,13 @@ jobs:
         parallel: true
 
     - name: Test (6.0)
-      run: dotnet test --no-restore --verbosity normal -f net6.0 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results6.trx"
-    - name: Generate unit test report (6.0)
-      uses: phoenix-actions/test-reporting@v12
-      id: unit-test-report-win6
-      if: success() || failure() 
+      run: dotnet test --no-restore --verbosity normal -f net6.0 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results6.trx"   
+    - name: Upload test results (6.0)
+      uses: actions/upload-artifact@v4  # upload test results
+      if: success() || failure()        # run this step even if previous step failed
       with:
-        name: test results (win net6.0)
-        path: BitFaster.Caching.UnitTests/TestResults/results6.trx
-        reporter: dotnet-trx 
-        only-summary: 'true'
+          name: test-results-win6
+          path: BitFaster.Caching.UnitTests/TestResults/results6.trx
     - name: Publish coverage report to coveralls.io (6.0)
       uses: coverallsapp/github-action@master   
       with:
@@ -113,15 +104,12 @@ jobs:
         path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.net6.0.info
         flag-name: mac
         parallel: true
-    - name: Generate unit test report
-      uses: phoenix-actions/test-reporting@v12
-      id: unit-test-report-mac
-      if: success() || failure() 
+    - name: Upload test results (6.0)
+      uses: actions/upload-artifact@v4  # upload test results
+      if: success() || failure()        # run this step even if previous step failed
       with:
-        name: test results (mac net6.0)
-        path: BitFaster.Caching.UnitTests/TestResults/results.trx
-        reporter: dotnet-trx 
-        only-summary: 'true'
+          name: test-results-mac
+          path: BitFaster.Caching.UnitTests/TestResults/results.trx
 
   linux:
 
@@ -151,15 +139,12 @@ jobs:
         path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.net6.0.info
         flag-name: linux
         parallel: true
-    - name: Generate unit test report
-      uses: phoenix-actions/test-reporting@v12
-      id: unit-test-report-linux
-      if: success() || failure() 
+    - name: Upload test results (6.0)
+      uses: actions/upload-artifact@v4  # upload test results
+      if: success() || failure()        # run this step even if previous step failed
       with:
-        name: test results (linux net6.0)
-        path: BitFaster.Caching.UnitTests/TestResults/results.trx
-        reporter: dotnet-trx 
-        only-summary: 'true'
+          name: test-results-linux
+          path: BitFaster.Caching.UnitTests/TestResults/results.trx
 
   coverage:
 
