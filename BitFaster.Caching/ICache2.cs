@@ -9,7 +9,7 @@ namespace BitFaster.Caching
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
-    public interface ICache2<K, V> : ICache<K, V>
+    public interface ICacheExt<K, V> : ICache<K, V>
     {
 #if !NETCOREAPP3_0_OR_GREATER
         /// <summary>

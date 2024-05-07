@@ -7,13 +7,13 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class ICache2Tests
+    public class CacheExtTests
     {
         [Fact]
         public void CanUseICache2FromClassicLru()
         {
             var cache = new ClassicLru<int, string>(5);
-            var cache2 = (ICache2<int, string>)cache;
+            var cache2 = (ICacheExt<int, string>)cache;
             cache2.GetOrAdd(42, static (k, i) => (k + i).ToString(), 1).Should().Be("43");
             cache2.TryRemove(43, out _).Should().BeFalse();
             var first = cache2.First();
@@ -27,7 +27,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(5)
                 .Build();
             
-            var cache2 = (ICache2<int, string>)cache;
+            var cache2 = (ICacheExt<int, string>)cache;
             cache2.GetOrAdd(42, static (k, i) => (k + i).ToString(), 1).Should().Be("43");
             cache2.TryRemove(43, out _).Should().BeFalse();
             var first = cache2.First();
@@ -42,7 +42,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithExpireAfterAccess(TimeSpan.FromSeconds(5))
                 .Build();
             
-            var cache2 = (ICache2<int, string>)cache;
+            var cache2 = (ICacheExt<int, string>)cache;
             cache2.GetOrAdd(42, static (k, i) => (k + i).ToString(), 1).Should().Be("43");
             cache2.TryRemove(43, out _).Should().BeFalse();
             var first = cache2.First();

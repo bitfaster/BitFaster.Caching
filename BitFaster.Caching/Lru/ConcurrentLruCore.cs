@@ -32,7 +32,7 @@ namespace BitFaster.Caching.Lru
     ///   <item><description>When cold is full, cold tail is moved to warm head or removed from dictionary on depending on WasAccessed.</description></item>
     ///</list>
     /// </remarks>
-    public class ConcurrentLruCore<K, V, I, P, T> : ICache2<K, V>, IAsyncCache<K, V>, IEnumerable<KeyValuePair<K, V>>
+    public class ConcurrentLruCore<K, V, I, P, T> : ICacheExt<K, V>, IAsyncCache<K, V>, IEnumerable<KeyValuePair<K, V>>
         where K : notnull
         where I : LruItem<K, V>
         where P : struct, IItemPolicy<K, V, I>
