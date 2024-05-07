@@ -13,6 +13,8 @@ jobs:
     runs-on: windows-latest
 
     permissions:
+      contents: read
+      actions: read
       checks: write
 
     steps:
