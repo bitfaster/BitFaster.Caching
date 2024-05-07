@@ -34,7 +34,7 @@ jobs:
     - uses: actions/upload-artifact@v4  # upload test results
       if: success() || failure()        # run this step even if previous step failed
       with:
-          name: test-results4
+          name: test-results-win48
           path: BitFaster.Caching.UnitTests/TestResults/results4.trx
 #    - name: Generate unit test report (4.8)
 #      uses: phoenix-actions/test-reporting@v15

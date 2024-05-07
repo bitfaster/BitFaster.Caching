@@ -11,7 +11,7 @@ jobs:
     - uses: phoenix-actions/test-reporting@v15
       id: unit-test-report-win48          # Set ID reference for step
       with:
-        artifact: test-results4           # artifact name
-        name: Tests (4.8)                 # Name of the check run which will be created
+        artifact: test-results-win48      # artifact name
+        name: Test results (win net4.8)   # Name of the check run which will be created
         path: '*.trx'                     # Path to test results (inside artifact .zip)
         reporter: dotnet-trx              # Format of test results
