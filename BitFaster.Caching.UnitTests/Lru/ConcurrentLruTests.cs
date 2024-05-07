@@ -732,6 +732,12 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.TryUpdate(2, "3").Should().BeFalse();
         }
 
+        [Fact]
+        public void TestFail()
+        { 
+            throw new NotImplementedException();
+        }
+
 // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
         [Fact]
