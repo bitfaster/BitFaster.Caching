@@ -1,0 +1,18 @@
+name: 'Test Report'
+on:
+  workflow_run:
+    workflows: ['Build']                     # runs after Build workflow
+    types:
+      - completed
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: phoenix-actions/test-reporting@v15
+      id: unit-test-report-win48          # Set ID reference for step
+      with:
+        artifact: test-results-win48      # artifact name
+        name: Test results (win net4.8)   # Name of the check run which will be created
+        path: '*.trx'                     # Path to test results (inside artifact .zip)
+        reporter: dotnet-trx              # Format of test results
+        only-summary: 'true'

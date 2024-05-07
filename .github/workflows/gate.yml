@@ -31,20 +31,26 @@ jobs:
 
     - name: Test (4.8)
       run: dotnet test --no-restore --verbosity normal -f net48 --logger "trx;LogFileName=results4.trx"
-    - name: Generate unit test report (4.8)
-      uses: phoenix-actions/test-reporting@v12
-      id: unit-test-report-win48
-      if: success() || failure() 
+    - name: Upload test results (4.8)
+      uses: actions/upload-artifact@v4  # upload test results
+      if: success() || failure()        # run this step even if previous step failed
       with:
-        name: test results (win net4.8)
-        path: BitFaster.Caching.UnitTests/TestResults/results4.trx
-        reporter: dotnet-trx 
-        only-summary: 'true'
+          name: test-results-win48
+          path: BitFaster.Caching.UnitTests/TestResults/results4.trx
+#    - name: Generate unit test report (4.8)
+#      uses: phoenix-actions/test-reporting@v15
+#      id: unit-test-report-win48
+#      if: success() || failure() 
+#      with:
+#        name: test results (win net4.8)
+#        path: BitFaster.Caching.UnitTests/TestResults/results4.trx
+#        reporter: dotnet-trx 
+#        only-summary: 'true'
     
     - name: Test (3.1)
       run: dotnet test --no-restore --verbosity normal -f netcoreapp3.1 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results3.trx"
     - name: Generate unit test report (3.1)
-      uses: phoenix-actions/test-reporting@v12
+      uses: phoenix-actions/test-reporting@v15
       id: unit-test-report-win3
       if: success() || failure() 
       with:
@@ -63,7 +69,7 @@ jobs:
     - name: Test (6.0)
       run: dotnet test --no-restore --verbosity normal -f net6.0 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results6.trx"
     - name: Generate unit test report (6.0)
-      uses: phoenix-actions/test-reporting@v12
+      uses: phoenix-actions/test-reporting@v15
       id: unit-test-report-win6
       if: success() || failure() 
       with:
@@ -114,7 +120,7 @@ jobs:
         flag-name: mac
         parallel: true
     - name: Generate unit test report
-      uses: phoenix-actions/test-reporting@v12
+      uses: phoenix-actions/test-reporting@v15
       id: unit-test-report-mac
       if: success() || failure() 
       with:
@@ -152,7 +158,7 @@ jobs:
         flag-name: linux
         parallel: true
     - name: Generate unit test report
-      uses: phoenix-actions/test-reporting@v12
+      uses: phoenix-actions/test-reporting@v15
       id: unit-test-report-linux
       if: success() || failure() 
       with:
