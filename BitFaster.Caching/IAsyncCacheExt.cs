@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 
 namespace BitFaster.Caching
 {
     /// <summary>
-    /// Represents a generic cache of key/value pairs. This is a new interface with new methods to avoid breaking backward compatibility.
+    /// Represents a generic cache of key/value pairs.
     /// </summary>
     /// <typeparam name="K">The type of keys in the cache.</typeparam>
     /// <typeparam name="V">The type of values in the cache.</typeparam>
-    /// <remarks>This interface enables .NET Standard to use cache methods added to ICache since v2.0. It will be removed in the next major version.</remarks>
-    public interface ICacheExt<K, V> : ICache<K, V>
+    /// <remarks>This interface enables .NET Standard to use cache methods added to IAsyncCache since v2.0. It will be removed in the next major version.</remarks>
+    public interface IAsyncCacheExt<K, V> : IAsyncCache<K, V>
     {
         // Following methods were also defined in ICache with default interface implementation which only works for
         // certain build targets, for other build targets we will define them within this new interface to avoid breaking
@@ -23,11 +24,11 @@ namespace BitFaster.Caching
         /// </summary>
         /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
         /// <param name="key">The key of the element to add.</param>
-        /// <param name="valueFactory">The factory function used to generate a value for the key.</param>
+        /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
         /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
-        /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
-        /// in the cache, or the new value if the key was not in the cache.</returns>
-        V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument);
+        /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
+        /// <remarks>The default implementation given here is the fallback that provides backwards compatibility for classes that implement ICache on prior versions</remarks>
+        ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument);
 
         /// <summary>
         /// Attempts to remove and return the value that has the specified key.
