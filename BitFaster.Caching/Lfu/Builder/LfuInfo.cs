@@ -39,12 +39,6 @@ namespace BitFaster.Caching.Lfu.Builder
             return e;
         }
 
-        public void ThrowIfExpirySet()
-        {
-            if (this.expiry != null)
-                Throw.InvalidOp($"Time based expiry policy has already been set as {this.expiry.GetType()}");
-        }
-
         internal void ThrowIfExpirySpecified(string extensionName)
         {
             if (this.expiry != null)

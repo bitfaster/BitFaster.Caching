@@ -42,7 +42,6 @@ namespace BitFaster.Caching.Lfu
         /// <returns>A ConcurrentLfuBuilder</returns>
         public ConcurrentLfuBuilder<K, V> WithExpireAfter(IExpiryCalculator<K, V> expiry)
         {
-            this.info.ThrowIfExpirySet();
             this.info.SetExpiry(expiry);
             return this;
         }
