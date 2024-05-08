@@ -33,6 +33,11 @@ var lfu = new ConcurrentLfu<string, SomeItem>(capacity);
 var value = lfu.GetOrAdd("key", (key) => new SomeItem(key));
 ```
 
+Optionally configure `ConcurrentLfu` with a [time-based eviction policy](https://github.com/bitfaster/BitFaster.Caching/wiki/ConcurrentLru:-Time%E2%80%90based-eviction), either:
+- Expire after write
+- Expire after access
+- Calculate an expiry time per item
+
 ## Documentation
 
 Please refer to the [wiki](https://github.com/bitfaster/BitFaster.Caching/wiki) for full API documentation, and a complete analysis of hit rate, latency and throughput.
