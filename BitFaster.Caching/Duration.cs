@@ -94,13 +94,33 @@ namespace BitFaster.Caching
         }
 
         /// <summary>
-        /// Returns a Duration that represents a specified number of milliseconds.
+        /// Returns a Duration that represents a specified number of minutes.
         /// </summary>
-        /// <param name="value">A number of milliseconds</param>
+        /// <param name="value">A number of minutes</param>
         /// <returns></returns>
         public static Duration FromMinutes(double value)
         {
             return FromTimeSpan(TimeSpan.FromMinutes(value));
+        }
+
+        /// <summary>
+        /// Returns a Duration that represents a specified number of hours.
+        /// </summary>
+        /// <param name="value">A number of hours</param>
+        /// <returns></returns>
+        public static Duration FromHours(double value)
+        {
+            return FromTimeSpan(TimeSpan.FromHours(value));
+        }
+
+        /// <summary>
+        /// Returns a Duration that represents a specified number of days.
+        /// </summary>
+        /// <param name="value">A number of days</param>
+        /// <returns></returns>
+        public static Duration FromDays(double value)
+        {
+            return FromTimeSpan(TimeSpan.FromDays(value));
         }
 
         /// <summary>
