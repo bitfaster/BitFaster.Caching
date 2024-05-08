@@ -1,4 +1,5 @@
 ﻿
+using System;
 using System.Collections.Generic;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
@@ -16,6 +17,10 @@ namespace BitFaster.Caching.Lfu.Builder
         public IScheduler Scheduler { get; set; } = new ThreadPoolScheduler();
 
         public IEqualityComparer<K> KeyComparer { get; set; } = EqualityComparer<K>.Default;
+
+        public TimeSpan? TimeToExpireAfterWrite { get; set; } = null;
+
+        public TimeSpan? TimeToExpireAfterAccess { get; set; } = null;
 
         public void SetExpiry<V>(IExpiryCalculator<K, V> expiry) => this.expiry = expiry;
 

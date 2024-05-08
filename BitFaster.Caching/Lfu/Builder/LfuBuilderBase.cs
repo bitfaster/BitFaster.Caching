@@ -72,8 +72,7 @@ namespace BitFaster.Caching.Lfu.Builder
         /// <returns>A ConcurrentLfuBuilder</returns>
         public TBuilder WithExpireAfterWrite(TimeSpan expiration)
         {
-            this.info.ThrowIfExpirySet();
-            this.info.SetExpiry(new ExpireAfterWrite<K, V>(expiration));
+            this.info.TimeToExpireAfterWrite = expiration;
             return (this as TBuilder)!;
         }
 
@@ -84,8 +83,7 @@ namespace BitFaster.Caching.Lfu.Builder
         /// <returns>A ConcurrentLfuBuilder</returns>
         public TBuilder WithExpireAfterAccess(TimeSpan expiration)
         {
-            this.info.ThrowIfExpirySet();
-            this.info.SetExpiry(new ExpireAfterAccess<K, V>(expiration));
+            this.info.TimeToExpireAfterAccess = expiration;
             return (this as TBuilder)!;
         }
 

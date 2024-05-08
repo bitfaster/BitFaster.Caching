@@ -59,14 +59,24 @@ namespace BitFaster.Caching.Lfu
         internal static ICache<K, V> Create<K, V>(LfuInfo<K> info)
             where K : notnull
         {
+            if (info.TimeToExpireAfterWrite.HasValue && info.TimeToExpireAfterAccess.HasValue)
+                Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfterAccess is not supported.");
+
             var expiry = info.GetExpiry<V>();
 
-            if (expiry != null)
-            {
-                return new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, expiry);
-            }
+            if (info.TimeToExpireAfterWrite.HasValue && expiry != null)
+                Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfter is not supported.");
 
-            return new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer);
+            if (info.TimeToExpireAfterAccess.HasValue && expiry != null)
+                Throw.InvalidOp("Specifying both ExpireAfterAccess and ExpireAfter is not supported.");
+
+            return (info.TimeToExpireAfterWrite.HasValue, info.TimeToExpireAfterAccess.HasValue, expiry != null) switch
+            {
+                (true, false, false) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterWrite<K,V>(info.TimeToExpireAfterWrite!.Value)),
+                (false, true, false) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterAccess<K, V>(info.TimeToExpireAfterAccess!.Value)),
+                (false, false, true) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, expiry!),
+                _ => new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer)
+            };
         }
     }
 }
