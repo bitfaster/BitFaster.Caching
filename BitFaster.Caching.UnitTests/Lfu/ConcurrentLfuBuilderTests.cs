@@ -52,6 +52,219 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu.TryGet("A", out var value).Should().BeTrue();
         }
 
+        [Fact]
+        public void TestExpireAfterAccess()
+        {
+            ICache<string, int> expireAfterAccess = new ConcurrentLfuBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .Build();
+
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterReadAndExpireAfterWriteThrows()
+        {
+            var builder = new ConcurrentLfuBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(2));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestExpireAfter()
+        {
+            ICache<string, int> expireAfter = new ConcurrentLfuBuilder<string, int>()
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
+                .Build();
+
+            expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
+
+            expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestAsyncExpireAfter()
+        {
+            IAsyncCache<string, int> expireAfter = new ConcurrentLfuBuilder<string, int>()
+                .AsAsyncCache()
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
+                .Build();
+
+            expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
+
+            expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+
+        [Fact]
+        public void TestExpireAfterWriteAndExpireAfterThrows()
+        {
+            var builder = new ConcurrentLfuBuilder<string, int>()
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestExpireAfterAccessAndExpireAfterThrows()
+        {
+            var builder = new ConcurrentLfuBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestExpireAfterAccessAndWriteAndExpireAfterThrows()
+        {
+            var builder = new ConcurrentLfuBuilder<string, int>()
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestScopedWithExpireAfterThrows()
+        {
+            var builder = new ConcurrentLfuBuilder<string, Disposable>()
+                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
+                .AsScopedCache();
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestScopedAtomicWithExpireAfterThrows()
+        {
+            var builder = new ConcurrentLfuBuilder<string, Disposable>()
+                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
+                .AsScopedCache()
+                .WithAtomicGetOrAdd();
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestAsyncScopedWithExpireAfterThrows()
+        {
+            var builder = new ConcurrentLfuBuilder<string, Disposable>()
+                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
+                .AsAsyncCache()
+                .AsScopedCache();
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestAsyncScopedAtomicWithExpireAfterThrows()
+        {
+            var builder = new ConcurrentLfuBuilder<string, Disposable>()
+                .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
+                .AsAsyncCache()
+                .AsScopedCache()
+                .WithAtomicGetOrAdd();
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TestScopedWithExpireAfterWrite()
+        {
+            var expireAfterWrite = new ConcurrentLfuBuilder<string, Disposable>()
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .AsScopedCache()
+                .Build();
+
+            expireAfterWrite.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
+            expireAfterWrite.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterWrite.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestScopedWithExpireAfterAccess()
+        {
+            var expireAfterAccess = new ConcurrentLfuBuilder<string, Disposable>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .AsScopedCache()
+                .Build();
+
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestAtomicWithExpireAfterWrite()
+        {
+            var expireAfterWrite = new ConcurrentLfuBuilder<string, Disposable>()
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .WithAtomicGetOrAdd()
+                .Build();
+
+            expireAfterWrite.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
+            expireAfterWrite.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterWrite.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestAtomicWithExpireAfterAccess()
+        {
+            var expireAfterAccess = new ConcurrentLfuBuilder<string, Disposable>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithAtomicGetOrAdd()
+                .Build();
+
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestScopedAtomicWithExpireAfterWrite()
+        {
+            var expireAfterWrite = new ConcurrentLfuBuilder<string, Disposable>()
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .AsScopedCache()
+                .WithAtomicGetOrAdd()
+                .Build();
+
+            expireAfterWrite.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
+            expireAfterWrite.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterWrite.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestScopedAtomicWithExpireAfterAccess()
+        {
+            var expireAfterAccess = new ConcurrentLfuBuilder<string, Disposable>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .AsScopedCache()
+                .WithAtomicGetOrAdd()
+                .Build();
+
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
         // 1
         [Fact]
         public void WithScopedValues()
