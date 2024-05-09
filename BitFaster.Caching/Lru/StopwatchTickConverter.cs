@@ -7,7 +7,7 @@ namespace BitFaster.Caching.Lru
     internal static class StopwatchTickConverter
     {
         // On some platforms (e.g. MacOS), stopwatch and timespan have different resolution
-        private static readonly double stopwatchAdjustmentFactor = Stopwatch.Frequency / (double)TimeSpan.TicksPerSecond;
+        internal static readonly double stopwatchAdjustmentFactor = Stopwatch.Frequency / (double)TimeSpan.TicksPerSecond;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static long ToTicks(TimeSpan timespan)
