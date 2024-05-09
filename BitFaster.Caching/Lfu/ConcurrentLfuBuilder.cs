@@ -35,10 +35,47 @@ namespace BitFaster.Caching.Lfu
         {
         }
 
+        /// <summary>
+        /// Evict after a duration calculated for each item using the specified IExpiryCalculator.
+        /// </summary>
+        /// <param name="expiry">The expiry calculator that determines item time to expire.</param>
+        /// <returns>A ConcurrentLfuBuilder</returns>
+        public ConcurrentLfuBuilder<K, V> WithExpireAfter(IExpiryCalculator<K, V> expiry)
+        {
+            this.info.SetExpiry(expiry);
+            return this;
+        }
+
         ///<inheritdoc/>
         public override ICache<K, V> Build()
         {
-            return new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer);
+            return ConcurrentLfuFactory.Create<K, V>(this.info);
+        }
+    }
+
+    internal static class ConcurrentLfuFactory
+    {
+        internal static ICache<K, V> Create<K, V>(LfuInfo<K> info)
+            where K : notnull
+        {
+            if (info.TimeToExpireAfterWrite.HasValue && info.TimeToExpireAfterAccess.HasValue)
+                Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfterAccess is not supported.");
+
+            var expiry = info.GetExpiry<V>();
+
+            if (info.TimeToExpireAfterWrite.HasValue && expiry != null)
+                Throw.InvalidOp("Specifying both ExpireAfterWrite and ExpireAfter is not supported.");
+
+            if (info.TimeToExpireAfterAccess.HasValue && expiry != null)
+                Throw.InvalidOp("Specifying both ExpireAfterAccess and ExpireAfter is not supported.");
+
+            return (info.TimeToExpireAfterWrite.HasValue, info.TimeToExpireAfterAccess.HasValue, expiry != null) switch
+            {
+                (true, false, false) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterWrite<K,V>(info.TimeToExpireAfterWrite!.Value)),
+                (false, true, false) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterAccess<K, V>(info.TimeToExpireAfterAccess!.Value)),
+                (false, false, true) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, expiry!),
+                _ => new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer)
+            };
         }
     }
 }

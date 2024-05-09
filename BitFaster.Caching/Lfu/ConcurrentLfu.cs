@@ -32,7 +32,7 @@ namespace BitFaster.Caching.Lfu
     /// https://github.com/ben-manes/caffeine
     [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView<>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
-    public sealed class ConcurrentLfu<K, V> : ICache<K, V>, IAsyncCache<K, V>, IBoundedPolicy
+    public sealed class ConcurrentLfu<K, V> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IBoundedPolicy
         where K : notnull
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
@@ -49,7 +49,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="capacity">The capacity.</param>
         public ConcurrentLfu(int capacity)
         {
-            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers());
+            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers(), default);
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="comparer">The equality comparer.</param>
         public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
-            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers());
+            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), default);
         }
 
         internal ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> Core => core;

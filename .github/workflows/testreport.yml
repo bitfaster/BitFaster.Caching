@@ -1,0 +1,59 @@
+name: 'Test Report'
+on:
+  workflow_run:
+    workflows: ['Build']                     # runs after Build workflow
+    types:
+      - completed
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Report win .NET 4.8
+      uses: phoenix-actions/test-reporting@v15
+      id: unit-test-report-win48          # Set ID reference for step
+      with:
+        artifact: test-results-win48      # artifact name
+        name: Test results (win net4.8)   # Name of the check run which will be created
+        path: '*.trx'                     # Path to test results (inside artifact .zip)
+        reporter: dotnet-trx              # Format of test results
+        only-summary: 'true'
+
+    - name: Report win 3.1
+      uses: phoenix-actions/test-reporting@v15
+      id: unit-test-report-win3
+      with:
+        artifact: test-results-win3
+        name: Test results (win 3.1)
+        path: '*.trx'
+        reporter: dotnet-trx
+        only-summary: 'true'
+
+    - name: Report win 6.0
+      uses: phoenix-actions/test-reporting@v15
+      id: unit-test-report-win6
+      with:
+        artifact: test-results-win6
+        name: Test results (win 6.0)
+        path: '*.trx'
+        reporter: dotnet-trx
+        only-summary: 'true'
+
+    - name: Report mac 6.0
+      uses: phoenix-actions/test-reporting@v15
+      id: unit-test-report-mac
+      with:
+        artifact: test-results-mac
+        name: Test results (mac 6.0)
+        path: '*.trx'
+        reporter: dotnet-trx
+        only-summary: 'true'
+
+    - name: Report linux 6.0
+      uses: phoenix-actions/test-reporting@v15
+      id: unit-test-report-linux
+      with:
+        artifact: test-results-linux
+        name: Test results (linux 6.0)
+        path: '*.trx'
+        reporter: dotnet-trx
+        only-summary: 'true'
