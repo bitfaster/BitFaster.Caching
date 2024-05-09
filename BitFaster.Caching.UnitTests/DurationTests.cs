@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
 using FluentAssertions;
 using Xunit;
@@ -36,6 +37,13 @@ namespace BitFaster.Caching.UnitTests
             this.testOutputHelper.WriteLine($"Stopwatch.Frequency {Stopwatch.Frequency}");
             this.testOutputHelper.WriteLine($"TimeSpan.TicksPerSecond {TimeSpan.TicksPerSecond}");
             this.testOutputHelper.WriteLine($"stopwatchAdjustmentFactor {StopwatchTickConverter.stopwatchAdjustmentFactor}");
+
+            // replicate WhenAdvanceThrowsCurrentTimeIsNotAdvanced
+            Duration clock = Duration.SinceEpoch();
+
+            this.testOutputHelper.WriteLine($"clock time {clock.raw}");
+            this.testOutputHelper.WriteLine($"node time {new Duration(clock.raw + TimerWheel.Spans[1]).raw}");
+            this.testOutputHelper.WriteLine($"adv time {new Duration(clock.raw + int.MaxValue).raw}");
         }
     }
 }
