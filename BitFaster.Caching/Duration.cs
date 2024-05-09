@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching
@@ -51,7 +52,7 @@ namespace BitFaster.Caching
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TimeSpan ToTimeSpan()
         {
-#if NETCOREAPP3_0_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER    
             return TimeSpan.FromMilliseconds(raw);
 #else
             return StopwatchTickConverter.FromTicks(raw);
