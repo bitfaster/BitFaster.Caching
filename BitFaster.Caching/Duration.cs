@@ -26,6 +26,13 @@ namespace BitFaster.Caching
 
         internal static readonly Duration Zero = new Duration(0);
 
+        internal static readonly ulong epsilon = (ulong)Duration.FromMilliseconds(20).raw;
+//#if NETCOREAPP3_0_OR_GREATER
+//        internal static readonly ulong epsilon = 20;        
+//#else
+//        internal static readonly ulong epsilon = (ulong)(TimeSpan.FromMilliseconds(20).TotalSeconds * Stopwatch.Frequency);
+//#endif
+
         internal Duration(long raw)
         { 
             this.raw = raw; 
