@@ -56,7 +56,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            item.TickCount.Should().BeCloseTo(Environment.TickCount64, 20);
+            item.TickCount.Should().BeCloseTo(Duration.SinceEpoch().raw, Duration.epsilon);
         }
 
         [Fact]
@@ -87,7 +87,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsExpiredShouldDiscardIsTrue()
         {
             var item = this.policy.CreateItem(1, 2);
-            item.TickCount = Environment.TickCount - (int)TimeSpan.FromSeconds(11).ToEnvTick64();
+            //item.TickCount = Environment.TickCount - (int)TimeSpan.FromSeconds(11).ToEnvTick64();
+            item.TickCount = Duration.SinceEpoch().raw - Duration.FromSeconds(11).raw;
 
             this.policy.ShouldDiscard(item).Should().BeTrue();
         }
@@ -96,7 +97,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsNotExpiredShouldDiscardIsFalse()
         {
             var item = this.policy.CreateItem(1, 2);
-            item.TickCount = Environment.TickCount - (int)TimeSpan.FromSeconds(9).ToEnvTick64();
+            //item.TickCount = Environment.TickCount - (int)TimeSpan.FromSeconds(9).ToEnvTick64();
+
+            item.TickCount = Duration.SinceEpoch().raw - Duration.FromSeconds(9).raw;
 
             this.policy.ShouldDiscard(item).Should().BeFalse();
         }
@@ -151,7 +154,8 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             if (isExpired)
             {
-                item.TickCount = Environment.TickCount - TimeSpan.FromSeconds(11).ToEnvTick64();
+                //item.TickCount = Environment.TickCount - TimeSpan.FromSeconds(11).ToEnvTick64();
+                item.TickCount = Duration.SinceEpoch().raw - Duration.FromSeconds(11).raw;
             }
 
             return item;
