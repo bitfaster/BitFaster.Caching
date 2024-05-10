@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 
@@ -14,10 +15,20 @@ namespace BitFaster.Caching.Benchmarks
     {
         private static readonly Stopwatch sw = Stopwatch.StartNew();
 
+        // .NET 8 onwards has TimeProvider.System
+        // https://learn.microsoft.com/en-us/dotnet/api/system.timeprovider.system?view=net-8.0
+        // This is based on either Stopwatch (high perf timestamp) or UtcNow (time zone based on local)
+
         [Benchmark(Baseline = true)]
         public DateTime DateTimeUtcNow()
         {
             return DateTime.UtcNow;
+        }
+
+        [Benchmark()]
+        public DateTimeOffset DateTimeOffsetUtcNow()
+        {
+            return DateTimeOffset.UtcNow;
         }
 
         [Benchmark()]
@@ -37,6 +48,12 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark()]
+        public long PInvokeTickCount64()
+        {
+            return TickCount64.Current;
+        }
+
+        [Benchmark()]
         public long StopWatchGetElapsed()
         {
             return sw.ElapsedTicks;
@@ -47,5 +64,13 @@ namespace BitFaster.Caching.Benchmarks
         {
             return Stopwatch.GetTimestamp();
         }
+    }
+
+    public static class TickCount64
+    {
+        public static long Current => GetTickCount64();
+
+        [DllImport("kernel32")]
+        private static extern long GetTickCount64();
     }
 }
