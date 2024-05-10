@@ -28,6 +28,11 @@ namespace BitFaster.Caching
 
 #if NETCOREAPP3_0_OR_GREATER
         private static readonly bool IsMacOS = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+#else
+        private static readonly bool IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+        [DllImport("kernel32")]
+        internal static extern long GetTickCount64();
 #endif
 
         internal Duration(long raw)
@@ -52,7 +57,15 @@ namespace BitFaster.Caching
                 return new Duration(Environment.TickCount64);
             }
 #else
-            return new Duration(Stopwatch.GetTimestamp());
+            if (IsWindows)
+            {
+                return new Duration(GetTickCount64());
+            }
+            else
+            {
+                // Warning: not currently covered by unit tests
+                return new Duration(Stopwatch.GetTimestamp());
+            }
 #endif
         }
 
@@ -73,7 +86,15 @@ namespace BitFaster.Caching
                 return TimeSpan.FromMilliseconds(raw);
             }
 #else
-            return StopwatchTickConverter.FromTicks(raw);
+            if (IsWindows)
+            {
+                return TimeSpan.FromMilliseconds(raw);
+            }
+            else
+            {
+                // Warning: not currently covered by unit tests
+                return StopwatchTickConverter.FromTicks(raw);
+            }
 #endif
         }
 
@@ -95,7 +116,15 @@ namespace BitFaster.Caching
                 return new Duration((long)timeSpan.TotalMilliseconds);
             }
 #else
-            return new Duration(StopwatchTickConverter.ToTicks(timeSpan));
+            if (IsWindows)
+            {
+                return new Duration((long)timeSpan.TotalMilliseconds);
+            }
+            else
+            {
+                // Warning: not currently covered by unit tests
+                return new Duration(StopwatchTickConverter.ToTicks(timeSpan));
+            }
 #endif
         }
 

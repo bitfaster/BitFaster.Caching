@@ -32,10 +32,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenTtlIsCloseToMaxAllow()
         {
-            double maxTicks = long.MaxValue / 100.0d;
-            var ttl = TimeSpan.FromTicks((long)maxTicks) - TimeSpan.FromTicks(10);
+            var ttl = Duration.MaxRepresentable;
 
-            new TLruLongTicksPolicy<int, int>(ttl).TimeToLive.Should().BeCloseTo(ttl, TimeSpan.FromTicks(20));
+            new TLruLongTicksPolicy<int, int>(ttl).TimeToLive.Should().BeCloseTo(ttl, TimeSpan.FromSeconds(1));
         }
 
         [Fact]
@@ -58,9 +57,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            // seconds = ticks / Stopwatch.Frequency
-            ulong epsilon = (ulong)(TimeSpan.FromMilliseconds(20).TotalSeconds * Stopwatch.Frequency);
-            item.TickCount.Should().BeCloseTo(Stopwatch.GetTimestamp(), epsilon);
+            item.TickCount.Should().BeCloseTo(Duration.SinceEpoch().raw, DurationTests.epsilon);
         }
 
         [Fact]
@@ -91,7 +88,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsExpiredShouldDiscardIsTrue()
         {
             var item = this.policy.CreateItem(1, 2);
-            item.TickCount = Stopwatch.GetTimestamp() - TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.FromSeconds(11));
+            item.TickCount = Duration.SinceEpoch().raw - Duration.FromSeconds(11).raw;
 
             this.policy.ShouldDiscard(item).Should().BeTrue();
         }
@@ -100,7 +97,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenItemIsNotExpiredShouldDiscardIsFalse()
         {
             var item = this.policy.CreateItem(1, 2);
-            item.TickCount = Stopwatch.GetTimestamp() - TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.FromSeconds(9));
+            item.TickCount = Duration.SinceEpoch().raw - Duration.FromSeconds(9).raw;
 
             this.policy.ShouldDiscard(item).Should().BeFalse();
         }
@@ -155,7 +152,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             if (isExpired)
             {
-                item.TickCount = Stopwatch.GetTimestamp() - TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.FromSeconds(11));
+                item.TickCount = Duration.SinceEpoch().raw - Duration.FromSeconds(11).raw;
             }
 
             return item;
