@@ -155,7 +155,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             timerWheel.Schedule(AddNode(1, new DisposeThrows(), new Duration(clock.raw + TimerWheel.Spans[1])));
 
             // This should expire the node, call evict, then throw via DisposeThrows.Dispose()
-            Action advance = () => timerWheel.Advance(ref cache, new Duration(clock.raw + int.MaxValue));
+            Action advance = () => timerWheel.Advance(ref cache, new Duration(clock.raw + (2 * TimerWheel.Spans[1])));
             advance.Should().Throw<InvalidOperationException>();
 
             timerWheel.time.Should().Be(clock.raw);
