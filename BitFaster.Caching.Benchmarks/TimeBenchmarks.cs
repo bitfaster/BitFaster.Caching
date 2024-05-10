@@ -64,6 +64,12 @@ namespace BitFaster.Caching.Benchmarks
         {
             return Stopwatch.GetTimestamp();
         }
+
+        [Benchmark()]
+        public Duration DurationSinceEpoch()
+        {
+            return Duration.SinceEpoch();
+        }
     }
 
     public static class TickCount64
