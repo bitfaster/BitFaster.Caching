@@ -34,9 +34,16 @@ namespace BitFaster.Caching.UnitTests
                 Duration.SinceEpoch().raw.Should().BeCloseTo(Environment.TickCount64, 15);
             }
 #else
-            // eps is 1/200 of a second
-            ulong eps = (ulong)(Stopwatch.Frequency / 200);
-            Duration.SinceEpoch().raw.Should().BeCloseTo(Stopwatch.GetTimestamp(), eps);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Duration.SinceEpoch().raw.Should().BeCloseTo(Duration.GetTickCount64(), 15);
+            }
+            else
+            {
+                // eps is 1/200 of a second
+                ulong eps = (ulong)(Stopwatch.Frequency / 200);
+                Duration.SinceEpoch().raw.Should().BeCloseTo(Stopwatch.GetTimestamp(), eps);
+            }
 #endif
         }
 
@@ -53,8 +60,15 @@ namespace BitFaster.Caching.UnitTests
                 new Duration(1000).ToTimeSpan().Should().BeCloseTo(TimeSpan.FromMilliseconds(1000), TimeSpan.FromMilliseconds(10));
             }
 #else
-            // for Stopwatch.GetTimestamp() this is number of ticks
-            new Duration(1 * Stopwatch.Frequency).ToTimeSpan().Should().BeCloseTo(TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(10));
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                new Duration(1000).ToTimeSpan().Should().BeCloseTo(TimeSpan.FromMilliseconds(1000), TimeSpan.FromMilliseconds(10));
+            }
+            else
+            {
+                // for Stopwatch.GetTimestamp() this is number of ticks
+                new Duration(1 * Stopwatch.Frequency).ToTimeSpan().Should().BeCloseTo(TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(10));
+            }
 #endif    
         }
 
@@ -73,8 +87,16 @@ namespace BitFaster.Caching.UnitTests
                     .Should().Be((long)TimeSpan.FromSeconds(1).TotalMilliseconds);
             }
 #else
-            Duration.FromTimeSpan(TimeSpan.FromSeconds(1)).raw
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Duration.FromTimeSpan(TimeSpan.FromSeconds(1)).raw
+                    .Should().Be((long)TimeSpan.FromSeconds(1).TotalMilliseconds);
+            }
+            else
+            {
+                Duration.FromTimeSpan(TimeSpan.FromSeconds(1)).raw
                 .Should().Be(Stopwatch.Frequency);
+            }
 #endif    
         }
 
