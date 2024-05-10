@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using BitFaster.Caching.Lru;
 using FluentAssertions;
 using Xunit;
@@ -14,6 +15,65 @@ namespace BitFaster.Caching.UnitTests
         public DurationTests(ITestOutputHelper testOutputHelper)
         {
             this.testOutputHelper = testOutputHelper;
+        }
+
+        [Fact]
+        public void SinceEpoch()
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // eps is 1/200 of a second
+                ulong eps = (ulong)(Stopwatch.Frequency / 200);
+                Duration.SinceEpoch().raw.Should().BeCloseTo(Stopwatch.GetTimestamp(), eps);
+            }
+            else
+            {
+                Duration.SinceEpoch().raw.Should().BeCloseTo(Environment.TickCount64, 15);
+            }
+#else
+            // eps is 1/200 of a second
+            ulong eps = (ulong)(Stopwatch.Frequency / 200);
+            Duration.SinceEpoch().raw.Should().BeCloseTo(Stopwatch.GetTimestamp(), eps);
+#endif
+        }
+
+        [Fact]
+        public void ToTimeSpan()
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                new Duration(100).ToTimeSpan().Should().BeCloseTo(new TimeSpan(100), TimeSpan.FromMilliseconds(50));
+            }
+            else
+            {
+                new Duration(1000).ToTimeSpan().Should().BeCloseTo(TimeSpan.FromMilliseconds(1000), TimeSpan.FromMilliseconds(10));
+            }
+#else
+            // for Stopwatch.GetTimestamp() this is number of ticks
+            new Duration(1 * Stopwatch.Frequency).ToTimeSpan().Should().BeCloseTo(TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(10));
+#endif    
+        }
+
+        [Fact]
+        public void FromTimeSpan()
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                Duration.FromTimeSpan(TimeSpan.FromSeconds(1)).raw
+                    .Should().Be(Stopwatch.Frequency);
+            }
+            else
+            {
+                Duration.FromTimeSpan(TimeSpan.FromSeconds(1)).raw
+                    .Should().Be((long)TimeSpan.FromSeconds(1).TotalMilliseconds);
+            }
+#else
+            Duration.FromTimeSpan(TimeSpan.FromSeconds(1)).raw
+                .Should().Be(Stopwatch.Frequency);
+#endif    
         }
 
         [Fact]
@@ -93,7 +153,8 @@ namespace BitFaster.Caching.UnitTests
             this.testOutputHelper.WriteLine($"Stopwatch.Frequency {Stopwatch.Frequency}");
             this.testOutputHelper.WriteLine($"TimeSpan.TicksPerSecond {TimeSpan.TicksPerSecond}");
             this.testOutputHelper.WriteLine($"stopwatchAdjustmentFactor {StopwatchTickConverter.stopwatchAdjustmentFactor}");
-            this.testOutputHelper.WriteLine($"Duration.SinceEpoch {Duration.SinceEpoch()}");
+            var d = Duration.SinceEpoch();
+            this.testOutputHelper.WriteLine($"Duration.SinceEpoch {d.raw} ({d.ToTimeSpan()})");
         }
     }
 }
