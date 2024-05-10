@@ -26,7 +26,9 @@ namespace BitFaster.Caching
 
         internal static readonly Duration Zero = new Duration(0);
 
-        internal static readonly ulong epsilon = (ulong)Duration.FromMilliseconds(20).raw;
+#if NETCOREAPP3_0_OR_GREATER
+        private static readonly bool IsMacOS = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+#endif
 
         internal Duration(long raw)
         { 
@@ -41,7 +43,7 @@ namespace BitFaster.Caching
         public static Duration SinceEpoch()
         {
 #if NETCOREAPP3_0_OR_GREATER
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            if (IsMacOS)
             {
                 return new Duration(Stopwatch.GetTimestamp());
             }
@@ -61,8 +63,8 @@ namespace BitFaster.Caching
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TimeSpan ToTimeSpan()
         {
-#if NETCOREAPP3_0_OR_GREATER    
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+#if NETCOREAPP3_0_OR_GREATER
+            if (IsMacOS)
             {
                 return StopwatchTickConverter.FromTicks(raw);
             }
@@ -72,7 +74,7 @@ namespace BitFaster.Caching
             }
 #else
             return StopwatchTickConverter.FromTicks(raw);
-#endif    
+#endif
         }
 
         /// <summary>
@@ -84,7 +86,7 @@ namespace BitFaster.Caching
         public static Duration FromTimeSpan(TimeSpan timeSpan)
         {
 #if NETCOREAPP3_0_OR_GREATER
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            if (IsMacOS)
             {
                 return new Duration(StopwatchTickConverter.ToTicks(timeSpan));
             }
@@ -94,7 +96,7 @@ namespace BitFaster.Caching
             }
 #else
             return new Duration(StopwatchTickConverter.ToTicks(timeSpan));
-#endif       
+#endif
         }
 
         /// <summary>
