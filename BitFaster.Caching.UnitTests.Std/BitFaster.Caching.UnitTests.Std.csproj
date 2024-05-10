@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="DurationTests.cs" />
+    <Compile Include="..\BitFaster.Caching.UnitTests\DurationTests.cs" Link="DurationTests.cs" />
   </ItemGroup>
 
   <ItemGroup>
