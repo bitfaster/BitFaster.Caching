@@ -38,12 +38,7 @@ namespace BitFaster.Caching.UnitTests
             this.testOutputHelper.WriteLine($"TimeSpan.TicksPerSecond {TimeSpan.TicksPerSecond}");
             this.testOutputHelper.WriteLine($"stopwatchAdjustmentFactor {StopwatchTickConverter.stopwatchAdjustmentFactor}");
 
-            // replicate WhenAdvanceThrowsCurrentTimeIsNotAdvanced
-            Duration clock = Duration.SinceEpoch();
-
-            this.testOutputHelper.WriteLine($"clock time {clock.raw}");
-            this.testOutputHelper.WriteLine($"node time {new Duration(clock.raw + TimerWheel.Spans[1]).raw}");
-            this.testOutputHelper.WriteLine($"adv time {new Duration(clock.raw + int.MaxValue).raw}");
+            this.testOutputHelper.WriteLine($"time now {Duration.SinceEpoch()}");
         }
     }
 }
