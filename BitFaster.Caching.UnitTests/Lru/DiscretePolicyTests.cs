@@ -100,7 +100,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 //#else
 //            item.TickCount = item.TickCount - TimeSpan.FromMilliseconds(11).ToEnvTick64();
 //#endif
-            item.TickCount = Duration.SinceEpoch().raw - Duration.FromMilliseconds(11).raw;
+            item.TickCount = item.TickCount - Duration.FromMilliseconds(11).raw;
 
             this.policy.ShouldDiscard(item).Should().BeTrue();
         }
@@ -115,7 +115,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 //#else
 //            item.TickCount = item.TickCount - (int)TimeSpan.FromMilliseconds(9).ToEnvTick64();
 //#endif
-            item.TickCount = Duration.SinceEpoch().raw - Duration.FromMilliseconds(9).raw;
+            item.TickCount = item.TickCount - Duration.FromMilliseconds(9).raw;
 
             this.policy.ShouldDiscard(item).Should().BeFalse();
         }
@@ -176,7 +176,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 //#else
 //                item.TickCount = item.TickCount - TimeSpan.FromMilliseconds(11).ToEnvTick64();
 //#endif
-                item.TickCount = Duration.SinceEpoch().raw - Duration.FromMilliseconds(11).raw;
+                item.TickCount = item.TickCount - Duration.FromMilliseconds(11).raw;
             }
 
             return item;
