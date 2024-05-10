@@ -53,7 +53,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            item.TickCount.Should().BeCloseTo(Duration.SinceEpoch().raw, Duration.epsilon);
+            item.TickCount.Should().BeCloseTo(Duration.SinceEpoch().raw, DurationTests.epsilon);
         }
 
         [Fact]

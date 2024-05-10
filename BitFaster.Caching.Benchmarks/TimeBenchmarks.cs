@@ -7,6 +7,7 @@ using BenchmarkDotNet.Jobs;
 namespace BitFaster.Caching.Benchmarks
 {
 #if Windows
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [SimpleJob(RuntimeMoniker.Net48)]
 #endif
     [SimpleJob(RuntimeMoniker.Net60)]
