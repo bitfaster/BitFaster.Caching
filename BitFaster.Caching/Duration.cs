@@ -26,8 +26,6 @@ namespace BitFaster.Caching
 
         internal static readonly Duration Zero = new Duration(0);
 
-        internal static readonly ulong epsilon = (ulong)Duration.FromMilliseconds(20).raw;
-
 #if NETCOREAPP3_0_OR_GREATER
         private static readonly bool IsMacOS = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 #endif

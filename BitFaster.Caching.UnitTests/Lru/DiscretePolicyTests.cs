@@ -48,7 +48,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             item.Key.Should().Be(1);
             item.Value.Should().Be(2);
 
-            item.TickCount.Should().BeCloseTo(timeToExpire.raw + Duration.SinceEpoch().raw, Duration.epsilon);
+            item.TickCount.Should().BeCloseTo(timeToExpire.raw + Duration.SinceEpoch().raw, DurationTests.epsilon);
         }
 
         [Fact]

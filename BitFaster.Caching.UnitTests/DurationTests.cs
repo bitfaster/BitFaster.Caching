@@ -10,6 +10,8 @@ namespace BitFaster.Caching.UnitTests
 {
     public class DurationTests
     {
+        public static readonly ulong epsilon = (ulong)Duration.FromMilliseconds(20).raw;
+
         private readonly ITestOutputHelper testOutputHelper;
 
         public DurationTests(ITestOutputHelper testOutputHelper)
