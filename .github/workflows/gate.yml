@@ -67,7 +67,7 @@ jobs:
       if: success() || failure()
       with:
           name: test-results-win6-std
-          path: BitFaster.Caching.UnitTests.Std/TestResults/results.trx
+          path: BitFaster.Caching.UnitTests.Std/TestResults/results6.trx
     
     - name: Publish coverage report to coveralls.io (6.0)
       uses: coverallsapp/github-action@master   
@@ -78,7 +78,7 @@ jobs:
         parallel: true
 
     - name: Publish NuGet artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: NuGet package
         path: BitFaster.Caching/bin/Release/
