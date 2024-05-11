@@ -63,7 +63,7 @@ namespace BitFaster.Caching
             }
             else
             {
-                // Warning: not currently covered by unit tests
+                throw new Exception();
                 return new Duration(Stopwatch.GetTimestamp());
             }
 #endif
@@ -92,7 +92,6 @@ namespace BitFaster.Caching
             }
             else
             {
-                // Warning: not currently covered by unit tests
                 return StopwatchTickConverter.FromTicks(raw);
             }
 #endif
@@ -122,7 +121,6 @@ namespace BitFaster.Caching
             }
             else
             {
-                // Warning: not currently covered by unit tests
                 return new Duration(StopwatchTickConverter.ToTicks(timeSpan));
             }
 #endif
