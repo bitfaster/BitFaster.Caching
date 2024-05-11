@@ -63,7 +63,6 @@ namespace BitFaster.Caching
             }
             else
             {
-                throw new Exception();
                 return new Duration(Stopwatch.GetTimestamp());
             }
 #endif

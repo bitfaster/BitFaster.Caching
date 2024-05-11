@@ -62,6 +62,13 @@ jobs:
       with:
           name: test-results-win6
           path: BitFaster.Caching.UnitTests/TestResults/results6.trx
+    - name: Upload test results (6.0 .NET Std)
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+          name: test-results-win6-std
+          path: BitFaster.Caching.UnitTests.Std/TestResults/results.trx
+    
     - name: Publish coverage report to coveralls.io (6.0)
       uses: coverallsapp/github-action@master   
       with:
@@ -105,11 +112,17 @@ jobs:
         flag-name: mac
         parallel: true
     - name: Upload test results (6.0)
-      uses: actions/upload-artifact@v4  # upload test results
-      if: success() || failure()        # run this step even if previous step failed
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
       with:
           name: test-results-mac
           path: BitFaster.Caching.UnitTests/TestResults/results.trx
+    - name: Upload test results (6.0 .NET Std)
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+          name: test-results-mac-std
+          path: BitFaster.Caching.UnitTests.Std/TestResults/results.trx
 
   linux:
 
@@ -140,11 +153,17 @@ jobs:
         flag-name: linux
         parallel: true
     - name: Upload test results (6.0)
-      uses: actions/upload-artifact@v4  # upload test results
-      if: success() || failure()        # run this step even if previous step failed
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
       with:
           name: test-results-linux
           path: BitFaster.Caching.UnitTests/TestResults/results.trx
+    - name: Upload test results (6.0 .NET Std)
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+          name: test-results-linux-std
+          path: BitFaster.Caching.UnitTests.Std/TestResults/results.trx
 
   coverage:
 
