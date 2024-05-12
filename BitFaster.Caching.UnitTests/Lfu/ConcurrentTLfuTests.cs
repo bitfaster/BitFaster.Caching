@@ -120,6 +120,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemIsExpiredItIsRemoved()
         {
             Timed.Execute(
@@ -138,6 +139,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemIsExpiredItIsRemoved2()
         {
             Timed.Execute(
@@ -159,6 +161,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemIsUpdatedTtlIsExtended()
         {
             Timed.Execute(

@@ -54,6 +54,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemIsExpiredItIsRemoved()
         {
             Timed.Execute(
@@ -72,6 +73,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemIsUpdatedTtlIsExtended()
         {
             Timed.Execute(
@@ -94,6 +96,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         // running new tests on the yielding thread. Using sleep
         // forces the test to stay on the same thread.
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemIsReadTtlIsExtended()
         {
             var lru = new ConcurrentLruBuilder<int, string>()
@@ -161,6 +164,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemsAreExpiredExpireRemovesExpiredItems()
         {
             Timed.Execute(
@@ -195,6 +199,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
         {
             Timed.Execute(
@@ -226,6 +231,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemsAreExpiredTrimRemovesExpiredItems()
         {
             Timed.Execute(

@@ -56,6 +56,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemIsExpiredItIsRemoved()
         {
             Timed.Execute(
@@ -74,6 +75,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemIsUpdatedTtlIsExtended()
         {
             Timed.Execute(
@@ -93,6 +95,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemIsReadTtlIsExtended()
         {
             expiryCalculator.ExpireAfterCreate = (_, _) => Duration.FromMilliseconds(100);
@@ -161,6 +164,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemsAreExpiredExpireRemovesExpiredItems()
         {
             Timed.Execute(
@@ -195,6 +199,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
         {
             Timed.Execute(
@@ -226,6 +231,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemsAreExpiredTrimRemovesExpiredItems()
         {
             Timed.Execute(
