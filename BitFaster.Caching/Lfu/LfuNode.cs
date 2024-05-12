@@ -1,4 +1,5 @@
-﻿namespace BitFaster.Caching.Lfu
+﻿#nullable disable
+namespace BitFaster.Caching.Lfu
 {
     internal class LfuNode<K, V>
     {
@@ -21,12 +22,18 @@
 
         public Position Position { get; set; }
 
+        /// <summary>
+        /// Node was removed from the dictionary, but is still present in the LRU lists.
+        /// </summary>
         public bool WasRemoved
         {
             get => this.wasRemoved;
             set => this.wasRemoved = value;
         }
 
+        /// <summary>
+        /// Node has been removed both from the dictionary and the LRU lists.
+        /// </summary>
         public bool WasDeleted
         {
             get => this.wasDeleted;
@@ -62,6 +69,57 @@
     {
         public AccessOrderNode(K k, V v) : base(k, v)
         {
+        }
+    }
+
+    internal sealed class TimeOrderNode<K, V> : LfuNode<K, V>
+        where K : notnull
+    {
+        TimeOrderNode<K, V> prevTime;
+        TimeOrderNode<K, V> nextTime;
+
+        private Duration timeToExpire;
+
+        public TimeOrderNode(K k, V v) : base(k, v)
+        {
+        }
+
+        public Duration TimeToExpire 
+        { 
+            get => timeToExpire;
+            set => timeToExpire = value;
+        }
+
+        public static TimeOrderNode<K, V> CreateSentinel()
+        {
+            var s = new TimeOrderNode<K, V>(default, default);
+            s.nextTime = s.prevTime = s;
+            return s;
+        }
+
+        public TimeOrderNode<K, V> GetPreviousInTimeOrder()
+        {
+            return prevTime;
+        }
+
+        public long GetTimestamp()
+        {
+            return timeToExpire.raw;
+        }
+
+        public void SetPreviousInTimeOrder(TimeOrderNode<K, V> prev)
+        {
+            this.prevTime = prev;
+        }
+
+        public TimeOrderNode<K, V> GetNextInTimeOrder()
+        {
+            return nextTime;
+        }
+
+        public void SetNextInTimeOrder(TimeOrderNode<K, V> next)
+        {
+            this.nextTime = next;
         }
     }
 }

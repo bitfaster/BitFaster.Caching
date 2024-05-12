@@ -92,7 +92,7 @@ namespace BitFaster.Caching.Counters
         /// <summary>
         /// When non-null, size is a power of 2.
         /// </summary>
-        protected Cell[] Cells;
+        protected Cell[]? Cells;
         private int cellsBusy;
 
         /// <summary>
@@ -168,7 +168,7 @@ namespace BitFaster.Caching.Counters
             var collide = false;                    // True if last slot nonempty
             for (; ; )
             {
-                Cell[] @as; Cell a; int n; long v;
+                Cell[]? @as; Cell a; int n; long v;
                 if ((@as = this.Cells) != null && (n = @as.Length) > 0)
                 {
                     if ((a = @as[(n - 1) & h]) == null)
@@ -180,7 +180,7 @@ namespace BitFaster.Caching.Counters
                             {
                                 try
                                 {                   // Recheck under lock
-                                    Cell[] rs; int m, j;
+                                    Cell[]? rs; int m, j;
                                     if ((rs = this.Cells) != null &&
                                         (m = rs.Length) > 0 &&
                                         rs[j = (m - 1) & h] == null)

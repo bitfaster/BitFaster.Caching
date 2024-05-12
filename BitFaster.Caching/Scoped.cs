@@ -38,7 +38,7 @@ namespace BitFaster.Caching
         /// </summary>
         /// <param name="lifetime">When this method returns, contains the Lifetime that was created, or the default value of the type if the operation failed.</param>
         /// <returns>true if the Lifetime was created; otherwise false.</returns>
-        public bool TryCreateLifetime(out Lifetime<T> lifetime)
+        public bool TryCreateLifetime([MaybeNullWhen(false)] out Lifetime<T> lifetime)
         {
             while (true)
             {
@@ -115,7 +115,7 @@ namespace BitFaster.Caching
                 return "[Disposed Scope]";
             }
 
-            return this.refCount.Value?.ToString();
+            return this.refCount.Value?.ToString() ?? "[null]";
         }
 
         [ExcludeFromCodeCoverage]

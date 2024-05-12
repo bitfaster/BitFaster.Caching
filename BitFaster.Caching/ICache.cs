@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace BitFaster.Caching
 {
@@ -41,7 +42,7 @@ namespace BitFaster.Caching
         /// <param name="key">The key of the value to get.</param>
         /// <param name="value">When this method returns, contains the object from the cache that has the specified key, or the default value of the type if the operation failed.</param>
         /// <returns>true if the key was found in the cache; otherwise, false.</returns>
-        bool TryGet(K key, out V value);
+        bool TryGet(K key, [MaybeNullWhen(false)] out V value);
 
         /// <summary>
         /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
@@ -65,6 +66,7 @@ namespace BitFaster.Caching
         /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
         /// in the cache, or the new value if the key was not in the cache.</returns>
+        /// <remarks>The default implementation given here is the fallback that provides backwards compatibility for classes that implement ICache on prior versions</remarks>
         V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument) => this.GetOrAdd(key, k => valueFactory(k, factoryArgument));
 
         /// <summary>
@@ -73,7 +75,7 @@ namespace BitFaster.Caching
         /// <param name="key">The key of the element to remove.</param>
         /// <param name="value">When this method returns, contains the object removed, or the default value of the value type if key does not exist.</param>
         /// <returns>true if the object was removed successfully; otherwise, false.</returns>
-        bool TryRemove(K key, out V value) => throw new NotSupportedException();
+        bool TryRemove(K key, [MaybeNullWhen(false)] out V value) => throw new NotSupportedException();
 
         /// <summary>
         /// Attempts to remove the specified key value pair.

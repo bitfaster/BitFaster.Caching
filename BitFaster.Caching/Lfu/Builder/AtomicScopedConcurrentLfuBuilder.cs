@@ -8,7 +8,9 @@ namespace BitFaster.Caching.Lfu.Builder
     /// </summary>
     /// <typeparam name="K">The type of the cache key.</typeparam>
     /// <typeparam name="V">The type of the cache value.</typeparam>
-    public sealed class AtomicScopedConcurrentLfuBuilder<K, V> : LfuBuilderBase<K, V, AtomicScopedConcurrentLfuBuilder<K, V>, IScopedCache<K, V>> where V : IDisposable
+    public sealed class AtomicScopedConcurrentLfuBuilder<K, V> : LfuBuilderBase<K, V, AtomicScopedConcurrentLfuBuilder<K, V>, IScopedCache<K, V>>
+        where K : notnull
+        where V : IDisposable
     {
         private readonly ConcurrentLfuBuilder<K, ScopedAtomicFactory<K, V>> inner;
 
@@ -21,6 +23,8 @@ namespace BitFaster.Caching.Lfu.Builder
         ///<inheritdoc/>
         public override IScopedCache<K, V> Build()
         {
+            info.ThrowIfExpirySpecified("AsAtomic or AsScoped");
+
             var level1 = inner.Build() as ICache<K, ScopedAtomicFactory<K, V>>;
             return new AtomicFactoryScopedCache<K, V>(level1);
         }

@@ -14,11 +14,12 @@ namespace BitFaster.Caching.Atomic
     /// <typeparam name="V">The type of the value.</typeparam>
     [DebuggerDisplay("IsValueCreated={IsValueCreated}, Value={ValueIfCreated}")]
     public sealed class AtomicFactory<K, V> : IEquatable<AtomicFactory<K, V>>
+        where K : notnull
     {
-        private Initializer initializer;
+        private Initializer? initializer;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private V value;
+        private V? value;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AtomicFactory{K, V}"/> class.
@@ -48,7 +49,7 @@ namespace BitFaster.Caching.Atomic
         {
             if (initializer == null)
             {
-                return value;
+                return value!;
             }
 
             return CreateValue(key, new ValueFactory<K, V>(valueFactory));
@@ -66,7 +67,7 @@ namespace BitFaster.Caching.Atomic
         {
             if (initializer == null)
             {
-                return value;
+                return value!;
             }
 
             return CreateValue(key, new ValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument));
@@ -80,7 +81,7 @@ namespace BitFaster.Caching.Atomic
         /// <summary>
         /// Gets the value if it has been initialized, else default.
         /// </summary>
-        public V ValueIfCreated
+        public V? ValueIfCreated
         {
             get
             {
@@ -124,17 +125,17 @@ namespace BitFaster.Caching.Atomic
                 }
             }
 
-            return value;
+            return value!;
         }
 
         ///<inheritdoc/>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as AtomicFactory<K, V>);
         }
 
         ///<inheritdoc/>
-        public bool Equals(AtomicFactory<K, V> other)
+        public bool Equals(AtomicFactory<K, V>? other)
         {
             if (other is null || !IsValueCreated || !other.IsValueCreated)
             {
@@ -152,15 +153,15 @@ namespace BitFaster.Caching.Atomic
                 return 0;
             }
 
-            return ValueIfCreated.GetHashCode();
+            return ValueIfCreated!.GetHashCode();
         }
 
 #pragma warning disable CA2002 // Do not lock on objects with weak identity
         private class Initializer
         {
             private bool isInitialized;
-            private V value;
-            private ExceptionDispatchInfo exceptionDispatch;
+            private V? value;
+            private ExceptionDispatchInfo? exceptionDispatch;
 
             public V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
             {
@@ -168,7 +169,7 @@ namespace BitFaster.Caching.Atomic
                 {
                     if (isInitialized)
                     {
-                        return value;
+                        return value!;
                     }
 
                     // If a previous thread called the factory and failed, throw the same error instead

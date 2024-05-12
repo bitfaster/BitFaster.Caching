@@ -13,7 +13,8 @@ namespace BitFaster.Caching
         /// <param name="cache">The cache to use.</param>
         /// <param name="key">The key of the item</param>
         /// <returns>A value lifetime</returns>
-        public static Lifetime<TValue> Acquire<TKey, TValue>(this SingletonCache<TKey, TValue> cache, TKey key) 
+        public static Lifetime<TValue> Acquire<TKey, TValue>(this SingletonCache<TKey, TValue> cache, TKey key)
+            where TKey : notnull
             where TValue : new()
         {
             return cache.Acquire(key, _ => new TValue());

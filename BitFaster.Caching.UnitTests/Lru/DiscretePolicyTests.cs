@@ -11,8 +11,6 @@ namespace BitFaster.Caching.UnitTests.Lru
         private readonly TestExpiryCalculator<int, int> expiryCalculator;
         private readonly DiscretePolicy<int, int> policy;
 
-        private static readonly ulong epsilon = (ulong)Duration.FromMilliseconds(20).raw;
-
         public DiscretePolicyTests() 
         {
             expiryCalculator = new TestExpiryCalculator<int, int>();
@@ -50,7 +48,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             item.Key.Should().Be(1);
             item.Value.Should().Be(2);
 
-            item.TickCount.Should().BeCloseTo(timeToExpire.raw + Duration.SinceEpoch().raw, epsilon);
+            item.TickCount.Should().BeCloseTo(timeToExpire.raw + Duration.SinceEpoch().raw, DurationTests.epsilon);
         }
 
         [Fact]
@@ -95,11 +93,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-#if NETFRAMEWORK
-            item.TickCount = item.TickCount - StopwatchTickConverter.ToTicks(TimeSpan.FromMilliseconds(11));
-#else
-            item.TickCount = item.TickCount - TimeSpan.FromMilliseconds(11).ToEnvTick64();
-#endif
+            item.TickCount = item.TickCount - Duration.FromMilliseconds(11).raw;
+
             this.policy.ShouldDiscard(item).Should().BeTrue();
         }
 
@@ -108,11 +103,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-#if NETFRAMEWORK
-            item.TickCount = item.TickCount - StopwatchTickConverter.ToTicks(TimeSpan.FromMilliseconds(9));
-#else
-            item.TickCount = item.TickCount - (int)TimeSpan.FromMilliseconds(9).ToEnvTick64();
-#endif
+            item.TickCount = item.TickCount - Duration.FromMilliseconds(9).raw;
 
             this.policy.ShouldDiscard(item).Should().BeFalse();
         }
@@ -168,11 +159,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             if (isExpired)
             {
-#if NETFRAMEWORK
-                item.TickCount = item.TickCount - StopwatchTickConverter.ToTicks(TimeSpan.FromMilliseconds(11));
-#else
-                item.TickCount = item.TickCount - TimeSpan.FromMilliseconds(11).ToEnvTick64();
-#endif
+                item.TickCount = item.TickCount - Duration.FromMilliseconds(11).raw;
             }
 
             return item;

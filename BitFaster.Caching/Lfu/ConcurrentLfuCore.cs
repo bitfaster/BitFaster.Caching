@@ -40,6 +40,7 @@ namespace BitFaster.Caching.Lfu
     /// https://github.com/ben-manes/caffeine
     
     internal struct ConcurrentLfuCore<K, V, N, P> : IBoundedPolicy
+        where K : notnull
         where N : LfuNode<K, V>
         where P : struct, INodePolicy<K, V, N>
     {
@@ -70,7 +71,9 @@ namespace BitFaster.Caching.Lfu
 
         private readonly N[] drainBuffer;
 
-        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers)
+        internal P policy;
+
+        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers, P policy)
         {
             if (capacity < 3)
                 Throw.ArgOutOfRange(nameof(capacity));
@@ -98,6 +101,8 @@ namespace BitFaster.Caching.Lfu
             this.drainBuffer = new N[this.readBuffer.Capacity];
 
             this.drainBuffers = drainBuffers;
+
+            this.policy = policy;
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -122,7 +127,7 @@ namespace BitFaster.Caching.Lfu
                     return;
                 }
 
-                var node = default(P).Create(key, value);
+                var node = policy.Create(key, value);
                 if (this.dictionary.TryAdd(key, node))
                 {
                     AfterWrite(node);
@@ -133,7 +138,7 @@ namespace BitFaster.Caching.Lfu
 
         public void Clear()
         {
-            this.Trim(this.Count);
+            Trim(int.MaxValue);
 
             lock (maintenanceLock)
             {
@@ -145,15 +150,16 @@ namespace BitFaster.Caching.Lfu
 
         public void Trim(int itemCount)
         {
-            itemCount = Math.Min(itemCount, this.Count);
-            var candidates = new List<LfuNode<K, V>>(itemCount);
-
-            // TODO: this is LRU order eviction, Caffeine is based on frequency
+            List<LfuNode<K, V>> candidates;
             lock (maintenanceLock)
             {
-                // flush all buffers
                 Maintenance();
 
+                int lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
+                itemCount = Math.Min(itemCount, lruCount);
+                candidates = new (itemCount);
+
+                // Note: this is LRU order eviction, Caffeine is based on frequency
                 // walk in lru order, get itemCount keys to evict
                 TakeCandidatesInLruOrder(this.probationLru, candidates, itemCount);
                 TakeCandidatesInLruOrder(this.protectedLru, candidates, itemCount);
@@ -172,7 +178,7 @@ namespace BitFaster.Caching.Lfu
 
         private bool TryAdd(K key, V value)
         {
-            var node = default(P).Create(key, value);
+            var node = policy.Create(key, value);
 
             if (this.dictionary.TryAdd(key, node))
             {
@@ -188,7 +194,7 @@ namespace BitFaster.Caching.Lfu
         {
             while (true)
             {
-                if (this.TryGet(key, out V value))
+                if (this.TryGet(key, out V? value))
                 {
                     return value;
                 }
@@ -205,7 +211,7 @@ namespace BitFaster.Caching.Lfu
         {
             while (true)
             {
-                if (this.TryGet(key, out V value))
+                if (this.TryGet(key, out V? value))
                 {
                     return value;
                 }
@@ -222,7 +228,7 @@ namespace BitFaster.Caching.Lfu
         {
             while (true)
             {
-                if (this.TryGet(key, out V value))
+                if (this.TryGet(key, out V? value))
                 {
                     return value;
                 }
@@ -239,7 +245,7 @@ namespace BitFaster.Caching.Lfu
         {
             while (true)
             {
-                if (this.TryGet(key, out V value))
+                if (this.TryGet(key, out V? value))
                 {
                     return value;
                 }
@@ -252,24 +258,58 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        public bool TryGet(K key, out V value)
+        public bool TryGet(K key, [MaybeNullWhen(false)] out V value)
+        {
+            return TryGetImpl(key, out value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryGetImpl(K key, [MaybeNullWhen(false)] out V value)
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
+                if (!policy.IsExpired(node))
+                {
+                    bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
 
-                if (this.drainStatus.ShouldDrain(delayable))
-                { 
-                    TryScheduleDrain(); 
+                    if (this.drainStatus.ShouldDrain(delayable))
+                    {
+                        TryScheduleDrain();
+                    }
+                    value = node.Value;
+                    return true;
                 }
-                value = node.Value;               
-                return true;
+                else
+                {
+                    // expired case, immediately remove from the dictionary
+                    TryRemove(node);
+                }
             }
 
             this.metrics.requestMissCount.Increment();
 
             value = default;
             return false;
+        }
+
+        internal bool TryGetNode(K key, [MaybeNullWhen(false)] out N node)
+        {
+            return this.dictionary.TryGetValue(key, out node);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        void TryRemove(N node)
+        {
+#if NET6_0_OR_GREATER
+                if (this.dictionary.TryRemove(new KeyValuePair<K, N>(node.Key, node)))
+#else
+                // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(new KeyValuePair<K, N>(node.Key, node)))
+#endif
+            {
+                node.WasRemoved = true;
+                AfterWrite(node);
+            }
         }
 
         public bool TryRemove(KeyValuePair<K, V> item)
@@ -297,7 +337,7 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        public bool TryRemove(K key, out V value)
+        public bool TryRemove(K key, [MaybeNullWhen(false)] out V value)
         {
             if (this.dictionary.TryRemove(key, out var node))
             {
@@ -483,9 +523,11 @@ namespace BitFaster.Caching.Lfu
         }
 
         [MethodImpl((MethodImplOptions)512)]
-        private bool Maintenance(N droppedWrite = null)
+        private bool Maintenance(N? droppedWrite = null)
         {
             this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
+
+            policy.AdvanceTime();
 
             // Note: this is only Span on .NET Core 3.1+, else this is no-op and it is still an array
             var buffer = this.drainBuffer.AsSpanOrArray();
@@ -519,6 +561,7 @@ namespace BitFaster.Caching.Lfu
                 done = true;
             }
 
+            policy.ExpireEntries(ref this);
             EvictEntries();
             this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
             ReFitProtected();
@@ -537,7 +580,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         [MethodImpl((MethodImplOptions)512)]
-        private void OnAccess(LfuNode<K, V> node)
+        private void OnAccess(N node)
         {
             // there was a cache hit even if the item was removed or is not yet added.
             this.metrics.requestHitCount++;
@@ -560,10 +603,12 @@ namespace BitFaster.Caching.Lfu
                     this.protectedLru.MoveToEnd(node);
                     break;
             }
+
+            policy.OnRead(node);
         }
 
         [MethodImpl((MethodImplOptions)512)]
-        private void OnWrite(LfuNode<K, V> node)
+        private void OnWrite(N node)
         {
             // Nodes can be removed while they are in the write buffer, in which case they should
             // not be added back into the LRU.
@@ -608,17 +653,13 @@ namespace BitFaster.Caching.Lfu
                     this.metrics.updatedCount++;
                     break;
             }
+
+            policy.OnWrite(node);
         }
 
         [MethodImpl((MethodImplOptions)512)]
         private void PromoteProbation(LfuNode<K, V> node)
         {
-            if (node.list == null)
-            {
-                // Ignore stale accesses for an entry that is no longer present
-                return;
-            }
-
             this.probationLru.Remove(node);
             this.protectedLru.AddLast(node);
             node.Position = Position.Protected;
@@ -644,7 +685,7 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl((MethodImplOptions)512)]
         private LfuNode<K, V> EvictFromWindow()
         {
-            LfuNode<K, V> first = null;
+            LfuNode<K, V>? first = null;
 
             while (this.windowLru.Count > this.capacity.Window)
             {
@@ -657,7 +698,7 @@ namespace BitFaster.Caching.Lfu
                 node.Position = Position.Probation;
             }
 
-            return first;
+            return first!;
         }
 
         private ref struct EvictIterator
@@ -703,8 +744,24 @@ namespace BitFaster.Caching.Lfu
 
                 if (victim.node == candidate.node)
                 {
-                    Evict(candidate.node);
+                    Evict(candidate.node!);
                     break;
+                }
+
+                if (candidate.node!.WasRemoved)
+                {
+                    var evictee = candidate.node;
+                    candidate.Next();
+                    Evict(evictee);
+                    continue;
+                }
+
+                if (victim.node!.WasRemoved)
+                {
+                    var evictee = victim.node;
+                    victim.Next();
+                    Evict(evictee);
+                    continue;
                 }
 
                 // Evict the entry with the lowest frequency
@@ -756,12 +813,24 @@ namespace BitFaster.Caching.Lfu
             return candidateFreq > victimFreq;
         }
 
-        private void Evict(LfuNode<K, V> evictee)
+        internal void Evict(LfuNode<K, V> evictee)
         {
-            this.dictionary.TryRemove(evictee.Key, out var _);
-            evictee.list.Remove(evictee);
+            evictee.WasRemoved = true;
+            evictee.WasDeleted = true;
+
+            // This handles the case where the same key exists in the write buffer both
+            // as added and removed. Remove via KVP ensures we don't remove added nodes.
+            var kvp = new KeyValuePair<K, N>(evictee.Key, (N)evictee);
+#if NET6_0_OR_GREATER
+            this.dictionary.TryRemove(kvp);
+#else
+            ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
+#endif
+            evictee.list?.Remove(evictee);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
+
+            this.policy.OnEvict((N)evictee);
         }
 
         private void ReFitProtected()
@@ -886,7 +955,7 @@ namespace BitFaster.Caching.Lfu
             sb.Append(string.Join(",", this.protectedLru.Select(n => n.Key.ToString())));
             sb.Append("] Probation [");
             sb.Append(string.Join(",", this.probationLru.Select(n => n.Key.ToString())));
-            sb.Append("]");
+            sb.Append(']');
 
             return sb.ToString();
         }

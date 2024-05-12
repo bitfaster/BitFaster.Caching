@@ -63,6 +63,7 @@ namespace BitFaster.Caching.HitRateAnalysis
                 entry.SetSize(1);
 
                 this.metrics.requestMissCount++;
+                ThreadPoolInspector.WaitForEmpty();
             }
             else
             {

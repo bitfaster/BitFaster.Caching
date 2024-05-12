@@ -77,7 +77,7 @@ namespace BitFaster.Caching.Scheduler
 
                         if (s == BufferStatus.Success)
                         {
-                            action();
+                            action!();
                         }
                         else 
                         {

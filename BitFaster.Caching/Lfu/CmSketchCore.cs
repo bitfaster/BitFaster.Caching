@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 
@@ -24,7 +25,9 @@ namespace BitFaster.Caching.Lfu
     /// </remarks>
     /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    public class CmSketchCore<T, I> where I : struct, IsaProbe
+    public class CmSketchCore<T, I>
+        where T : notnull
+        where I : struct, IsaProbe
     {
         private const long ResetMask = 0x7777777777777777L;
         private const long OneMask = 0x1111111111111111L;
@@ -113,6 +116,7 @@ namespace BitFaster.Caching.Lfu
             size = 0;
         }
 
+        [MemberNotNull(nameof(table))]
         private void EnsureCapacity(long maximumSize)
         {
             int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);

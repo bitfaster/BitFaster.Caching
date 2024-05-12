@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace BitFaster.Caching
 {
@@ -46,7 +47,7 @@ namespace BitFaster.Caching
         /// <param name="lifetime">When this method returns, contains a lifetime for the object from the cache that 
         /// has the specified key, or the default value of the type if the operation failed.</param>
         /// <returns>true if the key was found in the cache; otherwise, false.</returns>
-        bool ScopedTryGet(K key, out Lifetime<V> lifetime);
+        bool ScopedTryGet(K key, [MaybeNullWhen(false)] out Lifetime<V> lifetime);
 
         /// <summary>
         /// Adds a key/scoped value pair to the cache if the key does not already exist. Returns a lifetime for either 
@@ -72,6 +73,7 @@ namespace BitFaster.Caching
         /// <returns>The lifetime for the value associated with the key. The lifetime will be either reference the 
         /// existing value for the key if the key is already in the cache, or the new value if the key was not in 
         /// the cache.</returns>
+        /// <remarks>The default implementation given here is the fallback that provides backwards compatibility for classes that implement ICache on prior versions</remarks>
         Lifetime<V> ScopedGetOrAdd<TArg>(K key, Func<K, TArg, Scoped<V>> valueFactory, TArg factoryArgument) => this.ScopedGetOrAdd(key, k => valueFactory(k, factoryArgument));
 #endif
 

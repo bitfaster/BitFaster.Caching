@@ -3,6 +3,7 @@ using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
+using Benchly;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -17,6 +18,7 @@ namespace BitFaster.Caching.Benchmarks
     [MemoryDiagnoser(displayGenColumns: false)]
     // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/
     // [ThreadingDiagnoser] // Requires .NET Core
+    [BoxPlot(Title = "LFU Read Latency")]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class LfuJustGetOrAdd
     {
