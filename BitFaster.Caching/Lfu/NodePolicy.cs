@@ -97,10 +97,6 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void OnRead(TimeOrderNode<K, V> node)
         {
-            //var currentExpiry = node.TimeToExpire - current;
-            //node.TimeToExpire = current + expiryCalculator.GetExpireAfterRead(node.Key, node.Value, currentExpiry);
-            //wheel.Reschedule(node);
-
             var oldTte = node.TimeToExpire;
             node.TimeToExpire = current + expiryCalculator.GetExpireAfterRead(node.Key, node.Value, node.TimeToExpire - current);
             if (oldTte.raw != node.TimeToExpire.raw)
@@ -120,10 +116,6 @@ namespace BitFaster.Caching.Lfu
             }
             else
             {
-                //var currentExpiry = node.TimeToExpire - current;
-                //node.TimeToExpire = current + expiryCalculator.GetExpireAfterUpdate(node.Key, node.Value, currentExpiry);
-                //wheel.Reschedule(node);
-
                 var oldTte = node.TimeToExpire;
                 node.TimeToExpire = current + expiryCalculator.GetExpireAfterUpdate(node.Key, node.Value, node.TimeToExpire - current);
                 if (oldTte.raw != node.TimeToExpire.raw)
