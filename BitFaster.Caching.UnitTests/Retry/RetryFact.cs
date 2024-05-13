@@ -3,7 +3,7 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Retry
 {
-    [XunitTestCaseDiscoverer("RetryFactExample.RetryFactDiscoverer", "RetryFactExample")]
+    [XunitTestCaseDiscoverer("BitFaster.Caching.UnitTests.Retry.RetryFactDiscoverer", "BitFaster.Caching.UnitTests")]
     public class RetryFactAttribute : FactAttribute
     {
         /// <summary>
