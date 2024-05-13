@@ -4,6 +4,7 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 using System.Diagnostics;
+using BitFaster.Caching.UnitTests.Retry;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -71,13 +72,13 @@ namespace BitFaster.Caching.UnitTests.Lru
             item.WasAccessed.Should().BeTrue();
         }
 
-        [Fact]
+        [RetryFact]
         public async Task UpdateUpdatesTickCount()
         {
             var item = this.policy.CreateItem(1, 2);
             var tc = item.TickCount;
 
-            await Task.Delay(TimeSpan.FromMilliseconds(1));
+            await Task.Delay(TimeSpan.FromMilliseconds(10));
 
             this.policy.Update(item);
 
