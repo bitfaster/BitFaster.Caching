@@ -1,4 +1,5 @@
 ﻿
+using System;
 using System.Collections.Generic;
 using System.Data;
 using BitFaster.Caching.Lfu;
@@ -100,6 +101,35 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 capacity: capacity, 
                 scheduler: scheduler, 
                 EqualityComparer<long>.Default);
+
+            return (scheduler, cache);
+        }
+    }
+
+    public class ConcurrentTLfuFactory : ICacheFactory
+    {
+        private readonly int capacity;
+
+        public ConcurrentTLfuFactory(int capacity)
+        {
+            this.capacity = capacity;
+        }
+
+        public string Name => "ConcurrentTLfu";
+
+        public DataRow DataRow { get; set; }
+
+        public (IScheduler, ICache<long, int>) Create(int threadCount)
+        {
+            var scheduler = new BackgroundThreadScheduler();
+
+            var cache = new ConcurrentLfuBuilder<long, int>()
+                .WithCapacity(capacity)
+                .WithScheduler(scheduler)
+                .WithConcurrencyLevel(threadCount)
+                .WithKeyComparer(EqualityComparer<long>.Default)
+                .WithExpireAfterWrite(TimeSpan.FromHours(1))
+                .Build();
 
             return (scheduler, cache);
         }
