@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
+using BitFaster.Caching.UnitTests.Retry;
 using FluentAssertions;
 using Xunit;
 
@@ -85,7 +86,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             value.Should().Be(2);
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemDoesNotExistUpdatedAddsItem()
         {
             lfu.AddOrUpdate(1, 2);
