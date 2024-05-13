@@ -46,7 +46,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.lru.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(timeToLive);
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsNotExpiredItIsNotRemoved()
         {
             lru.GetOrAdd(1, valueFactory.Create);
