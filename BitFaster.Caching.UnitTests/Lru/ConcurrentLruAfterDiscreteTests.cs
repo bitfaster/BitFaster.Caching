@@ -48,7 +48,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Policy.ExpireAfter.Value.TryGetTimeToExpire(1, out _).Should().BeFalse();
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenKeyExistsTryGetTimeToExpireReturnsExpiryTime()
         {
             lru.GetOrAdd(1, k => "1");

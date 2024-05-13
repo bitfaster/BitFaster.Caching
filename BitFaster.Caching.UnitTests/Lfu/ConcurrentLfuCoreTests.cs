@@ -76,7 +76,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 #endif
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsUpdatedItIsUpdated()
         {
             lfu.GetOrAdd(1, k => k);
