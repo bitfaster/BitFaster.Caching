@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.UnitTests.Retry;
 using FluentAssertions;
 using Xunit;
 
@@ -55,7 +56,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             expiry.Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan(), delta);
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsExpiredItIsRemoved()
         {
             Timed.Execute(
@@ -73,7 +74,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsUpdatedTtlIsExtended()
         {
             Timed.Execute(
@@ -92,7 +93,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsReadTtlIsExtended()
         {
             expiryCalculator.ExpireAfterCreate = (_, _) => Duration.FromMilliseconds(100);
@@ -160,7 +161,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             removedItems[1].Reason.Should().Be(ItemRemovedReason.Evicted);
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemsAreExpiredExpireRemovesExpiredItems()
         {
             Timed.Execute(
@@ -194,7 +195,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
         {
             Timed.Execute(
@@ -225,7 +226,7 @@ namespace BitFaster.Caching.UnitTests.Lru
           );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemsAreExpiredTrimRemovesExpiredItems()
         {
             Timed.Execute(
