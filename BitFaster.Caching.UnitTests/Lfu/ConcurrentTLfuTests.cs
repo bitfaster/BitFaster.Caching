@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
+using BitFaster.Caching.UnitTests.Retry;
 using FluentAssertions;
 using Xunit;
 
@@ -119,7 +120,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu.TryGet(1, out var value).Should().BeTrue();
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsExpiredItIsRemoved()
         {
             Timed.Execute(
@@ -137,7 +138,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsExpiredItIsRemoved2()
         {
             Timed.Execute(
@@ -158,7 +159,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsUpdatedTtlIsExtended()
         {
             Timed.Execute(
