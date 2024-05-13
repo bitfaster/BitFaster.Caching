@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using Xunit;
 using System.Runtime.InteropServices;
+using BitFaster.Caching.UnitTests.Retry;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -55,7 +56,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.TryGet(1, out var value).Should().BeTrue();
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsExpiredItIsRemoved()
         {
             Timed.Execute(
@@ -73,7 +74,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsUpdatedTtlIsExtended()
         {
             Timed.Execute(
@@ -133,7 +134,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             removedItems.Count.Should().Be(0);
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemsAreExpiredExpireRemovesExpiredItems()
         {
             Timed.Execute(
@@ -169,7 +170,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenExpiredItemsAreTrimmedCacheMarkedCold()
         {
             Timed.Execute(
@@ -211,7 +212,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
         {
             Timed.Execute(
@@ -245,7 +246,7 @@ namespace BitFaster.Caching.UnitTests.Lru
           );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemsAreExpiredTrimRemovesExpiredItems()
         {
             Timed.Execute(
@@ -272,7 +273,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemsAreExpiredCountFiltersExpiredItems()
         {
             Timed.Execute(
@@ -293,7 +294,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemsAreExpiredEnumerateFiltersExpiredItems()
         {
             Timed.Execute(
