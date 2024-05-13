@@ -112,6 +112,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         // policy can expire after write
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemIsNotExpiredItIsNotRemoved()
         {
             lfu.GetOrAdd(1, valueFactory.Create);

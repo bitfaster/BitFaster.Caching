@@ -46,6 +46,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        [Trait("Time", "Sensitive")]
         public void WhenItemIsNotExpiredItIsNotRemoved()
         {
             lru.GetOrAdd(1, valueFactory.Create);
