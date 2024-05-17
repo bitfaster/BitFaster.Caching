@@ -1,6 +1,4 @@
-﻿using System;
-using BitFaster.Caching.Lfu;
-using Newtonsoft.Json.Linq;
+﻿using BitFaster.Caching.Lfu;
 using ObjectLayoutInspector;
 using Xunit;
 using Xunit.Abstractions;
