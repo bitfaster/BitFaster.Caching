@@ -58,7 +58,7 @@ namespace BitFaster.Caching.Lfu
         }
     }
 
-    internal enum Position
+    internal enum Position : short
     {
         Window,
         Probation,
