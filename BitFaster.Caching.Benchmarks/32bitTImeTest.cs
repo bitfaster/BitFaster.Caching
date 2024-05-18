@@ -12,7 +12,6 @@ namespace BitFaster.Caching.Benchmarks
     [LegacyJitX86Job]
 #endif
     [SimpleJob(RuntimeMoniker.Net60)]
-    [RyuJitX86Job]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class _32bitTImeTest
     {
@@ -29,6 +28,12 @@ namespace BitFaster.Caching.Benchmarks
         public long Time2()
         { 
             return time.Last; 
+        }
+
+        [Benchmark()]
+        public Duration GetActualTime()
+        { 
+            return Duration.SinceEpoch(); 
         }
     }
 
