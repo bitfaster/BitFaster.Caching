@@ -101,7 +101,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             void action(int index)
             {
                 long[] samples = config.GetTestData(index);
-                int func(long x) => (int)x;
+                int func(long x) => Hash32(x);
 
                 for (int i = 0; i < config.Iterations; i++)
                 {
@@ -136,6 +136,15 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             // throughput = million ops/sec
             return throughput;
+        }
+
+        private static long a = 46601, b = 471486146934863, c = 7411438065634025597l;
+
+        private static int Hash32(long x)
+        {
+            int low = (int)x;
+            int high = (int)((uint)x >> 32);
+            return (int)((uint)(a * low + b * high + c) >> 32);
         }
     }
 
