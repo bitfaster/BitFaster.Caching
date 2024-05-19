@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.UnitTests.Retry;
 using FluentAssertions;
 using Xunit;
 
@@ -45,7 +46,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.lru.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(timeToLive);
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsNotExpiredItIsNotRemoved()
         {
             lru.GetOrAdd(1, valueFactory.Create);
@@ -53,7 +54,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.TryGet(1, out var value).Should().BeTrue();
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsExpiredItIsRemoved()
         {
             Timed.Execute(
@@ -71,7 +72,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemIsUpdatedTtlIsExtended()
         {
             Timed.Execute(
@@ -93,7 +94,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         // Using async/await makes this very unstable due to xunit
         // running new tests on the yielding thread. Using sleep
         // forces the test to stay on the same thread.
-        [Fact]
+        [RetryFact]
         public void WhenItemIsReadTtlIsExtended()
         {
             var lru = new ConcurrentLruBuilder<int, string>()
@@ -160,7 +161,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             removedItems[1].Reason.Should().Be(ItemRemovedReason.Evicted);
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemsAreExpiredExpireRemovesExpiredItems()
         {
             Timed.Execute(
@@ -194,7 +195,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenCacheHasExpiredAndFreshItemsExpireRemovesOnlyExpiredItems()
         {
             Timed.Execute(
@@ -225,7 +226,7 @@ namespace BitFaster.Caching.UnitTests.Lru
           );
         }
 
-        [Fact]
+        [RetryFact]
         public void WhenItemsAreExpiredTrimRemovesExpiredItems()
         {
             Timed.Execute(

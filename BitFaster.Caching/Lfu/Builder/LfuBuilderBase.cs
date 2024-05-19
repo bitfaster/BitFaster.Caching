@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using BitFaster.Caching.Scheduler;
 
 namespace BitFaster.Caching.Lfu.Builder
@@ -61,6 +62,28 @@ namespace BitFaster.Caching.Lfu.Builder
         public TBuilder WithKeyComparer(IEqualityComparer<K> comparer)
         {
             this.info.KeyComparer = comparer;
+            return (this as TBuilder)!;
+        }
+
+        /// <summary>
+        /// Evict after a fixed duration since an entry's creation or most recent replacement.
+        /// </summary>
+        /// <param name="expiration">The length of time before an entry is automatically removed.</param>
+        /// <returns>A ConcurrentLfuBuilder</returns>
+        public TBuilder WithExpireAfterWrite(TimeSpan expiration)
+        {
+            this.info.TimeToExpireAfterWrite = expiration;
+            return (this as TBuilder)!;
+        }
+
+        /// <summary>
+        /// Evict after a fixed duration since an entry's most recent read or write.
+        /// </summary>
+        /// <param name="expiration">The length of time before an entry is automatically removed.</param>
+        /// <returns>A ConcurrentLfuBuilder</returns>
+        public TBuilder WithExpireAfterAccess(TimeSpan expiration)
+        {
+            this.info.TimeToExpireAfterAccess = expiration;
             return (this as TBuilder)!;
         }
 

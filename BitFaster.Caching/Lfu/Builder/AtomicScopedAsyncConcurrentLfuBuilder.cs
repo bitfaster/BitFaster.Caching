@@ -23,6 +23,8 @@ namespace BitFaster.Caching.Lfu.Builder
         ///<inheritdoc/>
         public override IScopedAsyncCache<K, V> Build()
         {
+            info.ThrowIfExpirySpecified("AsAtomic or AsScoped");
+
             // this is a legal type conversion due to the generic constraint on W
             var scopedInnerCache = inner.Build() as ICache<K, ScopedAsyncAtomicFactory<K, V>>;
 

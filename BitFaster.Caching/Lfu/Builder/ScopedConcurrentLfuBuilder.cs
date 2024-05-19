@@ -24,6 +24,8 @@ namespace BitFaster.Caching.Lfu.Builder
         ///<inheritdoc/>
         public override IScopedCache<K, V> Build()
         {
+            info.ThrowIfExpirySpecified("AsScoped");
+
             // this is a legal type conversion due to the generic constraint on W
             var scopedInnerCache = inner.Build() as ICache<K, Scoped<V>>;
 

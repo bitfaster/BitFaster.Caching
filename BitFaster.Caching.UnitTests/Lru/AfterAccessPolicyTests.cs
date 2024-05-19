@@ -4,10 +4,6 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 
-#if NETFRAMEWORK
-using System.Diagnostics;
-#endif
-
 namespace BitFaster.Caching.UnitTests.Lru
 {
     public class AfterAccessPolicyTests
@@ -57,14 +53,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-#if NETFRAMEWORK
-            var expected = Stopwatch.GetTimestamp();
-            ulong epsilon = (ulong)(TimeSpan.FromMilliseconds(20).TotalSeconds * Stopwatch.Frequency);
-#else
-            var expected = Environment.TickCount64;
-            ulong epsilon = 20;
-#endif
-            item.TickCount.Should().BeCloseTo(expected, epsilon);
+            item.TickCount.Should().BeCloseTo(Duration.SinceEpoch().raw, DurationTests.epsilon);
         }
 
         [Fact]
@@ -109,11 +98,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-#if NETFRAMEWORK
-            item.TickCount = Stopwatch.GetTimestamp() - StopwatchTickConverter.ToTicks(TimeSpan.FromSeconds(11));
-#else
-            item.TickCount = Environment.TickCount - (int)TimeSpan.FromSeconds(11).ToEnvTick64();
-#endif
+            item.TickCount = Duration.SinceEpoch().raw - Duration.FromSeconds(11).raw;
 
             this.policy.ShouldDiscard(item).Should().BeTrue();
         }
@@ -123,11 +108,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-#if NETFRAMEWORK
-            item.TickCount = Stopwatch.GetTimestamp() - StopwatchTickConverter.ToTicks(TimeSpan.FromSeconds(9));
-#else
-            item.TickCount = Environment.TickCount - (int)TimeSpan.FromSeconds(9).ToEnvTick64();
-#endif
+            item.TickCount = Duration.SinceEpoch().raw - Duration.FromSeconds(9).raw;
 
             this.policy.ShouldDiscard(item).Should().BeFalse();
         }
@@ -182,11 +163,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             if (isExpired)
             {
-#if NETFRAMEWORK
-                item.TickCount = Stopwatch.GetTimestamp() - StopwatchTickConverter.ToTicks(TimeSpan.FromSeconds(11));
-#else
-                item.TickCount = Environment.TickCount - TimeSpan.FromSeconds(11).ToEnvTick64();
-#endif
+                item.TickCount = Duration.SinceEpoch().raw - Duration.FromSeconds(11).raw;
             }
 
             return item;
