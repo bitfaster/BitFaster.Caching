@@ -1373,19 +1373,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 }
                 else
                 {
-                    // item is not deleted: dictionary should always contain the item
-                    //if (TypeProps<V>.IsWriteAtomic)
-                    //{ 
-                        dictionary.TryGetValue(item.Key, out var value).Should().BeTrue($"{queueName} item {item.Key} is not marked as removed");
-                    //}
-                    //else
-                    //{ 
-                    //    // for non-atomic writes, the queue can contain two items for the same key.
-                    //    if (!dictionary.TryGetValue(item.Key, out var value))
-                    //    { 
-                    //        value.Should().NotBe(item);
-                    //    }
-                    //}
+                    dictionary.TryGetValue(item.Key, out var value).Should().BeTrue($"{queueName} item {item.Key} is not marked as removed");
                 }
             }
         }

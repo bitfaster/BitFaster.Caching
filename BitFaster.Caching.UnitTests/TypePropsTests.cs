@@ -14,6 +14,7 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(typeof(IntPtr), true)]
         [InlineData(typeof(UIntPtr), true)]
         [InlineData(typeof(int), true)]
+        [InlineData(typeof(long), true)] // this is only expected to pass on 64bit platforms
         [InlineData(typeof(Guid), false)]
         public void Test(Type argType, bool expected)
         { 
