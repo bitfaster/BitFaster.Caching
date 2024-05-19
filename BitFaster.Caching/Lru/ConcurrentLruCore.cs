@@ -400,6 +400,7 @@ namespace BitFaster.Caching.Lru
                             }
 
                             // we cannot swap items within the queue, so mark existing as removed and enqueue the new item
+                            existing.WasAccessed = false;
                             existing.WasRemoved = true;
                             this.hotQueue.Enqueue(newItem);
                             Cycle(Interlocked.Increment(ref counter.hot));
