@@ -712,6 +712,22 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenKeyExistsTryUpdateGuidUpdatesValueAndReturnsTrue()
+        {
+            var lru2 = new ConcurrentLru<int, Guid>(1, capacity, EqualityComparer<int>.Default);
+            var b = new byte[8];
+
+            lru2.GetOrAdd(1, x => new Guid(x, 0, 0, b));
+
+            lru2.TryUpdate(1, new Guid(2, 0, 0, b)).Should().BeTrue();
+
+            lru2.TryGet(1, out var value);
+            value.Should().Be(new Guid(2, 0, 0, b));
+
+            new ConcurrentLruIntegrityChecker<int, Guid, LruItem<int, Guid>, LruPolicy<int, Guid>, TelemetryPolicy<int, Guid>>(lru2).Validate();
+        }
+
+        [Fact]
         public void WhenKeyExistsTryUpdateDisposesOldValue()
         {
             var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
@@ -1357,7 +1373,19 @@ namespace BitFaster.Caching.UnitTests.Lru
                 }
                 else
                 {
-                    dictionary.TryGetValue(item.Key, out var value).Should().BeTrue($"{queueName} item {item.Key} was not present");
+                    // item is not deleted: dictionary should always contain the item
+                    //if (TypeProps<V>.IsWriteAtomic)
+                    //{ 
+                        dictionary.TryGetValue(item.Key, out var value).Should().BeTrue($"{queueName} item {item.Key} is not marked as removed");
+                    //}
+                    //else
+                    //{ 
+                    //    // for non-atomic writes, the queue can contain two items for the same key.
+                    //    if (!dictionary.TryGetValue(item.Key, out var value))
+                    //    { 
+                    //        value.Should().NotBe(item);
+                    //    }
+                    //}
                 }
             }
         }

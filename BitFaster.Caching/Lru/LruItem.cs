@@ -63,9 +63,7 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public bool Equals(LruItem<K, V>? other)
         {
-            return other is not null &&
-                   EqualityComparer<K>.Default.Equals(Key, other.Key) &&
-                   EqualityComparer<V>.Default.Equals(Value, other.Value);
+            return ReferenceEquals(this, other);
         }
 
         ///<inheritdoc/>

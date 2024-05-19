@@ -187,8 +187,8 @@ namespace BitFaster.Caching.UnitTests.Lru
                     }
                 });
 
-                this.testOutputHelper.WriteLine($"{lru.HotCount} {lru.WarmCount} {lru.ColdCount}");
-                this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
+                this.testOutputHelper.WriteLine($"{lruVT.HotCount} {lruVT.WarmCount} {lruVT.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", lruVT.Keys));
 
                 new ConcurrentLruIntegrityChecker<int, Guid, LruItem<int, Guid>, LruPolicy<int, Guid>, TelemetryPolicy<int, Guid>>(lruVT).Validate();
             }
