@@ -4,6 +4,7 @@ using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using CsvHelper;
 using Microsoft.FSharp.Core;
 using Plotly.NET;
@@ -107,16 +108,36 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
         public string MapTitle(Mode mode, int cacheSize)
         {
+            string arch = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
+            string fwk = RuntimeInformation.FrameworkDescription.ToString();
+
+            string os = "Win";
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                os = "Mac";
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                os = "Linux";
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD))
+            {
+                os = "BSD";
+            }
+
             switch (mode)
             {
                 case Mode.Read:
-                    return $"Read throughput (100% cache hit)";
+                    return $"Read throughput, 100% cache hit ({os}/{arch}/{fwk})";
                 case Mode.ReadWrite:
-                    return $"Read + Write throughput";
+                    return $"Read + Write throughput ({os}/{arch}/{fwk})";
                 case Mode.Update:
-                    return $"Update throughput";
+                    return $"Update throughput ({os}/{arch}/{fwk})";
                 case Mode.Evict:
-                    return $"Eviction throughput (100% cache miss)";
+                    return $"Eviction throughput, 100% cache miss ({os}/{arch}/{fwk})";
                 default:
                     return $"{mode} {cacheSize}";
             }
