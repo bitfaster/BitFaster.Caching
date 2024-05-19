@@ -15,6 +15,14 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void EqualsObjectWithSameReferenceReturnsTrue()
+        { 
+            var item = new LruItem<int, int>(1, 2);
+
+            item.Equals((object)item).Should().BeTrue();
+        }
+
+        [Fact]
         public void EqualsWithSameValuesReturnsFalse()
         { 
             var item1 = new LruItem<int, int>(1, 2);
