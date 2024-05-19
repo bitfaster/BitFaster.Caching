@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lru
 {
@@ -70,7 +71,24 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public override int GetHashCode()
         {
-            return HashCode.Combine(Key, Value);
+            return Hash(Key, Value);
+        }
+
+        /// <summary>
+        /// Compute the hash code for the specified key and value.
+        /// </summary>
+        /// <param name="key">The key</param>
+        /// <param name="value">The value</param>
+        /// <returns>The hash code</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static int Hash(K key, V value)
+        { 
+            unchecked
+            {
+                int hash = 486187739 ^ key?.GetHashCode() ?? (int)2166136261;
+                hash = (hash * 16777619) ^ value?.GetHashCode() ?? 486187739;
+                return hash;
+            }
         }
     }
 }

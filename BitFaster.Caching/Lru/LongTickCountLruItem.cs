@@ -46,7 +46,7 @@ namespace BitFaster.Caching.Lru
         ///<inheritdoc/>
         public override int GetHashCode()
         {
-            return HashCode.Combine(Key, Value);
+            return Hash(Key, Value);
         }
     }
 }

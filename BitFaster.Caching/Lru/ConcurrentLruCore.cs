@@ -386,25 +386,30 @@ namespace BitFaster.Caching.Lru
                         if (TypeProps<T>.IsWriteAtomic)
                         {
                             existing.Value = value;
+                            this.itemPolicy.Update(existing);
                         }
                         else
                         {
+                            // we can't safely update value in place so we need a new item
                             var newItem = this.itemPolicy.CreateItem(key, value);
+
+                            // update the dictionary to the new item
                             if (!this.dictionary.TryUpdate(key, newItem, existing))
                             {
                                 return false;
                             }
 
-                            existing.Value = value;
-#pragma warning disable CS0728 // Possibly incorrect assignment to local which is the argument to a using or lock statement
-                            existing = newItem;
-#pragma warning restore CS0728 // Possibly incorrect assignment to local which is the argument to a using or lock statement
-                        }
+                            // we cannot swap items within the queue, so mark existing as removed and enqueue the new item
+                            existing.WasRemoved = true;
+                            this.hotQueue.Enqueue(newItem);
+                            Cycle(Interlocked.Increment(ref counter.hot));
 
-                        this.itemPolicy.Update(existing);
+                            this.itemPolicy.Update(newItem);
+                        }
+                        
 // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
-                        this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
+                        this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, value);
 #endif
                         Disposer<V>.Dispose(oldValue);
 
