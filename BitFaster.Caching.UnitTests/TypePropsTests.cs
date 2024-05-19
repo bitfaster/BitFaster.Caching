@@ -7,6 +7,8 @@ namespace BitFaster.Caching.UnitTests
 {
     public class TypePropsTests
     {
+        private static readonly MethodInfo method = typeof(TypePropsTests).GetMethod(nameof(TypePropsTests.IsWriteAtomic), BindingFlags.NonPublic | BindingFlags.Static);
+
         [Theory]
         [InlineData(typeof(object), true)]
         [InlineData(typeof(IntPtr), true)]
@@ -15,10 +17,9 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(typeof(Guid), false)]
         public void Test(Type argType, bool expected)
         { 
-            MethodInfo method = typeof(TypePropsTests).GetMethod(nameof(TypePropsTests.IsWriteAtomic), BindingFlags.NonPublic | BindingFlags.Static);
-            MethodInfo generic = method.MakeGenericMethod(argType);
+            var isWriteAtomic = method.MakeGenericMethod(argType);
 
-            generic.Invoke(null, null).Should().BeOfType<bool>().Which.Should().Be(expected);
+            isWriteAtomic.Invoke(null, null).Should().BeOfType<bool>().Which.Should().Be(expected);
         }
 
         private static bool IsWriteAtomic<T>()
