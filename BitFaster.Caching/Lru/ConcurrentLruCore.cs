@@ -383,14 +383,13 @@ namespace BitFaster.Caching.Lru
                     {
                         V oldValue = existing.Value;
 
-                        if (TypeProps<K>.IsWriteAtomic)
+                        if (TypeProps<V>.IsWriteAtomic)
                         {
                             existing.Value = value;
                             this.itemPolicy.Update(existing);
                         }
                         else
                         {
-                            throw new Exception();
                             // we can't safely update value in place so we need a new item
                             var newItem = this.itemPolicy.CreateItem(key, value);
 
