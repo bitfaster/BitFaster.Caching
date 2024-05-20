@@ -1,4 +1,6 @@
 ﻿
+using System.Threading;
+
 namespace BitFaster.Caching.Lru
 {
     /// <summary>
@@ -10,6 +12,8 @@ namespace BitFaster.Caching.Lru
     {
         private volatile bool wasAccessed;
         private volatile bool wasRemoved;
+
+        private int sequence;
 
         /// <summary>
         /// Initializes a new instance of the LruItem class with the specified key and value.
@@ -48,6 +52,40 @@ namespace BitFaster.Caching.Lru
         {
             get => this.wasRemoved;
             set => this.wasRemoved = value;
+        }
+
+        internal V SeqLockRead()
+        { 
+            var spin = new SpinWait();
+            while (true)
+            { 
+                var start = Volatile.Read(ref this.sequence);
+
+                if ((start & 1) == 1) 
+                {
+                    // A write is in progress. Back off and keep spinning.
+                    spin.SpinOnce();
+                    continue;
+                }
+
+                V copy = this.Value;
+
+                var end = Volatile.Read(ref this.sequence);
+                if (start == end)
+                { 
+                    return copy;    
+                }
+            }
+        }
+
+        // Note: item should be locked while invoking this method. Multiple writer threads are not supported.
+        internal void SeqLockWrite(V value)
+        { 
+            Interlocked.Increment(ref sequence);
+
+            this.Value = value;
+
+            Interlocked.Increment(ref sequence);
         }
     }
 }
