@@ -22,7 +22,7 @@ namespace BitFaster.Caching.Benchmarks
     // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/
     // [ThreadingDiagnoser] // Requires .NET Core
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
-    [ColumnChart(Title= "Lookup Latency ({JOB})", Output = OutputMode.PerJob, Colors = "darkslategray,royalblue,royalblue,#ffbf00,indianred,indianred")]
+    [ColumnChart(Title= "Guid Lookup Latency ({JOB})", Output = OutputMode.PerJob, Colors = "darkslategray,royalblue,royalblue,#ffbf00,indianred,indianred")]
     public class LruJustGetOrAddGuid
     {
         private static readonly ConcurrentDictionary<int, Guid> dictionary = new ConcurrentDictionary<int, Guid>(8, 9, EqualityComparer<int>.Default);
