@@ -179,7 +179,19 @@ namespace BitFaster.Caching.Lru
                 return false;
             }
 
-            value = item.Value;
+            if (TypeProps<V>.IsWriteAtomic)
+            {
+                value = item.Value;
+            }
+            else
+            { 
+                // prevent torn read for non-atomic types
+                lock (item)
+                {
+                    value = item.Value;
+                }
+            }
+
             this.itemPolicy.Touch(item);
             this.telemetryPolicy.IncrementHit();
             return true;
