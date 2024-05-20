@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
@@ -187,6 +188,29 @@ namespace BitFaster.Caching.UnitTests.Lru
                 this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
                 RunIntegrityCheck();
+            }
+        }
+
+        [Fact]
+        public async Task WhenSoakConcurrentGetAndUpdateValueTypeCacheEndsInConsistentState()
+        {
+            var lruVT = new ConcurrentLru<int, Guid>(1, capacity, EqualityComparer<int>.Default);
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () => {
+                    var b = new byte[8];
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        lruVT.TryUpdate(i + 1, new Guid(i, 0, 0, b));
+                        lruVT.GetOrAdd(i + 1, x => new Guid(x, 0, 0, b));
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{lruVT.HotCount} {lruVT.WarmCount} {lruVT.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", lruVT.Keys));
+
+                new ConcurrentLruIntegrityChecker<int, Guid, LruItem<int, Guid>, LruPolicy<int, Guid>, TelemetryPolicy<int, Guid>>(lruVT).Validate();
             }
         }
 
