@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HashTableSize", "HashTableS
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BenchPlot", "BenchPlot\BenchPlot.csproj", "{A3AA1ECB-E753-4E73-B2A8-09434FAF2664}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeqLock", "SeqLock\SeqLock.csproj", "{27E4861A-EB60-4D7B-B436-DC71EE89F32A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{A3AA1ECB-E753-4E73-B2A8-09434FAF2664}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A3AA1ECB-E753-4E73-B2A8-09434FAF2664}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A3AA1ECB-E753-4E73-B2A8-09434FAF2664}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27E4861A-EB60-4D7B-B436-DC71EE89F32A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27E4861A-EB60-4D7B-B436-DC71EE89F32A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27E4861A-EB60-4D7B-B436-DC71EE89F32A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27E4861A-EB60-4D7B-B436-DC71EE89F32A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,5 +1,4 @@
-﻿using System;
-using BitFaster.Caching.Lru;
+﻿using BitFaster.Caching.Lru;
 using ObjectLayoutInspector;
 using Xunit;
 using Xunit.Abstractions;
@@ -16,22 +15,24 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         //Type layout for 'LruItem`2'
-        //Size: 24 bytes.Paddings: 6 bytes(%25 of empty space)
-        //|===============================================|
-        //| Object Header(8 bytes)                        |
-        //|-----------------------------------------------|
-        //| Method Table Ptr(8 bytes)                     |
-        //|===============================================|
-        //|   0-7: Object Key(8 bytes)                    |
-        //|-----------------------------------------------|
-        //|  8-15: Object<Value> k__BackingField(8 bytes) |
-        //|-----------------------------------------------|
-        //|    16: Boolean wasAccessed(1 byte)            |
-        //|-----------------------------------------------|
-        //|    17: Boolean wasRemoved(1 byte)             |
-        //|-----------------------------------------------|
-        //| 18-23: padding(6 bytes)                       |
-        //|===============================================|
+        //Size: 24 bytes. Paddings: 2 bytes (%8 of empty space)
+        //|================================================|
+        //| Object Header (8 bytes)                        |
+        //|------------------------------------------------|
+        //| Method Table Ptr (8 bytes)                     |
+        //|================================================|
+        //|   0-7: Object Key (8 bytes)                    |
+        //|------------------------------------------------|
+        //|  8-15: Object <Value>k__BackingField (8 bytes) |
+        //|------------------------------------------------|
+        //| 16-19: Int32 sequence (4 bytes)                |
+        //|------------------------------------------------|
+        //|    20: Boolean wasAccessed (1 byte)            |
+        //|------------------------------------------------|
+        //|    21: Boolean wasRemoved (1 byte)             |
+        //|------------------------------------------------|
+        //| 22-23: padding (2 bytes)                       |
+        //|================================================|
         [Fact]
         public void DumpLruItem()
         { 
@@ -40,24 +41,26 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         //Type layout for 'LongTickCountLruItem`2'
-        //Size: 32 bytes.Paddings: 6 bytes(%18 of empty space)
-        //|==================================================|
-        //| Object Header(8 bytes)                           |
-        //|--------------------------------------------------|
-        //| Method Table Ptr(8 bytes)                        |
-        //|==================================================|
-        //|   0-7: Object Key(8 bytes)                       |
-        //|--------------------------------------------------|
-        //|  8-15: Object<Value> k__BackingField(8 bytes)    |
-        //|--------------------------------------------------|
-        //|    16: Boolean wasAccessed(1 byte)               |
-        //|--------------------------------------------------|
-        //|    17: Boolean wasRemoved(1 byte)                |
-        //|--------------------------------------------------|
-        //| 18-23: padding(6 bytes)                          |
-        //|--------------------------------------------------|
-        //| 24-31: Int64<TickCount> k__BackingField(8 bytes) |
-        //|==================================================|
+        //Size: 32 bytes. Paddings: 2 bytes (%6 of empty space)
+        //|===================================================|
+        //| Object Header (8 bytes)                           |
+        //|---------------------------------------------------|
+        //| Method Table Ptr (8 bytes)                        |
+        //|===================================================|
+        //|   0-7: Object Key (8 bytes)                       |
+        //|---------------------------------------------------|
+        //|  8-15: Object <Value>k__BackingField (8 bytes)    |
+        //|---------------------------------------------------|
+        //| 16-19: Int32 sequence (4 bytes)                   |
+        //|---------------------------------------------------|
+        //|    20: Boolean wasAccessed (1 byte)               |
+        //|---------------------------------------------------|
+        //|    21: Boolean wasRemoved (1 byte)                |
+        //|---------------------------------------------------|
+        //| 22-23: padding (2 bytes)                          |
+        //|---------------------------------------------------|
+        //| 24-31: Int64 <TickCount>k__BackingField (8 bytes) |
+        //|===================================================|
         [Fact]
         public void DumpLongTickCountLruItem()
         {
