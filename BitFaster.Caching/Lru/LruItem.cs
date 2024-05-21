@@ -13,6 +13,7 @@ namespace BitFaster.Caching.Lru
         private volatile bool wasAccessed;
         private volatile bool wasRemoved;
 
+        // only used when V is a non-atomic value type to prevent torn reads
         private int sequence;
 
         /// <summary>
@@ -63,7 +64,7 @@ namespace BitFaster.Caching.Lru
 
                 if ((start & 1) == 1) 
                 {
-                    // A write is in progress. Back off and keep spinning.
+                    // A write is in progress, spin.
                     spin.SpinOnce();
                     continue;
                 }
@@ -78,7 +79,7 @@ namespace BitFaster.Caching.Lru
             }
         }
 
-        // Note: item should be locked while invoking this method. Multiple writer threads are not supported.
+        // Note: LruItem should be locked while invoking this method. Multiple writer threads are not supported.
         internal void SeqLockWrite(V value)
         { 
             Interlocked.Increment(ref sequence);
