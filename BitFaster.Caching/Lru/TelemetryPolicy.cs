@@ -11,6 +11,7 @@ namespace BitFaster.Caching.Lru
     /// <typeparam name="V">The type of the value</typeparam>
     [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Upd = {Updated}, Evict = {Evicted}")]
     public struct TelemetryPolicy<K, V> : ITelemetryPolicy<K, V>
+        where K : notnull
     {
         private Counter hitCount;
         private Counter missCount;
