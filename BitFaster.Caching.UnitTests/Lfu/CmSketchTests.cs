@@ -6,7 +6,7 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lfu
 {
-    // Test with AVX2 if it is supported
+    // Test with AVX2 or ARM64 if it is supported
     public class CMSketchAvx2Tests : CmSketchTestBase<DetectIsa>
     {
     }

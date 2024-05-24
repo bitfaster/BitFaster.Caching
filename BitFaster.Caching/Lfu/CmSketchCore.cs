@@ -8,6 +8,10 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
 
+#if NET6_0_OR_GREATER
+using System.Runtime.Intrinsics.Arm;
+#endif
+
 namespace BitFaster.Caching.Lfu
 {
     /// <summary>
@@ -76,6 +80,12 @@ namespace BitFaster.Caching.Lfu
             {
                 return EstimateFrequencyAvx(value);
             }
+#if NET6_0_OR_GREATER
+            else if (isa.IsArm64Supported)
+            {
+                return EstimateFrequencyArm(value);
+            }
+#endif
             else
             {
                 return EstimateFrequencyStd(value);
@@ -99,6 +109,12 @@ namespace BitFaster.Caching.Lfu
             {
                 IncrementAvx(value);
             }
+#if NET6_0_OR_GREATER
+            else if (isa.IsArm64Supported)
+            {
+                IncrementArm(value);
+            }
+#endif
             else
             {
                 IncrementStd(value);
@@ -326,6 +342,143 @@ namespace BitFaster.Caching.Lfu
                 {
                     Reset();
                 }
+            }
+        }
+#endif
+
+#if NET6_0_OR_GREATER
+        private unsafe void IncrementArm(T value)
+        {
+            int blockHash = Spread(comparer.GetHashCode(value));
+            int counterHash = Rehash(blockHash);
+            int block = (blockHash & blockMask) << 3;
+
+            Vector128<int> h = Vector128.Create(counterHash);
+            h = AdvSimd.ShiftArithmetic(h, Vector128.Create(0, -8, -16, -24));
+
+            Vector128<int> index = AdvSimd.ShiftRightLogical(h, 1);
+            index = AdvSimd.And(index, Vector128.Create(15)); // j - counter index
+            Vector128<int> offset = AdvSimd.And(h, Vector128.Create(1));
+            Vector128<int> blockOffset = AdvSimd.Add(Vector128.Create(block), offset); // i - table index
+            blockOffset = AdvSimd.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
+
+            fixed (long* tablePtr = table)
+            {
+                int t0 = AdvSimd.Extract(blockOffset, 0);
+                int t1 = AdvSimd.Extract(blockOffset, 1);
+                int t2 = AdvSimd.Extract(blockOffset, 2);
+                int t3 = AdvSimd.Extract(blockOffset, 3);
+
+                var ta0 = AdvSimd.LoadVector64(tablePtr + t0);
+                var ta1 = AdvSimd.LoadVector64(tablePtr + t1);
+                var ta2 = AdvSimd.LoadVector64(tablePtr + t2);
+                var ta3 = AdvSimd.LoadVector64(tablePtr + t3);
+
+                Vector128<long> tableVectorA = Vector128.Create(ta0, ta1);
+                Vector128<long> tableVectorB = Vector128.Create(ta2, ta3);
+
+                // TODO: VectorTableLookup
+                //Vector128<long> tableVectorA = Vector128.Create(
+                //    tablePtr[t0],
+                //    tablePtr[t1]);
+                //Vector128<long> tableVectorB = Vector128.Create(
+                //    tablePtr[t2],
+                //    tablePtr[t3]);
+
+                // j == index
+                index = AdvSimd.ShiftLeftLogicalSaturate(index, 2);
+
+                Vector128<int> longOffA = AdvSimd.Arm64.InsertSelectedScalar(Vector128<int>.Zero, 0, index, 0);
+                longOffA = AdvSimd.Arm64.InsertSelectedScalar(longOffA, 2, index, 1);
+
+                Vector128<int> longOffB = AdvSimd.Arm64.InsertSelectedScalar(Vector128<int>.Zero, 0, index, 2);
+                longOffB = AdvSimd.Arm64.InsertSelectedScalar(longOffB, 2, index, 3);
+
+                Vector128<long> fifteen = Vector128.Create(0xfL);
+                Vector128<long> maskA = AdvSimd.ShiftArithmetic(fifteen, longOffA.AsInt64());
+                Vector128<long> maskB = AdvSimd.ShiftArithmetic(fifteen, longOffB.AsInt64());
+
+                Vector128<long> maskedA = AdvSimd.Arm64.CompareEqual(AdvSimd.And(tableVectorA, maskA), maskA);
+                Vector128<long> maskedB = AdvSimd.Arm64.CompareEqual(AdvSimd.And(tableVectorB, maskB), maskB);
+
+                var one = Vector128.Create(1L);
+                Vector128<long> incA = AdvSimd.ShiftArithmetic(one, longOffA.AsInt64());
+                Vector128<long> incB = AdvSimd.ShiftArithmetic(one, longOffB.AsInt64());
+
+                maskedA = AdvSimd.Not(maskedA);
+                maskedB = AdvSimd.Not(maskedB);
+
+                incA = AdvSimd.And(maskedA, incA);
+                incB = AdvSimd.And(maskedA, incB);
+
+                tablePtr[t0] += AdvSimd.Extract(incA, 0);
+                tablePtr[t1] += AdvSimd.Extract(incA, 1);
+                tablePtr[t2] += AdvSimd.Extract(incB, 0);
+                tablePtr[t3] += AdvSimd.Extract(incB, 1);
+
+                var maxA = AdvSimd.Arm64.MaxAcross(incA.AsInt32());
+                var maxB = AdvSimd.Arm64.MaxAcross(incB.AsInt32());
+                maxA = AdvSimd.Arm64.InsertSelectedScalar(maxA, 1, maxB, 0);
+                var max = AdvSimd.Arm64.MaxAcross(maxA.AsInt16());
+
+                if (max.ToScalar() != 0 && (++size == sampleSize))
+                {
+                    Reset();
+                }
+            }
+        }
+
+        private unsafe int EstimateFrequencyArm(T value)
+        {
+            int blockHash = Spread(comparer.GetHashCode(value));
+            int counterHash = Rehash(blockHash);
+            int block = (blockHash & blockMask) << 3;
+
+            Vector128<int> h = Vector128.Create(counterHash);
+            h = AdvSimd.ShiftArithmetic(h, Vector128.Create(0, -8, -16, -24));
+
+            Vector128<int> index = AdvSimd.ShiftRightLogical(h, 1);
+
+            index = AdvSimd.And(index, Vector128.Create(0xf)); // j - counter index
+            Vector128<int> offset = AdvSimd.And(h, Vector128.Create(1));
+            Vector128<int> blockOffset = AdvSimd.Add(Vector128.Create(block), offset); // i - table index
+            blockOffset = AdvSimd.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
+
+            fixed (long* tablePtr = table)
+            {
+                // TODO: VectorTableLookup
+                Vector128<long> tableVectorA = Vector128.Create(
+                    tablePtr[AdvSimd.Extract(blockOffset, 0)],
+                    tablePtr[AdvSimd.Extract(blockOffset, 1)]);
+                Vector128<long> tableVectorB = Vector128.Create(
+                    tablePtr[AdvSimd.Extract(blockOffset, 2)],
+                    tablePtr[AdvSimd.Extract(blockOffset, 3)]);
+
+                // j == index
+                index = AdvSimd.ShiftLeftLogicalSaturate(index, 2);
+
+                Vector128<int> indexA = AdvSimd.Arm64.InsertSelectedScalar(Vector128<int>.Zero, 0, index, 0);
+                indexA = AdvSimd.Arm64.InsertSelectedScalar(indexA, 2, index, 1);
+
+                Vector128<int> indexB = AdvSimd.Arm64.InsertSelectedScalar(Vector128<int>.Zero, 0, index, 2);
+                indexB = AdvSimd.Arm64.InsertSelectedScalar(indexB, 2, index, 3);
+
+                indexA = AdvSimd.Negate(indexA);
+                indexB = AdvSimd.Negate(indexB);
+
+                Vector128<long> a = AdvSimd.ShiftArithmetic(tableVectorA, indexA.AsInt64());
+                Vector128<long> b = AdvSimd.ShiftArithmetic(tableVectorB, indexB.AsInt64());
+
+                var fifteen = Vector128.Create(0xfL);
+                a = AdvSimd.And(a, fifteen);
+                b = AdvSimd.And(b, fifteen);
+
+                var minA = AdvSimd.Arm64.MinAcross(a.AsInt32());
+                var minB = AdvSimd.Arm64.MinAcross(b.AsInt32());
+                minA = AdvSimd.Arm64.InsertSelectedScalar(minA, 1, minB, 0);
+                var min = AdvSimd.Arm64.MinAcross(minA.AsInt16());
+
+                return min.ToScalar();
             }
         }
 #endif
