@@ -16,9 +16,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         // https://stackoverflow.com/questions/23262513/reproduce-torn-reads-of-decimal-in-c-sharp
         [Theory]
         [Repeat(soakIterations)]
-        #pragma warning disable xUnit1026 
-        public async Task DetectTornStruct(int iteration)
-        #pragma warning restore xUnit1026 
+        public async Task DetectTornStruct(int _)
         { 
             using var source = new CancellationTokenSource();
             var started = new TaskCompletionSource<bool>();
@@ -30,7 +28,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             await setTask;
         }
 
-        void Setter(CancellationToken cancelToken, TaskCompletionSource<bool> started)
+        private void Setter(CancellationToken cancelToken, TaskCompletionSource<bool> started)
         {
             started.SetResult(true);
 
@@ -46,7 +44,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
         }
 
-        void Checker(CancellationTokenSource source)
+        private void Checker(CancellationTokenSource source)
         {
             // On my machine, without SeqLock, this consistently fails below 100 iterations
             // on debug build, and below 1000 on release build

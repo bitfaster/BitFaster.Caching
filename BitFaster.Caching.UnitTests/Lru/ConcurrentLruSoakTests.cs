@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
+using static BitFaster.Caching.UnitTests.Lru.LruItemSoakTests;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -280,6 +282,52 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
             RunIntegrityCheck();
+        }
+
+        // This test will run forever if there is a live lock.
+        // Since the cache bookkeeping has some overhead, it is harder to provoke
+        // spinning inside the reader thread compared to LruItemSoakTests.DetectTornStruct.
+        [Theory]
+        [Repeat(10)]
+        public async Task WhenValueIsBigStructNoLiveLock(int _)
+        { 
+            using var source = new CancellationTokenSource();
+            var started = new TaskCompletionSource<bool>();
+            var cache = new ConcurrentLru<int, Guid>(1, capacity, EqualityComparer<int>.Default);
+
+            var setTask = Task.Run(() => Setter(cache, source.Token, started));
+            await started.Task;
+            Checker(cache, source);
+
+            await setTask;
+        }
+
+        private void Setter(ICache<int, Guid> cache, CancellationToken cancelToken, TaskCompletionSource<bool> started)
+        {
+            started.SetResult(true);
+
+            while (true)
+            {
+                cache.AddOrUpdate(1, Guid.NewGuid());
+                cache.AddOrUpdate(1, Guid.NewGuid());
+
+                if (cancelToken.IsCancellationRequested)
+                { 
+                    return; 
+                }
+            }
+        }
+
+        private void Checker(ICache<int, Guid> cache,CancellationTokenSource source)
+        {
+            // On my machine, without SeqLock, this consistently fails below 100 iterations
+            // on debug build, and below 1000 on release build
+            for (int count = 0; count < 100_000; ++count)
+            {
+                cache.TryGet(1, out _);
+            }
+
+            source.Cancel();
         }
 
         private void RunIntegrityCheck()
