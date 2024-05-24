@@ -6,6 +6,7 @@ namespace BitFaster.Caching
 {
     [ExcludeFromCodeCoverage]
     internal class CacheDebugView<K, V>
+        where K : notnull
     {
         private readonly ICache<K, V> cache;
 

@@ -9,6 +9,7 @@ namespace BitFaster.Caching.Lru
     /// <typeparam name="K">The type of the key.</typeparam>
     /// <typeparam name="V">The type of the value.</typeparam>
     public class LruItem<K, V>
+        where K : notnull
     {
         private volatile bool wasAccessed;
         private volatile bool wasRemoved;

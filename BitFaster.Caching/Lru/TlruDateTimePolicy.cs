@@ -8,6 +8,7 @@ namespace BitFaster.Caching.Lru
     /// recently used items first, and any item that has expired.
     /// </summary>
     public readonly struct TLruDateTimePolicy<K, V> : IItemPolicy<K, V, TimeStampedLruItem<K, V>>
+        where K : notnull
     {
         private readonly TimeSpan timeToLive;
 

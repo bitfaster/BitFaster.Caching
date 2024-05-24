@@ -9,6 +9,7 @@ namespace BitFaster.Caching.Lru.Builder
     /// <typeparam name="K">The LRU key type</typeparam>
     // backcompat: make class internal
     public sealed class LruInfo<K>
+        where K : notnull
     {
         private object? expiry = null;
 

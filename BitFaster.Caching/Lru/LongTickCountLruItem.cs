@@ -7,6 +7,7 @@ namespace BitFaster.Caching.Lru
     /// <typeparam name="K">The type of the key.</typeparam>
     /// <typeparam name="V">The type of the value.</typeparam>
     public class LongTickCountLruItem<K, V> : LruItem<K, V>
+        where K : notnull
     {
         /// <summary>
         /// Initializes a new instance of the LongTickCountLruItem class with the specified key and value.

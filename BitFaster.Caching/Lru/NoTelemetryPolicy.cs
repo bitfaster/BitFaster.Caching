@@ -10,6 +10,7 @@ namespace BitFaster.Caching.Lru
     /// <typeparam name="K">The type of the key.</typeparam>
     /// <typeparam name="V">The type of the value.</typeparam>
     public struct NoTelemetryPolicy<K, V> : ITelemetryPolicy<K, V>
+        where K : notnull
     {
         ///<inheritdoc/>
         public double HitRatio => 0.0;
