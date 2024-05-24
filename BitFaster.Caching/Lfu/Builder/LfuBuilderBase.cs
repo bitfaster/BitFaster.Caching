@@ -12,6 +12,7 @@ namespace BitFaster.Caching.Lfu.Builder
     /// <typeparam name="TBuilder">The type of the builder.</typeparam>
     /// <typeparam name="TCacheReturn">The return type of the builder.</typeparam>
     public abstract class LfuBuilderBase<K, V, TBuilder, TCacheReturn> where TBuilder : LfuBuilderBase<K, V, TBuilder, TCacheReturn>
+        where K : notnull
     {
         internal readonly LfuInfo<K> info;
 

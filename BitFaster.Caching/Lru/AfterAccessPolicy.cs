@@ -7,6 +7,7 @@ namespace BitFaster.Caching.Lru
     /// Implement an expire after access policy.
     /// </summary>
     internal readonly struct AfterAccessPolicy<K, V> : IItemPolicy<K, V, LongTickCountLruItem<K, V>>
+        where K : notnull
     {
         private readonly Duration timeToLive;
         private readonly Time time;
