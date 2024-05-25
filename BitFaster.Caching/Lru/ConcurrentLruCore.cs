@@ -179,15 +179,7 @@ namespace BitFaster.Caching.Lru
                 return false;
             }
 
-            if (TypeProps<V>.IsWriteAtomic)
-            {
-                value = item.Value;
-            }
-            else
-            { 
-                // prevent torn read for non-atomic types
-                value = item.SeqLockRead();
-            }
+            value = item.Value;
 
             this.itemPolicy.Touch(item);
             this.telemetryPolicy.IncrementHit();
@@ -392,15 +384,8 @@ namespace BitFaster.Caching.Lru
                     {
                         V oldValue = existing.Value;
 
-                        if (TypeProps<V>.IsWriteAtomic)
-                        { 
-                            existing.Value = value;
-                        }
-                        else
-                        { 
-                            existing.SeqLockWrite(value);
-                        }
-                        
+                        existing.Value = value;
+
                         this.itemPolicy.Update(existing);
 // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER

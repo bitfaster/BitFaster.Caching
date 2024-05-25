@@ -1,4 +1,5 @@
 ﻿
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace BitFaster.Caching.Lru
@@ -11,6 +12,8 @@ namespace BitFaster.Caching.Lru
     public class LruItem<K, V>
         where K : notnull
     {
+        private V data;
+
         private volatile bool wasAccessed;
         private volatile bool wasRemoved;
 
@@ -25,7 +28,7 @@ namespace BitFaster.Caching.Lru
         public LruItem(K k, V v)
         {
             this.Key = k;
-            this.Value = v;
+            this.data = v;
         }
 
         /// <summary>
@@ -36,7 +39,33 @@ namespace BitFaster.Caching.Lru
         /// <summary>
         /// Gets or sets the value.
         /// </summary>
-        public V Value { get; set; }
+        public V Value 
+        { 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            { 
+                if (TypeProps<V>.IsWriteAtomic)
+                { 
+                    return data;
+                }
+                else
+                { 
+                    return SeqLockRead();
+                } 
+            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            { 
+                if (TypeProps<V>.IsWriteAtomic)
+                { 
+                    data = value;
+                }
+                else
+                { 
+                    SeqLockWrite(value);
+                }
+            }
+        }
 
         /// <summary>
         /// Gets or sets a value indicating whether the item was accessed.
@@ -70,7 +99,7 @@ namespace BitFaster.Caching.Lru
                     continue;
                 }
 
-                V copy = this.Value;
+                V copy = this.data;
 
                 var end = Volatile.Read(ref this.sequence);
                 if (start == end)
@@ -85,7 +114,7 @@ namespace BitFaster.Caching.Lru
         { 
             Interlocked.Increment(ref sequence);
 
-            this.Value = value;
+            this.data = value;
 
             Interlocked.Increment(ref sequence);
         }
