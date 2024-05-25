@@ -473,12 +473,15 @@ namespace BitFaster.Caching.Lfu
                 a = AdvSimd.And(a, fifteen);
                 b = AdvSimd.And(b, fifteen);
 
-                var minA = AdvSimd.Arm64.MinAcross(a.AsInt32());
-                var minB = AdvSimd.Arm64.MinAcross(b.AsInt32());
-                minA = AdvSimd.Arm64.InsertSelectedScalar(minA, 1, minB, 0);
-                var min = AdvSimd.Arm64.MinAcross(minA.AsInt16());
+                // TODO: VectorTableLookup
+                Vector128<int> x = AdvSimd.Arm64.InsertSelectedScalar(Vector128<int>.Zero, 0, a.AsInt32(), 0);
+                x = AdvSimd.Arm64.InsertSelectedScalar(x, 1, a.AsInt32(), 2);
+                x = AdvSimd.Arm64.InsertSelectedScalar(x, 2, b.AsInt32(), 0);
+                x = AdvSimd.Arm64.InsertSelectedScalar(x, 3, b.AsInt32(), 2);
 
-                return min.ToScalar();
+                var minA = AdvSimd.Arm64.MinAcross(x);
+
+                return minA.ToScalar();
             }
         }
 #endif

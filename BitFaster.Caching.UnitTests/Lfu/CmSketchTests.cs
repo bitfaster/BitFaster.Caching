@@ -6,12 +6,12 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lfu
 {
-    // Test with AVX2 or ARM64 if it is supported
-    public class CMSketchAvx2Tests : CmSketchTestBase<DetectIsa>
+    // Test with AVX2/ARM64 if it is supported
+    public class CMSketchIntrinsicsTests : CmSketchTestBase<DetectIsa>
     {
     }
 
-    // Test with AVX2 disabled
+    // Test with AVX2/ARM64 disabled
     public class CmSketchTests : CmSketchTestBase<DisableHardwareIntrinsics>
     {
     }
@@ -29,13 +29,22 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void Repro()
         {
             sketch = new CmSketchCore<int, I>(1_048_576, EqualityComparer<int>.Default);
+            var baseline = new CmSketchCore<int, DisableHardwareIntrinsics>(1_048_576, EqualityComparer<int>.Default);
 
             for (int i = 0; i < 1_048_576; i++)
             {
                 if (i % 3 == 0)
                 {
                     sketch.Increment(i);
+                    baseline.Increment(i);
                 }
+            }
+
+            baseline.Size.Should().Be(sketch.Size);
+
+            for (int i = 0; i < 1_048_576; i++)
+            {
+                sketch.EstimateFrequency(i).Should().Be(baseline.EstimateFrequency(i));
             }
         }
 
