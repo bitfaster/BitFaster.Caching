@@ -409,7 +409,7 @@ namespace BitFaster.Caching.Lfu
                 maskedB = AdvSimd.Not(maskedB);
 
                 incA = AdvSimd.And(maskedA, incA);
-                incB = AdvSimd.And(maskedA, incB);
+                incB = AdvSimd.And(maskedB, incB);
 
                 tablePtr[t0] += AdvSimd.Extract(incA, 0);
                 tablePtr[t1] += AdvSimd.Extract(incA, 1);
