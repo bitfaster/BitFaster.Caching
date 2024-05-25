@@ -383,17 +383,14 @@ namespace BitFaster.Caching.Lfu
 
                 var one = Vector128.Create(1L);
                 Vector128<long> incA = AdvSimd.And(maskedA, AdvSimd.ShiftArithmetic(one, longOffA.AsInt64()));
-                Vector128<long> incB = AdvSimd.And(maskedA, AdvSimd.ShiftArithmetic(one, longOffB.AsInt64()));
+                Vector128<long> incB = AdvSimd.And(maskedB, AdvSimd.ShiftArithmetic(one, longOffB.AsInt64()));
 
                 tablePtr[t0] += AdvSimd.Extract(incA, 0);
                 tablePtr[t1] += AdvSimd.Extract(incA, 1);
                 tablePtr[t2] += AdvSimd.Extract(incB, 0);
                 tablePtr[t3] += AdvSimd.Extract(incB, 1);
 
-                var maxA = AdvSimd.Arm64.MaxAcross(incA.AsInt32());
-                var maxB = AdvSimd.Arm64.MaxAcross(incB.AsInt32());
-                maxA = AdvSimd.Arm64.InsertSelectedScalar(maxA, 1, maxB, 0);
-                var max = AdvSimd.Arm64.MaxAcross(maxA.AsInt16());
+                var max = AdvSimd.Arm64.MaxAcross(AdvSimd.Arm64.InsertSelectedScalar(AdvSimd.Arm64.MaxAcross(incA.AsInt32()), 1, AdvSimd.Arm64.MaxAcross(incB.AsInt32()), 0).AsInt16());
 
                 if (max.ToScalar() != 0 && (++size == sampleSize))
                 {
