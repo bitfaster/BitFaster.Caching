@@ -474,14 +474,17 @@ namespace BitFaster.Caching.Lfu
                 b = AdvSimd.And(b, fifteen);
 
                 // TODO: VectorTableLookup
-                Vector128<int> x = AdvSimd.Arm64.InsertSelectedScalar(Vector128<int>.Zero, 0, a.AsInt32(), 0);
-                x = AdvSimd.Arm64.InsertSelectedScalar(x, 1, a.AsInt32(), 2);
-                x = AdvSimd.Arm64.InsertSelectedScalar(x, 2, b.AsInt32(), 0);
-                x = AdvSimd.Arm64.InsertSelectedScalar(x, 3, b.AsInt32(), 2);
+                //Vector128<int> x = AdvSimd.Arm64.InsertSelectedScalar(Vector128<int>.Zero, 0, a.AsInt32(), 0);
+                //x = AdvSimd.Arm64.InsertSelectedScalar(x, 1, a.AsInt32(), 2);
+                //x = AdvSimd.Arm64.InsertSelectedScalar(x, 2, b.AsInt32(), 0);
+                //x = AdvSimd.Arm64.InsertSelectedScalar(x, 3, b.AsInt32(), 2);
 
-                var minA = AdvSimd.Arm64.MinAcross(x);
+                var min = AdvSimd.Arm64.VectorTableLookup(a.AsByte(), Vector128.Create(0x0B0A090803020100, 0xFFFFFFFFFFFFFFFF).AsByte());
+                min = AdvSimd.Arm64.VectorTableLookupExtension(min, b.AsByte(), Vector128.Create(0xFFFFFFFFFFFFFFFF, 0x0B0A090803020100).AsByte());
 
-                return minA.ToScalar();
+                var min32 = AdvSimd.Arm64.MinAcross(min.AsInt32());
+
+                return min32.ToScalar();
             }
         }
 #endif
