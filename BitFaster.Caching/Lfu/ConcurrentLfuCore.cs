@@ -371,7 +371,7 @@ namespace BitFaster.Caching.Lfu
                 }
                 else
                 { 
-                    var newNode = policy.Create(key, value);
+                    var newNode = policy.Clone(node, value);
                     if (this.dictionary.TryUpdate(key, newNode, node))
                     { 
                         // This can't be lossy, because we need to attach the new node.

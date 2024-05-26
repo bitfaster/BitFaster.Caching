@@ -9,6 +9,7 @@ namespace BitFaster.Caching.Lfu
         where N : LfuNode<K, V>
     {
         N Create(K key, V value);
+        N Clone(N previous, V value);
         bool IsExpired(N node);
         void AdvanceTime();
         void OnRead(N node);
@@ -24,6 +25,11 @@ namespace BitFaster.Caching.Lfu
         public AccessOrderNode<K, V> Create(K key, V value)
         {
             return new AccessOrderNode<K, V>(key, value);
+        }
+
+        public AccessOrderNode<K, V> Clone(AccessOrderNode<K, V> prev, V value)
+        {
+            return new AccessOrderNode<K, V>(prev.Key, value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -83,6 +89,14 @@ namespace BitFaster.Caching.Lfu
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TimeOrderNode<K, V> Clone(TimeOrderNode<K, V> prev, V value)
+        {
+            var node = new TimeOrderNode<K, V>(prev.Key, value) { TimeToExpire = prev.TimeToExpire };
+            node.SetNextInTimeOrder(node);
+            return node;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsExpired(TimeOrderNode<K, V> node)
         {
             return node.TimeToExpire < Duration.SinceEpoch();
@@ -118,9 +132,19 @@ namespace BitFaster.Caching.Lfu
             {
                 var oldTte = node.TimeToExpire;
                 node.TimeToExpire = current + expiryCalculator.GetExpireAfterUpdate(node.Key, node.Value, node.TimeToExpire - current);
-                if (oldTte.raw != node.TimeToExpire.raw)
-                {
-                    wheel.Reschedule(node);
+                
+                // non-atomic write value node was updated and replaced, schedule
+                // can JIT elide this branch for atomic writes?
+                if (!TypeProps<V>.IsWriteAtomic && node.GetNextInTimeOrder() == node)
+                { 
+                    wheel.Schedule(node);
+                }
+                else
+                { 
+                    if (oldTte.raw != node.TimeToExpire.raw)
+                    {
+                        wheel.Reschedule(node);
+                    }
                 }
             }
         }
