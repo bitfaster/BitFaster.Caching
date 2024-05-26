@@ -774,6 +774,19 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenKeyExistsAddOrUpdateGuidUpdatesExistingItem()
+        { 
+            var lru2 = new ConcurrentLru<int, Guid>(1, capacity, EqualityComparer<int>.Default);    
+            
+            var b = new byte[8];
+            lru2.AddOrUpdate(1, new Guid(1, 0, 0, b));
+            lru2.AddOrUpdate(1, new Guid(2, 0, 0, b));
+
+            lru2.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be(new Guid(2, 0, 0, b));
+        }
+
+        [Fact]
         public void WhenKeyExistsAddOrUpdateDisposesOldValue()
         {
             var lruOfDisposable = new ConcurrentLru<int, DisposableItem>(1, 6, EqualityComparer<int>.Default);
