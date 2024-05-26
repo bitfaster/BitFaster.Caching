@@ -360,12 +360,33 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                node.Value = value;
-
-                // It's ok for this to be lossy, since the node is already tracked
-                // and we will just lose ordering/hit count, but not orphan the node.
-                this.writeBuffer.TryAdd(node);
-                TryScheduleDrain();
+                if (TypeProps<V>.IsWriteAtomic)
+                {
+                    node.Value = value;
+                    
+                    // It's ok for this to be lossy, since the node is already tracked
+                    // and we will just lose ordering/hit count, but not orphan the node.
+                    this.writeBuffer.TryAdd(node);
+                    TryScheduleDrain();
+                }
+                else
+                { 
+                    var newNode = policy.Create(key, value);
+                    if (this.dictionary.TryUpdate(key, newNode, node))
+                    { 
+                        // This can't be lossy, because we need to attach the new node.
+                        node.WasRemoved = true;
+                        AfterWrite(node);
+                        AfterWrite(newNode);
+                        
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                
                 return true;
             }
 
