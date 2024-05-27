@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
 
 
 #if !NETSTANDARD2_0
@@ -172,6 +174,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         // Applies another round of hashing for additional randomization
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Rehash(int x)
         {
             x = (int)(x * 0x31848bab);
@@ -180,6 +183,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         // Applies a supplemental hash functions to defends against poor quality hash.
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Spread(int x)
         {
             x ^= (int)((uint)x >> 17);
@@ -231,40 +235,28 @@ namespace BitFaster.Caching.Lfu
         }
 
 #if !NETSTANDARD2_0
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl((MethodImplOptions)512)]
         private unsafe int EstimateFrequencyAvx(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
             int counterHash = Rehash(blockHash);
             int block = (blockHash & blockMask) << 3;
 
-            Vector128<int> h = Vector128.Create(counterHash);
-            h = Avx2.ShiftRightLogicalVariable(h.AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
+            Vector128<int> h = Avx2.ShiftRightLogicalVariable(Vector128.Create(counterHash).AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
+            Vector128<int> index = Avx2.ShiftLeftLogical(Avx2.And(Avx2.ShiftRightLogical(h, 1), Vector128.Create(15)), 2);
+            Vector128<int> blockOffset = Avx2.Add(Avx2.Add(Vector128.Create(block), Avx2.And(h, Vector128.Create(1))), Vector128.Create(0, 2, 4, 6));
 
-            var index = Avx2.ShiftRightLogical(h, 1);
-            index = Avx2.And(index, Vector128.Create(15)); // j - counter index
-            Vector128<int> offset = Avx2.And(h, Vector128.Create(1));
-            Vector128<int> blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
-            blockOffset = Avx2.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
+            Vector256<ulong> indexLong = Avx2.PermuteVar8x32(Vector256.Create(index, Vector128<int>.Zero), Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7)).AsUInt64();
 
             fixed (long* tablePtr = table)
             {
-                Vector256<long> tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
-                index = Avx2.ShiftLeftLogical(index, 2);
-
-                // convert index from int to long via permute
-                Vector256<long> indexLong = Vector256.Create(index, Vector128<int>.Zero).AsInt64();
-                Vector256<int> permuteMask2 = Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7);
-                indexLong = Avx2.PermuteVar8x32(indexLong.AsInt32(), permuteMask2).AsInt64();
-                tableVector = Avx2.ShiftRightLogicalVariable(tableVector, indexLong.AsUInt64());
-                tableVector = Avx2.And(tableVector, Vector256.Create(0xfL));
-
-                Vector256<int> permuteMask = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
-                Vector128<ushort> count = Avx2.PermuteVar8x32(tableVector.AsInt32(), permuteMask)
+                Vector128<ushort> count = Avx2.PermuteVar8x32(Avx2.And(Avx2.ShiftRightLogicalVariable(Avx2.GatherVector256(tablePtr, blockOffset, 8), indexLong), Vector256.Create(0xfL)).AsInt32(), Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7))
                     .GetLower()
                     .AsUInt16();
 
                 // set the zeroed high parts of the long value to ushort.Max
-#if NET6_0
+#if NET6_0_OR_GREATER
                 count = Avx2.Blend(count, Vector128<ushort>.AllBitsSet, 0b10101010);
 #else
                 count = Avx2.Blend(count, Vector128.Create(ushort.MaxValue), 0b10101010);
@@ -274,48 +266,30 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl((MethodImplOptions)512)]
         private unsafe void IncrementAvx(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
             int counterHash = Rehash(blockHash);
             int block = (blockHash & blockMask) << 3;
 
-            Vector128<int> h = Vector128.Create(counterHash);
-            h = Avx2.ShiftRightLogicalVariable(h.AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
+            Vector128<int> h = Avx2.ShiftRightLogicalVariable(Vector128.Create(counterHash).AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
+            Vector128<int> index = Avx2.ShiftLeftLogical(Avx2.And(Avx2.ShiftRightLogical(h, 1), Vector128.Create(15)), 2);
+            Vector128<int> blockOffset = Avx2.Add(Avx2.Add(Vector128.Create(block), Avx2.And(h, Vector128.Create(1))), Vector128.Create(0, 2, 4, 6));
 
-            Vector128<int> index = Avx2.ShiftRightLogical(h, 1);
-            index = Avx2.And(index, Vector128.Create(15)); // j - counter index
-            Vector128<int> offset = Avx2.And(h, Vector128.Create(1));
-            Vector128<int> blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
-            blockOffset = Avx2.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
+            Vector256<ulong> offsetLong = Avx2.PermuteVar8x32(Vector256.Create(index, Vector128<int>.Zero), Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7)).AsUInt64();
+            Vector256<long> mask = Avx2.ShiftLeftLogicalVariable(Vector256.Create(0xfL), offsetLong);
 
             fixed (long* tablePtr = table)
             {
-                Vector256<long> tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
-
-                // j == index
-                index = Avx2.ShiftLeftLogical(index, 2);
-                Vector256<long> offsetLong = Vector256.Create(index, Vector128<int>.Zero).AsInt64();
-
-                Vector256<int> permuteMask = Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7);
-                offsetLong = Avx2.PermuteVar8x32(offsetLong.AsInt32(), permuteMask).AsInt64();
-
-                // mask = (0xfL << offset)
-                Vector256<long> fifteen = Vector256.Create(0xfL);
-                Vector256<long> mask = Avx2.ShiftLeftLogicalVariable(fifteen, offsetLong.AsUInt64());
-
-                // (table[i] & mask) != mask)
                 // Note masked is 'equal' - therefore use AndNot below
-                Vector256<long> masked = Avx2.CompareEqual(Avx2.And(tableVector, mask), mask);
-
-                // 1L << offset
-                Vector256<long> inc = Avx2.ShiftLeftLogicalVariable(Vector256.Create(1L), offsetLong.AsUInt64());
+                Vector256<long> masked = Avx2.CompareEqual(Avx2.And(Avx2.GatherVector256(tablePtr, blockOffset, 8), mask), mask);
 
                 // Mask to zero out non matches (add zero below) - first operand is NOT then AND result (order matters)
-                inc = Avx2.AndNot(masked, inc);
+                Vector256<long> inc = Avx2.AndNot(masked, Avx2.ShiftLeftLogicalVariable(Vector256.Create(1L), offsetLong));
 
-                Vector256<byte> result = Avx2.CompareEqual(masked.AsByte(), Vector256<byte>.Zero);
-                bool wasInc = Avx2.MoveMask(result.AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
+                bool wasInc = Avx2.MoveMask(Avx2.CompareEqual(masked.AsByte(), Vector256<byte>.Zero).AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
 
                 tablePtr[blockOffset.GetElement(0)] += inc.GetElement(0);
                 tablePtr[blockOffset.GetElement(1)] += inc.GetElement(1);
