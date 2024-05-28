@@ -114,6 +114,9 @@ namespace BitFaster.Caching.Lfu
             this.prevTime = prev;
         }
 
+        // Note: there is a special case for non-atomic value types. When the node has been updated,
+        // GetNextInTimeOrder() will return this. In this situation, the node is not attached to the
+        // timer wheel.
         public TimeOrderNode<K, V> GetNextInTimeOrder()
         {
             return nextTime;
