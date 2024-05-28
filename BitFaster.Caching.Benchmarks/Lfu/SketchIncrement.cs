@@ -8,6 +8,7 @@ using BitFaster.Caching.Lfu;
 namespace BitFaster.Caching.Benchmarks.Lfu
 {
     [SimpleJob(RuntimeMoniker.Net60)]
+    [SimpleJob(RuntimeMoniker.Net80)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     [ColumnChart(Title = "Sketch Increment ({JOB})")]
@@ -21,7 +22,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private CmSketchCore<int, DisableHardwareIntrinsics> blockStd;
         private CmSketchCore<int, DetectIsa> blockAvx;
 
-        [Params(32_768, 524_288, 8_388_608, 134_217_728)]
+        [Params(1024, 32_768, 524_288, 8_388_608, 134_217_728)]
         public int Size { get; set; }
 
         [GlobalSetup]
@@ -43,7 +44,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             }
         }
 
-        [Benchmark(OperationsPerInvoke = iterations)]
+        //[Benchmark(OperationsPerInvoke = iterations)]
         public void IncFlatAvx()
         {
             for (int i = 0; i < iterations; i++)
