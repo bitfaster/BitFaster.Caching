@@ -7,6 +7,7 @@ using BitFaster.Caching.Scheduler;
 namespace BitFaster.Caching.Lfu.Builder
 {
     internal sealed class LfuInfo<K>
+        where K : notnull
     {
         private object? expiry = null;
 

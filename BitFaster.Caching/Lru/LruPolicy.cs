@@ -7,6 +7,7 @@ namespace BitFaster.Caching.Lru
     /// Discards the least recently used items first. 
     /// </summary>
     public readonly struct LruPolicy<K, V> : IItemPolicy<K, V, LruItem<K, V>>
+        where K : notnull
     {
         ///<inheritdoc/>
         public TimeSpan TimeToLive => Defaults.Infinite;

@@ -180,6 +180,7 @@ namespace BitFaster.Caching.Lru
             }
 
             value = item.Value;
+
             this.itemPolicy.Touch(item);
             this.telemetryPolicy.IncrementHit();
             return true;
@@ -382,7 +383,9 @@ namespace BitFaster.Caching.Lru
                     if (!existing.WasRemoved)
                     {
                         V oldValue = existing.Value;
+
                         existing.Value = value;
+
                         this.itemPolicy.Update(existing);
 // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER

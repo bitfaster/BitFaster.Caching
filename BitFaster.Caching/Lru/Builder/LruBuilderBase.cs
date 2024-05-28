@@ -7,6 +7,7 @@ namespace BitFaster.Caching.Lru.Builder
     /// Recursive generic base class enables builder inheritance.
     /// </summary>
     public abstract class LruBuilderBase<K, V, TBuilder, TCacheReturn> where TBuilder : LruBuilderBase<K, V, TBuilder, TCacheReturn>
+        where K : notnull
     {
         internal readonly LruInfo<K> info;
 

@@ -7,6 +7,7 @@ namespace BitFaster.Caching.Lru
     /// <typeparam name="K">The type of the key.</typeparam>
     /// <typeparam name="V">The type of the value.</typeparam>
     public interface ITelemetryPolicy<K, V> : ICacheMetrics, ICacheEvents<K, V>
+        where K : notnull
     {
         /// <summary>
         /// Increment the miss counter.

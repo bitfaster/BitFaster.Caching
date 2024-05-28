@@ -9,6 +9,7 @@ namespace BitFaster.Caching.Lru
     /// <typeparam name="V">The type of the value.</typeparam>
     /// <typeparam name="I">The type of the LRU item.</typeparam>
     public interface IItemPolicy<in K, in V, I> where I : LruItem<K, V>
+        where K : notnull
     {
         /// <summary>
         /// Creates an LRU item.

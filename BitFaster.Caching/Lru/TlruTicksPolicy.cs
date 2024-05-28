@@ -13,6 +13,7 @@ namespace BitFaster.Caching.Lru
     /// value will wrap and time measurement will become invalid.
     /// </remarks>
     public readonly struct TLruTicksPolicy<K, V> : IItemPolicy<K, V, TickCountLruItem<K, V>>
+        where K : notnull
     {
         private readonly int timeToLive;
 
