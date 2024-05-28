@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 namespace BitFaster.Caching.Lru
 {
     internal readonly struct DiscretePolicy<K, V> : IDiscreteItemPolicy<K, V>
+        where K : notnull
     {
         private readonly IExpiryCalculator<K, V> expiry;
         private readonly Time time;

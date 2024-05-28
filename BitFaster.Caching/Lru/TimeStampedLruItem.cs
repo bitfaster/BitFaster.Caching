@@ -8,6 +8,7 @@ namespace BitFaster.Caching.Lru
     /// <typeparam name="K">The type of the key.</typeparam>
     /// <typeparam name="V">The type of the value.</typeparam>
     public class TimeStampedLruItem<K, V> : LruItem<K, V>
+        where K : notnull
     {
         /// <summary>
         /// Initializes a new instance of the TimeStampedLruItem class with the specified key and value.
