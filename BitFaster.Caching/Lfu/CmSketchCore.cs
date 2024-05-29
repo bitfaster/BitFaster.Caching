@@ -119,10 +119,8 @@ namespace BitFaster.Caching.Lfu
         {
             #if NET6_0_OR_GREATER
             table = GC.AllocateArray<long>(table.Length, true);
-                        GCHandle handle = GCHandle.Alloc(table, GCHandleType.Pinned);
-            IntPtr pointer = handle.AddrOfPinnedObject();
-
-            tableAddr = (long*)pointer + pointer.ToInt64() % 32;
+            long pointer = (long)Unsafe.AsPointer(ref table[0]);
+            tableAddr = (long*)pointer + pointer % 32;
             #else
             table = new long[table.Length];
             #endif
@@ -137,12 +135,8 @@ namespace BitFaster.Caching.Lfu
             #if NET6_0_OR_GREATER
             // over alloc by 4 to give 32 byte buffer
             table = GC.AllocateArray<long>(Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8) + 4, true);
-
-            GCHandle handle = GCHandle.Alloc(table, GCHandleType.Pinned);
-            IntPtr pointer = handle.AddrOfPinnedObject();
-
-            tableAddr = (long*)pointer + pointer.ToInt64() % 32;
-
+            long pointer = (long)Unsafe.AsPointer(ref table[0]);
+            tableAddr = (long*)pointer + pointer % 32;
             #else
             table = new long[Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8)];
             #endif
