@@ -1,6 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+
 
 
 #if !NETSTANDARD2_0
@@ -24,7 +29,7 @@ namespace BitFaster.Caching.Lfu
     /// </remarks>
     /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    public class CmSketchCore<T, I>
+    public unsafe class CmSketchCore<T, I>
         where T : notnull
         where I : struct, IsaProbe
     {
@@ -32,6 +37,7 @@ namespace BitFaster.Caching.Lfu
         private const long OneMask = 0x1111111111111111L;
 
         private long[] table;
+        private long* tableAddr;
         private int sampleSize;
         private int blockMask;
         private int size;
@@ -111,7 +117,15 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         public void Clear()
         {
+            #if NET6_0_OR_GREATER
+            table = GC.AllocateArray<long>(table.Length, true);
+                        GCHandle handle = GCHandle.Alloc(table, GCHandleType.Pinned);
+            IntPtr pointer = handle.AddrOfPinnedObject();
+
+            tableAddr = (long*)pointer + pointer.ToInt64() % 32;
+            #else
             table = new long[table.Length];
+            #endif
             size = 0;
         }
 
@@ -120,8 +134,19 @@ namespace BitFaster.Caching.Lfu
         {
             int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);
 
+            #if NET6_0_OR_GREATER
+            // over alloc by 4 to give 32 byte buffer
+            table = GC.AllocateArray<long>(Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8) + 4, true);
+
+            GCHandle handle = GCHandle.Alloc(table, GCHandleType.Pinned);
+            IntPtr pointer = handle.AddrOfPinnedObject();
+
+            tableAddr = (long*)pointer + pointer.ToInt64() % 32;
+
+            #else
             table = new long[Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8)];
-            blockMask = (int)((uint)table.Length >> 3) - 1;
+            #endif
+            blockMask = (int)((uint)(table.Length-4) >> 3) - 1;
             sampleSize = (maximumSize == 0) ? 10 : (10 * maximum);
 
             size = 0;
@@ -246,7 +271,7 @@ namespace BitFaster.Caching.Lfu
             Vector128<int> blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
             blockOffset = Avx2.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
 
-            fixed (long* tablePtr = table)
+            long* tablePtr = tableAddr;
             {
                 Vector256<long> tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
                 index = Avx2.ShiftLeftLogical(index, 2);
@@ -289,7 +314,8 @@ namespace BitFaster.Caching.Lfu
             Vector128<int> blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
             blockOffset = Avx2.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
 
-            fixed (long* tablePtr = table)
+            //fixed (long* tablePtr = table)
+                long* tablePtr = tableAddr;
             {
                 Vector256<long> tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
 
