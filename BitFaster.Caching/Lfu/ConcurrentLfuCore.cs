@@ -272,7 +272,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
 
-                    if (this.drainStatus.ShouldDrain(delayable))
+                    if (this.drainStatus.ShouldDrain(policy.IsReadDrainDelayable() && delayable))
                     {
                         TryScheduleDrain();
                     }

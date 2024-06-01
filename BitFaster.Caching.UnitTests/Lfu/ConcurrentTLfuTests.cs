@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using BitFaster.Caching.UnitTests.Retry;
@@ -24,6 +25,27 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             lfu = new ConcurrentTLfu<int, string>(capacity, new ExpireAfterWrite<int, string>(timeToLive));
         }
+
+        [Fact]
+        public void Repro()
+        { 
+            var cache = new ConcurrentLfuBuilder<int, int>()
+                .WithCapacity(10)
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(5))
+                .Build();
+
+            cache.AddOrUpdate(1, 1);
+
+            Thread.Sleep(4000);
+
+            cache.TryGet(1, out var value).Should().BeTrue();
+
+            Thread.Sleep(2000);
+
+            cache.TryGet(1, out value).Should().BeTrue();
+            cache.TryGet(1, out value).Should().BeTrue();
+        }
+
 
         [Fact]
         public void ConstructAddAndRetrieveWithCustomComparerReturnsValue()
