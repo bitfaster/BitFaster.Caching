@@ -125,11 +125,11 @@ namespace BitFaster.Caching.Lfu
 
 #if NET6_0_OR_GREATER
             // over alloc by 4 to give 32 bytes padding, tableAddr is then aligned to 32 bytes
-            const int buffer = 4;
-            table = GC.AllocateArray<long>(Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8) + buffer, true);
+            const int pad = 4;
+            table = GC.AllocateArray<long>(Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8) + pad, true);
             long pointer = (long)Unsafe.AsPointer(ref table[0]);
             tableAddr = (long*)pointer + pointer % 32;
-            blockMask = (int)((uint)(table.Length-buffer) >> 3) - 1;
+            blockMask = (int)((uint)(table.Length-pad) >> 3) - 1;
 #else
             table = new long[Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8)];
             blockMask = (int)((uint)(table.Length) >> 3) - 1;
