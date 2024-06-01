@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 
 #if !NETSTANDARD2_0
 using System.Runtime.Intrinsics;
@@ -129,9 +131,10 @@ namespace BitFaster.Caching.Lfu
             table = GC.AllocateArray<long>(Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8) + pad, true);
 
             tableAddr = (long*)Unsafe.AsPointer(ref table[0]);
-            //long pointer = (long)Unsafe.AsPointer(ref table[0]);
-            //tableAddr = (long*)pointer + pointer % 32;
-            blockMask = (int)((uint)(table.Length-pad) >> 3) - 1;
+            tableAddr = (long*)((long)tableAddr + (long)tableAddr % 32);
+
+            blockMask = (int)((uint)(table.Length - pad) >> 3) - 1;
+
 #else
             table = new long[Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8)];
             blockMask = (int)((uint)(table.Length) >> 3) - 1;
@@ -260,11 +263,11 @@ namespace BitFaster.Caching.Lfu
             Vector128<int> blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
             blockOffset = Avx2.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
 
-            #if NET6_0_OR_GREATER
+#if NET6_0_OR_GREATER
             long* tablePtr = tableAddr;
-            #else
+#else
             fixed (long* tablePtr = table)
-            #endif
+#endif
             {
                 Vector256<long> tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
                 index = Avx2.ShiftLeftLogical(index, 2);
@@ -307,11 +310,11 @@ namespace BitFaster.Caching.Lfu
             Vector128<int> blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
             blockOffset = Avx2.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
 
-            #if NET6_0_OR_GREATER
+#if NET6_0_OR_GREATER
             long* tablePtr = tableAddr;
-            #else
+#else
             fixed (long* tablePtr = table)
-            #endif
+#endif
             {
                 Vector256<long> tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
 
