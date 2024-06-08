@@ -276,6 +276,7 @@ namespace BitFaster.Caching.Lfu
                     {
                         TryScheduleDrain();
                     }
+                    this.policy.OnRead(node);
                     value = node.Value;
                     return true;
                 }
@@ -366,6 +367,7 @@ namespace BitFaster.Caching.Lfu
                 // and we will just lose ordering/hit count, but not orphan the node.
                 this.writeBuffer.TryAdd(node);
                 TryScheduleDrain();
+                this.policy.OnWrite(node);
                 return true;
             }
 
@@ -525,8 +527,6 @@ namespace BitFaster.Caching.Lfu
         {
             this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
 
-            policy.AdvanceTime();
-
             // Note: this is only Span on .NET Core 3.1+, else this is no-op and it is still an array
             var buffer = this.drainBuffer.AsSpanOrArray();
 
@@ -601,7 +601,7 @@ namespace BitFaster.Caching.Lfu
                     break;
             }
 
-            policy.OnRead(node);
+            policy.AfterRead(node);
         }
 
         private void OnWrite(N node)
@@ -650,7 +650,7 @@ namespace BitFaster.Caching.Lfu
                     break;
             }
 
-            policy.OnWrite(node);
+            policy.AfterWrite(node);
         }
 
         private void PromoteProbation(LfuNode<K, V> node)
