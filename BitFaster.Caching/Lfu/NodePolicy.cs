@@ -16,7 +16,6 @@ namespace BitFaster.Caching.Lfu
         void AfterWrite(N node);
         void OnEvict(N node);
         void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, N, P> cache) where P : struct, INodePolicy<K, V, N>;
-        bool IsReadDrainDelayable();
     }
 
     internal struct AccessOrderPolicy<K, V> : INodePolicy<K, V, AccessOrderNode<K, V>>
@@ -63,9 +62,6 @@ namespace BitFaster.Caching.Lfu
         public void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, P> cache) where P : struct, INodePolicy<K, V, AccessOrderNode<K, V>>
         {
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsReadDrainDelayable() => true;
     }
 
     internal struct ExpireAfterPolicy<K, V> : INodePolicy<K, V, TimeOrderNode<K, V>>
@@ -145,8 +141,5 @@ namespace BitFaster.Caching.Lfu
         {
             wheel.Advance(ref cache, Duration.SinceEpoch());
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsReadDrainDelayable() => false;
     }
 }
