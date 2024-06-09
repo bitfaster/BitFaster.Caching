@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using BitFaster.Caching.UnitTests.Retry;
@@ -23,6 +24,36 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public ConcurrentTLfuTests()
         {
             lfu = new ConcurrentTLfu<int, string>(capacity, new ExpireAfterWrite<int, string>(timeToLive));
+        }
+
+        // This is a scenario test to verify maintenance is run promptly after read.
+        [RetryFact]
+        public void WhenItemIsAccessedTimeToExpireIsUpdated()
+        { 
+            var cache = new ConcurrentLfuBuilder<int, int>()
+                .WithCapacity(10)
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(5))
+                .Build();
+
+            Timed.Execute(
+                cache,
+                cache =>
+                {
+                    cache.AddOrUpdate(1, 1);
+                    return cache;
+                },
+                TimeSpan.FromSeconds(4),
+                cache =>
+                {
+                    cache.TryGet(1, out var value);
+                },
+                TimeSpan.FromSeconds(2),
+                cache =>
+                { 
+                    cache.TryGet(1, out var value).Should().BeTrue();
+                    cache.TryGet(1, out value).Should().BeTrue();
+                }
+            );
         }
 
         [Fact]
