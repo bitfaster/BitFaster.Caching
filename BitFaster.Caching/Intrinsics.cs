@@ -2,6 +2,10 @@
 using System.Runtime.Intrinsics.X86;
 #endif
 
+#if NET6_0
+using System.Runtime.Intrinsics.Arm;
+#endif
+
 namespace BitFaster.Caching
 {
     /// <summary>
@@ -13,6 +17,13 @@ namespace BitFaster.Caching
         /// Gets a value indicating whether AVX2 is supported.
         /// </summary>
         bool IsAvx2Supported { get; }
+
+#if NET6_0_OR_GREATER
+        /// <summary>
+        /// Gets a value indicating whether Arm64 is supported.
+        /// </summary>
+        bool IsArm64Supported { get => false; }
+#endif
     }
 
     /// <summary>
@@ -27,6 +38,14 @@ namespace BitFaster.Caching
         /// <inheritdoc/>
         public bool IsAvx2Supported => Avx2.IsSupported;
 #endif
+
+#if NET6_0_OR_GREATER
+        /// <inheritdoc/>
+        public bool IsArm64Supported => AdvSimd.Arm64.IsSupported;
+#else
+        /// <inheritdoc/>
+        public bool IsArm64Supported => false;
+#endif
     }
 
     /// <summary>
@@ -36,5 +55,8 @@ namespace BitFaster.Caching
     {
         /// <inheritdoc/>
         public bool IsAvx2Supported => false;
+
+        /// <inheritdoc/>
+        public bool IsArm64Supported => false;
     }
 }
