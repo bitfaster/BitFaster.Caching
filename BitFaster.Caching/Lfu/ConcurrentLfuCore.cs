@@ -317,20 +317,23 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(item.Key, out var node))
             {
-                if (EqualityComparer<V>.Default.Equals(node.Value, item.Value))
-                {
-                    var kvp = new KeyValuePair<K, N>(item.Key, node);
+                lock (node)
+                { 
+                    if (EqualityComparer<V>.Default.Equals(node.Value, item.Value))
+                    {
+                        var kvp = new KeyValuePair<K, N>(item.Key, node);
 
 #if NET6_0_OR_GREATER
-                    if (this.dictionary.TryRemove(kvp))
+                        if (this.dictionary.TryRemove(kvp))
 #else
-                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
-                    if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp))
+                        // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                        if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp))
 #endif
-                    {
-                        node.WasRemoved = true;
-                        AfterWrite(node);
-                        return true;
+                        {
+                            node.WasRemoved = true;
+                            AfterWrite(node);
+                            return true;
+                        }
                     }
                 }
             }
@@ -361,14 +364,20 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                node.Value = value;
+                lock (node)
+                { 
+                    if (!node.WasRemoved)
+                    {
+                         node.Value = value;
 
-                // It's ok for this to be lossy, since the node is already tracked
-                // and we will just lose ordering/hit count, but not orphan the node.
-                this.writeBuffer.TryAdd(node);
-                TryScheduleDrain();
-                this.policy.OnWrite(node);
-                return true;
+                        // It's ok for this to be lossy, since the node is already tracked
+                        // and we will just lose ordering/hit count, but not orphan the node.
+                        this.writeBuffer.TryAdd(node);
+                        TryScheduleDrain();
+                        this.policy.OnWrite(node);
+                        return true;
+                    }
+                }
             }
 
             return false;
