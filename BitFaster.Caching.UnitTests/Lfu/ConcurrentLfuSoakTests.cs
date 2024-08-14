@@ -290,6 +290,32 @@ namespace BitFaster.Caching.UnitTests.Lfu
             RunIntegrityCheck(cache, this.output);
         }
 
+        [Fact]
+        public async Task WhenConcurrentUpdateAndRemoveKvp()
+        {
+            var cache = new ConcurrentLfu<int, string>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
+            TaskCompletionSource<int> tcs = new TaskCompletionSource<int> ();
+
+            var removal = Task.Run(() =>
+            {
+                while (!tcs.Task.IsCompleted)
+                {
+                    cache.TryRemove(new KeyValuePair<int, string>(5, "x"));
+                }
+            });
+
+            for (var i = 0; i < 100_000; i++)
+            {
+                cache.AddOrUpdate(5, "a");
+                cache.TryGet(5, out _).Should().BeTrue("key 'a' should not be deleted");
+                cache.AddOrUpdate(5, "x");
+            }
+
+            tcs.SetResult(int.MaxValue);
+
+            await removal;
+        }
+
         private ConcurrentLfu<int, string> CreateWithBackgroundScheduler()
         {
             var scheduler = new BackgroundThreadScheduler();
