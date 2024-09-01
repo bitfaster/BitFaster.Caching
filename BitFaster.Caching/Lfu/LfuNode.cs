@@ -116,7 +116,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        // Note: LruItem should be locked while invoking this method. Multiple writer threads are not supported.
+        // Note: LfuNode should be locked while invoking this method. Multiple writer threads are not supported.
         internal void SeqLockWrite(V value)
         { 
             Interlocked.Increment(ref sequence);
