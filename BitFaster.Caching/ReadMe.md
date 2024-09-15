@@ -40,4 +40,4 @@ Optionally configure `ConcurrentLfu` with a [time-based eviction policy](https:/
 
 ## Documentation
 
-Please refer to the [wiki](https://github.com/bitfaster/BitFaster.Caching/wiki) for full API documentation, and a complete analysis of hit rate, latency and throughput.
+Please refer to the [wiki](https://github.com/bitfaster/BitFaster.Caching/wiki) for API documentation, and an analysis of hit rate, latency and throughput.
