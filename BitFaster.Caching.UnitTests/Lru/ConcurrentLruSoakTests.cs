@@ -345,8 +345,6 @@ namespace BitFaster.Caching.UnitTests.Lru
 
         private void Checker(ICache<int, Guid> cache,CancellationTokenSource source)
         {
-            // On my machine, without SeqLock, this consistently fails below 100 iterations
-            // on debug build, and below 1000 on release build
             for (int count = 0; count < 100_000; ++count)
             {
                 cache.TryGet(1, out _);
