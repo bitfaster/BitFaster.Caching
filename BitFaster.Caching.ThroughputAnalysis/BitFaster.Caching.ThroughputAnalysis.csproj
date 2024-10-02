@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
-    <PackageReference Include="ConsoleTables" Version="2.6.1" />
+    <PackageReference Include="ConsoleTables" Version="2.6.2" />
     <PackageReference Include="CsvHelper" Version="33.0.1" />
     <PackageReference Include="EasyConsole" Version="1.1.0">
         <NoWarn>NU1701</NoWarn>
