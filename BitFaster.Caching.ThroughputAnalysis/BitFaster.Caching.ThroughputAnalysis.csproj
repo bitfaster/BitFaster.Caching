@@ -27,7 +27,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.0" />
-    <PackageReference Include="Plotly.NET" Version="5.0.0" />
+    <PackageReference Include="Plotly.NET" Version="5.1.0" />
     <PackageReference Include="Plotly.NET.ImageExport" Version="6.1.0" />
   </ItemGroup>
 
