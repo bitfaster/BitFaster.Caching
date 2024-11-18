@@ -485,17 +485,15 @@ namespace BitFaster.Caching.Lfu
                 return;
             }
 
-            bool lockTaken = false;
-            try
-            {
 #if NET9_0_OR_GREATER
-                lockTaken = maintenanceLock.TryEnter();
+            if (maintenanceLock.TryEnter())
 #else
-                Monitor.TryEnter(maintenanceLock, ref lockTaken);
+            bool lockTaken = false;
+            Monitor.TryEnter(maintenanceLock, ref lockTaken);
+            if (lockTaken)
 #endif
-                
-
-                if (lockTaken)
+            {
+                try
                 {
                     int status = this.drainStatus.NonVolatileRead();
 
@@ -507,16 +505,16 @@ namespace BitFaster.Caching.Lfu
                     this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
                     scheduler.Run(this.drainBuffers);
                 }
-            }
-            finally
-            {
-                if (lockTaken)
-                {
+                finally
+                {                
 #if NET9_0_OR_GREATER
-                maintenanceLock.Exit();
+                    maintenanceLock.Exit();
 #else
-                Monitor.Exit(maintenanceLock);
-#endif                   
+                    if (lockTaken)
+                    {
+                        Monitor.Exit(maintenanceLock);
+                    }
+#endif                                     
                 }
             }
         }
