@@ -14,8 +14,8 @@ namespace BitFaster.Caching.Lru
     {
         private V data;
 
-        private volatile bool wasAccessed;
-        private volatile bool wasRemoved;
+        private bool wasAccessed;
+        private bool wasRemoved;
 
         // only used when V is a non-atomic value type to prevent torn reads
         private int sequence;
@@ -72,8 +72,8 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         public bool WasAccessed
         {
-            get => this.wasAccessed;
-            set => this.wasAccessed = value;
+            get => Volatile.Read(ref this.wasAccessed);
+            set => Volatile.Write(ref this.wasAccessed, value);
         }
 
         /// <summary>
@@ -81,8 +81,19 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         public bool WasRemoved
         {
-            get => this.wasRemoved;
-            set => this.wasRemoved = value;
+            get => Volatile.Read(ref this.wasRemoved);
+            set => Volatile.Write(ref this.wasRemoved, value);
+        }
+
+        /// <summary>
+        /// Marks the item as accessed, if it was not already accessed.
+        /// </summary>
+        public void MarkAccessed()
+        { 
+            if (!Volatile.Read(ref this.wasAccessed))
+            { 
+                 Volatile.Write(ref this.wasAccessed, true);
+            }
         }
 
         internal V SeqLockRead()
