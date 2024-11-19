@@ -66,8 +66,8 @@ namespace BitFaster.Caching.Benchmarks
         [GlobalSetup]
         public void GlobalSetup()
         {
-            memoryCache.Set(key.ToString(), "test", new System.Runtime.Caching.CacheItemPolicy());
-            exMemoryCache.Set(key, "test");
+            memoryCache.Set(key.ToString(), 1, new System.Runtime.Caching.CacheItemPolicy());
+            exMemoryCache.Set(key, 1);
         }
 
         [GlobalCleanup]
