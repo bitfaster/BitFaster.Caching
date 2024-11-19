@@ -66,8 +66,8 @@ namespace BitFaster.Caching.Benchmarks
         [GlobalSetup]
         public void GlobalSetup()
         {
-            memoryCache.Set(key.ToString(), "test", new System.Runtime.Caching.CacheItemPolicy());
-            exMemoryCache.Set(key, "test");
+            memoryCache.Set(key.ToString(), "1", new System.Runtime.Caching.CacheItemPolicy());
+            exMemoryCache.Set(key, "1");
         }
 
         [GlobalCleanup]
@@ -147,15 +147,15 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark()]
-        public int RuntimeMemoryCacheGet()
+        public object RuntimeMemoryCacheGet()
         {
-            return (int)memoryCache.Get("1");
+            return memoryCache.Get("1");
         }
 
         [Benchmark()]
-        public int ExtensionsMemoryCacheGet()
+        public object ExtensionsMemoryCacheGet()
         {
-            return (int)exMemoryCache.Get(1);
+            return exMemoryCache.Get(1);
         }
 
         public class MemoryCacheOptionsAccessor
