@@ -77,85 +77,85 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark(Baseline = true)]
-        public void ConcurrentDictionary()
+        public int ConcurrentDictionary()
         {
             Func<int, int> func = x => x;
-            dictionary.GetOrAdd(1, func);
+            return dictionary.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void FastConcurrentLru()
+        public int FastConcurrentLru()
         {
             Func<int, int> func = x => x;
-            fastConcurrentLru.GetOrAdd(1, func);
+            return fastConcurrentLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentLru()
+        public int ConcurrentLru()
         {
             Func<int, int> func = x => x;
-            concurrentLru.GetOrAdd(1, func);
+            return concurrentLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void AtomicFastLru()
+        public int AtomicFastLru()
         {
             Func<int, int> func = x => x;
-            atomicFastLru.GetOrAdd(1, func);
+            return atomicFastLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void FastConcurrentTLru()
+        public int FastConcurrentTLru()
         {
             Func<int, int> func = x => x;
-            fastConcurrentTLru.GetOrAdd(1, func);
+            return fastConcurrentTLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void FastConcLruAfterAccess()
+        public int FastConcLruAfterAccess()
         {
             Func<int, int> func = x => x;
-            lruAfterAccess.GetOrAdd(1, func);
+            return lruAfterAccess.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void FastConcLruAfter()
+        public int FastConcLruAfter()
         {
             Func<int, int> func = x => x;
-            lruAfter.GetOrAdd(1, func);
+            return lruAfter.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentTLru()
+        public int ConcurrentTLru()
         {
             Func<int, int> func = x => x;
-            concurrentTlru.GetOrAdd(1, func);
+            return concurrentTlru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentLfu()
+        public int ConcurrentLfu()
         {
             Func<int, int> func = x => x;
-            concurrentLfu.GetOrAdd(1, func);
+            return concurrentLfu.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ClassicLru()
+        public int ClassicLru()
         {
             Func<int, int> func = x => x;
-            classicLru.GetOrAdd(1, func);
+            return classicLru.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void RuntimeMemoryCacheGet()
+        public int RuntimeMemoryCacheGet()
         {
-            memoryCache.Get("1");
+            return (int)memoryCache.Get("1");
         }
 
         [Benchmark()]
-        public void ExtensionsMemoryCacheGet()
+        public int ExtensionsMemoryCacheGet()
         {
-            exMemoryCache.Get(1);
+            return (int)exMemoryCache.Get(1);
         }
 
         public class MemoryCacheOptionsAccessor

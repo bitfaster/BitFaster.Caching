@@ -44,38 +44,38 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark(Baseline = true)]
-        public void ConcurrentDictionary()
+        public int ConcurrentDictionary()
         {
             Func<int, int> func = x => x;
-            dictionary.GetOrAdd(1, func);
+            return dictionary.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentLfuBackground()
+        public int ConcurrentLfuBackground()
         {
             Func<int, int> func = x => x;
-            concurrentLfu.GetOrAdd(1, func);
+            return concurrentLfu.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentLfuForeround()
+        public int ConcurrentLfuForeround()
         {
             Func<int, int> func = x => x;
-            concurrentLfuFore.GetOrAdd(1, func);
+            return concurrentLfuFore.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentLfuThreadPool()
+        public int ConcurrentLfuThreadPool()
         {
             Func<int, int> func = x => x;
-            concurrentLfuTp.GetOrAdd(1, func);
+            return concurrentLfuTp.GetOrAdd(1, func);
         }
 
         [Benchmark()]
-        public void ConcurrentLfuNull()
+        public int ConcurrentLfuNull()
         {
             Func<int, int> func = x => x;
-            concurrentLfuNull.GetOrAdd(1, func);
+            return concurrentLfuNull.GetOrAdd(1, func);
         }
     }
 }
