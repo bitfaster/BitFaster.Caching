@@ -14,8 +14,8 @@ namespace BitFaster.Caching.Lru
     {
         private V data;
 
-        private volatile bool wasAccessed;
-        private volatile bool wasRemoved;
+        private bool wasAccessed;
+        private bool wasRemoved;
 
         // only used when V is a non-atomic value type to prevent torn reads
         private int sequence;
