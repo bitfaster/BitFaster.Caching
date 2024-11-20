@@ -85,6 +85,17 @@ namespace BitFaster.Caching.Lru
             set => this.wasRemoved = value;
         }
 
+        /// <summary>
+        /// Marks the item as accessed, if it was not already accessed.
+        /// </summary>
+        public void MarkAccessed()
+        { 
+            if (!this.wasAccessed)
+            { 
+                this.wasAccessed = true;    
+            }
+        }
+
         internal V SeqLockRead()
         { 
             var spin = new SpinWait();
