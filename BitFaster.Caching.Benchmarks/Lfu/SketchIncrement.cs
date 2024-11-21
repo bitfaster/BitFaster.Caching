@@ -47,7 +47,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             }
         }
 
-        //[Benchmark(OperationsPerInvoke = iterations)]
+        [Benchmark(OperationsPerInvoke = iterations)]
         public void IncFlatAvx()
         {
             for (int i = 0; i < iterations; i++)

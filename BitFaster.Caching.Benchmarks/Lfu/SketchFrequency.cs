@@ -49,7 +49,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             return count;
         }
 
-        //[Benchmark(OperationsPerInvoke = iterations)]
+        [Benchmark(OperationsPerInvoke = iterations)]
         public int FrequencyFlatAvx()
         {
             int count = 0;
