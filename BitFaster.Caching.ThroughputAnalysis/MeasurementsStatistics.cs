@@ -42,7 +42,8 @@ namespace BitFaster.Caching.ThroughputAnalysis
             double variance = Variance(measurements, n, mean);
             double standardDeviation = Math.Sqrt(variance);
             double standardError = standardDeviation / Math.Sqrt(n);
-            var confidenceInterval = new ConfidenceInterval(mean, standardError, n);
+            var confidenceIntervalEstimator = new ConfidenceIntervalEstimator(n, mean, standardError);
+            var confidenceInterval = confidenceIntervalEstimator.ConfidenceInterval(ConfidenceLevel.L999);
 
             if (outlierMode == OutlierMode.DontRemove) // most simple scenario is done without allocations! but this is not the default case
                 return new MeasurementsStatistics(standardError, mean, confidenceInterval);
@@ -69,7 +70,8 @@ namespace BitFaster.Caching.ThroughputAnalysis
             variance = VarianceWithoutOutliers(outlierMode, measurements, n, mean, lowerFence, upperFence);
             standardDeviation = Math.Sqrt(variance);
             standardError = standardDeviation / Math.Sqrt(n);
-            confidenceInterval = new ConfidenceInterval(mean, standardError, n);
+            confidenceIntervalEstimator = new ConfidenceIntervalEstimator(n, mean, standardError);
+            confidenceInterval = confidenceIntervalEstimator.ConfidenceInterval(ConfidenceLevel.L999);
 
             return new MeasurementsStatistics(standardError, mean, confidenceInterval);
         }

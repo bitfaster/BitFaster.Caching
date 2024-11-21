@@ -24,6 +24,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private CmSketchFlat<int, DetectIsa> flatAvx;
 
         private CmSketchCore<int, DisableHardwareIntrinsics> blockStd;
+        private CmSketchNoPin<int, DetectIsa> blockAvxNoPin;
         private CmSketchCore<int, DetectIsa> blockAvx;
 
         [Params(512, 1024, 32_768, 524_288, 8_388_608, 134_217_728)]
@@ -36,6 +37,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             flatAvx = new CmSketchFlat<int, DetectIsa>(Size, EqualityComparer<int>.Default);
 
             blockStd = new CmSketchCore<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
+            blockAvxNoPin = new CmSketchNoPin<int, DetectIsa>(Size, EqualityComparer<int>.Default);
             blockAvx = new CmSketchCore<int, DetectIsa>(Size, EqualityComparer<int>.Default);
         }
 
@@ -67,7 +69,16 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 
         [Benchmark(OperationsPerInvoke = iterations)]
-        public void IncBlockAvx()
+        public void IncBlockAvxNotPinned()
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                blockAvxNoPin.Increment(i);
+            }
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public void IncBlockAvxPinned()
         {
             for (int i = 0; i < iterations; i++)
             {
