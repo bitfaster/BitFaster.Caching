@@ -1,5 +1,6 @@
 ﻿
 using System.Collections.Generic;
+using Benchly;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Lfu;
@@ -7,8 +8,11 @@ using BitFaster.Caching.Lfu;
 namespace BitFaster.Caching.Benchmarks.Lfu
 {
     [SimpleJob(RuntimeMoniker.Net60)]
+    [SimpleJob(RuntimeMoniker.Net80)]
+    [SimpleJob(RuntimeMoniker.Net90)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
+    [ColumnChart(Title = "Sketch Increment ({JOB})", Colors = "#cd5c5c,#fa8072,#ffa07a")]
     public class SketchIncrement
     {
         const int iterations = 1_048_576;
@@ -17,6 +21,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private CmSketchFlat<int, DetectIsa> flatAvx;
 
         private CmSketchCore<int, DisableHardwareIntrinsics> blockStd;
+        private CmSketchNoPin<int, DetectIsa> blockAvxNoPin;
         private CmSketchCore<int, DetectIsa> blockAvx;
 
         [Params(32_768, 524_288, 8_388_608, 134_217_728)]
@@ -29,6 +34,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             flatAvx = new CmSketchFlat<int, DetectIsa>(Size, EqualityComparer<int>.Default);
 
             blockStd = new CmSketchCore<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
+            blockAvxNoPin = new CmSketchNoPin<int, DetectIsa>(Size, EqualityComparer<int>.Default);
             blockAvx = new CmSketchCore<int, DetectIsa>(Size, EqualityComparer<int>.Default);
         }
 
@@ -60,7 +66,16 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 
         [Benchmark(OperationsPerInvoke = iterations)]
-        public void IncBlockAvx()
+        public void IncBlockAvxNotPinned()
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                blockAvxNoPin.Increment(i);
+            }
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public void IncBlockAvxPinned()
         {
             for (int i = 0; i < iterations; i++)
             {
