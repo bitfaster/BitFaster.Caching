@@ -12,7 +12,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
     [SimpleJob(RuntimeMoniker.Net90)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
-    [ColumnChart(Title = "Sketch Increment ({JOB})")]
+    [ColumnChart(Title = "Sketch Increment ({JOB})", Colors = "#cd5c5c,#fa8072,#ffa07a")]
     public class SketchIncrement
     {
         const int iterations = 1_048_576;
