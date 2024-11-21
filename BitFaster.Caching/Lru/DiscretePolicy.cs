@@ -35,7 +35,7 @@ namespace BitFaster.Caching.Lru
             var currentExpiry = new Duration(item.TickCount - this.time.Last);
             var newExpiry = expiry.GetExpireAfterRead(item.Key, item.Value, currentExpiry);
             item.TickCount = this.time.Last + newExpiry.raw;
-            item.WasAccessed = true;
+            item.MarkAccessed();
         }
 
         ///<inheritdoc/>

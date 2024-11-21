@@ -13,12 +13,12 @@ call BitFaster.Caching.ThroughputAnalysis.exe 2 100000
 call BitFaster.Caching.ThroughputAnalysis.exe 2 10000000
 call BitFaster.Caching.ThroughputAnalysis.exe 2 100000000
 
-call BitFaster.Caching.ThroughputAnalysis.exe 3 100
-call BitFaster.Caching.ThroughputAnalysis.exe 3 10000
-call BitFaster.Caching.ThroughputAnalysis.exe 3 1000000
-call BitFaster.Caching.ThroughputAnalysis.exe 3 10000000
-
 call BitFaster.Caching.ThroughputAnalysis.exe 4 100
 call BitFaster.Caching.ThroughputAnalysis.exe 4 10000
 call BitFaster.Caching.ThroughputAnalysis.exe 4 1000000
 call BitFaster.Caching.ThroughputAnalysis.exe 4 10000000
+
+call BitFaster.Caching.ThroughputAnalysis.exe 8 100
+call BitFaster.Caching.ThroughputAnalysis.exe 8 10000
+call BitFaster.Caching.ThroughputAnalysis.exe 8 1000000
+call BitFaster.Caching.ThroughputAnalysis.exe 8 10000000

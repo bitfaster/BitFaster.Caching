@@ -35,7 +35,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch(TimeStampedLruItem<K, V> item)
         {
-            item.WasAccessed = true;
+            item.MarkAccessed();
         }
 
         ///<inheritdoc/>
