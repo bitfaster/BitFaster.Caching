@@ -237,6 +237,31 @@ namespace BitFaster.Caching.UnitTests.Lru
             cache.Metrics.Value.Evicted.Should().Be(0);
         }
 
+        [Fact]
+        public async Task WhenConcurrentUpdateAndRemoveKvp()
+        {
+            TaskCompletionSource<int> tcs = new TaskCompletionSource<int> ();
+
+            var removal = Task.Run(() =>
+            {
+                while (!tcs.Task.IsCompleted)
+                {
+                    lru.TryRemove(new KeyValuePair<int, string>(5, "x"));
+                }
+            });
+
+            for (var i = 0; i < 100_000; i++)
+            {
+                lru.AddOrUpdate(5, "a");
+                lru.TryGet(5, out _).Should().BeTrue("key 'a' should not be deleted");
+                lru.AddOrUpdate(5, "x");
+            }
+
+            tcs.SetResult(int.MaxValue);
+
+            await removal;
+        }
+
         [Theory]
         [Repeat(10)]
         public async Task WhenConcurrentGetAndClearCacheEndsInConsistentState(int iteration)
@@ -320,8 +345,6 @@ namespace BitFaster.Caching.UnitTests.Lru
 
         private void Checker(ICache<int, Guid> cache,CancellationTokenSource source)
         {
-            // On my machine, without SeqLock, this consistently fails below 100 iterations
-            // on debug build, and below 1000 on release build
             for (int count = 0; count < 100_000; ++count)
             {
                 cache.TryGet(1, out _);

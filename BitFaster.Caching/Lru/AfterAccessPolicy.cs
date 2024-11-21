@@ -40,7 +40,7 @@ namespace BitFaster.Caching.Lru
         public void Touch(LongTickCountLruItem<K, V> item)
         {
             item.TickCount = this.time.Last;
-            item.WasAccessed = true;
+            item.MarkAccessed();
         }
 
         ///<inheritdoc/>
