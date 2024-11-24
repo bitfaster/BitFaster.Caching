@@ -8,6 +8,8 @@ using BitFaster.Caching.Lfu;
 namespace BitFaster.Caching.Benchmarks.Lfu
 {
     [SimpleJob(RuntimeMoniker.Net60)]
+    [SimpleJob(RuntimeMoniker.Net80)]
+    [SimpleJob(RuntimeMoniker.Net90)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     [ColumnChart(Title ="Sketch Frequency ({JOB})")]

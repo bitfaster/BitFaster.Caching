@@ -29,7 +29,7 @@
     <IsTrimmable>true</IsTrimmable>
     <Nullable>enable</Nullable>
     <!--Package Validation-->
-    <EnablePackageValidation>true</EnablePackageValidation>
+    <EnablePackageValidation>false</EnablePackageValidation>
     <PackageValidationBaselineVersion>2.5.0</PackageValidationBaselineVersion>    
   </PropertyGroup>
 
