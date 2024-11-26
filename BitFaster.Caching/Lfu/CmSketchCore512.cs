@@ -26,7 +26,7 @@ namespace BitFaster.Caching.Lfu
     /// </remarks>
     /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    public unsafe class CmSketchCore<T, I>
+    public unsafe class CmSketchCore512<T, I>
         where T : notnull
         where I : struct, IsaProbe
     {
@@ -48,7 +48,7 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <param name="maximumSize">The maximum size.</param>
         /// <param name="comparer">The equality comparer.</param>
-        public CmSketchCore(long maximumSize, IEqualityComparer<T> comparer)
+        public CmSketchCore512(long maximumSize, IEqualityComparer<T> comparer)
         {
             EnsureCapacity(maximumSize);
             this.comparer = comparer;
@@ -257,8 +257,8 @@ namespace BitFaster.Caching.Lfu
         }
 
 #if !NETSTANDARD2_0
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-       // [MethodImpl(MethodImplOptions.AggressiveInlining | (MethodImplOptions)512)]
+       // [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | (MethodImplOptions)512)]
         private unsafe int EstimateFrequencyAvx(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
@@ -292,8 +292,8 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-       // [MethodImpl(MethodImplOptions.AggressiveInlining | (MethodImplOptions)512)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | (MethodImplOptions)512)]
         private unsafe void IncrementAvx(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));

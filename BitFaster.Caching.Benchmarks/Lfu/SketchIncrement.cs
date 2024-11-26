@@ -27,6 +27,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private CmSketchNoPin<int, DetectIsa> blockAvxNoPin;
         private CmSketchPinNoOpt<int, DetectIsa> blockAvxPinNoOpt;
         private CmSketchCore<int, DetectIsa> blockAvx;
+        private CmSketchCore512<int, DetectIsa> blockAvx512;
 
         [Params(512, 1024, 32_768, 524_288, 8_388_608, 134_217_728)]
         public int Size { get; set; }
@@ -41,6 +42,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             blockAvxNoPin = new CmSketchNoPin<int, DetectIsa>(Size, EqualityComparer<int>.Default);
             blockAvxPinNoOpt = new CmSketchPinNoOpt<int, DetectIsa>(Size, EqualityComparer<int>.Default);
             blockAvx = new CmSketchCore<int, DetectIsa>(Size, EqualityComparer<int>.Default);
+            blockAvx512 = new CmSketchCore512<int, DetectIsa>(Size, EqualityComparer<int>.Default);
         }
 
         [Benchmark(Baseline = true, OperationsPerInvoke = iterations)]
@@ -94,6 +96,15 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             for (int i = 0; i < iterations; i++)
             {
                 blockAvx.Increment(i);
+            }
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public void IncBlockAvxPinned512()
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                blockAvx512.Increment(i);
             }
         }
     }

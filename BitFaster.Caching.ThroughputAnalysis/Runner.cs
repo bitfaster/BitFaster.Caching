@@ -33,10 +33,10 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             var cachesToTest = new List<ICacheFactory>
             {
-                new ClassicLruFactory(capacity),
-                new MemoryCacheFactory(capacity),
+                //new ClassicLruFactory(capacity),
+                //new MemoryCacheFactory(capacity),
                 new FastConcurrentLruFactory(capacity),
-                new ConcurrentLruFactory(capacity),
+                //new ConcurrentLruFactory(capacity),
                 new ConcurrentLfuFactory(capacity)
             };
 
