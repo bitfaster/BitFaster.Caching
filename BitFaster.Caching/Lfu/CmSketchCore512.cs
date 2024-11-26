@@ -30,7 +30,7 @@ namespace BitFaster.Caching.Lfu
     /// </remarks>
     /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    public unsafe class CmSketchCore<T, I>
+    public unsafe class CmSketchCore512<T, I>
         where T : notnull
         where I : struct, IsaProbe
     {
@@ -53,7 +53,7 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <param name="maximumSize">The maximum size.</param>
         /// <param name="comparer">The equality comparer.</param>
-        public CmSketchCore(long maximumSize, IEqualityComparer<T> comparer)
+        public CmSketchCore512(long maximumSize, IEqualityComparer<T> comparer)
         {
             EnsureCapacity(maximumSize);
             this.comparer = comparer;
@@ -380,7 +380,7 @@ namespace BitFaster.Caching.Lfu
 #endif
 
 #if NET6_0_OR_GREATER
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private unsafe void IncrementArm(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
@@ -432,7 +432,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private unsafe int EstimateFrequencyArm(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));

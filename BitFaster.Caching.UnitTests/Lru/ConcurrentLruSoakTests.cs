@@ -1,10 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
+using static BitFaster.Caching.UnitTests.Lru.LruItemSoakTests;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -191,6 +194,29 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public async Task WhenSoakConcurrentGetAndUpdateValueTypeCacheEndsInConsistentState()
+        {
+            var lruVT = new ConcurrentLru<int, Guid>(1, capacity, EqualityComparer<int>.Default);
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () => {
+                    var b = new byte[8];
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        lruVT.TryUpdate(i + 1, new Guid(i, 0, 0, b));
+                        lruVT.GetOrAdd(i + 1, x => new Guid(x, 0, 0, b));
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{lruVT.HotCount} {lruVT.WarmCount} {lruVT.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", lruVT.Keys));
+
+                new ConcurrentLruIntegrityChecker<int, Guid, LruItem<int, Guid>, LruPolicy<int, Guid>, TelemetryPolicy<int, Guid>>(lruVT).Validate();
+            }
+        }
+
+        [Fact]
         public async Task WhenAddingCacheSizeItemsNothingIsEvicted()
         {
             const int size = 1024;
@@ -209,6 +235,31 @@ namespace BitFaster.Caching.UnitTests.Lru
             });
 
             cache.Metrics.Value.Evicted.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task WhenConcurrentUpdateAndRemoveKvp()
+        {
+            TaskCompletionSource<int> tcs = new TaskCompletionSource<int> ();
+
+            var removal = Task.Run(() =>
+            {
+                while (!tcs.Task.IsCompleted)
+                {
+                    lru.TryRemove(new KeyValuePair<int, string>(5, "x"));
+                }
+            });
+
+            for (var i = 0; i < 100_000; i++)
+            {
+                lru.AddOrUpdate(5, "a");
+                lru.TryGet(5, out _).Should().BeTrue("key 'a' should not be deleted");
+                lru.AddOrUpdate(5, "x");
+            }
+
+            tcs.SetResult(int.MaxValue);
+
+            await removal;
         }
 
         [Theory]
@@ -256,6 +307,50 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
             RunIntegrityCheck();
+        }
+
+        // This test will run forever if there is a live lock.
+        // Since the cache bookkeeping has some overhead, it is harder to provoke
+        // spinning inside the reader thread compared to LruItemSoakTests.DetectTornStruct.
+        [Theory]
+        [Repeat(10)]
+        public async Task WhenValueIsBigStructNoLiveLock(int _)
+        { 
+            using var source = new CancellationTokenSource();
+            var started = new TaskCompletionSource<bool>();
+            var cache = new ConcurrentLru<int, Guid>(1, capacity, EqualityComparer<int>.Default);
+
+            var setTask = Task.Run(() => Setter(cache, source.Token, started));
+            await started.Task;
+            Checker(cache, source);
+
+            await setTask;
+        }
+
+        private void Setter(ICache<int, Guid> cache, CancellationToken cancelToken, TaskCompletionSource<bool> started)
+        {
+            started.SetResult(true);
+
+            while (true)
+            {
+                cache.AddOrUpdate(1, Guid.NewGuid());
+                cache.AddOrUpdate(1, Guid.NewGuid());
+
+                if (cancelToken.IsCancellationRequested)
+                { 
+                    return; 
+                }
+            }
+        }
+
+        private void Checker(ICache<int, Guid> cache,CancellationTokenSource source)
+        {
+            for (int count = 0; count < 100_000; ++count)
+            {
+                cache.TryGet(1, out _);
+            }
+
+            source.Cancel();
         }
 
         private void RunIntegrityCheck()

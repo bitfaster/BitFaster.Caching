@@ -276,6 +276,7 @@ namespace BitFaster.Caching.Lfu
                     {
                         TryScheduleDrain();
                     }
+                    this.policy.OnRead(node);
                     value = node.Value;
                     return true;
                 }
@@ -316,20 +317,23 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(item.Key, out var node))
             {
-                if (EqualityComparer<V>.Default.Equals(node.Value, item.Value))
-                {
-                    var kvp = new KeyValuePair<K, N>(item.Key, node);
+                lock (node)
+                { 
+                    if (EqualityComparer<V>.Default.Equals(node.Value, item.Value))
+                    {
+                        var kvp = new KeyValuePair<K, N>(item.Key, node);
 
 #if NET6_0_OR_GREATER
-                    if (this.dictionary.TryRemove(kvp))
+                        if (this.dictionary.TryRemove(kvp))
 #else
-                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
-                    if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp))
+                        // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                        if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp))
 #endif
-                    {
-                        node.WasRemoved = true;
-                        AfterWrite(node);
-                        return true;
+                        {
+                            node.WasRemoved = true;
+                            AfterWrite(node);
+                            return true;
+                        }
                     }
                 }
             }
@@ -360,13 +364,20 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                node.Value = value;
+                lock (node)
+                { 
+                    if (!node.WasRemoved)
+                    {
+                         node.Value = value;
 
-                // It's ok for this to be lossy, since the node is already tracked
-                // and we will just lose ordering/hit count, but not orphan the node.
-                this.writeBuffer.TryAdd(node);
-                TryScheduleDrain();
-                return true;
+                        // It's ok for this to be lossy, since the node is already tracked
+                        // and we will just lose ordering/hit count, but not orphan the node.
+                        this.writeBuffer.TryAdd(node);
+                        TryScheduleDrain();
+                        this.policy.OnWrite(node);
+                        return true;
+                    }
+                }
             }
 
             return false;
@@ -525,8 +536,6 @@ namespace BitFaster.Caching.Lfu
         {
             this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
 
-            policy.AdvanceTime();
-
             // Note: this is only Span on .NET Core 3.1+, else this is no-op and it is still an array
             var buffer = this.drainBuffer.AsSpanOrArray();
 
@@ -601,7 +610,7 @@ namespace BitFaster.Caching.Lfu
                     break;
             }
 
-            policy.OnRead(node);
+            policy.AfterRead(node);
         }
 
         private void OnWrite(N node)
@@ -650,7 +659,7 @@ namespace BitFaster.Caching.Lfu
                     break;
             }
 
-            policy.OnWrite(node);
+            policy.AfterWrite(node);
         }
 
         private void PromoteProbation(LfuNode<K, V> node)

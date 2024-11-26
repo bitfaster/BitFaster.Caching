@@ -180,6 +180,7 @@ namespace BitFaster.Caching.Lru
             }
 
             value = item.Value;
+
             this.itemPolicy.Touch(item);
             this.telemetryPolicy.IncrementHit();
             return true;
@@ -307,18 +308,21 @@ namespace BitFaster.Caching.Lru
         {
             if (this.dictionary.TryGetValue(item.Key, out var existing))
             {
-                if (EqualityComparer<V>.Default.Equals(existing.Value, item.Value))
+                lock (existing)
                 {
-                    var kvp = new KeyValuePair<K, I>(item.Key, existing);
+                    if (EqualityComparer<V>.Default.Equals(existing.Value, item.Value))
+                    {
+                        var kvp = new KeyValuePair<K, I>(item.Key, existing);
 #if NET6_0_OR_GREATER
                     if (this.dictionary.TryRemove(kvp))
 #else
-                    // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
-                    if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
+                        // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+                        if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
 #endif
-                    {
-                        OnRemove(item.Key, kvp.Value, ItemRemovedReason.Removed);
-                        return true;
+                        {
+                            OnRemove(item.Key, kvp.Value, ItemRemovedReason.Removed);
+                            return true;
+                        }
                     }
                 }
 
@@ -382,7 +386,9 @@ namespace BitFaster.Caching.Lru
                     if (!existing.WasRemoved)
                     {
                         V oldValue = existing.Value;
+
                         existing.Value = value;
+
                         this.itemPolicy.Update(existing);
 // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER

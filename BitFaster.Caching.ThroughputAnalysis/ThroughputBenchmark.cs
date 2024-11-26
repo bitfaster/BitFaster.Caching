@@ -31,7 +31,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             Initialize?.Invoke(cache);
 
             // Warmup a few times before estimating run time
-            config.Iterations = 10;
+            config.Iterations = 1;
 
             for (int i = 0; i < warmup; i++)
             {
@@ -46,14 +46,17 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 var sw = Stopwatch.StartNew();
                 Run(Stage.Pilot, 0, threads, config, cache);
 
-                valid = sw.Elapsed > TimeSpan.FromMilliseconds(400) ? valid + 1 : 0;    
+                valid = sw.Elapsed > TimeSpan.FromMilliseconds(800) ? valid + 1 : 0;    
 
                 if (valid > 3)
                 {
                     break;
                 }
 
-                config.Iterations = (int)(1.2 * config.Iterations);
+                if (valid == 0)
+                { 
+                    config.Iterations = config.Iterations < 5 ? config.Iterations + 1 : (int)(1.2 * config.Iterations); 
+                }
             }
 
             int runCounter = 0;

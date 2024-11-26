@@ -601,6 +601,19 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void WhenKeyExistsAddOrUpdateGuidUpdatesExistingItem()
+        { 
+            var lfu2 = new ConcurrentLfu<int, Guid>(1, 40, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
+
+            var b = new byte[8];
+            lfu2.AddOrUpdate(1, new Guid(1, 0, 0, b));
+            lfu2.AddOrUpdate(1, new Guid(2, 0, 0, b));
+
+            lfu2.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be(new Guid(2, 0, 0, b));
+        }
+
+        [Fact]
         public void WhenItemDoesNotExistUpdatedAddsItem()
         {
             cache.AddOrUpdate(1, 2);

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lfu;
@@ -288,6 +289,76 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.Metrics.Value.Misses.Should().Be(loopIterations * threads);
             RunIntegrityCheck(cache, this.output);
+        }
+
+        [Fact]
+        public async Task WhenConcurrentUpdateAndRemoveKvp()
+        {
+            var cache = new ConcurrentLfu<int, string>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
+            TaskCompletionSource<int> tcs = new TaskCompletionSource<int> ();
+
+            var removal = Task.Run(() =>
+            {
+                while (!tcs.Task.IsCompleted)
+                {
+                    cache.TryRemove(new KeyValuePair<int, string>(5, "x"));
+                }
+            });
+
+            for (var i = 0; i < 100_000; i++)
+            {
+                cache.AddOrUpdate(5, "a");
+                cache.TryGet(5, out _).Should().BeTrue("key 'a' should not be deleted");
+                cache.AddOrUpdate(5, "x");
+            }
+
+            tcs.SetResult(int.MaxValue);
+
+            await removal;
+        }
+
+        // This test will run forever if there is a live lock.
+        // Since the cache bookkeeping has some overhead, it is harder to provoke
+        // spinning inside the reader thread compared to LruItemSoakTests.DetectTornStruct.
+        [Theory]
+        [Repeat(10)]
+        public async Task WhenValueIsBigStructNoLiveLock(int _)
+        { 
+            using var source = new CancellationTokenSource();
+            var started = new TaskCompletionSource<bool>();
+            var cache = new ConcurrentLfu<int, Guid>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
+
+            var setTask = Task.Run(() => Setter(cache, source.Token, started));
+            await started.Task;
+            Checker(cache, source);
+
+            await setTask;
+        }
+
+        private void Setter(ICache<int, Guid> cache, CancellationToken cancelToken, TaskCompletionSource<bool> started)
+        {
+            started.SetResult(true);
+
+            while (true)
+            {
+                cache.AddOrUpdate(1, Guid.NewGuid());
+                cache.AddOrUpdate(1, Guid.NewGuid());
+
+                if (cancelToken.IsCancellationRequested)
+                { 
+                    return; 
+                }
+            }
+        }
+
+        private void Checker(ICache<int, Guid> cache,CancellationTokenSource source)
+        {
+            for (int count = 0; count < 100_000; ++count)
+            {
+                cache.TryGet(1, out _);
+            }
+
+            source.Cancel();
         }
 
         private ConcurrentLfu<int, string> CreateWithBackgroundScheduler()

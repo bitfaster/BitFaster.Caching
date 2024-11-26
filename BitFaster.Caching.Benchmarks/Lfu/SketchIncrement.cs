@@ -12,7 +12,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
     [SimpleJob(RuntimeMoniker.Net90)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
-    [ColumnChart(Title = "Sketch Increment ({JOB})")]
+    [ColumnChart(Title = "Sketch Increment ({JOB})", Colors = "#cd5c5c,#fa8072,#ffa07a")]
     public class SketchIncrement
     {
         const int iterations = 1_048_576;
@@ -21,7 +21,10 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private CmSketchFlat<int, DetectIsa> flatAvx;
 
         private CmSketchCore<int, DisableHardwareIntrinsics> blockStd;
+        private CmSketchNoPin<int, DetectIsa> blockAvxNoPin;
         private CmSketchCore<int, DetectIsa> blockAvx;
+        private CmSketchCore512<int, DetectIsa> blockVector512;
+
 
         [Params(32_768, 524_288, 8_388_608, 134_217_728)]
         public int Size { get; set; }
@@ -33,7 +36,9 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             flatAvx = new CmSketchFlat<int, DetectIsa>(Size, EqualityComparer<int>.Default);
 
             blockStd = new CmSketchCore<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
+            blockAvxNoPin = new CmSketchNoPin<int, DetectIsa>(Size, EqualityComparer<int>.Default);
             blockAvx = new CmSketchCore<int, DetectIsa>(Size, EqualityComparer<int>.Default);
+            blockVector512 = new CmSketchCore512<int, DetectIsa>(Size, EqualityComparer<int>.Default);
         }
 
         [Benchmark(Baseline = true, OperationsPerInvoke = iterations)]
@@ -64,11 +69,29 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 
         [Benchmark(OperationsPerInvoke = iterations)]
-        public void IncBlockAvx()
+        public void IncBlockAvxNotPinned()
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                blockAvxNoPin.Increment(i);
+            }
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public void IncBlockAvxPinned()
         {
             for (int i = 0; i < iterations; i++)
             {
                 blockAvx.Increment(i);
+            }
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public void IncBlockAvxPinned512()
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                blockVector512.Increment(i);
             }
         }
     }

@@ -10,9 +10,10 @@ namespace BitFaster.Caching.Lfu
     {
         N Create(K key, V value);
         bool IsExpired(N node);
-        void AdvanceTime();
         void OnRead(N node);
         void OnWrite(N node);
+        void AfterRead(N node);
+        void AfterWrite(N node);
         void OnEvict(N node);
         void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, N, P> cache) where P : struct, INodePolicy<K, V, N>;
     }
@@ -33,17 +34,22 @@ namespace BitFaster.Caching.Lfu
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AdvanceTime()
-        {
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void OnRead(AccessOrderNode<K, V> node)
         {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void OnWrite(AccessOrderNode<K, V> node)
+        {
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AfterRead(AccessOrderNode<K, V> node)
+        {
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AfterWrite(AccessOrderNode<K, V> node)
         {
         }
 
@@ -85,28 +91,32 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsExpired(TimeOrderNode<K, V> node)
         {
-            return node.TimeToExpire < Duration.SinceEpoch();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AdvanceTime()
-        {
             current = Duration.SinceEpoch();
+            return node.TimeToExpire < current;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void OnRead(TimeOrderNode<K, V> node)
         {
-            var oldTte = node.TimeToExpire;
+            // we know IsExpired is always called immediate before OnRead, so piggyback on the current time
             node.TimeToExpire = current + expiryCalculator.GetExpireAfterRead(node.Key, node.Value, node.TimeToExpire - current);
-            if (oldTte.raw != node.TimeToExpire.raw)
-            {
-                wheel.Reschedule(node);
-            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void OnWrite(TimeOrderNode<K, V> node)
+        {
+            var current = Duration.SinceEpoch();
+            node.TimeToExpire = current + expiryCalculator.GetExpireAfterUpdate(node.Key, node.Value, node.TimeToExpire - current);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AfterRead(TimeOrderNode<K, V> node)
+        {
+            wheel.Reschedule(node);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AfterWrite(TimeOrderNode<K, V> node)
         {
             // if the node is not yet scheduled, it is being created
             // the time is set on create in case it is read before the buffer is processed
@@ -116,12 +126,7 @@ namespace BitFaster.Caching.Lfu
             }
             else
             {
-                var oldTte = node.TimeToExpire;
-                node.TimeToExpire = current + expiryCalculator.GetExpireAfterUpdate(node.Key, node.Value, node.TimeToExpire - current);
-                if (oldTte.raw != node.TimeToExpire.raw)
-                {
-                    wheel.Reschedule(node);
-                }
+                wheel.Reschedule(node);
             }
         }
 
@@ -134,7 +139,7 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, P> cache) where P : struct, INodePolicy<K, V, TimeOrderNode<K, V>>
         {
-            wheel.Advance(ref cache, current);
+            wheel.Advance(ref cache, Duration.SinceEpoch());
         }
     }
 }
