@@ -196,7 +196,6 @@ namespace BitFaster.Caching.Lfu
         }
 
         // Applies another round of hashing for additional randomization.
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Rehash(int x)
         {
             x = (int)(x * 0x31848bab);
@@ -205,7 +204,6 @@ namespace BitFaster.Caching.Lfu
         }
 
         // Applies a supplemental hash function to defend against poor quality hash.
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Spread(int x)
         {
             x ^= (int)((uint)x >> 17);
@@ -258,7 +256,6 @@ namespace BitFaster.Caching.Lfu
 
 #if !NETSTANDARD2_0
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-       // [MethodImpl(MethodImplOptions.AggressiveInlining | (MethodImplOptions)512)]
         private unsafe int EstimateFrequencyAvx(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
@@ -293,7 +290,6 @@ namespace BitFaster.Caching.Lfu
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-       // [MethodImpl(MethodImplOptions.AggressiveInlining | (MethodImplOptions)512)]
         private unsafe void IncrementAvx(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));

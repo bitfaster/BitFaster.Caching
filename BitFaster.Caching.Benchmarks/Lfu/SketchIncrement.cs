@@ -25,11 +25,9 @@ namespace BitFaster.Caching.Benchmarks.Lfu
 
         private CmSketchCore<int, DisableHardwareIntrinsics> blockStd;
         private CmSketchNoPin<int, DetectIsa> blockAvxNoPin;
-        private CmSketchPinNoOpt<int, DetectIsa> blockAvxPinNoOpt;
         private CmSketchCore<int, DetectIsa> blockAvx;
-        private CmSketchCore512<int, DetectIsa> blockAvx512;
 
-        [Params(512, 1024, 32_768, 524_288, 8_388_608, 134_217_728)]
+        [Params(32_768, 524_288, 8_388_608, 134_217_728)]
         public int Size { get; set; }
 
         [GlobalSetup]
@@ -40,9 +38,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
 
             blockStd = new CmSketchCore<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
             blockAvxNoPin = new CmSketchNoPin<int, DetectIsa>(Size, EqualityComparer<int>.Default);
-            blockAvxPinNoOpt = new CmSketchPinNoOpt<int, DetectIsa>(Size, EqualityComparer<int>.Default);
             blockAvx = new CmSketchCore<int, DetectIsa>(Size, EqualityComparer<int>.Default);
-            blockAvx512 = new CmSketchCore512<int, DetectIsa>(Size, EqualityComparer<int>.Default);
         }
 
         [Benchmark(Baseline = true, OperationsPerInvoke = iterations)]
@@ -54,7 +50,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             }
         }
 
-        //[Benchmark(OperationsPerInvoke = iterations)]
+        [Benchmark(OperationsPerInvoke = iterations)]
         public void IncFlatAvx()
         {
             for (int i = 0; i < iterations; i++)
@@ -82,29 +78,11 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 
         [Benchmark(OperationsPerInvoke = iterations)]
-        public void IncBlockAvxPinNotOpt()
-        {
-            for (int i = 0; i < iterations; i++)
-            {
-                blockAvxPinNoOpt.Increment(i);
-            }
-        }
-
-        [Benchmark(OperationsPerInvoke = iterations)]
         public void IncBlockAvxPinned()
         {
             for (int i = 0; i < iterations; i++)
             {
                 blockAvx.Increment(i);
-            }
-        }
-
-        [Benchmark(OperationsPerInvoke = iterations)]
-        public void IncBlockAvxPinned512()
-        {
-            for (int i = 0; i < iterations; i++)
-            {
-                blockAvx512.Increment(i);
             }
         }
     }
