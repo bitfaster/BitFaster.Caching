@@ -28,7 +28,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private CmSketchNoPin<int, DetectIsa> blockAvxNoPin;
         private CmSketchCore<int, DetectIsa> blockAvx;
 
-        [Params(512, 1024, 32_768, 524_288, 8_388_608, 134_217_728)]
+        [Params(32_768, 524_288, 8_388_608, 134_217_728)]
         public int Size { get; set; }
 
         [GlobalSetup]
