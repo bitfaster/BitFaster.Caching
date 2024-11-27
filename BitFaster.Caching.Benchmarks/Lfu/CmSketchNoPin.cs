@@ -103,6 +103,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             {
                 IncrementStd(value);
             }
+#endif
         }
 
         /// <summary>
