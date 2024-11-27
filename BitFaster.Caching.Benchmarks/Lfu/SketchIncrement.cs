@@ -70,7 +70,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
 #if Arm64
         public void IncBlockNeonNotPinned()
 #else
-        public int IncBlockAvxNotPinned()
+        public void IncBlockAvxNotPinned()
 #endif
         {
             for (int i = 0; i < iterations; i++)
