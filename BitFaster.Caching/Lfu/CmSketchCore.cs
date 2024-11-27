@@ -392,7 +392,6 @@ namespace BitFaster.Caching.Lfu
             Vector128<int> blockOffset = AdvSimd.Add(AdvSimd.Add(Vector128.Create(block), AdvSimd.And(h, Vector128.Create(1))), Vector128.Create(0, 2, 4, 6));
 
             long* tablePtr = tableAddr;
-            //fixed (long* tablePtr = table)
             {
                 int t0 = AdvSimd.Extract(blockOffset, 0);
                 int t1 = AdvSimd.Extract(blockOffset, 1);
@@ -444,7 +443,6 @@ namespace BitFaster.Caching.Lfu
             Vector128<int> blockOffset = AdvSimd.Add(AdvSimd.Add(Vector128.Create(block), AdvSimd.And(h, Vector128.Create(1))), Vector128.Create(0, 2, 4, 6));
 
             long* tablePtr = tableAddr;
-            //fixed (long* tablePtr = table)
             {
                 Vector128<long> tableVectorA = Vector128.Create(AdvSimd.LoadVector64(tablePtr + AdvSimd.Extract(blockOffset, 0)), AdvSimd.LoadVector64(tablePtr + AdvSimd.Extract(blockOffset, 1)));
                 Vector128<long> tableVectorB = Vector128.Create(AdvSimd.LoadVector64(tablePtr + AdvSimd.Extract(blockOffset, 2)), AdvSimd.LoadVector64(tablePtr + AdvSimd.Extract(blockOffset, 3)));

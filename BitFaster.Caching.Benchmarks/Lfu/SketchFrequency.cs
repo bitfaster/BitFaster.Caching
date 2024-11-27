@@ -24,7 +24,6 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private CmSketchCore<int, DisableHardwareIntrinsics> blockStd;
         private CmSketchNoPin<int, DetectIsa> blockAvxNoPin;
         private CmSketchCore<int, DetectIsa> blockVector;
-        private CmSketchCore512<int, DetectIsa> blockVector512;
 
         [Params(32_768, 524_288, 8_388_608, 134_217_728)]
         public int Size { get; set; }
@@ -38,7 +37,6 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             blockStd = new CmSketchCore<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
             blockAvxNoPin = new CmSketchNoPin<int, DetectIsa>(Size, EqualityComparer<int>.Default);
             blockVector = new CmSketchCore<int, DetectIsa>(Size, EqualityComparer<int>.Default);
-            blockVector512 = new CmSketchCore512<int, DetectIsa>(Size, EqualityComparer<int>.Default);
         }
 
         [Benchmark(Baseline = true, OperationsPerInvoke = iterations)]
@@ -50,7 +48,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
 
             return count;
         }
-
+#if X64
         [Benchmark(OperationsPerInvoke = iterations)]
         public int FrequencyFlatAvx()
         {
@@ -60,7 +58,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
 
             return count;
         }
-
+#endif
         [Benchmark(OperationsPerInvoke = iterations)]
         public int FrequencyBlock()
         {
@@ -72,7 +70,11 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 
         [Benchmark(OperationsPerInvoke = iterations)]
+#if Arm64
+        public int FrequencyBlockNeonNotPinned()
+#else
         public int FrequencyBlockAvxNotPinned()
+#endif
         {
             int count = 0;
             for (int i = 0; i < iterations; i++)
@@ -82,21 +84,16 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 
         [Benchmark(OperationsPerInvoke = iterations)]
+
+#if Arm64
+        public int FrequencyBlockNeonPinned()
+#else
         public int FrequencyBlockAvxPinned()
+#endif
         {
             int count = 0;
             for (int i = 0; i < iterations; i++)
                 count += blockVector.EstimateFrequency(i) > blockVector.EstimateFrequency(i + 1) ? 1 : 0;
-
-            return count;
-        }
-
-        [Benchmark(OperationsPerInvoke = iterations)]
-        public int FrequencyBlockAvxPinned512()
-        {
-            int count = 0;
-            for (int i = 0; i < iterations; i++)
-                count += blockVector512.EstimateFrequency(i) > blockVector.EstimateFrequency(i + 1) ? 1 : 0;
 
             return count;
         }
