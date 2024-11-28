@@ -7,6 +7,9 @@ using BitFaster.Caching.Lfu;
 
 namespace BitFaster.Caching.Benchmarks.Lfu
 {
+#if Windows
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 4)]
+#endif
     [SimpleJob(RuntimeMoniker.Net60)]
     [SimpleJob(RuntimeMoniker.Net80)]
     [SimpleJob(RuntimeMoniker.Net90)]
