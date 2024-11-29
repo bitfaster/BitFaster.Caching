@@ -26,7 +26,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
 
         private CmSketchCore<int, DisableHardwareIntrinsics> blockStd;
         private CmSketchNoPin<int, DetectIsa> blockAvxNoPin;
-        private CmSketchCore<int, DetectIsa> blockVector;
+        private CmSketchCore<int, DetectIsa> blockAvx;
 
         [Params(32_768, 524_288, 8_388_608, 134_217_728)]
         public int Size { get; set; }
@@ -39,7 +39,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
 
             blockStd = new CmSketchCore<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
             blockAvxNoPin = new CmSketchNoPin<int, DetectIsa>(Size, EqualityComparer<int>.Default);
-            blockVector = new CmSketchCore<int, DetectIsa>(Size, EqualityComparer<int>.Default);
+            blockAvx = new CmSketchCore<int, DetectIsa>(Size, EqualityComparer<int>.Default);
         }
 
         [Benchmark(Baseline = true, OperationsPerInvoke = iterations)]
@@ -81,7 +81,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         {
             int count = 0;
             for (int i = 0; i < iterations; i++)
-                count += blockAvxNoPin.EstimateFrequency(i) > blockVector.EstimateFrequency(i + 1) ? 1 : 0;
+                count += blockAvxNoPin.EstimateFrequency(i) > blockAvx.EstimateFrequency(i + 1) ? 1 : 0;
 
             return count;
         }
@@ -96,7 +96,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         {
             int count = 0;
             for (int i = 0; i < iterations; i++)
-                count += blockVector.EstimateFrequency(i) > blockVector.EstimateFrequency(i + 1) ? 1 : 0;
+                count += blockAvx.EstimateFrequency(i) > blockAvx.EstimateFrequency(i + 1) ? 1 : 0;
 
             return count;
         }

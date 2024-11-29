@@ -38,13 +38,12 @@ namespace BitFaster.Caching.Lfu
         private const long OneMask = 0x1111111111111111L;
 
         private long[] table;
-        private int sampleSize;
-        private int blockMask;
-        private int size;
-
 #if NET6_0_OR_GREATER
         private long* tableAddr;
 #endif
+        private int sampleSize;
+        private int blockMask;
+        private int size;
 
         private readonly IEqualityComparer<T> comparer;
 
