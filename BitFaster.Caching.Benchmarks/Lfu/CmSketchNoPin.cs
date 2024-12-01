@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
 
 #if NET6_0_OR_GREATER
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 #endif
 
@@ -61,6 +64,12 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             {
                 return EstimateFrequencyAvx(value);
             }
+#if NET6_0_OR_GREATER
+            else if (isa.IsArm64Supported)
+            {
+                return EstimateFrequencyArm(value);
+            }
+#endif
             else
             {
                 return EstimateFrequencyStd(value);
@@ -84,6 +93,12 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             {
                 IncrementAvx(value);
             }
+#if NET6_0_OR_GREATER
+            else if (isa.IsArm64Supported)
+            {
+                IncrementArm(value);
+            }
+#endif
             else
             {
                 IncrementStd(value);
@@ -311,6 +326,95 @@ namespace BitFaster.Caching.Benchmarks.Lfu
                 {
                     Reset();
                 }
+            }
+        }
+#endif
+
+#if NET6_0_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe void IncrementArm(T value)
+        {
+            int blockHash = Spread(comparer.GetHashCode(value));
+            int counterHash = Rehash(blockHash);
+            int block = (blockHash & blockMask) << 3;
+
+            Vector128<int> h = AdvSimd.ShiftArithmetic(Vector128.Create(counterHash), Vector128.Create(0, -8, -16, -24));
+            Vector128<int> index = AdvSimd.And(AdvSimd.ShiftRightLogical(h, 1), Vector128.Create(0xf));
+            Vector128<int> blockOffset = AdvSimd.Add(AdvSimd.Add(Vector128.Create(block), AdvSimd.And(h, Vector128.Create(1))), Vector128.Create(0, 2, 4, 6));
+
+            fixed (long* tablePtr = table)
+            {
+                int t0 = AdvSimd.Extract(blockOffset, 0);
+                int t1 = AdvSimd.Extract(blockOffset, 1);
+                int t2 = AdvSimd.Extract(blockOffset, 2);
+                int t3 = AdvSimd.Extract(blockOffset, 3);
+
+                Vector128<long> tableVectorA = Vector128.Create(AdvSimd.LoadVector64(tablePtr + t0), AdvSimd.LoadVector64(tablePtr + t1));
+                Vector128<long> tableVectorB = Vector128.Create(AdvSimd.LoadVector64(tablePtr + t2), AdvSimd.LoadVector64(tablePtr + t3));
+
+                index = AdvSimd.ShiftLeftLogicalSaturate(index, 2);
+
+                Vector128<int> longOffA = AdvSimd.Arm64.InsertSelectedScalar(AdvSimd.Arm64.InsertSelectedScalar(Vector128<int>.Zero, 0, index, 0), 2, index, 1);
+                Vector128<int> longOffB = AdvSimd.Arm64.InsertSelectedScalar(AdvSimd.Arm64.InsertSelectedScalar(Vector128<int>.Zero, 0, index, 2), 2, index, 3);
+
+                Vector128<long> fifteen = Vector128.Create(0xfL);
+                Vector128<long> maskA = AdvSimd.ShiftArithmetic(fifteen, longOffA.AsInt64());
+                Vector128<long> maskB = AdvSimd.ShiftArithmetic(fifteen, longOffB.AsInt64());
+
+                Vector128<long> maskedA = AdvSimd.Not(AdvSimd.Arm64.CompareEqual(AdvSimd.And(tableVectorA, maskA), maskA));
+                Vector128<long> maskedB = AdvSimd.Not(AdvSimd.Arm64.CompareEqual(AdvSimd.And(tableVectorB, maskB), maskB));
+
+                var one = Vector128.Create(1L);
+                Vector128<long> incA = AdvSimd.And(maskedA, AdvSimd.ShiftArithmetic(one, longOffA.AsInt64()));
+                Vector128<long> incB = AdvSimd.And(maskedB, AdvSimd.ShiftArithmetic(one, longOffB.AsInt64()));
+
+                tablePtr[t0] += AdvSimd.Extract(incA, 0);
+                tablePtr[t1] += AdvSimd.Extract(incA, 1);
+                tablePtr[t2] += AdvSimd.Extract(incB, 0);
+                tablePtr[t3] += AdvSimd.Extract(incB, 1);
+
+                var max = AdvSimd.Arm64.MaxAcross(AdvSimd.Arm64.InsertSelectedScalar(AdvSimd.Arm64.MaxAcross(incA.AsInt32()), 1, AdvSimd.Arm64.MaxAcross(incB.AsInt32()), 0).AsInt16());
+
+                if (max.ToScalar() != 0 && (++size == sampleSize))
+                {
+                    Reset();
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe int EstimateFrequencyArm(T value)
+        {
+            int blockHash = Spread(comparer.GetHashCode(value));
+            int counterHash = Rehash(blockHash);
+            int block = (blockHash & blockMask) << 3;
+
+            Vector128<int> h = AdvSimd.ShiftArithmetic(Vector128.Create(counterHash), Vector128.Create(0, -8, -16, -24));
+            Vector128<int> index = AdvSimd.And(AdvSimd.ShiftRightLogical(h, 1), Vector128.Create(0xf));
+            Vector128<int> blockOffset = AdvSimd.Add(AdvSimd.Add(Vector128.Create(block), AdvSimd.And(h, Vector128.Create(1))), Vector128.Create(0, 2, 4, 6));
+
+            fixed (long* tablePtr = table)
+            {
+                Vector128<long> tableVectorA = Vector128.Create(AdvSimd.LoadVector64(tablePtr + AdvSimd.Extract(blockOffset, 0)), AdvSimd.LoadVector64(tablePtr + AdvSimd.Extract(blockOffset, 1)));
+                Vector128<long> tableVectorB = Vector128.Create(AdvSimd.LoadVector64(tablePtr + AdvSimd.Extract(blockOffset, 2)), AdvSimd.LoadVector64(tablePtr + AdvSimd.Extract(blockOffset, 3)));
+
+                index = AdvSimd.ShiftLeftLogicalSaturate(index, 2);
+
+                Vector128<int> indexA = AdvSimd.Negate(AdvSimd.Arm64.InsertSelectedScalar(AdvSimd.Arm64.InsertSelectedScalar(Vector128<int>.Zero, 0, index, 0), 2, index, 1));
+                Vector128<int> indexB = AdvSimd.Negate(AdvSimd.Arm64.InsertSelectedScalar(AdvSimd.Arm64.InsertSelectedScalar(Vector128<int>.Zero, 0, index, 2), 2, index, 3));
+
+                var fifteen = Vector128.Create(0xfL);
+                Vector128<long> a = AdvSimd.And(AdvSimd.ShiftArithmetic(tableVectorA, indexA.AsInt64()), fifteen);
+                Vector128<long> b = AdvSimd.And(AdvSimd.ShiftArithmetic(tableVectorB, indexB.AsInt64()), fifteen);
+
+                // Before: < 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F >
+                // After:  < 0, 1, 2, 3, 8, 9, A, B, 4, 5, 6, 7, C, D, E, F >
+                var min = AdvSimd.Arm64.VectorTableLookup(a.AsByte(), Vector128.Create(0x0B0A090803020100, 0xFFFFFFFFFFFFFFFF).AsByte());
+                min = AdvSimd.Arm64.VectorTableLookupExtension(min, b.AsByte(), Vector128.Create(0xFFFFFFFFFFFFFFFF, 0x0B0A090803020100).AsByte());
+
+                var min32 = AdvSimd.Arm64.MinAcross(min.AsInt32());
+
+                return min32.ToScalar();
             }
         }
 #endif

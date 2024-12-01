@@ -51,7 +51,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
 
             return count;
         }
-
+#if X64
         [Benchmark(OperationsPerInvoke = iterations)]
         public int FrequencyFlatAvx()
         {
@@ -61,7 +61,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
 
             return count;
         }
-
+#endif
         [Benchmark(OperationsPerInvoke = iterations)]
         public int FrequencyBlock()
         {
@@ -73,7 +73,11 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 
         [Benchmark(OperationsPerInvoke = iterations)]
+#if Arm64
+        public int FrequencyBlockNeonNotPinned()
+#else
         public int FrequencyBlockAvxNotPinned()
+#endif
         {
             int count = 0;
             for (int i = 0; i < iterations; i++)
@@ -83,7 +87,12 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 
         [Benchmark(OperationsPerInvoke = iterations)]
+
+#if Arm64
+        public int FrequencyBlockNeonPinned()
+#else
         public int FrequencyBlockAvxPinned()
+#endif
         {
             int count = 0;
             for (int i = 0; i < iterations; i++)

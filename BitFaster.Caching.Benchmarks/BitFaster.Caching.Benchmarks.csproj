@@ -3,12 +3,14 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <LangVersion>latest</LangVersion>
-    <TargetFrameworks>net48;net6.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <!-- https://stackoverflow.com/a/59916801/131345 -->
     <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows> 
     <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
     <IsMacOS Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsMacOS>
+    <IsArm64 Condition="$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == Arm64">true</IsArm64>
+    <IsX64 Condition="$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == X64">true</IsX64>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -40,6 +42,12 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(IsMacOS)'=='true'">
         <DefineConstants>MacOS</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(IsArm64)'=='true'">
+        <DefineConstants>Arm64</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(IsX64)'=='true'">
+        <DefineConstants>X64</DefineConstants>
     </PropertyGroup>
 
 </Project>

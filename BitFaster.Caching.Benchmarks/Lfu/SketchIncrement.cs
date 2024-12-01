@@ -27,6 +27,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private CmSketchNoPin<int, DetectIsa> blockAvxNoPin;
         private CmSketchCore<int, DetectIsa> blockAvx;
 
+
         [Params(32_768, 524_288, 8_388_608, 134_217_728)]
         public int Size { get; set; }
 
@@ -49,7 +50,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
                 flatStd.Increment(i);
             }
         }
-
+#if X64
         [Benchmark(OperationsPerInvoke = iterations)]
         public void IncFlatAvx()
         {
@@ -58,7 +59,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
                 flatAvx.Increment(i);
             }
         }
-
+#endif
         [Benchmark(OperationsPerInvoke = iterations)]
         public void IncBlock()
         {
@@ -69,7 +70,11 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 
         [Benchmark(OperationsPerInvoke = iterations)]
+#if Arm64
+        public void IncBlockNeonNotPinned()
+#else
         public void IncBlockAvxNotPinned()
+#endif
         {
             for (int i = 0; i < iterations; i++)
             {
@@ -78,7 +83,11 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 
         [Benchmark(OperationsPerInvoke = iterations)]
+#if Arm64
+        public void IncBlockNeonPinned()
+#else
         public void IncBlockAvxPinned()
+#endif
         {
             for (int i = 0; i < iterations; i++)
             {
