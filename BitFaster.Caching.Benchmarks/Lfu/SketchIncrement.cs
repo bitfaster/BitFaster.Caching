@@ -23,7 +23,8 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private CmSketchFlat<int, DisableHardwareIntrinsics> flatStd;
         private CmSketchFlat<int, DetectIsa> flatAvx;
 
-        private CmSketchCore<int, DisableHardwareIntrinsics> blockStd;
+        private CmSketchLooped<int, DisableHardwareIntrinsics> blockStdNoUnroll;
+        private CmSketchCore<int, DisableHardwareIntrinsics> blockStdUnroll;
         private CmSketchNoPin<int, DetectIsa> blockAvxNoPin;
         private CmSketchCore<int, DetectIsa> blockAvx;
 
@@ -37,7 +38,8 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             flatStd = new CmSketchFlat<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
             flatAvx = new CmSketchFlat<int, DetectIsa>(Size, EqualityComparer<int>.Default);
 
-            blockStd = new CmSketchCore<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
+            blockStdNoUnroll = new CmSketchLooped<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
+            blockStdUnroll = new CmSketchCore<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
             blockAvxNoPin = new CmSketchNoPin<int, DetectIsa>(Size, EqualityComparer<int>.Default);
             blockAvx = new CmSketchCore<int, DetectIsa>(Size, EqualityComparer<int>.Default);
         }
@@ -65,7 +67,16 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         {
             for (int i = 0; i < iterations; i++)
             {
-                blockStd.Increment(i);
+                blockStdNoUnroll.Increment(i);
+            }
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+        public void IncBlockUnroll()
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                blockStdUnroll.Increment(i);
             }
         }
 
