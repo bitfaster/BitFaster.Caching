@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 #if !NETSTANDARD2_0
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+
 #endif
 
 #if NET6_0_OR_GREATER
@@ -169,19 +170,31 @@ namespace BitFaster.Caching.Lfu
 
         private unsafe int EstimateFrequencyStd(T value)
         {
-            var count = stackalloc int[4];
             int blockHash = Spread(comparer.GetHashCode(value));
             int counterHash = Rehash(blockHash);
             int block = (blockHash & blockMask) << 3;
 
-            for (int i = 0; i < 4; i++)
-            {
-                int h = (int)((uint)counterHash >> (i << 3));
-                int index = (h >> 1) & 15;
-                int offset = h & 1;
-                count[i] = (int)(((ulong)table[block + offset + (i << 1)] >> (index << 2)) & 0xfL);
-            }
-            return Math.Min(Math.Min(count[0], count[1]), Math.Min(count[2], count[3]));
+            int h0 = counterHash;
+            int h1 = counterHash >>> 8;
+            int h2 = counterHash >>> 16;
+            int h3 = counterHash >>> 24;
+
+            int index0 = (h0 >>> 1) & 15;
+            int index1 = (h1 >>> 1) & 15;
+            int index2 = (h2 >>> 1) & 15;
+            int index3 = (h3 >>> 1) & 15;
+
+            int slot0 = block + (h0 & 1);
+            int slot1 = block + (h1 & 1) + 2;
+            int slot2 = block + (h2 & 1) + 4;
+            int slot3 = block + (h3 & 1) + 6;
+
+            int count0 = (int)((table[slot0] >>> (index0 << 2)) & 0xfL);
+            int count1 = (int)((table[slot1] >>> (index1 << 2)) & 0xfL);
+            int count2 = (int)((table[slot2] >>> (index2 << 2)) & 0xfL);
+            int count3 = (int)((table[slot3] >>> (index3 << 2)) & 0xfL);
+
+            return Math.Min(Math.Min(count0, count1), Math.Min(count2, count3));
         }
 
         private unsafe void IncrementStd(T value)
@@ -190,7 +203,7 @@ namespace BitFaster.Caching.Lfu
             int counterHash = Rehash(blockHash);
             int block = (blockHash & blockMask) << 3;
 
-            // Loop unrolling improves throughput by 10m ops/s
+            // Loop unrolling improves throughput
             int h0 = counterHash;
             int h1 = counterHash >>> 8;
             int h2 = counterHash >>> 16;
