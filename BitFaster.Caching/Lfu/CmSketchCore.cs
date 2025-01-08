@@ -174,6 +174,7 @@ namespace BitFaster.Caching.Lfu
             int counterHash = Rehash(blockHash);
             int block = (blockHash & blockMask) << 3;
 
+            // Loop unrolling improves throughput
             int h0 = counterHash;
             int h1 = counterHash >>> 8;
             int h2 = counterHash >>> 16;
