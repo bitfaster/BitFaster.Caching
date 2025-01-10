@@ -12,6 +12,9 @@ using System.Runtime.Intrinsics.X86;
 
 namespace BitFaster.Caching.Benchmarks.Lfu
 {
+    // Block sketch implementation without:
+    // - Pinned buffer for vector code paths
+    // - Loop unroll for non-vector code paths
     internal class CmSketchNoPin<T, I>
         where T : notnull
         where I : struct, IsaProbe
