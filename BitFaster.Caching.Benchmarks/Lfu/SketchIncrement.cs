@@ -1,14 +1,21 @@
 ﻿
 using System.Collections.Generic;
+using Benchly;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Lfu;
 
 namespace BitFaster.Caching.Benchmarks.Lfu
 {
+#if Windows
+    [DisassemblyDiagnoser(printSource: true, maxDepth: 4)]
+#endif
     [SimpleJob(RuntimeMoniker.Net60)]
+    [SimpleJob(RuntimeMoniker.Net80)]
+    [SimpleJob(RuntimeMoniker.Net90)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
+    [ColumnChart(Title = "Sketch Increment ({JOB})", Colors = "#cd5c5c,#fa8072,#ffa07a")]
     public class SketchIncrement
     {
         const int iterations = 1_048_576;
@@ -16,8 +23,11 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         private CmSketchFlat<int, DisableHardwareIntrinsics> flatStd;
         private CmSketchFlat<int, DetectIsa> flatAvx;
 
-        private CmSketchCore<int, DisableHardwareIntrinsics> blockStd;
+        private CmSketchNoPin<int, DisableHardwareIntrinsics> blockStdNoUnroll;
+        private CmSketchCore<int, DisableHardwareIntrinsics> blockStdUnroll;
+        private CmSketchNoPin<int, DetectIsa> blockAvxNoPin;
         private CmSketchCore<int, DetectIsa> blockAvx;
+
 
         [Params(32_768, 524_288, 8_388_608, 134_217_728)]
         public int Size { get; set; }
@@ -28,7 +38,9 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             flatStd = new CmSketchFlat<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
             flatAvx = new CmSketchFlat<int, DetectIsa>(Size, EqualityComparer<int>.Default);
 
-            blockStd = new CmSketchCore<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
+            blockStdNoUnroll = new CmSketchNoPin<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
+            blockStdUnroll = new CmSketchCore<int, DisableHardwareIntrinsics>(Size, EqualityComparer<int>.Default);
+            blockAvxNoPin = new CmSketchNoPin<int, DetectIsa>(Size, EqualityComparer<int>.Default);
             blockAvx = new CmSketchCore<int, DetectIsa>(Size, EqualityComparer<int>.Default);
         }
 
@@ -40,7 +52,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
                 flatStd.Increment(i);
             }
         }
-
+#if X64
         [Benchmark(OperationsPerInvoke = iterations)]
         public void IncFlatAvx()
         {
@@ -49,18 +61,44 @@ namespace BitFaster.Caching.Benchmarks.Lfu
                 flatAvx.Increment(i);
             }
         }
-
+#endif
         [Benchmark(OperationsPerInvoke = iterations)]
         public void IncBlock()
         {
             for (int i = 0; i < iterations; i++)
             {
-                blockStd.Increment(i);
+                blockStdNoUnroll.Increment(i);
             }
         }
 
         [Benchmark(OperationsPerInvoke = iterations)]
-        public void IncBlockAvx()
+        public void IncBlockUnroll()
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                blockStdUnroll.Increment(i);
+            }
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+#if Arm64
+        public void IncBlockNeonNotPinned()
+#else
+        public void IncBlockAvxNotPinned()
+#endif
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                blockAvxNoPin.Increment(i);
+            }
+        }
+
+        [Benchmark(OperationsPerInvoke = iterations)]
+#if Arm64
+        public void IncBlockNeonPinned()
+#else
+        public void IncBlockAvxPinned()
+#endif
         {
             for (int i = 0; i < iterations; i++)
             {

@@ -2,36 +2,20 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
-
-#if !NETSTANDARD2_0
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-
-#endif
 
 #if NET6_0_OR_GREATER
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
 #endif
 
-namespace BitFaster.Caching.Lfu
+namespace BitFaster.Caching.Benchmarks.Lfu
 {
-    /// <summary>
-    /// A probabilistic data structure used to estimate the frequency of a given value. Periodic aging reduces the
-    /// accumulated count across all values over time, such that a historic popular value will decay to zero frequency
-    /// over time if it is not accessed.
-    /// </summary>
-    /// <remarks>
-    /// The maximum frequency of an element is limited to 15 (4-bits). Each element is hashed to a 64 byte 'block'
-    /// consisting of 4 segments of 32 4-bit counters. The 64 byte blocks are the same size as x64 L1 cache lines.
-    /// While the blocks are not guaranteed to be aligned, this scheme minimizes L1 cache misses resulting in a
-    /// significant speedup. When supported, a vectorized AVX2 code path provides a further speedup. Together, block 
-    /// and AVX2 are approximately 2x faster than the original implementation.
-    /// </remarks>
-    /// This is a direct C# translation of FrequencySketch in the Caffeine library by ben.manes@gmail.com (Ben Manes).
-    /// https://github.com/ben-manes/caffeine
-    public unsafe class CmSketchCore<T, I>
+    // Block sketch implementation without:
+    // - Pinned buffer for vector code paths
+    // - Loop unroll for non-vector code paths
+    internal class CmSketchNoPin<T, I>
         where T : notnull
         where I : struct, IsaProbe
     {
@@ -39,9 +23,6 @@ namespace BitFaster.Caching.Lfu
         private const long OneMask = 0x1111111111111111L;
 
         private long[] table;
-#if NET6_0_OR_GREATER
-        private long* tableAddr;
-#endif
         private int sampleSize;
         private int blockMask;
         private int size;
@@ -53,7 +34,7 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <param name="maximumSize">The maximum size.</param>
         /// <param name="comparer">The equality comparer.</param>
-        public CmSketchCore(long maximumSize, IEqualityComparer<T> comparer)
+        public CmSketchNoPin(long maximumSize, IEqualityComparer<T> comparer)
         {
             EnsureCapacity(maximumSize);
             this.comparer = comparer;
@@ -76,7 +57,7 @@ namespace BitFaster.Caching.Lfu
         /// <returns>The estimated frequency of the value.</returns>
         public int EstimateFrequency(T value)
         {
-#if NETSTANDARD2_0
+#if NET48
             return EstimateFrequencyStd(value);
 #else
 
@@ -105,7 +86,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="value">The value.</param>
         public void Increment(T value)
         {
-#if NETSTANDARD2_0
+#if NET48
             IncrementStd(value);
 #else
 
@@ -133,36 +114,17 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         public void Clear()
         {
-            Array.Clear(table, 0, table.Length);
+            table = new long[table.Length];
             size = 0;
         }
 
-        [MemberNotNull(nameof(table))]
+       // [MemberNotNull(nameof(table))]
         private void EnsureCapacity(long maximumSize)
         {
             int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);
 
-#if NET6_0_OR_GREATER
-            I isa = default;
-            if (isa.IsAvx2Supported || isa.IsArm64Supported)
-            {
-                // over alloc by 8 to give 64 bytes padding, tableAddr is then aligned to 64 bytes
-                const int pad = 8;
-                bool pinned = true;
-                table = GC.AllocateArray<long>(Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8) + pad, pinned);
-
-                tableAddr = (long*)Unsafe.AsPointer(ref table[0]);
-                tableAddr = (long*)((long)tableAddr + (long)tableAddr % 64);
-
-                blockMask = (int)((uint)(table.Length - pad) >> 3) - 1;
-            }
-            else
-#endif
-            {
-                table = new long[Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8)];
-                blockMask = (int)((uint)(table.Length) >> 3) - 1;
-            }
-
+            table = new long[Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8)];
+            blockMask = (int)((uint)table.Length >> 3) - 1;
             sampleSize = (maximumSize == 0) ? 10 : (10 * maximum);
 
             size = 0;
@@ -170,61 +132,41 @@ namespace BitFaster.Caching.Lfu
 
         private unsafe int EstimateFrequencyStd(T value)
         {
+            var count = stackalloc int[4];
             int blockHash = Spread(comparer.GetHashCode(value));
             int counterHash = Rehash(blockHash);
             int block = (blockHash & blockMask) << 3;
 
-            // Loop unrolling improves throughput
-            int h0 = counterHash;
-            int h1 = counterHash >>> 8;
-            int h2 = counterHash >>> 16;
-            int h3 = counterHash >>> 24;
-
-            int index0 = (h0 >>> 1) & 15;
-            int index1 = (h1 >>> 1) & 15;
-            int index2 = (h2 >>> 1) & 15;
-            int index3 = (h3 >>> 1) & 15;
-
-            int slot0 = block + (h0 & 1);
-            int slot1 = block + (h1 & 1) + 2;
-            int slot2 = block + (h2 & 1) + 4;
-            int slot3 = block + (h3 & 1) + 6;
-
-            int count0 = (int)((table[slot0] >>> (index0 << 2)) & 0xfL);
-            int count1 = (int)((table[slot1] >>> (index1 << 2)) & 0xfL);
-            int count2 = (int)((table[slot2] >>> (index2 << 2)) & 0xfL);
-            int count3 = (int)((table[slot3] >>> (index3 << 2)) & 0xfL);
-
-            return Math.Min(Math.Min(count0, count1), Math.Min(count2, count3));
+            for (int i = 0; i < 4; i++)
+            {
+                int h = (int)((uint)counterHash >> (i << 3));
+                int index = (h >> 1) & 15;
+                int offset = h & 1;
+                count[i] = (int)(((ulong)table[block + offset + (i << 1)] >> (index << 2)) & 0xfL);
+            }
+            return Math.Min(Math.Min(count[0], count[1]), Math.Min(count[2], count[3]));
         }
 
         private unsafe void IncrementStd(T value)
         {
+            var index = stackalloc int[8];
             int blockHash = Spread(comparer.GetHashCode(value));
             int counterHash = Rehash(blockHash);
             int block = (blockHash & blockMask) << 3;
 
-            // Loop unrolling improves throughput
-            int h0 = counterHash;
-            int h1 = counterHash >>> 8;
-            int h2 = counterHash >>> 16;
-            int h3 = counterHash >>> 24;
-
-            int index0 = (h0 >>> 1) & 15;
-            int index1 = (h1 >>> 1) & 15;
-            int index2 = (h2 >>> 1) & 15;
-            int index3 = (h3 >>> 1) & 15;
-
-            int slot0 = block + (h0 & 1);
-            int slot1 = block + (h1 & 1) + 2;
-            int slot2 = block + (h2 & 1) + 4;
-            int slot3 = block + (h3 & 1) + 6;
+            for (int i = 0; i < 4; i++)
+            {
+                int h = (int)((uint)counterHash >> (i << 3));
+                index[i] = (h >> 1) & 15;
+                int offset = h & 1;
+                index[i + 4] = block + offset + (i << 1);
+            }
 
             bool added =
-                  IncrementAt(slot0, index0)
-                | IncrementAt(slot1, index1)
-                | IncrementAt(slot2, index2)
-                | IncrementAt(slot3, index3);
+                  IncrementAt(index[4], index[0])
+                | IncrementAt(index[5], index[1])
+                | IncrementAt(index[6], index[2])
+                | IncrementAt(index[7], index[3]);
 
             if (added && (++size == sampleSize))
             {
@@ -232,7 +174,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        // Applies another round of hashing for additional randomization.
+        // Applies another round of hashing for additional randomization
         private static int Rehash(int x)
         {
             x = (int)(x * 0x31848bab);
@@ -240,7 +182,7 @@ namespace BitFaster.Caching.Lfu
             return x;
         }
 
-        // Applies a supplemental hash function to defend against poor quality hash.
+        // Applies a supplemental hash functions to defends against poor quality hash.
         private static int Spread(int x)
         {
             x ^= (int)((uint)x >> 17);
@@ -291,32 +233,41 @@ namespace BitFaster.Caching.Lfu
             size = (size - (count0 >> 2)) >> 1;
         }
 
-#if !NETSTANDARD2_0
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET6_0_OR_GREATER
         private unsafe int EstimateFrequencyAvx(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
             int counterHash = Rehash(blockHash);
             int block = (blockHash & blockMask) << 3;
 
-            Vector128<int> h = Avx2.ShiftRightLogicalVariable(Vector128.Create(counterHash).AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
-            Vector128<int> index = Avx2.ShiftLeftLogical(Avx2.And(Avx2.ShiftRightLogical(h, 1), Vector128.Create(15)), 2);
-            Vector128<int> blockOffset = Avx2.Add(Avx2.Add(Vector128.Create(block), Avx2.And(h, Vector128.Create(1))), Vector128.Create(0, 2, 4, 6));
+            Vector128<int> h = Vector128.Create(counterHash);
+            h = Avx2.ShiftRightLogicalVariable(h.AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
 
-            Vector256<ulong> indexLong = Avx2.PermuteVar8x32(Vector256.Create(index, Vector128<int>.Zero), Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7)).AsUInt64();
+            var index = Avx2.ShiftRightLogical(h, 1);
+            index = Avx2.And(index, Vector128.Create(15)); // j - counter index
+            Vector128<int> offset = Avx2.And(h, Vector128.Create(1));
+            Vector128<int> blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
+            blockOffset = Avx2.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
 
-#if NET6_0_OR_GREATER
-            long* tablePtr = tableAddr;
-#else
             fixed (long* tablePtr = table)
-#endif
             {
-                Vector128<ushort> count = Avx2.PermuteVar8x32(Avx2.And(Avx2.ShiftRightLogicalVariable(Avx2.GatherVector256(tablePtr, blockOffset, 8), indexLong), Vector256.Create(0xfL)).AsInt32(), Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7))
+                Vector256<long> tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
+                index = Avx2.ShiftLeftLogical(index, 2);
+
+                // convert index from int to long via permute
+                Vector256<long> indexLong = Vector256.Create(index, Vector128<int>.Zero).AsInt64();
+                Vector256<int> permuteMask2 = Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7);
+                indexLong = Avx2.PermuteVar8x32(indexLong.AsInt32(), permuteMask2).AsInt64();
+                tableVector = Avx2.ShiftRightLogicalVariable(tableVector, indexLong.AsUInt64());
+                tableVector = Avx2.And(tableVector, Vector256.Create(0xfL));
+
+                Vector256<int> permuteMask = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
+                Vector128<ushort> count = Avx2.PermuteVar8x32(tableVector.AsInt32(), permuteMask)
                     .GetLower()
                     .AsUInt16();
 
                 // set the zeroed high parts of the long value to ushort.Max
-#if NET6_0_OR_GREATER
+#if NET6_0
                 count = Avx2.Blend(count, Vector128<ushort>.AllBitsSet, 0b10101010);
 #else
                 count = Avx2.Blend(count, Vector128.Create(ushort.MaxValue), 0b10101010);
@@ -326,33 +277,48 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private unsafe void IncrementAvx(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
             int counterHash = Rehash(blockHash);
             int block = (blockHash & blockMask) << 3;
 
-            Vector128<int> h = Avx2.ShiftRightLogicalVariable(Vector128.Create(counterHash).AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
-            Vector128<int> index = Avx2.ShiftLeftLogical(Avx2.And(Avx2.ShiftRightLogical(h, 1), Vector128.Create(15)), 2);
-            Vector128<int> blockOffset = Avx2.Add(Avx2.Add(Vector128.Create(block), Avx2.And(h, Vector128.Create(1))), Vector128.Create(0, 2, 4, 6));
+            Vector128<int> h = Vector128.Create(counterHash);
+            h = Avx2.ShiftRightLogicalVariable(h.AsUInt32(), Vector128.Create(0U, 8U, 16U, 24U)).AsInt32();
 
-            Vector256<ulong> offsetLong = Avx2.PermuteVar8x32(Vector256.Create(index, Vector128<int>.Zero), Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7)).AsUInt64();
-            Vector256<long> mask = Avx2.ShiftLeftLogicalVariable(Vector256.Create(0xfL), offsetLong);
+            Vector128<int> index = Avx2.ShiftRightLogical(h, 1);
+            index = Avx2.And(index, Vector128.Create(15)); // j - counter index
+            Vector128<int> offset = Avx2.And(h, Vector128.Create(1));
+            Vector128<int> blockOffset = Avx2.Add(Vector128.Create(block), offset); // i - table index
+            blockOffset = Avx2.Add(blockOffset, Vector128.Create(0, 2, 4, 6)); // + (i << 1)
 
-#if NET6_0_OR_GREATER
-            long* tablePtr = tableAddr;
-#else
             fixed (long* tablePtr = table)
-#endif
             {
+                Vector256<long> tableVector = Avx2.GatherVector256(tablePtr, blockOffset, 8);
+
+                // j == index
+                index = Avx2.ShiftLeftLogical(index, 2);
+                Vector256<long> offsetLong = Vector256.Create(index, Vector128<int>.Zero).AsInt64();
+
+                Vector256<int> permuteMask = Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7);
+                offsetLong = Avx2.PermuteVar8x32(offsetLong.AsInt32(), permuteMask).AsInt64();
+
+                // mask = (0xfL << offset)
+                Vector256<long> fifteen = Vector256.Create(0xfL);
+                Vector256<long> mask = Avx2.ShiftLeftLogicalVariable(fifteen, offsetLong.AsUInt64());
+
+                // (table[i] & mask) != mask)
                 // Note masked is 'equal' - therefore use AndNot below
-                Vector256<long> masked = Avx2.CompareEqual(Avx2.And(Avx2.GatherVector256(tablePtr, blockOffset, 8), mask), mask);
+                Vector256<long> masked = Avx2.CompareEqual(Avx2.And(tableVector, mask), mask);
+
+                // 1L << offset
+                Vector256<long> inc = Avx2.ShiftLeftLogicalVariable(Vector256.Create(1L), offsetLong.AsUInt64());
 
                 // Mask to zero out non matches (add zero below) - first operand is NOT then AND result (order matters)
-                Vector256<long> inc = Avx2.AndNot(masked, Avx2.ShiftLeftLogicalVariable(Vector256.Create(1L), offsetLong));
+                inc = Avx2.AndNot(masked, inc);
 
-                bool wasInc = Avx2.MoveMask(Avx2.CompareEqual(masked.AsByte(), Vector256<byte>.Zero).AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
+                Vector256<byte> result = Avx2.CompareEqual(masked.AsByte(), Vector256<byte>.Zero);
+                bool wasInc = Avx2.MoveMask(result.AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
 
                 tablePtr[blockOffset.GetElement(0)] += inc.GetElement(0);
                 tablePtr[blockOffset.GetElement(1)] += inc.GetElement(1);
@@ -379,7 +345,7 @@ namespace BitFaster.Caching.Lfu
             Vector128<int> index = AdvSimd.And(AdvSimd.ShiftRightLogical(h, 1), Vector128.Create(0xf));
             Vector128<int> blockOffset = AdvSimd.Add(AdvSimd.Add(Vector128.Create(block), AdvSimd.And(h, Vector128.Create(1))), Vector128.Create(0, 2, 4, 6));
 
-            long* tablePtr = tableAddr;
+            fixed (long* tablePtr = table)
             {
                 int t0 = AdvSimd.Extract(blockOffset, 0);
                 int t1 = AdvSimd.Extract(blockOffset, 1);
@@ -430,7 +396,7 @@ namespace BitFaster.Caching.Lfu
             Vector128<int> index = AdvSimd.And(AdvSimd.ShiftRightLogical(h, 1), Vector128.Create(0xf));
             Vector128<int> blockOffset = AdvSimd.Add(AdvSimd.Add(Vector128.Create(block), AdvSimd.And(h, Vector128.Create(1))), Vector128.Create(0, 2, 4, 6));
 
-            long* tablePtr = tableAddr;
+            fixed (long* tablePtr = table)
             {
                 Vector128<long> tableVectorA = Vector128.Create(AdvSimd.LoadVector64(tablePtr + AdvSimd.Extract(blockOffset, 0)), AdvSimd.LoadVector64(tablePtr + AdvSimd.Extract(blockOffset, 1)));
                 Vector128<long> tableVectorB = Vector128.Create(AdvSimd.LoadVector64(tablePtr + AdvSimd.Extract(blockOffset, 2)), AdvSimd.LoadVector64(tablePtr + AdvSimd.Extract(blockOffset, 3)));
