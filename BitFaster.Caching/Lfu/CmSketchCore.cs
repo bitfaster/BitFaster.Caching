@@ -168,7 +168,7 @@ namespace BitFaster.Caching.Lfu
             size = 0;
         }
 
-        private unsafe int EstimateFrequencyStd(T value)
+        private int EstimateFrequencyStd(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
             int counterHash = Rehash(blockHash);
@@ -198,7 +198,7 @@ namespace BitFaster.Caching.Lfu
             return Math.Min(Math.Min(count0, count1), Math.Min(count2, count3));
         }
 
-        private unsafe void IncrementStd(T value)
+        private void IncrementStd(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
             int counterHash = Rehash(blockHash);
