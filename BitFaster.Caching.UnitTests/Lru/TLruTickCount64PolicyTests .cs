@@ -1,4 +1,4 @@
-﻿#if NETCOREAPP3_1_OR_GREATER
+﻿#if NET
 
 using FluentAssertions;
 using BitFaster.Caching.Lru;

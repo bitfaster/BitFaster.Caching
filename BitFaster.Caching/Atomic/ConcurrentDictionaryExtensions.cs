@@ -124,7 +124,7 @@ namespace BitFaster.Caching.Atomic
              where K : notnull
         {
             var kvp = new KeyValuePair<K, AtomicFactory<K, V>>(item.Key, new AtomicFactory<K, V>(item.Value));
-#if NET6_0_OR_GREATER
+#if NET
             return dictionary.TryRemove(kvp);
 #else
             // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
@@ -142,7 +142,7 @@ namespace BitFaster.Caching.Atomic
              where K : notnull
         {
             var kvp = new KeyValuePair<K, AsyncAtomicFactory<K, V>>(item.Key, new AsyncAtomicFactory<K, V>(item.Value));
-#if NET6_0_OR_GREATER
+#if NET
             return dictionary.TryRemove(kvp);
 #else
             // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/

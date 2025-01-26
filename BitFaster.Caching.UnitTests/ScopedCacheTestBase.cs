@@ -58,7 +58,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
 // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         [Fact]
         public void WhenUpdatedEventHandlerIsRegisteredItIsFired()
         {
@@ -82,7 +82,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
 // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         [Fact]
         public void WhenKeyDoesNotExistGetOrAddArgAddsValueWithArg()
         {

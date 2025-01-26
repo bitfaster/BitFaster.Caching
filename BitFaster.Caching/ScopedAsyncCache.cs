@@ -87,7 +87,7 @@ namespace BitFaster.Caching
         }
 
 // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         /// <summary>
         /// Adds a key/scoped value pair to the cache if the key does not already exist. Returns a lifetime for either 
         /// the new value, or the existing value if the key already exists.

@@ -477,7 +477,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
 // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         [Fact]
         public void WhenWriteBufferIsFullUpdatesAreDropped()
         {

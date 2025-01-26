@@ -9,7 +9,7 @@ using BitFaster.Caching.UnitTests.Retry;
 namespace BitFaster.Caching.UnitTests.Lru
 {
 // backcompat: remove conditional compile
-#if !NETCOREAPP3_1_OR_GREATER
+#if !NET
     public class TlruStopwatchPolicyTests
     {
         private readonly TLruLongTicksPolicy<int, int> policy = new TLruLongTicksPolicy<int, int>(TimeSpan.FromSeconds(10));

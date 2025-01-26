@@ -100,7 +100,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
             buffer.DrainTo(output).Should().Be(0);
         }
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         [Fact]
         public void WhenBufferContainsItemsDrainArrayTakesItems()
         {

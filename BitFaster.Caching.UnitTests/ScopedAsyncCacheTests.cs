@@ -53,7 +53,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
 // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         [Fact]
         public async Task GetOrAddAsyncArgDisposedScopeThrows()
         {
