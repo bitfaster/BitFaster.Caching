@@ -56,7 +56,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         /// <returns>The estimated frequency of the value.</returns>
         public int EstimateFrequency(T value)
         {
-#if NETSTANDARD
+#if NETFRAMEWORK
             return EstimateFrequencyStd(value);
 #else
 
@@ -85,7 +85,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         /// <param name="value">The value.</param>
         public void Increment(T value)
         {
-#if NETSTANDARD
+#if NETFRAMEWORK
             IncrementStd(value);
 #else
 
@@ -266,11 +266,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
                     .AsUInt16();
 
                 // set the zeroed high parts of the long value to ushort.Max
-#if NET
                 count = Avx2.Blend(count, Vector128<ushort>.AllBitsSet, 0b10101010);
-#else
-                count = Avx2.Blend(count, Vector128.Create(ushort.MaxValue), 0b10101010);
-#endif
 
                 return Avx2.MinHorizontal(count).GetElement(0);
             }
