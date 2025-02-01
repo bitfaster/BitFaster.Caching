@@ -501,7 +501,7 @@ namespace BitFaster.Caching.Lru
                     {
                         if (q.TryDequeue(out var item))
                         {
-                            if (this.itemPolicy.ShouldDiscard(item))
+                            if (this.itemPolicy.ShouldDiscard(item) | item.WasRemoved)
                             {
                                 Interlocked.Decrement(ref queueCounter);
                                 this.Move(item, ItemDestination.Remove, ItemRemovedReason.Trimmed);
