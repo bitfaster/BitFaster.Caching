@@ -25,6 +25,7 @@ jobs:
         dotnet-version: |
           6.0.x
           8.0.x
+          9.0.x
     - name: Install dependencies
       run: dotnet restore
     - name: Build
@@ -43,7 +44,7 @@ jobs:
       run: splitasm\splitasm\bin\Release\net6.0\splitasm.exe %GITHUB_WORKSPACE%\BenchmarkDotNet.Artifacts\results
       shell: cmd
     - name: Publish Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Benchmark Artifacts (Windows)
         path: BenchmarkDotNet.Artifacts
@@ -60,6 +61,7 @@ jobs:
         dotnet-version: |
           6.0.x
           8.0.x
+          9.0.x
     - name: Install dependencies
       run: dotnet restore
     - name: Build
@@ -67,7 +69,7 @@ jobs:
     - name: Benchmark
       run: dotnet run --project "BitFaster.Caching.Benchmarks" -f net6.0 -c Release --filter '*'
     - name: Publish Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Benchmark Artifacts (Linux)
         path: BenchmarkDotNet.Artifacts
@@ -84,6 +86,7 @@ jobs:
         dotnet-version: |
           6.0.x
           8.0.x
+          9.0.x
     - name: Install dependencies
       run: dotnet restore
     - name: Build
@@ -91,7 +94,7 @@ jobs:
     - name: Benchmark
       run: dotnet run --project "BitFaster.Caching.Benchmarks" -f net6.0 -c Release --filter '*'
     - name: Publish Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Benchmark Artifacts (MacOs)
         path: BenchmarkDotNet.Artifacts
