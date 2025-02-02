@@ -468,7 +468,7 @@ namespace BitFaster.Caching.Lru
             lock (this.dictionary)
             {
                 // first scan each queue for discardable items and remove them immediately. Note this can remove > itemCount items.
-                int itemsRemoved = this.itemPolicy.CanDiscard() ? TrimAllDiscardedItems() : 0;
+                int itemsRemoved = TrimAllDiscardedItems();
 
                 TrimLiveItems(itemsRemoved, itemCount, ItemRemovedReason.Trimmed);
             }
@@ -478,7 +478,10 @@ namespace BitFaster.Caching.Lru
         {
             if (this.itemPolicy.CanDiscard())
             {
-                this.TrimAllDiscardedItems();
+                lock (this.dictionary)
+                {
+                    this.TrimAllDiscardedItems();
+                } 
             }
         }
 
@@ -501,11 +504,15 @@ namespace BitFaster.Caching.Lru
                     {
                         if (q.TryDequeue(out var item))
                         {
-                            if (this.itemPolicy.ShouldDiscard(item) | item.WasRemoved)
+                            if (this.itemPolicy.ShouldDiscard(item))
                             {
                                 Interlocked.Decrement(ref queueCounter);
                                 this.Move(item, ItemDestination.Remove, ItemRemovedReason.Trimmed);
                                 itemsRemoved++;
+                            }
+                            else if (item.WasRemoved)
+                            {
+                                Interlocked.Decrement(ref queueCounter);
                             }
                             else
                             {
@@ -548,8 +555,10 @@ namespace BitFaster.Caching.Lru
                         itemsRemoved++;
                         trimWarmAttempts = 0;
                     }
-
-                    TrimWarmOrHot(reason);
+                    else
+                    {
+                        TrimWarmOrHot(reason);
+                    }
                 }
                 else
                 {
@@ -829,7 +838,7 @@ namespace BitFaster.Caching.Lru
         /// Format the LRU as a string by converting all the keys to strings.
         /// </summary>
         /// <returns>The LRU formatted as a string.</returns>
-        public string FormatLruString()
+        internal string FormatLruString()
         {
             var sb = new System.Text.StringBuilder();
 

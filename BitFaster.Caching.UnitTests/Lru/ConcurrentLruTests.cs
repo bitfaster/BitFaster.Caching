@@ -765,11 +765,55 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenItemRemovedFromColdAfterWarmupItIsEagerlyCycledOut()
+        {
+            for (int i = 0; i < lru.Capacity; i++)
+            {
+                lru.GetOrAdd(i, valueFactory.Create);
+            }
+
+            Print();                                    // Hot [6,7,8] Warm [1,2,3] Cold [0,4,5]
+            lru.Metrics.Value.Evicted.Should().Be(0);
+
+            lru.GetOrAdd(0, valueFactory.Create);
+            lru.TryRemove(0);
+
+            lru.GetOrAdd(9, valueFactory.Create);
+
+            Print();                                    // Hot [7,8,9] Warm [1,2,3] Cold [4,5,6]
+
+            lru.Metrics.Value.Evicted.Should().Be(0);
+        }
+
+        [Fact]
         public void WhenKeyDoesNotExistTryRemoveReturnsFalse()
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
             lru.TryRemove(2).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenItemsAreRemovedTrimRemovesDeletedItemsFromQueues()
+        {
+            for (int i = 0; i < lru.Capacity; i++)
+            {
+                lru.GetOrAdd(i, valueFactory.Create);
+            }
+
+            Print();                  // Hot [6,7,8] Warm [1,2,3] Cold [0,4,5]
+
+            lru.TryRemove(0);
+            lru.TryRemove(1);
+            lru.TryRemove(6);
+
+            lru.Policy.Eviction.Value.Trim(1);
+
+            Print();                  // Hot [7,8] Warm [2,3] Cold [5]
+
+            lru.HotCount.Should().Be(2);
+            lru.WarmCount.Should().Be(2);
+            lru.ColdCount.Should().Be(1);
         }
 
         [Fact]
