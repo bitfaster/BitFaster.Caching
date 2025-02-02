@@ -624,6 +624,12 @@ namespace BitFaster.Caching.Lru
 
                 if (this.hotQueue.TryDequeue(out var item))
                 {
+                    // special case: removed during warmup
+                    if (item.WasRemoved)
+                    {
+                        return;
+                    }
+
                     int count = this.Move(item, ItemDestination.Warm, ItemRemovedReason.Evicted);
 
                     // if warm is now full, overflow to cold and mark as warm

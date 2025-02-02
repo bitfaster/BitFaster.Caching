@@ -679,6 +679,44 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenItemRemovedFromHotDuringWarmupItIsEagerlyCycledOut()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+
+            lru.TryRemove(1);
+
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+            lru.GetOrAdd(3, valueFactory.Create);
+
+            lru.WarmCount.Should().Be(0);
+            lru.ColdCount.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenItemRemovedFromHotAfterWarmupItIsEagerlyCycledOut()
+        {
+            for (int i = 0; i < lru.Capacity; i++)
+            {
+                lru.GetOrAdd(i, valueFactory.Create);
+            }
+
+            lru.Metrics.Value.Evicted.Should().Be(0);
+
+            lru.GetOrAdd(-1, valueFactory.Create);
+
+            lru.TryRemove(-1);
+
+            // fully cycle hot, which is 3 items
+            lru.GetOrAdd(-2, valueFactory.Create);
+            lru.GetOrAdd(-3, valueFactory.Create);
+            lru.GetOrAdd(-4, valueFactory.Create);
+
+            // without eager eviction as -1 is purged from hot, a 4th item will pushed out since hot queue is full
+            lru.Metrics.Value.Evicted.Should().Be(3);
+        }
+
+        [Fact]
         public void WhenKeyDoesNotExistTryRemoveReturnsFalse()
         {
             lru.GetOrAdd(1, valueFactory.Create);
