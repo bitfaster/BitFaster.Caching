@@ -691,6 +691,11 @@ namespace BitFaster.Caching.Lru
 
             if (this.warmQueue.TryDequeue(out var item))
             {
+                if (item.WasRemoved)
+                {
+                    return (ItemDestination.Remove, 0);
+                }
+
                 var where = this.itemPolicy.RouteWarm(item);
 
                 // When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
@@ -754,7 +759,8 @@ namespace BitFaster.Caching.Lru
 
             if (this.warmQueue.TryDequeue(out var item))
             {
-                return this.Move(item, ItemDestination.Cold, ItemRemovedReason.Evicted);
+                var destination = item.WasRemoved ? ItemDestination.Remove : ItemDestination.Cold;
+                return this.Move(item, destination, ItemRemovedReason.Evicted);
             }
             else
             {
@@ -817,6 +823,27 @@ namespace BitFaster.Caching.Lru
         {
             return ((ConcurrentLruCore<K, V, I, P, T>)this).GetEnumerator();
         }
+
+#if DEBUG
+        /// <summary>
+        /// Format the LRU as a string by converting all the keys to strings.
+        /// </summary>
+        /// <returns>The LRU formatted as a string.</returns>
+        public string FormatLruString()
+        {
+            var sb = new System.Text.StringBuilder();
+
+            sb.Append("Hot [");
+            sb.Append(string.Join(",", this.hotQueue.Select(n => n.Key.ToString())));
+            sb.Append("] Warm [");
+            sb.Append(string.Join(",", this.warmQueue.Select(n => n.Key.ToString())));
+            sb.Append("] Cold [");
+            sb.Append(string.Join(",", this.coldQueue.Select(n => n.Key.ToString())));
+            sb.Append(']');
+
+            return sb.ToString();
+        }
+#endif
 
         private static CachePolicy CreatePolicy(ConcurrentLruCore<K, V, I, P, T> lru)
         {

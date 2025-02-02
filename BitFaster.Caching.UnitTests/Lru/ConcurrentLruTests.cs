@@ -684,10 +684,12 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
 
             lru.TryRemove(1);
+            Print();                                    // Hot [1] Warm [] Cold []
 
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
             lru.GetOrAdd(3, valueFactory.Create);
+            Print();                                    // Hot [1,2,3] Warm [] Cold []
 
             lru.WarmCount.Should().Be(0);
             lru.ColdCount.Should().Be(0);
@@ -701,19 +703,65 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lru.GetOrAdd(i, valueFactory.Create);
             }
 
+            Print();                                    // Hot [6,7,8] Warm [1,2,3] Cold [0,4,5]
             lru.Metrics.Value.Evicted.Should().Be(0);
-
+ 
             lru.GetOrAdd(-1, valueFactory.Create);
 
             lru.TryRemove(-1);
+            Print();                                   // Hot[7, 8, -1] Warm[1, 2, 3] Cold[4, 5, 6]
 
             // fully cycle hot, which is 3 items
             lru.GetOrAdd(-2, valueFactory.Create);
             lru.GetOrAdd(-3, valueFactory.Create);
             lru.GetOrAdd(-4, valueFactory.Create);
 
+            Print();                                    // Hot [-2,-3,-4] Warm [1,2,3] Cold [6,7,8]
+
             // without eager eviction as -1 is purged from hot, a 4th item will pushed out since hot queue is full
             lru.Metrics.Value.Evicted.Should().Be(3);
+        }
+
+        [Fact]
+        public void WhenItemRemovedFromWarmDuringWarmupItIsEagerlyCycledOut()
+        {
+            lru.GetOrAdd(1, valueFactory.Create);
+            lru.GetOrAdd(2, valueFactory.Create);
+            lru.GetOrAdd(3, valueFactory.Create);
+            lru.GetOrAdd(4, valueFactory.Create);
+            Print();                                 // Hot [2,3,4] Warm [1] Cold []
+
+            lru.TryRemove(1);
+
+            lru.GetOrAdd(5, valueFactory.Create);
+            lru.GetOrAdd(6, valueFactory.Create);
+            lru.GetOrAdd(7, valueFactory.Create);
+            Print();                                // Hot [5,6,7] Warm [2,3,4] Cold []
+
+            lru.WarmCount.Should().Be(3);
+            lru.ColdCount.Should().Be(0);
+        }
+
+
+        [Fact]
+        public void WhenItemRemovedFromWarmAfterWarmupItIsEagerlyCycledOut()
+        {
+            for (int i = 0; i < lru.Capacity; i++)
+            {
+                lru.GetOrAdd(i, valueFactory.Create);
+            }
+
+            Print();                                    // Hot [6,7,8] Warm [1,2,3] Cold [0,4,5]
+            lru.Metrics.Value.Evicted.Should().Be(0);
+
+            lru.TryRemove(1);
+
+            lru.GetOrAdd(6, valueFactory.Create); // 6 -> W
+            lru.GetOrAdd(9, valueFactory.Create);
+
+            Print();                                    // Hot [7,8,9] Warm [2,3,6] Cold [0,4,5]
+
+            lru.Metrics.Value.Evicted.Should().Be(0);
         }
 
         [Fact]
@@ -1342,6 +1390,14 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(-7, valueFactory.Create);
             lru.GetOrAdd(-8, valueFactory.Create);
             lru.GetOrAdd(-9, valueFactory.Create);
+        }
+
+
+        private void Print()
+        {
+#if DEBUG
+            this.testOutputHelper.WriteLine(this.lru.FormatLruString());
+#endif
         }
     }
 
