@@ -108,46 +108,59 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Theory]
-        [InlineData(false, true, ItemDestination.Remove)]
-        [InlineData(true, true, ItemDestination.Remove)]
-        [InlineData(true, false, ItemDestination.Warm)]
-        [InlineData(false, false, ItemDestination.Cold)]
-        public void RouteHot(bool wasAccessed, bool isExpired, ItemDestination expectedDestination)
+        [InlineData(false, false, true, ItemDestination.Remove)]
+        [InlineData(true, false, true, ItemDestination.Remove)]
+        [InlineData(true, false, false, ItemDestination.Warm)]
+        [InlineData(false, false, false, ItemDestination.Cold)]
+        [InlineData(false, true, true, ItemDestination.Remove)]
+        [InlineData(true, true, true, ItemDestination.Remove)]
+        [InlineData(true, true, false, ItemDestination.Remove)]
+        [InlineData(false, true, false, ItemDestination.Remove)]
+        public void RouteHot(bool wasAccessed, bool wasRemoved, bool isExpired, ItemDestination expectedDestination)
         {
-            var item = CreateItem(wasAccessed, isExpired);
+            var item = CreateItem(wasAccessed, wasRemoved, isExpired);
 
             this.policy.RouteHot(item).Should().Be(expectedDestination);
         }
 
         [Theory]
-        [InlineData(false, true, ItemDestination.Remove)]
-        [InlineData(true, true, ItemDestination.Remove)]
-        [InlineData(true, false, ItemDestination.Warm)]
-        [InlineData(false, false, ItemDestination.Cold)]
-        public void RouteWarm(bool wasAccessed, bool isExpired, ItemDestination expectedDestination)
+        [InlineData(false, false, true, ItemDestination.Remove)]
+        [InlineData(true, false, true, ItemDestination.Remove)]
+        [InlineData(true, false, false, ItemDestination.Warm)]
+        [InlineData(false, false, false, ItemDestination.Cold)]
+        [InlineData(false, true, true, ItemDestination.Remove)]
+        [InlineData(true, true, true, ItemDestination.Remove)]
+        [InlineData(true, true, false, ItemDestination.Remove)]
+        [InlineData(false, true, false, ItemDestination.Remove)]
+        public void RouteWarm(bool wasAccessed, bool wasRemoved, bool isExpired, ItemDestination expectedDestination)
         {
-            var item = CreateItem(wasAccessed, isExpired);
+            var item = CreateItem(wasAccessed, wasRemoved, isExpired);
 
             this.policy.RouteWarm(item).Should().Be(expectedDestination);
         }
 
         [Theory]
-        [InlineData(false, true, ItemDestination.Remove)]
-        [InlineData(true, true, ItemDestination.Remove)]
-        [InlineData(true, false, ItemDestination.Warm)]
-        [InlineData(false, false, ItemDestination.Remove)]
-        public void RouteCold(bool wasAccessed, bool isExpired, ItemDestination expectedDestination)
+        [InlineData(false, false, true, ItemDestination.Remove)]
+        [InlineData(true, false, true, ItemDestination.Remove)]
+        [InlineData(true, false, false, ItemDestination.Warm)]
+        [InlineData(false, false, false, ItemDestination.Remove)]
+        [InlineData(false, true, true, ItemDestination.Remove)]
+        [InlineData(true, true, true, ItemDestination.Remove)]
+        [InlineData(true, true, false, ItemDestination.Remove)]
+        [InlineData(false, true, false, ItemDestination.Remove)]
+        public void RouteCold(bool wasAccessed, bool wasRemoved, bool isExpired, ItemDestination expectedDestination)
         {
-            var item = CreateItem(wasAccessed, isExpired);
+            var item = CreateItem(wasAccessed, wasRemoved, isExpired);
 
             this.policy.RouteCold(item).Should().Be(expectedDestination);
         }
 
-        private LongTickCountLruItem<int, int> CreateItem(bool wasAccessed, bool isExpired)
+        private LongTickCountLruItem<int, int> CreateItem(bool wasAccessed, bool wasRemoved, bool isExpired)
         {
             var item = this.policy.CreateItem(1, 2);
 
             item.WasAccessed = wasAccessed;
+            item.WasRemoved = wasRemoved;
 
             if (isExpired)
             {
