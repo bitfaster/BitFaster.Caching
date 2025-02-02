@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+﻿using Shouldly;
 using BitFaster.Caching.Lru;
 using System.Collections.Generic;
 using Xunit;
@@ -19,25 +19,25 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenHitTotalIs1()
         {
-            telemetryPolicy.Total.Should().Be(0);
+            telemetryPolicy.Total.ShouldBe(0);
             telemetryPolicy.IncrementHit();
-            telemetryPolicy.Total.Should().Be(1);
+            telemetryPolicy.Total.ShouldBe(1);
         }
 
         [Fact]
         public void WhenHitHitsIs1()
         {
-            telemetryPolicy.Hits.Should().Be(0);
+            telemetryPolicy.Hits.ShouldBe(0);
             telemetryPolicy.IncrementHit();
-            telemetryPolicy.Hits.Should().Be(1);
+            telemetryPolicy.Hits.ShouldBe(1);
         }
 
         [Fact]
         public void WhenMissMissesIs1()
         {
-            telemetryPolicy.Misses.Should().Be(0);
+            telemetryPolicy.Misses.ShouldBe(0);
             telemetryPolicy.IncrementMiss();
-            telemetryPolicy.Misses.Should().Be(1);
+            telemetryPolicy.Misses.ShouldBe(1);
         }
 
         [Fact]
@@ -45,7 +45,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             telemetryPolicy.IncrementHit();
 
-            telemetryPolicy.HitRatio.Should().Be(1.0);
+            telemetryPolicy.HitRatio.ShouldBe(1.0);
         }
 
         [Fact]
@@ -54,13 +54,13 @@ namespace BitFaster.Caching.UnitTests.Lru
             telemetryPolicy.IncrementMiss();
             telemetryPolicy.IncrementHit();
 
-            telemetryPolicy.HitRatio.Should().Be(0.5);
+            telemetryPolicy.HitRatio.ShouldBe(0.5);
         }
 
         [Fact]
         public void WhenTotalCountIsZeroRatioReturnsZero()
         {
-            telemetryPolicy.HitRatio.Should().Be(0.0);
+            telemetryPolicy.HitRatio.ShouldBe(0.0);
         }
 
         [Fact]
@@ -68,7 +68,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             telemetryPolicy.OnItemUpdated(1, 2, 3);
 
-            telemetryPolicy.Updated.Should().Be(1);
+            telemetryPolicy.Updated.ShouldBe(1);
         }
 
         [Fact]
@@ -76,7 +76,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Evicted);
 
-            telemetryPolicy.Evicted.Should().Be(1);
+            telemetryPolicy.Evicted.ShouldBe(1);
         }
 
         [Fact]
@@ -84,7 +84,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Removed);
 
-            telemetryPolicy.Evicted.Should().Be(0);
+            telemetryPolicy.Evicted.ShouldBe(0);
         }
 
         [Fact]
@@ -96,10 +96,10 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Evicted);
 
-            eventList.Should().HaveCount(1);
-            eventList[0].Key.Should().Be(1);
-            eventList[0].Value.Should().Be(2);
-            eventList[0].Reason.Should().Be(ItemRemovedReason.Evicted);
+            eventList.Count.ShouldBe(1);
+            eventList[0].Key.ShouldBe(1);
+            eventList[0].Value.ShouldBe(2);
+            eventList[0].Reason.ShouldBe(ItemRemovedReason.Evicted);
         }
 
         [Fact]
@@ -113,8 +113,8 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             telemetryPolicy.OnItemRemoved(1, 2, ItemRemovedReason.Evicted);
 
-            eventSourceList.Should().HaveCount(1);
-            eventSourceList[0].Should().Be(this);
+            eventSourceList.Count.ShouldBe(1);
+            eventSourceList[0].ShouldBe(this);
         }
 
         [Fact]
@@ -126,10 +126,10 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             telemetryPolicy.OnItemUpdated(1, 2, 3);
 
-            eventList.Should().HaveCount(1);
-            eventList[0].Key.Should().Be(1);
-            eventList[0].OldValue.Should().Be(2);
-            eventList[0].NewValue.Should().Be(3);
+            eventList.Count.ShouldBe(1);
+            eventList[0].Key.ShouldBe(1);
+            eventList[0].OldValue.ShouldBe(2);
+            eventList[0].NewValue.ShouldBe(3);
         }
 
         [Fact]
@@ -143,8 +143,8 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             telemetryPolicy.OnItemUpdated(1, 2, 3);
 
-            eventSourceList.Should().HaveCount(1);
-            eventSourceList[0].Should().Be(this);
+            eventSourceList.Count.ShouldBe(1);
+            eventSourceList[0].ShouldBe(this);
         }
 
 // backcompat: remove 
@@ -157,7 +157,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             Action act = () => policy.Object.OnItemUpdated(1, 2, 3);
 
-            act.Should().NotThrow();
+            act.ShouldNotThrow();
         }
 #endif
     }

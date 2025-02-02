@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -33,7 +33,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
                 {
                 }
 
-                buffer.Count.Should().Be(1024);
+                buffer.Count.ShouldBe(1024);
             });
         }
 
@@ -99,7 +99,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
                 while (!fill.IsCompleted)
                 {
                     int newcount = buffer.Count;
-                    newcount.Should().BeGreaterThanOrEqualTo(count);
+                    newcount.ShouldBeGreaterThanOrEqualTo(count);
                     count = newcount;
                 }
             });

@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+﻿using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests
@@ -11,7 +11,7 @@ namespace BitFaster.Caching.UnitTests
             var a = new ReferenceCount<object>(new object());
             var b = a.IncrementCopy().DecrementCopy();
 
-            a.Should().Be(b);
+            a.ShouldBe(b);
         }
 
         [Fact]
@@ -20,7 +20,7 @@ namespace BitFaster.Caching.UnitTests
             var a = new ReferenceCount<object>(new object());
             var b = a.IncrementCopy().DecrementCopy();
 
-            a.Should().NotBeSameAs(b);
+            a.ShouldNotBeSameAs(b);
         }
 
         [Fact]
@@ -29,7 +29,7 @@ namespace BitFaster.Caching.UnitTests
             var a = new ReferenceCount<object>(new object());
             var b = new ReferenceCount<object>(new object());
 
-            a.Should().NotBe(b);
+            a.ShouldNotBe(b);
         }
 
         [Fact]
@@ -38,7 +38,7 @@ namespace BitFaster.Caching.UnitTests
             var a = new ReferenceCount<int>(0);
             var b = a.IncrementCopy();
 
-            a.Should().NotBe(b);
+            a.ShouldNotBe(b);
         }
 
         [Fact]
@@ -47,7 +47,7 @@ namespace BitFaster.Caching.UnitTests
             var a = new ReferenceCount<object>(new object());
             var b = a.IncrementCopy().DecrementCopy();
 
-            a.GetHashCode().Should().Be(b.GetHashCode());
+            a.GetHashCode().ShouldBe(b.GetHashCode());
         }
 
         [Fact]
@@ -56,7 +56,7 @@ namespace BitFaster.Caching.UnitTests
             var a = new ReferenceCount<object>(new object());
             var b = new ReferenceCount<object>(new object());
 
-            a.GetHashCode().Should().NotBe(b.GetHashCode());
+            a.GetHashCode().ShouldNotBe(b.GetHashCode());
         }
 
         [Fact]

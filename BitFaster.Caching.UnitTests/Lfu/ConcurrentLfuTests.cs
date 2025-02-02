@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using BitFaster.Caching.UnitTests.Lru;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -31,7 +29,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             Action constructor = () => { var x = new ConcurrentLfu<int, string>(2); };
 
-            constructor.Should().Throw<ArgumentOutOfRangeException>();
+            constructor.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Fact]
@@ -39,7 +37,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var x = new ConcurrentLfu<int, string>(3);
 
-            x.Capacity.Should().Be(3);
+            x.Capacity.ShouldBe(3);
         }
 
         [Fact]
@@ -47,14 +45,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             Action constructor = () => { var x = new ConcurrentLfu<int, string>(0, 20, new ForegroundScheduler(), EqualityComparer<int>.Default); };
 
-            constructor.Should().Throw<ArgumentOutOfRangeException>();
+            constructor.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Fact]
         public void DefaultSchedulerIsThreadPool()
         {
             var cache = new ConcurrentLfu<int, int>(20);
-            cache.Scheduler.Should().BeOfType<ThreadPoolScheduler>();
+            cache.Scheduler.ShouldBeOfType<ThreadPoolScheduler>();
         }
 
         [Fact]
@@ -63,8 +61,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var result1 = cache.GetOrAdd(1, valueFactory.Create);
             var result2 = cache.GetOrAdd(1, valueFactory.Create);
 
-            valueFactory.timesCalled.Should().Be(1);
-            result1.Should().Be(result2);
+            valueFactory.timesCalled.ShouldBe(1);
+            result1.ShouldBe(result2);
         }
 
         [Fact]
@@ -73,8 +71,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var result1 = cache.GetOrAdd(1, valueFactory.Create, 9);
             var result2 = cache.GetOrAdd(1, valueFactory.Create, 17);
 
-            valueFactory.timesCalled.Should().Be(1);
-            result1.Should().Be(result2);
+            valueFactory.timesCalled.ShouldBe(1);
+            result1.ShouldBe(result2);
         }
 
         [Fact]
@@ -83,8 +81,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync);
             var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync);
 
-            valueFactory.timesCalled.Should().Be(1);
-            result1.Should().Be(result2);
+            valueFactory.timesCalled.ShouldBe(1);
+            result1.ShouldBe(result2);
         }
 
         [Fact]
@@ -93,8 +91,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var result1 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync, 9);
             var result2 = await cache.GetOrAddAsync(1, valueFactory.CreateAsync, 17);
 
-            valueFactory.timesCalled.Should().Be(1);
-            result1.Should().Be(result2);
+            valueFactory.timesCalled.ShouldBe(1);
+            result1.ShouldBe(result2);
         }
 
         [Fact]
@@ -113,7 +111,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.DoMaintenance();
             LogLru();
 
-            cache.Count.Should().Be(20);
+            cache.Count.ShouldBe(20);
         }
 
         [Fact]
@@ -131,8 +129,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             dcache.DoMaintenance();
             LogLru();
 
-            dcache.Count.Should().Be(20);
-            disposables.Count(d => d.IsDisposed).Should().Be(5);
+            dcache.Count.ShouldBe(20);
+            disposables.Count(d => d.IsDisposed).ShouldBe(5);
         }
 
         // protected 15
@@ -185,16 +183,16 @@ namespace BitFaster.Caching.UnitTests.Lfu
             // W[24] Protected[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 20, 21, 22, 23] Probation[1, 2, 3, 25]
             // W[24] Protected[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 20, 21, 22, 23, 25] Probation[1, 2, 3, 4]
 
-            cache.Count.Should().Be(20);
+            cache.Count.ShouldBe(20);
 
             // W [24] Protected [5,6,7,8,9,10,11,12,13,14,20,21,22,23,25] Probation []
             cache.Trim(4);
             cache.DoMaintenance();
             LogLru();
 
-            cache.TryGet(1, out var value1).Should().BeFalse();
-            cache.TryGet(2, out var value2).Should().BeFalse();
-            cache.Count.Should().Be(16);
+            cache.TryGet(1, out var value1).ShouldBeFalse();
+            cache.TryGet(2, out var value2).ShouldBeFalse();
+            cache.Count.ShouldBe(16);
         }
 
         [Fact]
@@ -230,7 +228,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.DoMaintenance();
             LogLru();
 
-            cache.TryGet(16, out var value1).Should().BeTrue();
+            cache.TryGet(16, out var value1).ShouldBeTrue();
         }
 
         // when probation item is written it is moved to protected
@@ -247,7 +245,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             LogLru();
 
             // W [24] Protected [16] Probation [2,6,7,8,9,10,11,12,13,14,15,17,18,19,20,21,22,23]
-            cache.TryUpdate(16, -16).Should().BeTrue();
+            cache.TryUpdate(16, -16).ShouldBeTrue();
             cache.DoMaintenance();
             LogLru();
 
@@ -267,7 +265,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.DoMaintenance();
             LogLru();
 
-            cache.TryGet(16, out var value1).Should().BeTrue();
+            cache.TryGet(16, out var value1).ShouldBeTrue();
         }
 
         [Fact]
@@ -302,7 +300,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.DoMaintenance();
             LogLru();
 
-            cache.TryGet(7, out var _).Should().BeTrue();
+            cache.TryGet(7, out var _).ShouldBeTrue();
         }
 
         [Fact]
@@ -327,7 +325,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             // W [19] Protected [8,9,7] Probation [0,1,2,3,4,5,6,10,11,12,13,14,15,16,17,18]
             // element 7 now moved to back of LRU
-            cache.TryUpdate(7, -7).Should().BeTrue();
+            cache.TryUpdate(7, -7).ShouldBeTrue();
             cache.DoMaintenance();
             LogLru();
 
@@ -337,7 +335,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.DoMaintenance();
             LogLru();
 
-            cache.TryGet(7, out var _).Should().BeTrue();
+            cache.TryGet(7, out var _).ShouldBeTrue();
         }
 
         [Fact]
@@ -402,8 +400,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.DoMaintenance();
             LogLru();
 
-            cache.TryGet(666, out var _).Should().BeTrue();
-            cache.TryGet(667, out var _).Should().BeTrue();
+            cache.TryGet(666, out var _).ShouldBeTrue();
+            cache.TryGet(667, out var _).ShouldBeTrue();
 
             this.output.WriteLine($"Scheduler ran {cache.Scheduler.RunCount} times.");
         }
@@ -415,18 +413,18 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache = new ConcurrentLfu<int, int>(1, 20, scheduler, EqualityComparer<int>.Default);
 
             cache.GetOrAdd(1, k => k);
-            scheduler.RunCount.Should().Be(1);
+            scheduler.RunCount.ShouldBe(1);
             cache.DoMaintenance();
 
             for (int i = 0; i < ConcurrentLfu<int, int>.DefaultBufferSize; i++)
             {
-                scheduler.RunCount.Should().Be(1);
+                scheduler.RunCount.ShouldBe(1);
                 cache.GetOrAdd(1, k => k);
             }
 
             // read buffer is now full, next read triggers maintenance
             cache.GetOrAdd(1, k => k);
-            scheduler.RunCount.Should().Be(2);
+            scheduler.RunCount.ShouldBe(2);
         }
 
         [Fact]
@@ -436,7 +434,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache = new ConcurrentLfu<int, int>(1, 20, scheduler, EqualityComparer<int>.Default);
 
             cache.GetOrAdd(1, k => k);
-            scheduler.RunCount.Should().Be(1);
+            scheduler.RunCount.ShouldBe(1);
             cache.DoMaintenance();
 
             for (int i = 0; i < ConcurrentLfu<int, int>.DefaultBufferSize * 2; i++)
@@ -446,7 +444,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.DoMaintenance();
 
-            cache.Metrics.Value.Hits.Should().Be(ConcurrentLfu<int, int>.DefaultBufferSize);
+            cache.Metrics.Value.Hits.ShouldBe(ConcurrentLfu<int, int>.DefaultBufferSize);
         }
 
         [Fact]
@@ -462,7 +460,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.DoMaintenance();
 
             // remove the item but don't flush, it is now in the write buffer and maintenance is scheduled
-            cache.TryRemove(-1).Should().BeTrue();
+            cache.TryRemove(-1).ShouldBeTrue();
 
             // add buffer size items, last iteration will invoke maintenance on the foreground since write
             // buffer is full and test scheduler did not do any work
@@ -473,7 +471,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             // pending write (to remove -1) should be flushed by the 128th write calling maintenance
             // directly within AfterWrite
-            cache.TryGet(-1, out var _).Should().BeFalse();
+            cache.TryGet(-1, out var _).ShouldBeFalse();
         }
 
 // backcompat: remove conditional compile
@@ -487,7 +485,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache = new ConcurrentLfu<int, int>(1, capacity, scheduler, EqualityComparer<int>.Default);
 
             cache.GetOrAdd(1, k => k);
-            scheduler.RunCount.Should().Be(1);
+            scheduler.RunCount.ShouldBe(1);
             cache.DoMaintenance();
 
             for (int i = 0; i < bufferSize * 2; i++)
@@ -497,32 +495,32 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.DoMaintenance();
 
-            cache.Metrics.Value.Updated.Should().Be(bufferSize);
+            cache.Metrics.Value.Updated.ShouldBe(bufferSize);
         }
 #endif
 
         [Fact]
         public void EvictionPolicyReturnsCapacity()
         {
-            cache.Policy.Eviction.Value.Capacity.Should().Be(20);
+            cache.Policy.Eviction.Value.Capacity.ShouldBe(20);
         }
 
         [Fact]
         public void ExpireAfterWriteIsDisabled()
         {
-            cache.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+            cache.Policy.ExpireAfterWrite.HasValue.ShouldBeFalse();
         }
 
         [Fact]
         public void EventsAreDisabled()
         {
-            cache.Events.HasValue.Should().BeFalse();
+            cache.Events.HasValue.ShouldBeFalse();
         }
 
         [Fact]
         public void MetricsAreEnabled()
         {
-            cache.Metrics.HasValue.Should().BeTrue();
+            cache.Metrics.HasValue.ShouldBeTrue();
         }
 
         [Fact]
@@ -533,9 +531,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.DoMaintenance();
 
-            cache.Metrics.Value.HitRatio.Should().Be(0.5);
-            cache.Metrics.Value.Hits.Should().Be(1);
-            cache.Metrics.Value.Misses.Should().Be(1);
+            cache.Metrics.Value.HitRatio.ShouldBe(0.5);
+            cache.Metrics.Value.Hits.ShouldBe(1);
+            cache.Metrics.Value.Misses.ShouldBe(1);
         }
 
         [Fact]
@@ -553,41 +551,41 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.DoMaintenance();
 
-            cache.Metrics.Value.Evicted.Should().Be(5);
+            cache.Metrics.Value.Evicted.ShouldBe(5);
         }
 
         [Fact]
         public void WhenItemsAddedKeysContainsTheKeys()
         {
-            cache.Count.Should().Be(0);
+            cache.Count.ShouldBe(0);
             cache.GetOrAdd(1, k => k);
             cache.GetOrAdd(2, k => k);
-            cache.Keys.Should().BeEquivalentTo(new[] { 1, 2 });
+            cache.Keys.ShouldBe(new[] { 1, 2 });
         }
 
         [Fact]
         public void WhenItemsAddedGenericEnumerateContainsKvps()
         {
-            cache.Count.Should().Be(0);
+            cache.Count.ShouldBe(0);
             cache.GetOrAdd(1, k => k + 1);
             cache.GetOrAdd(2, k => k + 1);
 
             var enumerator = cache.GetEnumerator();
-            enumerator.MoveNext().Should().BeTrue();
-            enumerator.Current.Should().Be(new KeyValuePair<int, int>(1, 2));
-            enumerator.MoveNext().Should().BeTrue();
-            enumerator.Current.Should().Be(new KeyValuePair<int, int>(2, 3));
+            enumerator.MoveNext().ShouldBeTrue();
+            enumerator.Current.ShouldBe(new KeyValuePair<int, int>(1, 2));
+            enumerator.MoveNext().ShouldBeTrue();
+            enumerator.Current.ShouldBe(new KeyValuePair<int, int>(2, 3));
         }
 
         [Fact]
         public void WhenItemsAddedEnumerateContainsKvps()
         {
-            cache.Count.Should().Be(0);
+            cache.Count.ShouldBe(0);
             cache.GetOrAdd(1, k => k + 1);
             cache.GetOrAdd(2, k => k + 1);
 
             var enumerable = (IEnumerable)cache;
-            enumerable.Should().BeEquivalentTo(new[] { new KeyValuePair<int, int>(1, 2), new KeyValuePair<int, int>(2, 3) });
+            enumerable.ShouldBe(new[] { new KeyValuePair<int, int>(1, 2), new KeyValuePair<int, int>(2, 3) });
         }
 
         [Fact]
@@ -596,8 +594,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.GetOrAdd(1, k => k);
             cache.AddOrUpdate(1, 2);
 
-            cache.TryGet(1, out var value).Should().BeTrue();
-            value.Should().Be(2);
+            cache.TryGet(1, out var value).ShouldBeTrue();
+            value.ShouldBe(2);
         }
 
         [Fact]
@@ -609,8 +607,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu2.AddOrUpdate(1, new Guid(1, 0, 0, b));
             lfu2.AddOrUpdate(1, new Guid(2, 0, 0, b));
 
-            lfu2.TryGet(1, out var value).Should().BeTrue();
-            value.Should().Be(new Guid(2, 0, 0, b));
+            lfu2.TryGet(1, out var value).ShouldBeTrue();
+            value.ShouldBe(new Guid(2, 0, 0, b));
         }
 
         [Fact]
@@ -618,8 +616,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache.AddOrUpdate(1, 2);
 
-            cache.TryGet(1, out var value).Should().BeTrue();
-            value.Should().Be(2);
+            cache.TryGet(1, out var value).ShouldBeTrue();
+            value.ShouldBe(2);
         }
 
         [Fact]
@@ -627,8 +625,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache.GetOrAdd(1, k => k);
 
-            cache.TryRemove(1).Should().BeTrue();
-            cache.TryGet(1, out _).Should().BeFalse();
+            cache.TryRemove(1).ShouldBeTrue();
+            cache.TryGet(1, out _).ShouldBeFalse();
         }
 
         [Fact]
@@ -636,8 +634,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache.GetOrAdd(1, valueFactory.Create);
 
-            cache.TryRemove(1, out var value).Should().BeTrue();
-            value.Should().Be(1);
+            cache.TryRemove(1, out var value).ShouldBeTrue();
+            value.ShouldBe(1);
         }
 
         [Fact]
@@ -645,8 +643,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache.GetOrAdd(1, k => k);
 
-            cache.TryRemove(new KeyValuePair<int, int>(1, 1)).Should().BeTrue();
-            cache.TryGet(1, out _).Should().BeFalse();
+            cache.TryRemove(new KeyValuePair<int, int>(1, 1)).ShouldBeTrue();
+            cache.TryGet(1, out _).ShouldBeFalse();
         }
 
         [Fact]
@@ -654,8 +652,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache.GetOrAdd(1, k => k);
 
-            cache.TryRemove(new KeyValuePair<int, int>(1, 2)).Should().BeFalse();
-            cache.TryGet(1, out var value).Should().BeTrue();
+            cache.TryRemove(new KeyValuePair<int, int>(1, 2)).ShouldBeFalse();
+            cache.TryGet(1, out var value).ShouldBeTrue();
         }
 
         [Fact]
@@ -666,10 +664,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             dcache.GetOrAdd(1, k => disposable);
 
-            dcache.TryRemove(1).Should().BeTrue();
+            dcache.TryRemove(1).ShouldBeTrue();
             dcache.DoMaintenance();
 
-            disposable.IsDisposed.Should().BeTrue();
+            disposable.IsDisposed.ShouldBeTrue();
         }
 
         [Fact]
@@ -677,16 +675,16 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache.GetOrAdd(1, k => k);
 
-            cache.TryRemove(1).Should().BeTrue();
+            cache.TryRemove(1).ShouldBeTrue();
             cache.DoMaintenance();
 
-            cache.Metrics.Value.Evicted.Should().Be(1);
+            cache.Metrics.Value.Evicted.ShouldBe(1);
         }
 
         [Fact]
         public void WhenItemDoesNotExistTryRemoveIsFalse()
         {
-            cache.TryRemove(1).Should().BeFalse();
+            cache.TryRemove(1).ShouldBeFalse();
         }
 
         // OnWrite handles the case where a node is removed while the write buffer contains the node
@@ -702,17 +700,17 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.TryUpdate(1, 2);
 
             // immediately remove
-            cache.TryRemove(1).Should().BeTrue();
+            cache.TryRemove(1).ShouldBeTrue();
 
             cache.DoMaintenance();
 
-            cache.TryGet(1, out var _).Should().BeFalse();
+            cache.TryGet(1, out var _).ShouldBeFalse();
         }
 
         [Fact]
         public void WhenItemDoesNotExistTryUpdateIsFalse()
         {
-            cache.TryUpdate(1, 2).Should().BeFalse();
+            cache.TryUpdate(1, 2).ShouldBeFalse();
         }
 
         [Fact]
@@ -720,9 +718,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             // use foreground so that any null ref exceptions will surface
             var lfu = new ConcurrentLfu<int, string>(1, 20, new ForegroundScheduler(), EqualityComparer<int>.Default);
-            lfu.GetOrAdd(1, _ => null).Should().BeNull();
+            lfu.GetOrAdd(1, _ => null).ShouldBeNull();
             lfu.AddOrUpdate(1, null);
-            lfu.TryRemove(1).Should().BeTrue();
+            lfu.TryRemove(1).ShouldBeTrue();
         }
 
         [Fact]
@@ -733,8 +731,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.Clear();
 
-            cache.Count.Should().Be(0);
-            cache.TryGet(1, out var _).Should().BeFalse();
+            cache.Count.ShouldBe(0);
+            cache.TryGet(1, out var _).ShouldBeFalse();
         }
 
         [Fact]
@@ -755,7 +753,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             // there should be no iteration of the loop where count != 0
-            overflow.Should().Be(0);
+            overflow.ShouldBe(0);
         }
 
         [Fact]
@@ -767,12 +765,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
             cache.DoMaintenance();
 
-            cache.Count.Should().Be(20);
+            cache.Count.ShouldBe(20);
 
             cache.Trim(5);
             cache.DoMaintenance();
 
-            cache.Count.Should().Be(15);
+            cache.Count.ShouldBe(15);
         }
 
         [Fact]
@@ -792,8 +790,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.DoMaintenance();
 
             // The trim takes effect before all the writes are replayed by the maintenance thread.
-            cache.Metrics.Value.Evicted.Should().Be(10);
-            cache.Count.Should().Be(15);
+            cache.Metrics.Value.Evicted.ShouldBe(10);
+            cache.Count.ShouldBe(15);
 
             this.output.WriteLine($"Count {cache.Count}");
             this.output.WriteLine($"Keys {string.Join(",", cache.Keys.Select(k => k.ToString()))}");

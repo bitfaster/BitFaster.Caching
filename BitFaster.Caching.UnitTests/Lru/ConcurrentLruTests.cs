@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+﻿using Shouldly;
 using BitFaster.Caching.Lru;
 using System;
 using System.Collections;
@@ -46,7 +46,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             Action constructor = () => { var x = new ConcurrentLru<int, string>(0, 3, EqualityComparer<int>.Default); };
 
-            constructor.Should().Throw<ArgumentOutOfRangeException>();
+            constructor.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Fact]
@@ -54,7 +54,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             Action constructor = () => { var x = new ConcurrentLru<int, string>(1, 2, EqualityComparer<int>.Default); };
 
-            constructor.Should().Throw<ArgumentOutOfRangeException>();
+            constructor.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Fact]
@@ -63,7 +63,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             ICapacityPartition partition = null;
             Action constructor = () => { var x = new ConcurrentLru<int, string>(1, partition, EqualityComparer<int>.Default); };
 
-            constructor.Should().Throw<ArgumentNullException>();
+            constructor.ShouldThrow<ArgumentNullException>();
         }
 
         [Fact]
@@ -72,7 +72,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             var p = new TestCapacityPartition { Cold = 2, Warm = 0, Hot = 2 };
             Action constructor = () => { var x = new ConcurrentLru<int, string>(1, p, EqualityComparer<int>.Default); };
 
-            constructor.Should().Throw<ArgumentOutOfRangeException>();
+            constructor.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Fact]
@@ -80,7 +80,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             Action constructor = () => { var x = new ConcurrentLru<int, string>(1, 3, null); };
 
-            constructor.Should().Throw<ArgumentNullException>();
+            constructor.ShouldThrow<ArgumentNullException>();
         }
 
         [Fact]
@@ -93,9 +93,9 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lru.GetOrAdd(i, x => x);
             }
 
-            lru.HotCount.Should().Be(1);
-            lru.ColdCount.Should().Be(1);
-            lru.Capacity.Should().Be(4);
+            lru.HotCount.ShouldBe(1);
+            lru.ColdCount.ShouldBe(1);
+            lru.Capacity.ShouldBe(4);
         }
 
         [Fact]
@@ -108,9 +108,9 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lru.GetOrAdd(i, x => x);
             }
 
-            lru.HotCount.Should().Be(1);
-            lru.ColdCount.Should().Be(2);
-            lru.Capacity.Should().Be(5);
+            lru.HotCount.ShouldBe(1);
+            lru.ColdCount.ShouldBe(2);
+            lru.Capacity.ShouldBe(5);
         }
 
         [Fact]
@@ -118,52 +118,52 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var x = new ConcurrentLru<int, int>(3);
 
-            x.GetOrAdd(1, k => k).Should().Be(1);
+            x.GetOrAdd(1, k => k).ShouldBe(1);
         }
 
         [Fact]
         public void WhenItemIsAddedCountIsCorrect()
         {
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
             lru.GetOrAdd(1, valueFactory.Create);
-            lru.Count.Should().Be(1);
+            lru.Count.ShouldBe(1);
         }
 
         [Fact]
         public async Task WhenItemIsAddedCountIsCorrectAsync()
         {
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
             await lru.GetOrAddAsync(0, valueFactory.CreateAsync);
-            lru.Count.Should().Be(1);
+            lru.Count.ShouldBe(1);
         }
 
         [Fact]
         public void WhenItemsAddedKeysContainsTheKeys()
         {
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
-            lru.Keys.Should().BeEquivalentTo(new[] { 1, 2 });
+            lru.Keys.ShouldBe(new[] { 1, 2 });
         }
 
         [Fact]
         public void WhenItemsAddedGenericEnumerateContainsKvps()
         {
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
-            lru.Should().BeEquivalentTo(new[] { new KeyValuePair<int, string>(1, "1"), new KeyValuePair<int, string>(2, "2") });
+            lru.ShouldBe(new[] { new KeyValuePair<int, string>(1, "1"), new KeyValuePair<int, string>(2, "2") });
         }
 
         [Fact]
         public void WhenItemsAddedEnumerateContainsKvps()
         {
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
 
             var enumerable = (IEnumerable)lru;
-            enumerable.Should().BeEquivalentTo(new[] { new KeyValuePair<int, string>(1, "1"), new KeyValuePair<int, string>(2, "2") });
+            enumerable.ShouldBe(new[] { new KeyValuePair<int, string>(1, "1"), new KeyValuePair<int, string>(2, "2") });
         }
 
         [Fact]
@@ -171,7 +171,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             this.Warmup();
 
-            this.lru.Count.Should().Be(9);
+            this.lru.Count.ShouldBe(9);
         }
 
         [Fact]
@@ -180,8 +180,8 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
-            result.Should().Be(true);
-            value.Should().Be("1");
+            result.ShouldBe(true);
+            value.ShouldBe("1");
         }
 
         [Fact]
@@ -190,14 +190,14 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(2, out var value);
 
-            result.Should().Be(false);
-            value.Should().BeNull();
+            result.ShouldBe(false);
+            value.ShouldBeNull();
         }
 
         [Fact]
         public void MetricsAreEnabled()
         {
-            lru.Metrics.HasValue.Should().BeTrue();
+            lru.Metrics.HasValue.ShouldBeTrue();
         }
 
         [Fact]
@@ -206,7 +206,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
-            lru.Metrics.Value.HitRatio.Should().Be(0.5);
+            lru.Metrics.Value.HitRatio.ShouldBe(0.5);
         }
 
         [Fact]
@@ -215,7 +215,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
-            lru.Metrics.Value.Total.Should().Be(2);
+            lru.Metrics.Value.Total.ShouldBe(2);
         }
 
         [Fact]
@@ -228,13 +228,13 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             bool result = lru.TryGet(1, out var value);
 
-            m.Value.HitRatio.Should().Be(0.5);
+            m.Value.HitRatio.ShouldBe(0.5);
         }
 
         [Fact]
         public void ExpireAfterWriteHasValueIsFalse()
         {
-            this.lru.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+            this.lru.Policy.ExpireAfterWrite.HasValue.ShouldBeFalse();
         }
 
         [Fact]
@@ -243,8 +243,8 @@ namespace BitFaster.Caching.UnitTests.Lru
             var result1 = lru.GetOrAdd(1, valueFactory.Create);
             var result2 = lru.GetOrAdd(1, valueFactory.Create);
 
-            valueFactory.timesCalled.Should().Be(1);
-            result1.Should().Be(result2);
+            valueFactory.timesCalled.ShouldBe(1);
+            result1.ShouldBe(result2);
         }
 
         [Fact]
@@ -253,8 +253,8 @@ namespace BitFaster.Caching.UnitTests.Lru
             var result1 = lru.GetOrAdd(1, valueFactory.Create, "x");
             var result2 = lru.GetOrAdd(1, valueFactory.Create, "y");
 
-            valueFactory.timesCalled.Should().Be(1);
-            result1.Should().Be(result2);
+            valueFactory.timesCalled.ShouldBe(1);
+            result1.ShouldBe(result2);
         }
 
         [Fact]
@@ -263,8 +263,8 @@ namespace BitFaster.Caching.UnitTests.Lru
             var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync);
             var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync);
 
-            valueFactory.timesCalled.Should().Be(1);
-            result1.Should().Be(result2);
+            valueFactory.timesCalled.ShouldBe(1);
+            result1.ShouldBe(result2);
         }
 
         [Fact]
@@ -273,8 +273,8 @@ namespace BitFaster.Caching.UnitTests.Lru
             var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync, "x");
             var result2 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync, "y");
 
-            valueFactory.timesCalled.Should().Be(1);
-            result1.Should().Be(result2);
+            valueFactory.timesCalled.ShouldBe(1);
+            result1.ShouldBe(result2);
         }
 
         [Fact]
@@ -283,10 +283,10 @@ namespace BitFaster.Caching.UnitTests.Lru
             var result1 = lru.GetOrAdd(1, valueFactory.Create);
             var result2 = lru.GetOrAdd(2, valueFactory.Create);
 
-            valueFactory.timesCalled.Should().Be(2);
+            valueFactory.timesCalled.ShouldBe(2);
 
-            result1.Should().Be("1");
-            result2.Should().Be("2");
+            result1.ShouldBe("1");
+            result2.ShouldBe("2");
         }
 
         [Fact]
@@ -295,10 +295,10 @@ namespace BitFaster.Caching.UnitTests.Lru
             var result1 = await lru.GetOrAddAsync(1, valueFactory.CreateAsync);
             var result2 = await lru.GetOrAddAsync(2, valueFactory.CreateAsync);
 
-            valueFactory.timesCalled.Should().Be(2);
+            valueFactory.timesCalled.ShouldBe(2);
 
-            result1.Should().Be("1");
-            result2.Should().Be("2");
+            result1.ShouldBe("1");
+            result2.ShouldBe("2");
         }
 
         [Fact]
@@ -308,8 +308,8 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             var result = lru.GetOrAdd(1, valueFactory.Create);
 
-            lru.Count.Should().Be(9);
-            valueFactory.timesCalled.Should().Be(10);
+            lru.Count.ShouldBe(9);
+            valueFactory.timesCalled.ShouldBe(10);
         }
 
         [Fact]
@@ -327,8 +327,8 @@ namespace BitFaster.Caching.UnitTests.Lru
                 }
             }
 
-            lru.Count.Should().Be(capacity);
-            valueFactory.timesCalled.Should().Be(capacity + 1);
+            lru.Count.ShouldBe(capacity);
+            valueFactory.timesCalled.ShouldBe(capacity + 1);
         }
 
         [Fact]
@@ -348,7 +348,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 }
 
                 testOutputHelper.WriteLine($"Total: {lru.Count} Hot: {lru.HotCount} Warm: {lru.WarmCount} Cold: {lru.ColdCount}");
-                lru.Count.Should().BeLessOrEqualTo(capacity + 1);
+                lru.Count.ShouldBeLessThanOrEqualTo(capacity + 1);
             }
         }
 
@@ -394,7 +394,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                     lru.GetOrAdd(j, valueFactory.Create);
                 }
 
-                lru.Count.Should().BeLessOrEqualTo(capacity + 1, $"Total: {lru.Count} Hot: {lru.HotCount} Warm: {lru.WarmCount} Cold: {lru.ColdCount}");
+                lru.Count.ShouldBeLessThanOrEqualTo(capacity + 1, $"Total: {lru.Count} Hot: {lru.HotCount} Warm: {lru.WarmCount} Cold: {lru.ColdCount}");
             }
         }
 
@@ -415,7 +415,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(8, valueFactory.Create);
             lru.GetOrAdd(9, valueFactory.Create);
 
-            lru.TryGet(0, out var value).Should().BeFalse();
+            lru.TryGet(0, out var value).ShouldBeFalse();
         }
 
         [Fact]
@@ -436,7 +436,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(8, valueFactory.Create);
             lru.GetOrAdd(9, valueFactory.Create);
 
-            lru.TryGet(0, out var value).Should().BeTrue();
+            lru.TryGet(0, out var value).ShouldBeTrue();
         }
 
         [Fact]
@@ -459,7 +459,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(8, valueFactory.Create);
             lru.GetOrAdd(9, valueFactory.Create);
 
-            lru.TryGet(0, out var value).Should().BeTrue();
+            lru.TryGet(0, out var value).ShouldBeTrue();
         }
 
         [Fact]
@@ -482,7 +482,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(8, valueFactory.Create);
             lru.GetOrAdd(9, valueFactory.Create);
 
-            lru.TryGet(0, out var value).Should().BeFalse();
+            lru.TryGet(0, out var value).ShouldBeFalse();
         }
 
         [Fact]
@@ -508,14 +508,14 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(9, valueFactory.Create);
 
             // verify 0 is present, but don't touch it
-            lru.Keys.Should().Contain(0);
+            lru.Keys.ShouldContain(0);
 
             // push 7,8,9 to cold, evict 0
             lru.GetOrAdd(10, valueFactory.Create);
             lru.GetOrAdd(11, valueFactory.Create);
             lru.GetOrAdd(12, valueFactory.Create);
 
-            lru.TryGet(0, out var value).Should().BeFalse();
+            lru.TryGet(0, out var value).ShouldBeFalse();
         }
 
         [Fact]
@@ -541,14 +541,14 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(9, valueFactory.Create);
 
             // Touch 0
-            lru.TryGet(0, out var value).Should().BeTrue();
+            lru.TryGet(0, out var value).ShouldBeTrue();
 
             // push 7,8,9 to cold, cycle 0 back to warm
             lru.GetOrAdd(10, valueFactory.Create);
             lru.GetOrAdd(11, valueFactory.Create);
             lru.GetOrAdd(12, valueFactory.Create);
 
-            lru.TryGet(0, out value).Should().BeTrue();
+            lru.TryGet(0, out value).ShouldBeTrue();
         }
 
         [Fact]
@@ -562,22 +562,22 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lruOfDisposable.GetOrAdd(i, disposableValueFactory.Create);
             }
 
-            disposableValueFactory.Items[0].IsDisposed.Should().BeTrue();
+            disposableValueFactory.Items[0].IsDisposed.ShouldBeTrue();
 
-            disposableValueFactory.Items[1].IsDisposed.Should().BeFalse();
-            disposableValueFactory.Items[2].IsDisposed.Should().BeFalse();
-            disposableValueFactory.Items[3].IsDisposed.Should().BeFalse();
-            disposableValueFactory.Items[4].IsDisposed.Should().BeFalse();
-            disposableValueFactory.Items[5].IsDisposed.Should().BeFalse();
-            disposableValueFactory.Items[6].IsDisposed.Should().BeFalse();
+            disposableValueFactory.Items[1].IsDisposed.ShouldBeFalse();
+            disposableValueFactory.Items[2].IsDisposed.ShouldBeFalse();
+            disposableValueFactory.Items[3].IsDisposed.ShouldBeFalse();
+            disposableValueFactory.Items[4].IsDisposed.ShouldBeFalse();
+            disposableValueFactory.Items[5].IsDisposed.ShouldBeFalse();
+            disposableValueFactory.Items[6].IsDisposed.ShouldBeFalse();
         }
 
         [Fact]
         public void WhenAddingNullValueCanBeAddedAndRemoved()
         {
-            lru.GetOrAdd(1, _ => null).Should().BeNull();
+            lru.GetOrAdd(1, _ => null).ShouldBeNull();
             lru.AddOrUpdate(1, null);
-            lru.TryRemove(1).Should().BeTrue();
+            lru.TryRemove(1).ShouldBeTrue();
         }
 
         [Fact]
@@ -595,15 +595,15 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lruEvents.GetOrAdd(i + 1, i => i + 1);
             }
 
-            removedItems.Count.Should().Be(2);
+            removedItems.Count.ShouldBe(2);
 
-            removedItems[0].Key.Should().Be(1);
-            removedItems[0].Value.Should().Be(2);
-            removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
+            removedItems[0].Key.ShouldBe(1);
+            removedItems[0].Value.ShouldBe(2);
+            removedItems[0].Reason.ShouldBe(ItemRemovedReason.Evicted);
 
-            removedItems[1].Key.Should().Be(4);
-            removedItems[1].Value.Should().Be(5);
-            removedItems[1].Reason.Should().Be(ItemRemovedReason.Evicted);
+            removedItems[1].Key.ShouldBe(4);
+            removedItems[1].Value.ShouldBe(5);
+            removedItems[1].Reason.ShouldBe(ItemRemovedReason.Evicted);
         }
 
         [Fact]
@@ -613,7 +613,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             this.lru.GetOrAdd(1, valueFactory.Create);
 
-            this.lru.Metrics.Value.Evicted.Should().Be(1);
+            this.lru.Metrics.Value.Evicted.ShouldBe(1);
         }
 
         [Fact]
@@ -629,7 +629,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lruEvents.GetOrAdd(i + 1, i => i + 1);
             }
 
-            removedItems.Count.Should().Be(0);
+            removedItems.Count.ShouldBe(0);
         }
 
         [Fact]
@@ -637,8 +637,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
-            lru.TryRemove(1).Should().BeTrue();
-            lru.TryGet(1, out var value).Should().BeFalse();
+            lru.TryRemove(1).ShouldBeTrue();
+            lru.TryGet(1, out var value).ShouldBeFalse();
         }
 
         [Fact]
@@ -646,8 +646,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
-            lru.TryRemove(1, out var value).Should().BeTrue();
-            value.Should().Be("1");
+            lru.TryRemove(1, out var value).ShouldBeTrue();
+            value.ShouldBe("1");
         }
 
         [Fact]
@@ -659,7 +659,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lruOfDisposable.GetOrAdd(1, disposableValueFactory.Create);
             lruOfDisposable.TryRemove(1);
 
-            disposableValueFactory.Items[1].IsDisposed.Should().BeTrue();
+            disposableValueFactory.Items[1].IsDisposed.ShouldBeTrue();
         }
 
         [Fact]
@@ -670,12 +670,12 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lruEvents.GetOrAdd(1, i => i + 2);
 
-            lruEvents.TryRemove(1).Should().BeTrue();
+            lruEvents.TryRemove(1).ShouldBeTrue();
 
-            removedItems.Count().Should().Be(1);
-            removedItems[0].Key.Should().Be(1);
-            removedItems[0].Value.Should().Be(3);
-            removedItems[0].Reason.Should().Be(ItemRemovedReason.Removed);
+            removedItems.Count().ShouldBe(1);
+            removedItems[0].Key.ShouldBe(1);
+            removedItems[0].Value.ShouldBe(3);
+            removedItems[0].Reason.ShouldBe(ItemRemovedReason.Removed);
         }
 
         [Fact]
@@ -683,7 +683,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
-            lru.TryRemove(2).Should().BeFalse();
+            lru.TryRemove(2).ShouldBeFalse();
         }
 
         [Fact]
@@ -695,7 +695,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 // Because TryRemove leaves the item in the queue, when it is eventually removed
                 // from the cold queue, it should not remove the newly created value.
                 lru.GetOrAdd(1, valueFactory.Create);
-                lru.TryGet(1, out var value).Should().BeTrue();
+                lru.TryGet(1, out var value).ShouldBeTrue();
                 lru.TryRemove(1);
             }
         }
@@ -705,10 +705,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
-            lru.TryUpdate(1, "2").Should().BeTrue();
+            lru.TryUpdate(1, "2").ShouldBeTrue();
 
             lru.TryGet(1, out var value);
-            value.Should().Be("2");
+            value.ShouldBe("2");
         }
 
         [Fact]
@@ -721,7 +721,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lruOfDisposable.GetOrAdd(1, disposableValueFactory.Create);
             lruOfDisposable.TryUpdate(1, newValue);
 
-            disposableValueFactory.Items[1].IsDisposed.Should().BeTrue();
+            disposableValueFactory.Items[1].IsDisposed.ShouldBeTrue();
         }
 
         [Fact]
@@ -729,7 +729,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
-            lru.TryUpdate(2, "3").Should().BeFalse();
+            lru.TryUpdate(2, "3").ShouldBeFalse();
         }
 
 // backcompat: remove conditional compile
@@ -739,9 +739,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
-            lru.TryUpdate(1, "2").Should().BeTrue();
+            lru.TryUpdate(1, "2").ShouldBeTrue();
 
-            lru.Metrics.Value.Updated.Should().Be(1);
+            lru.Metrics.Value.Updated.ShouldBe(1);
         }
 
         [Fact]
@@ -749,9 +749,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.GetOrAdd(1, valueFactory.Create);
 
-            lru.TryUpdate(2, "3").Should().BeFalse();
+            lru.TryUpdate(2, "3").ShouldBeFalse();
 
-            lru.Metrics.Value.Updated.Should().Be(0);
+            lru.Metrics.Value.Updated.ShouldBe(0);
         }
 #endif
         [Fact]
@@ -759,8 +759,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             lru.AddOrUpdate(1, "1");
 
-            lru.TryGet(1, out var value).Should().BeTrue();
-            value.Should().Be("1");
+            lru.TryGet(1, out var value).ShouldBeTrue();
+            value.ShouldBe("1");
         }
 
         [Fact]
@@ -769,8 +769,8 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(1, "1");
             lru.AddOrUpdate(1, "2");
 
-            lru.TryGet(1, out var value).Should().BeTrue();
-            value.Should().Be("2");
+            lru.TryGet(1, out var value).ShouldBeTrue();
+            value.ShouldBe("2");
         }
 
         [Fact]
@@ -782,8 +782,8 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru2.AddOrUpdate(1, new Guid(1, 0, 0, b));
             lru2.AddOrUpdate(1, new Guid(2, 0, 0, b));
 
-            lru2.TryGet(1, out var value).Should().BeTrue();
-            value.Should().Be(new Guid(2, 0, 0, b));
+            lru2.TryGet(1, out var value).ShouldBeTrue();
+            value.ShouldBe(new Guid(2, 0, 0, b));
         }
 
         [Fact]
@@ -796,7 +796,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lruOfDisposable.GetOrAdd(1, disposableValueFactory.Create);
             lruOfDisposable.AddOrUpdate(1, newValue);
 
-            disposableValueFactory.Items[1].IsDisposed.Should().BeTrue();
+            disposableValueFactory.Items[1].IsDisposed.ShouldBeTrue();
         }
 
         [Fact]
@@ -807,8 +807,8 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.AddOrUpdate(3, "3");
             lru.AddOrUpdate(4, "4");
 
-            lru.HotCount.Should().Be(3);
-            lru.WarmCount.Should().Be(1); // items must have been enqueued and cycled for one of them to reach the warm queue
+            lru.HotCount.ShouldBe(3);
+            lru.WarmCount.ShouldBe(1); // items must have been enqueued and cycled for one of them to reach the warm queue
         }
 
 // backcompat: remove conditional compile
@@ -824,10 +824,10 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lruEvents.AddOrUpdate(1, 3);
 
-            this.updatedItems.Count.Should().Be(1);
-            this.updatedItems[0].Key.Should().Be(1);
-            this.updatedItems[0].OldValue.Should().Be(2);
-            this.updatedItems[0].NewValue.Should().Be(3);
+            this.updatedItems.Count.ShouldBe(1);
+            this.updatedItems[0].Key.ShouldBe(1);
+            this.updatedItems[0].OldValue.ShouldBe(2);
+            this.updatedItems[0].NewValue.ShouldBe(3);
         }
 
         [Fact]
@@ -841,10 +841,10 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lruEvents.TryUpdate(1, 3);
 
-            this.updatedItems.Count.Should().Be(1);
-            this.updatedItems[0].Key.Should().Be(1);
-            this.updatedItems[0].OldValue.Should().Be(2);
-            this.updatedItems[0].NewValue.Should().Be(3);
+            this.updatedItems.Count.ShouldBe(1);
+            this.updatedItems[0].Key.ShouldBe(1);
+            this.updatedItems[0].OldValue.ShouldBe(2);
+            this.updatedItems[0].NewValue.ShouldBe(3);
         }
 
         [Fact]
@@ -859,7 +859,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lruEvents.AddOrUpdate(1, 2);
             lruEvents.AddOrUpdate(1, 2);
 
-            updatedItems.Count.Should().Be(0);
+            updatedItems.Count.ShouldBe(0);
         }
 #endif
 
@@ -867,7 +867,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenCacheIsEmptyClearIsNoOp()
         {
             lru.Clear();
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
         }
 
         [Fact]
@@ -878,12 +878,12 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.Clear();
 
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
 
             // verify queues are purged
-            lru.HotCount.Should().Be(0);
-            lru.WarmCount.Should().Be(0);
-            lru.ColdCount.Should().Be(0);
+            lru.HotCount.ShouldBe(0);
+            lru.WarmCount.ShouldBe(0);
+            lru.ColdCount.ShouldBe(0);
         }
 
         // This is a special case:
@@ -905,7 +905,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.Clear();
 
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
         }
 
         [Theory]
@@ -939,12 +939,12 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             this.testOutputHelper.WriteLine("LRU " + string.Join(" ", lru.Keys));
 
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
 
             // verify queues are purged
-            lru.HotCount.Should().Be(0);
-            lru.WarmCount.Should().Be(0);
-            lru.ColdCount.Should().Be(0);
+            lru.HotCount.ShouldBe(0);
+            lru.WarmCount.ShouldBe(0);
+            lru.ColdCount.ShouldBe(0);
         }
 
         [Fact]
@@ -956,14 +956,14 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
 
             lru.Clear();
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
 
             for (int i = 0; i < 20; i++)
             { 
                 lru.GetOrAdd(i, k => k.ToString()); 
             }
 
-            lru.Count.Should().Be(capacity.Hot + capacity.Warm + capacity.Cold);
+            lru.Count.ShouldBe(capacity.Hot + capacity.Warm + capacity.Cold);
         }
 
         [Fact]
@@ -975,14 +975,14 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
 
             lru.Trim(6);
-            lru.Count.Should().Be(3);
+            lru.Count.ShouldBe(3);
 
             for (int i = 0; i < 20; i++)
             {
                 lru.GetOrAdd(i, k => k.ToString());
             }
 
-            lru.Count.Should().Be(capacity.Hot + capacity.Warm + capacity.Cold);
+            lru.Count.ShouldBe(capacity.Hot + capacity.Warm + capacity.Cold);
         }
 
         [Fact]
@@ -999,7 +999,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lruOfDisposable.Clear();
 
-            items.All(i => i.IsDisposed == true).Should().BeTrue();
+            items.All(i => i.IsDisposed == true).ShouldBeTrue();
         }
 
         [Fact]
@@ -1015,24 +1015,24 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lruEvents.Clear();
 
-            removedItems.Count.Should().Be(6);
+            removedItems.Count.ShouldBe(6);
 
             for (int i = 0; i < 6; i++)
             {
-                removedItems[i].Reason.Should().Be(ItemRemovedReason.Cleared);
+                removedItems[i].Reason.ShouldBe(ItemRemovedReason.Cleared);
             }
         }
 
         [Fact]
         public void WhenTrimCountIsZeroThrows()
         {
-            lru.Invoking(l => lru.Trim(0)).Should().Throw<ArgumentOutOfRangeException>();
+            Should.Throw<ArgumentOutOfRangeException>(() => lru.Trim(0));
         }
 
         [Fact]
         public void WhenTrimCountIsMoreThanCapacityThrows()
         {
-            lru.Invoking(l => lru.Trim(hotCap + warmCap + coldCap + 1)).Should().Throw<ArgumentOutOfRangeException>();
+            Should.Throw<ArgumentOutOfRangeException>(() => lru.Trim(hotCap + warmCap + coldCap + 1));
         }
 
         [Theory]
@@ -1070,7 +1070,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.Trim(trimCount);
 
-            lru.Keys.Should().BeEquivalentTo(expected);
+            lru.Keys.ShouldBe(expected);
         }
 
         [Theory]
@@ -1102,7 +1102,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.Trim(itemCount);
 
-            lru.Keys.Should().BeEquivalentTo(expected);
+            lru.Keys.ShouldBe(expected);
         }
 
         [Theory]
@@ -1127,7 +1127,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.Trim(itemCount);
 
-            lru.Keys.Should().BeEquivalentTo(expected);
+            lru.Keys.ShouldBe(expected);
         }
 
         [Theory]
@@ -1173,7 +1173,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.testOutputHelper.WriteLine("LRU " + string.Join(" ", lru.Keys));
             this.testOutputHelper.WriteLine("exp " + string.Join(" ", expected));
 
-            lru.Keys.Should().BeEquivalentTo(expected);
+            lru.Keys.ShouldBe(expected);
         }
 
         [Theory]
@@ -1207,12 +1207,12 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             this.testOutputHelper.WriteLine("LRU " + string.Join(" ", lru.Keys));
 
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
 
             // verify queues are purged
-            lru.HotCount.Should().Be(0);
-            lru.WarmCount.Should().Be(0);
-            lru.ColdCount.Should().Be(0);
+            lru.HotCount.ShouldBe(0);
+            lru.WarmCount.ShouldBe(0);
+            lru.ColdCount.ShouldBe(0);
         }
 
         [Theory]
@@ -1240,12 +1240,12 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             this.testOutputHelper.WriteLine("LRU " + string.Join(" ", lru.Keys));
 
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
 
             // verify queues are purged
-            lru.HotCount.Should().Be(0);
-            lru.WarmCount.Should().Be(0);
-            lru.ColdCount.Should().Be(0);
+            lru.HotCount.ShouldBe(0);
+            lru.WarmCount.ShouldBe(0);
+            lru.ColdCount.ShouldBe(0);
         }
 
         [Fact]
@@ -1262,10 +1262,10 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lruOfDisposable.Trim(2);
 
-            items[0].IsDisposed.Should().BeTrue();
-            items[1].IsDisposed.Should().BeTrue();
-            items[2].IsDisposed.Should().BeFalse();
-            items[3].IsDisposed.Should().BeFalse();
+            items[0].IsDisposed.ShouldBeTrue();
+            items[1].IsDisposed.ShouldBeTrue();
+            items[2].IsDisposed.ShouldBeFalse();
+            items[3].IsDisposed.ShouldBeFalse();
         }
 
         [Fact]
@@ -1281,15 +1281,15 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lruEvents.Trim(2);
 
-            removedItems.Count.Should().Be(2);
+            removedItems.Count.ShouldBe(2);
 
-            removedItems[0].Key.Should().Be(1);
-            removedItems[0].Value.Should().Be(2);
-            removedItems[0].Reason.Should().Be(ItemRemovedReason.Trimmed);
+            removedItems[0].Key.ShouldBe(1);
+            removedItems[0].Value.ShouldBe(2);
+            removedItems[0].Reason.ShouldBe(ItemRemovedReason.Trimmed);
 
-            removedItems[1].Key.Should().Be(2);
-            removedItems[1].Value.Should().Be(3);
-            removedItems[1].Reason.Should().Be(ItemRemovedReason.Trimmed);
+            removedItems[1].Key.ShouldBe(2);
+            removedItems[1].Value.ShouldBe(3);
+            removedItems[1].Reason.ShouldBe(ItemRemovedReason.Trimmed);
         }
 
 
@@ -1339,9 +1339,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void Validate()
         {
             // queue counters must be consistent with queues
-            this.hotQueue.Count.Should().Be(cache.HotCount, "hot queue has a corrupted count");
-            this.warmQueue.Count.Should().Be(cache.WarmCount, "warm queue has a corrupted count");
-            this.coldQueue.Count.Should().Be(cache.ColdCount, "cold queue has a corrupted count");
+            this.hotQueue.Count.ShouldBe(cache.HotCount, "hot queue has a corrupted count");
+            this.warmQueue.Count.ShouldBe(cache.WarmCount, "warm queue has a corrupted count");
+            this.coldQueue.Count.ShouldBe(cache.ColdCount, "cold queue has a corrupted count");
 
             // cache contents must be consistent with queued items
             ValidateQueue(cache, this.hotQueue, "hot");
@@ -1349,7 +1349,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             ValidateQueue(cache, this.coldQueue, "cold");
 
             // cache must be within capacity
-            cache.Count.Should().BeLessThanOrEqualTo(cache.Capacity + 1, "capacity out of valid range");
+            cache.Count.ShouldBeLessThanOrEqualTo(cache.Capacity + 1, "capacity out of valid range");
         }
 
         private void ValidateQueue(ConcurrentLruCore<K, V, I, P, T> cache, ConcurrentQueue<I> queue, string queueName)
@@ -1365,12 +1365,12 @@ namespace BitFaster.Caching.UnitTests.Lru
                     {
                         hotQueue.Union(warmQueue).Union(coldQueue)
                             .Any(i => i.Key.Equals(item.Key) && !i.WasRemoved)
-                            .Should().BeTrue($"{queueName} removed item {item.Key} was not removed");
+                            .ShouldBeTrue($"{queueName} removed item {item.Key} was not removed");
                     }
                 }
                 else
                 {
-                    dictionary.TryGetValue(item.Key, out var value).Should().BeTrue($"{queueName} item {item.Key} was not present");
+                    dictionary.TryGetValue(item.Key, out var value).ShouldBeTrue($"{queueName} item {item.Key} was not present");
                 }
             }
         }

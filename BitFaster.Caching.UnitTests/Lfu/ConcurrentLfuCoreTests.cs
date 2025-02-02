@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.UnitTests.Retry;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lfu
@@ -29,7 +29,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void EvictionPolicyCapacityReturnsCapacity()
         {
-            lfu.Policy.Eviction.Value.Capacity.Should().Be(capacity);
+            lfu.Policy.Eviction.Value.Capacity.ShouldBe(capacity);
         }
 
         [Fact]
@@ -38,8 +38,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var result1 = lfu.GetOrAdd(1, valueFactory.Create);
             var result2 = lfu.GetOrAdd(1, valueFactory.Create);
 
-            valueFactory.timesCalled.Should().Be(1);
-            result1.Should().Be(result2);
+            valueFactory.timesCalled.ShouldBe(1);
+            result1.ShouldBe(result2);
         }
 #if NETCOREAPP3_0_OR_GREATER
         [Fact]
@@ -48,8 +48,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var result1 = lfu.GetOrAdd(1, valueFactory.Create, 9);
             var result2 = lfu.GetOrAdd(1, valueFactory.Create, 17);
 
-            valueFactory.timesCalled.Should().Be(1);
-            result1.Should().Be(result2);
+            valueFactory.timesCalled.ShouldBe(1);
+            result1.ShouldBe(result2);
         }
 #endif
         [Fact]
@@ -59,8 +59,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var result1 = await asyncLfu.GetOrAddAsync(1, valueFactory.CreateAsync);
             var result2 = await asyncLfu.GetOrAddAsync(1, valueFactory.CreateAsync);
 
-            valueFactory.timesCalled.Should().Be(1);
-            result1.Should().Be(result2);
+            valueFactory.timesCalled.ShouldBe(1);
+            result1.ShouldBe(result2);
         }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -71,8 +71,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var result1 = await asyncLfu.GetOrAddAsync(1, valueFactory.CreateAsync, 9);
             var result2 = await asyncLfu.GetOrAddAsync(1, valueFactory.CreateAsync, 17);
 
-            valueFactory.timesCalled.Should().Be(1);
-            result1.Should().Be(result2);
+            valueFactory.timesCalled.ShouldBe(1);
+            result1.ShouldBe(result2);
         }
 #endif
 
@@ -82,8 +82,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu.GetOrAdd(1, k => k);
             lfu.AddOrUpdate(1, 2);
 
-            lfu.TryGet(1, out var value).Should().BeTrue();
-            value.Should().Be(2);
+            lfu.TryGet(1, out var value).ShouldBeTrue();
+            value.ShouldBe(2);
         }
 
         [RetryFact]
@@ -91,8 +91,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             lfu.AddOrUpdate(1, 2);
 
-            lfu.TryGet(1, out var value).Should().BeTrue();
-            value.Should().Be(2);
+            lfu.TryGet(1, out var value).ShouldBeTrue();
+            value.ShouldBe(2);
         }
 
 
@@ -101,8 +101,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             lfu.GetOrAdd(1, k => k);
 
-            lfu.TryRemove(1).Should().BeTrue();
-            lfu.TryGet(1, out _).Should().BeFalse();
+            lfu.TryRemove(1).ShouldBeTrue();
+            lfu.TryGet(1, out _).ShouldBeFalse();
         }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -111,8 +111,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             lfu.GetOrAdd(1, valueFactory.Create);
 
-            lfu.TryRemove(1, out var value).Should().BeTrue();
-            value.Should().Be(1);
+            lfu.TryRemove(1, out var value).ShouldBeTrue();
+            value.ShouldBe(1);
         }
 
         [Fact]
@@ -120,8 +120,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             lfu.GetOrAdd(1, k => k);
 
-            lfu.TryRemove(new KeyValuePair<int, int>(1, 1)).Should().BeTrue();
-            lfu.TryGet(1, out _).Should().BeFalse();
+            lfu.TryRemove(new KeyValuePair<int, int>(1, 1)).ShouldBeTrue();
+            lfu.TryGet(1, out _).ShouldBeFalse();
         }
 
         [Fact]
@@ -129,8 +129,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             lfu.GetOrAdd(1, k => k);
 
-            lfu.TryRemove(new KeyValuePair<int, int>(1, 2)).Should().BeFalse();
-            lfu.TryGet(1, out var value).Should().BeTrue();
+            lfu.TryRemove(new KeyValuePair<int, int>(1, 2)).ShouldBeFalse();
+            lfu.TryGet(1, out var value).ShouldBeTrue();
         }
 #endif
  
@@ -142,8 +142,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             lfu.Clear();
 
-            lfu.Count.Should().Be(0);
-            lfu.TryGet(1, out var _).Should().BeFalse();
+            lfu.Count.ShouldBe(0);
+            lfu.TryGet(1, out var _).ShouldBeFalse();
         }
 
         [Fact]
@@ -155,12 +155,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
             DoMaintenance<int, int>(lfu);
 
-            lfu.Count.Should().Be(20);
+            lfu.Count.ShouldBe(20);
 
             lfu.Policy.Eviction.Value.Trim(5);
             DoMaintenance<int, int>(lfu);
 
-            lfu.Count.Should().Be(15);
+            lfu.Count.ShouldBe(15);
         }
 
         [Fact]
@@ -170,10 +170,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu.GetOrAdd(2, k => k);
 
             var enumerator = lfu.GetEnumerator();
-            enumerator.MoveNext().Should().BeTrue();
-            enumerator.Current.Should().Be(new KeyValuePair<int, int>(1, 1));
-            enumerator.MoveNext().Should().BeTrue();
-            enumerator.Current.Should().Be(new KeyValuePair<int, int>(2, 2));
+            enumerator.MoveNext().ShouldBeTrue();
+            enumerator.Current.ShouldBe(new KeyValuePair<int, int>(1, 1));
+            enumerator.MoveNext().ShouldBeTrue();
+            enumerator.Current.ShouldBe(new KeyValuePair<int, int>(2, 2));
         }
 
         [Fact]
@@ -183,7 +183,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu.GetOrAdd(2, k => k);
 
             var enumerable = (IEnumerable)lfu;
-            enumerable.Should().BeEquivalentTo(new[] { new KeyValuePair<int, int>(1, 1), new KeyValuePair<int, int>(2, 2) });
+            enumerable.ShouldBe(new[] { new KeyValuePair<int, int>(1, 1), new KeyValuePair<int, int>(2, 2) });
         }
     }
 

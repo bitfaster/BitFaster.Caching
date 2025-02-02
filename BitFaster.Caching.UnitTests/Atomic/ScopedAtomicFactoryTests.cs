@@ -1,6 +1,5 @@
-﻿
-using BitFaster.Caching.Atomic;
-using FluentAssertions;
+﻿using BitFaster.Caching.Atomic;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Atomic
@@ -13,9 +12,9 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var expectedDisposable = new Disposable();
             var sa = new ScopedAtomicFactory<int, Disposable>(expectedDisposable);
 
-            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(new Disposable()), out var lifetime).Should().BeTrue();
+            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(new Disposable()), out var lifetime).ShouldBeTrue();
 
-            lifetime.Value.Should().Be(expectedDisposable);
+            lifetime.Value.ShouldBe(expectedDisposable);
         }
 
         [Fact]
@@ -24,9 +23,9 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var expectedDisposable = new Disposable();
             var sa = new ScopedAtomicFactory<int, Disposable>();
 
-            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(expectedDisposable), out var lifetime).Should().BeTrue();
+            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(expectedDisposable), out var lifetime).ShouldBeTrue();
 
-            lifetime.Value.Should().Be(expectedDisposable);
+            lifetime.Value.ShouldBe(expectedDisposable);
         }
 
         [Fact]
@@ -35,10 +34,10 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var expectedDisposable = new Disposable();
             var sa = new ScopedAtomicFactory<int, Disposable>();
 
-            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(expectedDisposable), out var lifetime1).Should().BeTrue();
-            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(new Disposable()), out var lifetime2).Should().BeTrue();
+            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(expectedDisposable), out var lifetime1).ShouldBeTrue();
+            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(new Disposable()), out var lifetime2).ShouldBeTrue();
 
-            lifetime2.Value.Should().Be(expectedDisposable);
+            lifetime2.Value.ShouldBe(expectedDisposable);
         }
 
         [Fact]
@@ -50,11 +49,11 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var factory1 = new ValueFactoryArg<int, int, Scoped<Disposable>>((k, v) => { expectedDisposable.State = v; return new Scoped<Disposable>(expectedDisposable); }, 1);
             var factory2 = new ValueFactoryArg<int, int, Scoped<Disposable>>((k, v) => { expectedDisposable.State = v; return new Scoped<Disposable>(expectedDisposable); }, 2);
 
-            sa.TryCreateLifetime(1, factory1, out var lifetime1).Should().BeTrue();
-            sa.TryCreateLifetime(1, factory2, out var lifetime2).Should().BeTrue();
+            sa.TryCreateLifetime(1, factory1, out var lifetime1).ShouldBeTrue();
+            sa.TryCreateLifetime(1, factory2, out var lifetime2).ShouldBeTrue();
 
-            lifetime2.Value.Should().Be(expectedDisposable);
-            lifetime2.Value.State.Should().Be(1);
+            lifetime2.Value.ShouldBe(expectedDisposable);
+            lifetime2.Value.State.ShouldBe(1);
         }
 
         [Fact]
@@ -62,7 +61,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             var sa = new ScopedAtomicFactory<int, Disposable>();
 
-            sa.ScopeIfCreated.Should().BeNull();
+            sa.ScopeIfCreated.ShouldBeNull();
         }
 
         [Fact]
@@ -71,16 +70,16 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var expectedDisposable = new Disposable();
             var sa = new ScopedAtomicFactory<int, Disposable>(expectedDisposable);
 
-            sa.ScopeIfCreated.Should().NotBeNull();
-            sa.ScopeIfCreated.TryCreateLifetime(out var lifetime).Should().BeTrue();
-            lifetime.Value.Should().Be(expectedDisposable);
+            sa.ScopeIfCreated.ShouldNotBeNull();
+            sa.ScopeIfCreated.TryCreateLifetime(out var lifetime).ShouldBeTrue();
+            lifetime.Value.ShouldBe(expectedDisposable);
         }
 
         [Fact]
         public void WhenNotInitTryCreateReturnsFalse()
         {
             var sa = new ScopedAtomicFactory<int, Disposable>();
-            sa.TryCreateLifetime(out var l).Should().BeFalse();
+            sa.TryCreateLifetime(out var l).ShouldBeFalse();
         }
 
         [Fact]
@@ -89,8 +88,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var expectedDisposable = new Disposable();
             var sa = new ScopedAtomicFactory<int, Disposable>(expectedDisposable);
 
-            sa.TryCreateLifetime(out var lifetime).Should().BeTrue();
-            lifetime.Value.Should().Be(expectedDisposable);
+            sa.TryCreateLifetime(out var lifetime).ShouldBeTrue();
+            lifetime.Value.ShouldBe(expectedDisposable);
         }
 
         [Fact]
@@ -99,7 +98,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var sa = new ScopedAtomicFactory<int, Disposable>();
             sa.Dispose();
 
-            sa.TryCreateLifetime(out var lifetime).Should().BeFalse();
+            sa.TryCreateLifetime(out var lifetime).ShouldBeFalse();
         }
 
         [Fact]
@@ -108,7 +107,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var sa = new ScopedAtomicFactory<int, Disposable>(new Disposable());
             sa.Dispose();
 
-            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(new Disposable()), out var l).Should().BeFalse();
+            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(new Disposable()), out var l).ShouldBeFalse();
         }
 
         [Fact]
@@ -117,7 +116,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var sa = new ScopedAtomicFactory<int, Disposable>();
             sa.Dispose();
 
-            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(new Disposable()), out var l).Should().BeFalse();
+            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(new Disposable()), out var l).ShouldBeFalse();
         }
 
         [Fact]
@@ -126,17 +125,17 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var disposable = new Disposable();
             var sa = new ScopedAtomicFactory<int, Disposable>();
 
-            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(disposable), out var lifetime1).Should().BeTrue();
-            sa.TryCreateLifetime(1, k => null, out var lifetime2).Should().BeTrue();
+            sa.TryCreateLifetime(1, k => new Scoped<Disposable>(disposable), out var lifetime1).ShouldBeTrue();
+            sa.TryCreateLifetime(1, k => null, out var lifetime2).ShouldBeTrue();
 
             sa.Dispose();
-            disposable.IsDisposed.Should().BeFalse();
+            disposable.IsDisposed.ShouldBeFalse();
 
             lifetime1.Dispose();
-            disposable.IsDisposed.Should().BeFalse();
+            disposable.IsDisposed.ShouldBeFalse();
 
             lifetime2.Dispose();
-            disposable.IsDisposed.Should().BeTrue();
+            disposable.IsDisposed.ShouldBeTrue();
         }
     }
 }

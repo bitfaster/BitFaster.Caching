@@ -1,6 +1,6 @@
 ﻿#if NETCOREAPP3_1_OR_GREATER
 
-using FluentAssertions;
+using Shouldly;
 using BitFaster.Caching.Lru;
 using System;
 using System.Threading.Tasks;
@@ -18,7 +18,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             Action constructor = () => { new TLruLongTicksPolicy<int, int>(TimeSpan.MaxValue); };
 
-            constructor.Should().Throw<ArgumentOutOfRangeException>();
+            constructor.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Fact]
@@ -26,20 +26,20 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             Action constructor = () => { new TLruLongTicksPolicy<int, int>(TimeSpan.Zero); };
 
-            constructor.Should().Throw<ArgumentOutOfRangeException>();
+            constructor.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Fact]
         public void WhenTtlIsMaxSetAsMax()
         {
             var policy = new TLruLongTicksPolicy<int, int>(Duration.MaxRepresentable);
-            policy.TimeToLive.Should().BeCloseTo(Duration.MaxRepresentable, TimeSpan.FromMilliseconds(20));
+            policy.TimeToLive.ShouldBe(Duration.MaxRepresentable, TimeSpan.FromMilliseconds(20));
         }
 
         [Fact]
         public void TimeToLiveShouldBeTenSecs()
         {
-            this.policy.TimeToLive.Should().Be(TimeSpan.FromSeconds(10));
+            this.policy.TimeToLive.ShouldBe(TimeSpan.FromSeconds(10));
         }
 
         [Fact]
@@ -47,8 +47,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            item.Key.Should().Be(1);
-            item.Value.Should().Be(2);
+            item.Key.ShouldBe(1);
+            item.Value.ShouldBe(2);
         }
 
         [Fact]
@@ -56,7 +56,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            item.TickCount.Should().BeCloseTo(Duration.SinceEpoch().raw, DurationTests.epsilon);
+            item.TickCount.ShouldBe(Duration.SinceEpoch().raw);
         }
 
         [Fact]
@@ -67,7 +67,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             this.policy.Touch(item);
 
-            item.WasAccessed.Should().BeTrue();
+            item.WasAccessed.ShouldBeTrue();
         }
 
         [Fact]
@@ -80,7 +80,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             this.policy.Update(item);
 
-            item.TickCount.Should().BeGreaterThan(tc);
+            item.TickCount.ShouldBeGreaterThan(tc);
         }
 
         [Fact]
@@ -89,7 +89,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             var item = this.policy.CreateItem(1, 2);
             item.TickCount = Duration.SinceEpoch().raw - Duration.FromSeconds(11).raw;
 
-            this.policy.ShouldDiscard(item).Should().BeTrue();
+            this.policy.ShouldDiscard(item).ShouldBeTrue();
         }
 
         [Fact]
@@ -98,13 +98,13 @@ namespace BitFaster.Caching.UnitTests.Lru
             var item = this.policy.CreateItem(1, 2);
             item.TickCount = Duration.SinceEpoch().raw - Duration.FromSeconds(9).raw;
 
-            this.policy.ShouldDiscard(item).Should().BeFalse();
+            this.policy.ShouldDiscard(item).ShouldBeFalse();
         }
 
         [Fact]
         public void CanDiscardIsTrue()
         {
-            this.policy.CanDiscard().Should().BeTrue();
+            this.policy.CanDiscard().ShouldBeTrue();
         }
 
         [Theory]
@@ -116,7 +116,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = CreateItem(wasAccessed, isExpired);
 
-            this.policy.RouteHot(item).Should().Be(expectedDestination);
+            this.policy.RouteHot(item).ShouldBe(expectedDestination);
         }
 
         [Theory]
@@ -128,7 +128,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = CreateItem(wasAccessed, isExpired);
 
-            this.policy.RouteWarm(item).Should().Be(expectedDestination);
+            this.policy.RouteWarm(item).ShouldBe(expectedDestination);
         }
 
         [Theory]
@@ -140,7 +140,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = CreateItem(wasAccessed, isExpired);
 
-            this.policy.RouteCold(item).Should().Be(expectedDestination);
+            this.policy.RouteCold(item).ShouldBe(expectedDestination);
         }
 
         private LongTickCountLruItem<int, int> CreateItem(bool wasAccessed, bool isExpired)
@@ -163,7 +163,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var time = TimeSpan.FromSeconds(10);
             var ticks = TLruLongTicksPolicy<int, int>.ToTicks(time);
-            TLruLongTicksPolicy<int, int>.FromTicks(ticks).Should().Be(time);
+            TLruLongTicksPolicy<int, int>.FromTicks(ticks).ShouldBe(time);
         }
 
         // backcompat: remove (methods only added for TLruLongTicksPolicy)
@@ -172,7 +172,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             Action toTicks = () => { TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.Zero); };
 
-            toTicks.Should().Throw<ArgumentOutOfRangeException>();
+            toTicks.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         // backcompat: remove (methods only added for TLruLongTicksPolicy)
@@ -181,7 +181,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             Action toTicks = () => { TLruLongTicksPolicy<int, int>.ToTicks(TimeSpan.MaxValue); };
 
-            toTicks.Should().Throw<ArgumentOutOfRangeException>();
+            toTicks.ShouldThrow<ArgumentOutOfRangeException>();
         }
     }
 }
