@@ -68,7 +68,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteHot(TimeStampedLruItem<K, V> item)
         {
-            if (this.ShouldDiscard(item))
+            if (this.ShouldDiscard(item) | item.WasRemoved)
             {
                 return ItemDestination.Remove;
             }
@@ -85,7 +85,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteWarm(TimeStampedLruItem<K, V> item)
         {
-            if (this.ShouldDiscard(item))
+            if (this.ShouldDiscard(item) | item.WasRemoved)
             {
                 return ItemDestination.Remove;
             }
@@ -102,7 +102,7 @@ namespace BitFaster.Caching.Lru
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ItemDestination RouteCold(TimeStampedLruItem<K, V> item)
         {
-            if (this.ShouldDiscard(item))
+            if (this.ShouldDiscard(item) | item.WasRemoved)
             {
                 return ItemDestination.Remove;
             }

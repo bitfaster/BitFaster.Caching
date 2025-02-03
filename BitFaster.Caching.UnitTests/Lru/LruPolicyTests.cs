@@ -69,40 +69,47 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Theory]
-        [InlineData(true, ItemDestination.Warm)]
-        [InlineData(false, ItemDestination.Cold)]
-        public void RouteHot(bool wasAccessed, ItemDestination expectedDestination)
+        [InlineData(true, false, ItemDestination.Warm)]
+        [InlineData(false, false, ItemDestination.Cold)]
+        [InlineData(false, true, ItemDestination.Remove)]
+        [InlineData(true, true, ItemDestination.Remove)]
+        public void RouteHot(bool wasAccessed, bool wasRemoved, ItemDestination expectedDestination)
         {
-            var item = CreateItem(wasAccessed);
+            var item = CreateItem(wasAccessed, wasRemoved);
 
             this.policy.RouteHot(item).Should().Be(expectedDestination);
         }
 
         [Theory]
-        [InlineData(true, ItemDestination.Warm)]
-        [InlineData(false, ItemDestination.Cold)]
-        public void RouteWarm(bool wasAccessed, ItemDestination expectedDestination)
+        [InlineData(true, false, ItemDestination.Warm)]
+        [InlineData(false, false, ItemDestination.Cold)]
+        [InlineData(true, true, ItemDestination.Remove)]
+        [InlineData(false, true, ItemDestination.Remove)]
+        public void RouteWarm(bool wasAccessed, bool wasRemoved, ItemDestination expectedDestination)
         {
-            var item = CreateItem(wasAccessed);
+            var item = CreateItem(wasAccessed, wasRemoved);
 
             this.policy.RouteWarm(item).Should().Be(expectedDestination);
         }
 
         [Theory]
-        [InlineData(true, ItemDestination.Warm)]
-        [InlineData(false, ItemDestination.Remove)]
-        public void RouteCold(bool wasAccessed, ItemDestination expectedDestination)
+        [InlineData(true, false, ItemDestination.Warm)]
+        [InlineData(false, false, ItemDestination.Remove)]
+        [InlineData(true, true, ItemDestination.Remove)]
+        [InlineData(false, true, ItemDestination.Remove)]
+        public void RouteCold(bool wasAccessed, bool wasRemoved, ItemDestination expectedDestination)
         {
-            var item = CreateItem(wasAccessed);
+            var item = CreateItem(wasAccessed, wasRemoved);
 
             this.policy.RouteCold(item).Should().Be(expectedDestination);
         }
 
-        private LruItem<int, int> CreateItem(bool wasAccessed)
+        private LruItem<int, int> CreateItem(bool wasAccessed, bool wasRemoved)
         {
             var item = this.policy.CreateItem(1, 2);
 
             item.WasAccessed = wasAccessed;
+            item.WasRemoved = wasRemoved;
 
             return item;
         }

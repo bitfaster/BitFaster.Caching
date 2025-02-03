@@ -468,7 +468,7 @@ namespace BitFaster.Caching.Lru
             lock (this.dictionary)
             {
                 // first scan each queue for discardable items and remove them immediately. Note this can remove > itemCount items.
-                int itemsRemoved = this.itemPolicy.CanDiscard() ? TrimAllDiscardedItems() : 0;
+                int itemsRemoved = TrimAllDiscardedItems();
 
                 TrimLiveItems(itemsRemoved, itemCount, ItemRemovedReason.Trimmed);
             }
@@ -478,7 +478,10 @@ namespace BitFaster.Caching.Lru
         {
             if (this.itemPolicy.CanDiscard())
             {
-                this.TrimAllDiscardedItems();
+                lock (this.dictionary)
+                {
+                    this.TrimAllDiscardedItems();
+                } 
             }
         }
 
@@ -506,6 +509,10 @@ namespace BitFaster.Caching.Lru
                                 Interlocked.Decrement(ref queueCounter);
                                 this.Move(item, ItemDestination.Remove, ItemRemovedReason.Trimmed);
                                 itemsRemoved++;
+                            }
+                            else if (item.WasRemoved)
+                            {
+                                Interlocked.Decrement(ref queueCounter);
                             }
                             else
                             {
@@ -548,8 +555,10 @@ namespace BitFaster.Caching.Lru
                         itemsRemoved++;
                         trimWarmAttempts = 0;
                     }
-
-                    TrimWarmOrHot(reason);
+                    else
+                    {
+                        TrimWarmOrHot(reason);
+                    }
                 }
                 else
                 {
@@ -624,6 +633,12 @@ namespace BitFaster.Caching.Lru
 
                 if (this.hotQueue.TryDequeue(out var item))
                 {
+                    // special case: removed during warmup
+                    if (item.WasRemoved)
+                    {
+                        return;
+                    }
+
                     int count = this.Move(item, ItemDestination.Warm, ItemRemovedReason.Evicted);
 
                     // if warm is now full, overflow to cold and mark as warm
@@ -685,6 +700,11 @@ namespace BitFaster.Caching.Lru
 
             if (this.warmQueue.TryDequeue(out var item))
             {
+                if (item.WasRemoved)
+                {
+                    return (ItemDestination.Remove, 0);
+                }
+
                 var where = this.itemPolicy.RouteWarm(item);
 
                 // When the warm queue is full, we allow an overflow of 1 item before redirecting warm items to cold.
@@ -748,7 +768,8 @@ namespace BitFaster.Caching.Lru
 
             if (this.warmQueue.TryDequeue(out var item))
             {
-                return this.Move(item, ItemDestination.Cold, ItemRemovedReason.Evicted);
+                var destination = item.WasRemoved ? ItemDestination.Remove : ItemDestination.Cold;
+                return this.Move(item, destination, ItemRemovedReason.Evicted);
             }
             else
             {
@@ -811,6 +832,27 @@ namespace BitFaster.Caching.Lru
         {
             return ((ConcurrentLruCore<K, V, I, P, T>)this).GetEnumerator();
         }
+
+#if DEBUG
+        /// <summary>
+        /// Format the LRU as a string by converting all the keys to strings.
+        /// </summary>
+        /// <returns>The LRU formatted as a string.</returns>
+        internal string FormatLruString()
+        {
+            var sb = new System.Text.StringBuilder();
+
+            sb.Append("Hot [");
+            sb.Append(string.Join(",", this.hotQueue.Select(n => n.Key.ToString())));
+            sb.Append("] Warm [");
+            sb.Append(string.Join(",", this.warmQueue.Select(n => n.Key.ToString())));
+            sb.Append("] Cold [");
+            sb.Append(string.Join(",", this.coldQueue.Select(n => n.Key.ToString())));
+            sb.Append(']');
+
+            return sb.ToString();
+        }
+#endif
 
         private static CachePolicy CreatePolicy(ConcurrentLruCore<K, V, I, P, T> lru)
         {
