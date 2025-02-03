@@ -1,8 +1,7 @@
-﻿
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Threading.Tasks;
-using FluentAssertions;
+using System.Collections.Generic;
+using Shouldly;
 using Moq;
 using Xunit;
 
@@ -25,7 +24,7 @@ namespace BitFaster.Caching.UnitTests
             cache.Object.GetOrAdd(
                 1, 
                 (k, a) => k + a, 
-                2).Should().Be(3);
+                2).ShouldBe(3);
         }
 
         [Fact]
@@ -36,7 +35,7 @@ namespace BitFaster.Caching.UnitTests
 
             Action tryRemove = () => { cache.Object.TryRemove(1, out var value); };
 
-            tryRemove.Should().Throw<NotSupportedException>();
+            tryRemove.ShouldThrow<NotSupportedException>();
         }
 
         [Fact]
@@ -47,7 +46,7 @@ namespace BitFaster.Caching.UnitTests
 
             Action tryRemove = () => { cache.Object.TryRemove(new KeyValuePair<int, int>(1, 1)); };
 
-            tryRemove.Should().Throw<NotSupportedException>();
+            tryRemove.ShouldThrow<NotSupportedException>();
         }
 
         [Fact]
@@ -64,7 +63,7 @@ namespace BitFaster.Caching.UnitTests
                 (k, a) => Task.FromResult(k + a),
                 2);
             
-            r.Should().Be(3);
+            r.ShouldBe(3);
         }
 
         [Fact]
@@ -75,7 +74,7 @@ namespace BitFaster.Caching.UnitTests
 
             Action tryRemove = () => { cache.Object.TryRemove(1, out var value); };
 
-            tryRemove.Should().Throw<NotSupportedException>();
+            tryRemove.ShouldThrow<NotSupportedException>();
         }
 
         [Fact]
@@ -86,7 +85,7 @@ namespace BitFaster.Caching.UnitTests
 
             Action tryRemove = () => { cache.Object.TryRemove(new KeyValuePair<int, int>(1, 1)); };
 
-            tryRemove.Should().Throw<NotSupportedException>();
+            tryRemove.ShouldThrow<NotSupportedException>();
         }
 
         [Fact]
@@ -98,7 +97,7 @@ namespace BitFaster.Caching.UnitTests
             Func<int, Func<int, Scoped<Disposable>>, Lifetime<Disposable>> evaluate = (k, f) =>
                 {
                     var scope = f(k);
-                    scope.TryCreateLifetime(out var lifetime).Should().BeTrue();
+                    scope.TryCreateLifetime(out var lifetime).ShouldBeTrue();
                     return lifetime;
                 };
 
@@ -109,7 +108,7 @@ namespace BitFaster.Caching.UnitTests
                 (k, a) => new Scoped<Disposable>(new Disposable(k + a)),
                 2);
 
-            l.Value.State.Should().Be(3);
+            l.Value.State.ShouldBe(3);
         }
 
         [Fact]
@@ -121,7 +120,7 @@ namespace BitFaster.Caching.UnitTests
             Func<int, Func<int, Task<Scoped<Disposable>>>, ValueTask<Lifetime<Disposable>>> evaluate = async (k, f) =>
             {
                 var scope = await f(k);
-                scope.TryCreateLifetime(out var lifetime).Should().BeTrue();
+                scope.TryCreateLifetime(out var lifetime).ShouldBeTrue();
                 return lifetime;
             };
 
@@ -134,7 +133,7 @@ namespace BitFaster.Caching.UnitTests
                (k, a) => Task.FromResult(new Scoped<Disposable>(new Disposable(k + a))),
                2);
 
-            lifetime.Value.State.Should().Be(3);
+            lifetime.Value.State.ShouldBe(3);
         }
 #endif
     }

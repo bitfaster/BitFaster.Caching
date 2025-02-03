@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using BitFaster.Caching.Buffers;
-using FluentAssertions;
+﻿using BitFaster.Caching.Buffers;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Buffers
@@ -18,23 +13,23 @@ namespace BitFaster.Caching.UnitTests.Buffers
         [Fact]
         public void CapacityReturnsCapacity()
         {
-            buffer.Capacity.Should().Be(32);
+            buffer.Capacity.ShouldBe(32);
         }
 
         [Fact]
         public void CountReturnsCount()
         {
-            buffer.Count.Should().Be(0);
+            buffer.Count.ShouldBe(0);
 
             for (var i = 0; i < stripeCount; i++)
             {
                 for (var j = 0; j < bufferSize; j++)
                 {
-                    buffer.TryAdd(1.ToString()).Should().Be(BufferStatus.Success);
+                    buffer.TryAdd(1.ToString()).ShouldBe(BufferStatus.Success);
                 }
             }
 
-            buffer.Count.Should().Be(buffer.Capacity);
+            buffer.Count.ShouldBe(buffer.Capacity);
         }
 
         [Fact]
@@ -44,18 +39,18 @@ namespace BitFaster.Caching.UnitTests.Buffers
             {
                 for (var j = 0; j < bufferSize; j++)
                 {
-                    buffer.TryAdd(1.ToString()).Should().Be(BufferStatus.Success);
+                    buffer.TryAdd(1.ToString()).ShouldBe(BufferStatus.Success);
                 }
             }
 
-            buffer.TryAdd("1").Should().Be(BufferStatus.Full);
+            buffer.TryAdd("1").ShouldBe(BufferStatus.Full);
         }
 
         [Fact]
         public void WhenBufferIsEmptyDrainReturnsZero()
         {
             var array = new string[bufferSize];
-            buffer.DrainTo(array).Should().Be(0);
+            buffer.DrainTo(array).ShouldBe(0);
         }
 
         [Fact]
@@ -70,7 +65,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
             }
 
             var array = new string[bufferSize * stripeCount];
-            buffer.DrainTo(array).Should().Be(stripeCount * bufferSize);
+            buffer.DrainTo(array).ShouldBe(stripeCount * bufferSize);
         }
 
         [Fact]
@@ -85,7 +80,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
             }
 
             var array = new string[bufferSize];
-            buffer.DrainTo(array).Should().Be(bufferSize);
+            buffer.DrainTo(array).ShouldBe(bufferSize);
         }
 
         [Fact]
@@ -100,7 +95,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
             }
 
             var array = new string[bufferSize+4];
-            buffer.DrainTo(array).Should().Be(bufferSize+4);
+            buffer.DrainTo(array).ShouldBe(bufferSize+4);
         }
 
         [Fact]
@@ -112,7 +107,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
             }
 
             var array = new string[bufferSize * stripeCount];
-            buffer.DrainTo(array).Should().Be(bufferSize);
+            buffer.DrainTo(array).ShouldBe(bufferSize);
         }
 
         [Fact]
@@ -129,7 +124,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
             buffer.Clear();
 
             var array = new string[bufferSize * stripeCount];
-            buffer.DrainTo(array).Should().Be(0);
+            buffer.DrainTo(array).ShouldBe(0);
         }
     }
 }

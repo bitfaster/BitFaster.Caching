@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+﻿using Shouldly;
 using BitFaster.Caching.Lru;
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ namespace BitFaster.Caching.UnitTests
             var scope = new Scoped<Disposable>(disposable);
 
             scope.Dispose();
-            disposable.IsDisposed.Should().BeTrue();
+            disposable.IsDisposed.ShouldBeTrue();
         }
 
         [Fact]
@@ -27,10 +27,10 @@ namespace BitFaster.Caching.UnitTests
 
             scope.Dispose();
             scope.Dispose(); // validate double dispose is still single ref count
-            disposable.IsDisposed.Should().BeFalse();
+            disposable.IsDisposed.ShouldBeFalse();
 
             lifetime.Dispose();
-            disposable.IsDisposed.Should().BeTrue();
+            disposable.IsDisposed.ShouldBeTrue();
         }
 
         [Fact]
@@ -43,10 +43,10 @@ namespace BitFaster.Caching.UnitTests
             lifetime.Dispose();
             lifetime.Dispose(); // validate double dispose is still single ref count
 
-            disposable.IsDisposed.Should().BeFalse();
+            disposable.IsDisposed.ShouldBeFalse();
 
             scope.Dispose();
-            disposable.IsDisposed.Should().BeTrue();
+            disposable.IsDisposed.ShouldBeTrue();
         }
 
         [Fact]
@@ -56,7 +56,7 @@ namespace BitFaster.Caching.UnitTests
             var scope = new Scoped<Disposable>(disposable);
             scope.Dispose();
 
-            scope.Invoking(s => s.CreateLifetime()).Should().Throw<ObjectDisposedException>();
+            Should.Throw<ObjectDisposedException>(() => scope.CreateLifetime());
         }
 
         [Fact]
@@ -66,7 +66,7 @@ namespace BitFaster.Caching.UnitTests
             var scope = new Scoped<Disposable>(disposable);
             scope.Dispose();
 
-            scope.TryCreateLifetime(out var l).Should().BeFalse();
+            scope.TryCreateLifetime(out var l).ShouldBeFalse();
         }
 
         [Fact]
@@ -77,14 +77,14 @@ namespace BitFaster.Caching.UnitTests
 
             using (var lifetime = lru.GetOrAdd(1, valueFactory.Create).CreateLifetime())
             {
-                lifetime.Value.IsDisposed.Should().BeFalse();
+                lifetime.Value.IsDisposed.ShouldBeFalse();
             }
 
-            valueFactory.Disposable.IsDisposed.Should().BeFalse();
+            valueFactory.Disposable.IsDisposed.ShouldBeFalse();
 
             lru.TryRemove(1);
 
-            valueFactory.Disposable.IsDisposed.Should().BeTrue();
+            valueFactory.Disposable.IsDisposed.ShouldBeTrue();
         }
     }
 }

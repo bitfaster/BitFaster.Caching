@@ -1,5 +1,4 @@
-﻿using System;
-using FluentAssertions;
+﻿using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests
@@ -17,25 +16,25 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void TimeToExpireReturnsCtorArg()
         {
-            expiryCalculator.TimeToExpire.Should().Be(expiry.ToTimeSpan());
+            expiryCalculator.TimeToExpire.ShouldBe(expiry.ToTimeSpan());
         }
 
         [Fact]
         public void AfterCreateReturnsTimeToExpire()
         { 
-            expiryCalculator.GetExpireAfterCreate(1, 2).Should().Be(expiry);
+            expiryCalculator.GetExpireAfterCreate(1, 2).ShouldBe(expiry);
         }
 
         [Fact]
         public void AfteReadReturnsTimeToExpire()
         {
-            expiryCalculator.GetExpireAfterRead(1, 2, Duration.SinceEpoch()).Should().Be(expiry);
+            expiryCalculator.GetExpireAfterRead(1, 2, Duration.SinceEpoch()).ShouldBe(expiry);
         }
 
         [Fact]
         public void AfteUpdateReturnsTimeToExpire()
         {
-            expiryCalculator.GetExpireAfterUpdate(1, 2, Duration.SinceEpoch()).Should().Be(expiry);
+            expiryCalculator.GetExpireAfterUpdate(1, 2, Duration.SinceEpoch()).ShouldBe(expiry);
         }
     }
 }

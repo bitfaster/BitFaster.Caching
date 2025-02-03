@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -24,14 +22,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             Action constructor = () => { var partition = new LfuCapacityPartition(2); };
 
-            constructor.Should().Throw<ArgumentOutOfRangeException>();
+            constructor.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Fact]
         public void CapacityReturnsCapacity()
         {
             var partition = new LfuCapacityPartition(123);
-            partition.Capacity.Should().Be(123);
+            partition.Capacity.ShouldBe(123);
         }
 
         [Theory]
@@ -41,9 +39,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var partition = new LfuCapacityPartition(capacity);
 
-            partition.Window.Should().Be(expectedWindow);
-            partition.Protected.Should().Be(expectedProtected);
-            partition.Probation.Should().Be(expectedProbation);
+            partition.Window.ShouldBe(expectedWindow);
+            partition.Protected.ShouldBe(expectedProtected);
+            partition.Probation.ShouldBe(expectedProbation);
         }
 
         [Fact]
@@ -60,8 +58,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 SetHitRate(partition, metrics, max, 0.1);
             }
 
-            partition.Window.Should().Be(80);
-            partition.Protected.Should().Be(16);
+            partition.Window.ShouldBe(80);
+            partition.Protected.ShouldBe(16);
         }
 
         [Fact]
@@ -102,7 +100,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var minWindow = last50.Min();
             var maxWindow = last50.Max();
 
-            (maxWindow - minWindow).Should().BeLessThanOrEqualTo(1);
+            (maxWindow - minWindow).ShouldBeLessThanOrEqualTo(1);
         }
 
         [Fact]
@@ -166,13 +164,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             public void AssertWindowIncreased(LfuCapacityPartition p)
             {
-                p.Window.Should().BeGreaterThan(prev);
+                p.Window.ShouldBeGreaterThan(prev);
                 prev = p.Window;
             }
 
             public void AssertWindowDecreased(LfuCapacityPartition p)
             {
-                p.Window.Should().BeLessThan(prev);
+                p.Window.ShouldBeLessThan(prev);
                 prev = p.Window;
             }
         }

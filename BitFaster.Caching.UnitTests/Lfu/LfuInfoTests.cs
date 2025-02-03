@@ -1,6 +1,6 @@
 ﻿using System;
 using BitFaster.Caching.Lfu.Builder;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lfu
@@ -12,7 +12,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var info = new LfuInfo<int>();
 
-            info.GetExpiry<string>().Should().BeNull();
+            info.GetExpiry<string>().ShouldBeNull();
         }
 
         [Fact]
@@ -23,7 +23,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             info.SetExpiry<int>(new TestExpiryCalculator<int, int>());
 
             Action act = () => info.GetExpiry<string>();
-            act.Should().Throw<InvalidOperationException>();
+            act.ShouldThrow<InvalidOperationException>();
         }
     }
 }

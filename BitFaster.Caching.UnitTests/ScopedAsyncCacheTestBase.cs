@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests
@@ -24,17 +24,17 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void WhenCreatedCapacityPropertyWrapsInnerCache()
         {
-            this.cache.Policy.Eviction.Value.Capacity.Should().Be(capacity);
+            this.cache.Policy.Eviction.Value.Capacity.ShouldBe(capacity);
         }
 
         [Fact]
         public void WhenItemIsAddedCountIsCorrect()
         {
-            this.cache.Count.Should().Be(0);
+            this.cache.Count.ShouldBe(0);
 
             this.cache.AddOrUpdate(1, new Disposable());
 
-            this.cache.Count.Should().Be(1);
+            this.cache.Count.ShouldBe(1);
         }
 
         [Fact]
@@ -43,8 +43,8 @@ namespace BitFaster.Caching.UnitTests
             this.cache.AddOrUpdate(1, new Disposable());
             this.cache.ScopedTryGet(1, out var lifetime);
 
-            this.cache.Metrics.Value.Misses.Should().Be(0);
-            this.cache.Metrics.Value.Hits.Should().Be(1);
+            this.cache.Metrics.Value.Misses.ShouldBe(0);
+            this.cache.Metrics.Value.Hits.ShouldBe(1);
         }
 
         [Fact]
@@ -55,7 +55,7 @@ namespace BitFaster.Caching.UnitTests
             this.cache.AddOrUpdate(1, new Disposable());
             this.cache.TryRemove(1);
 
-            this.removedItems.First().Key.Should().Be(1);
+            this.removedItems.First().Key.ShouldBe(1);
         }
 
 // backcompat: remove conditional compile
@@ -68,7 +68,7 @@ namespace BitFaster.Caching.UnitTests
             this.cache.AddOrUpdate(1, new Disposable());
             this.cache.AddOrUpdate(1, new Disposable());
 
-            this.updatedItems.First().Key.Should().Be(1);
+            this.updatedItems.First().Key.ShouldBe(1);
         }
 #endif
 
@@ -78,8 +78,8 @@ namespace BitFaster.Caching.UnitTests
             var d = new Disposable();
             this.cache.AddOrUpdate(1, d);
 
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
-            lifetime.Value.Should().Be(d);
+            this.cache.ScopedTryGet(1, out var lifetime).ShouldBeTrue();
+            lifetime.Value.ShouldBe(d);
         }
 
         // backcompat: remove conditional compile
@@ -92,8 +92,8 @@ namespace BitFaster.Caching.UnitTests
                 (k, a) => Task.FromResult(new Scoped<Disposable>(new Disposable(a))),
                 2);
 
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
-            lifetime.Value.State.Should().Be(2);
+            this.cache.ScopedTryGet(1, out var lifetime).ShouldBeTrue();
+            lifetime.Value.State.ShouldBe(2);
         }
 #endif
         [Fact]
@@ -104,8 +104,8 @@ namespace BitFaster.Caching.UnitTests
             this.cache.AddOrUpdate(1, d1);
             this.cache.AddOrUpdate(1, d2);
 
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
-            lifetime.Value.Should().Be(d2);
+            this.cache.ScopedTryGet(1, out var lifetime).ShouldBeTrue();
+            lifetime.Value.ShouldBe(d2);
         }
 
         [Fact]
@@ -116,7 +116,7 @@ namespace BitFaster.Caching.UnitTests
 
             // start a lifetime on 1
             this.cache.AddOrUpdate(1, d1);
-            this.cache.ScopedTryGet(1, out var lifetime1).Should().BeTrue();
+            this.cache.ScopedTryGet(1, out var lifetime1).ShouldBeTrue();
 
             using (lifetime1)
             {
@@ -124,13 +124,13 @@ namespace BitFaster.Caching.UnitTests
                 this.cache.AddOrUpdate(1, d2);
 
                 // cache reflects replacement
-                this.cache.ScopedTryGet(1, out var lifetime2).Should().BeTrue();
-                lifetime2.Value.Should().Be(d2);
+                this.cache.ScopedTryGet(1, out var lifetime2).ShouldBeTrue();
+                lifetime2.Value.ShouldBe(d2);
 
-                d1.IsDisposed.Should().BeFalse();
+                d1.IsDisposed.ShouldBeFalse();
             }
 
-            d1.IsDisposed.Should().BeTrue();
+            d1.IsDisposed.ShouldBeTrue();
         }
 
         [Fact]
@@ -141,22 +141,22 @@ namespace BitFaster.Caching.UnitTests
 
             this.cache.Clear();
 
-            d.IsDisposed.Should().BeTrue();
+            d.IsDisposed.ShouldBeTrue();
         }
 
         [Fact]
         public void WhenItemExistsTryGetReturnsLifetime()
         {
             this.cache.AddOrUpdate(1, new Disposable());
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
+            this.cache.ScopedTryGet(1, out var lifetime).ShouldBeTrue();
 
-            lifetime.Should().NotBeNull();
+            lifetime.ShouldNotBeNull();
         }
 
         [Fact]
         public void WhenItemDoesNotExistTryGetReturnsFalse()
         {
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeFalse();
+            this.cache.ScopedTryGet(1, out var lifetime).ShouldBeFalse();
         }
 
         [Fact]
@@ -168,26 +168,26 @@ namespace BitFaster.Caching.UnitTests
 
             this.cache.Policy.Eviction.Value.Trim(1);
 
-            this.cache.ScopedTryGet(0, out var lifetime).Should().BeFalse();
+            this.cache.ScopedTryGet(0, out var lifetime).ShouldBeFalse();
         }
 
         [Fact]
         public void WhenKeyDoesNotExistTryRemoveReturnsFalse()
         {
-            this.cache.TryRemove(1).Should().BeFalse();
+            this.cache.TryRemove(1).ShouldBeFalse();
         }
 
         [Fact]
         public void WhenKeyExistsTryRemoveReturnsTrue()
         {
             this.cache.AddOrUpdate(1, new Disposable());
-            this.cache.TryRemove(1).Should().BeTrue();
+            this.cache.TryRemove(1).ShouldBeTrue();
         }
 
         [Fact]
         public void WhenKeyDoesNotExistTryUpdateReturnsFalse()
         {
-            this.cache.TryUpdate(1, new Disposable()).Should().BeFalse();
+            this.cache.TryUpdate(1, new Disposable()).ShouldBeFalse();
         }
 
         [Fact]
@@ -195,16 +195,16 @@ namespace BitFaster.Caching.UnitTests
         {
             this.cache.AddOrUpdate(1, new Disposable());
 
-            this.cache.TryUpdate(1, new Disposable()).Should().BeTrue();
+            this.cache.TryUpdate(1, new Disposable()).ShouldBeTrue();
         }
 
         [Fact]
         public void WhenItemsAddedKeysContainsTheKeys()
         {
-            cache.Count.Should().Be(0);
+            cache.Count.ShouldBe(0);
             cache.AddOrUpdate(1, new Disposable());
             cache.AddOrUpdate(2, new Disposable());
-            cache.Keys.Should().BeEquivalentTo(new[] { 1, 2 });
+            cache.Keys.ShouldBe(new[] { 1, 2 });
         }
 
         [Fact]
@@ -213,12 +213,12 @@ namespace BitFaster.Caching.UnitTests
             var d1 = new Disposable();
             var d2 = new Disposable();
 
-            cache.Count.Should().Be(0);
+            cache.Count.ShouldBe(0);
             cache.AddOrUpdate(1, d1);
             cache.AddOrUpdate(2, d2);
             cache
                 .Select(kvp => new KeyValuePair<int, Disposable>(kvp.Key, kvp.Value.CreateLifetime().Value))
-                .Should().BeEquivalentTo(new[] { new KeyValuePair<int, Disposable>(1, d1), new KeyValuePair<int, Disposable>(2, d2) });
+                .ShouldBe(new[] { new KeyValuePair<int, Disposable>(1, d1), new KeyValuePair<int, Disposable>(2, d2) });
         }
 
         [Fact]
@@ -227,7 +227,7 @@ namespace BitFaster.Caching.UnitTests
             var d1 = new Disposable();
             var d2 = new Disposable();
 
-            cache.Count.Should().Be(0);
+            cache.Count.ShouldBe(0);
             cache.AddOrUpdate(1, d1);
             cache.AddOrUpdate(2, d2);
 
@@ -241,7 +241,7 @@ namespace BitFaster.Caching.UnitTests
                 list.Add(new KeyValuePair<int, Disposable>(kvp.Key, kvp.Value.CreateLifetime().Value));
             }
 
-            list.Should().BeEquivalentTo(new[] { new KeyValuePair<int, Disposable>(1, d1), new KeyValuePair<int, Disposable>(2, d2) });
+            list.ShouldBe(new[] { new KeyValuePair<int, Disposable>(1, d1), new KeyValuePair<int, Disposable>(2, d2) });
         }
 
         [Fact]
@@ -253,7 +253,7 @@ namespace BitFaster.Caching.UnitTests
             }
             catch { }
 
-            cache.Count.Should().Be(0);
+            cache.Count.ShouldBe(0);
         }
 
         [Fact]
@@ -266,7 +266,7 @@ namespace BitFaster.Caching.UnitTests
             catch { }
 
             // IEnumerable.Count() instead of Count property
-            cache.Count().Should().Be(0);
+            cache.Count().ShouldBe(0);
         }
 
         [Fact]
@@ -278,7 +278,7 @@ namespace BitFaster.Caching.UnitTests
             }
             catch { }
 
-            cache.Keys.Count().Should().Be(0);
+            cache.Keys.Count().ShouldBe(0);
         }
 
         protected void OnItemRemoved(object sender, ItemRemovedEventArgs<int, Scoped<Disposable>> e)

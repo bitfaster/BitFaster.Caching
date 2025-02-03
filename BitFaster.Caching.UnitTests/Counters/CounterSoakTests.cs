@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using BitFaster.Caching.Counters;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Counters
@@ -21,7 +21,7 @@ namespace BitFaster.Caching.UnitTests.Counters
                 }
             });
 
-            adder.Count().Should().Be(400_000);
+            adder.Count().ShouldBe(400_000);
         }
     }
 }

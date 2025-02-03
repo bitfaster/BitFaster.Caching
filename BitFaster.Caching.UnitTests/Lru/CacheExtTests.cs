@@ -2,7 +2,7 @@
 using System.Linq;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
@@ -14,10 +14,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var cache = new ClassicLru<int, string>(5);
             var cache2 = (ICacheExt<int, string>)cache;
-            cache2.GetOrAdd(42, static (k, i) => (k + i).ToString(), 1).Should().Be("43");
-            cache2.TryRemove(43, out _).Should().BeFalse();
+            cache2.GetOrAdd(42, static (k, i) => (k + i).ToString(), 1).ShouldBe("43");
+            cache2.TryRemove(43, out _).ShouldBeFalse();
             var first = cache2.First();
-            cache2.TryRemove(first).Should().BeTrue();
+            cache2.TryRemove(first).ShouldBeTrue();
         }
 
         [Fact]
@@ -28,10 +28,10 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .Build();
             
             var cache2 = (ICacheExt<int, string>)cache;
-            cache2.GetOrAdd(42, static (k, i) => (k + i).ToString(), 1).Should().Be("43");
-            cache2.TryRemove(43, out _).Should().BeFalse();
+            cache2.GetOrAdd(42, static (k, i) => (k + i).ToString(), 1).ShouldBe("43");
+            cache2.TryRemove(43, out _).ShouldBeFalse();
             var first = cache2.First();
-            cache2.TryRemove(first).Should().BeTrue();
+            cache2.TryRemove(first).ShouldBeTrue();
         }
 
         [Fact]
@@ -43,10 +43,10 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .Build();
             
             var cache2 = (ICacheExt<int, string>)cache;
-            cache2.GetOrAdd(42, static (k, i) => (k + i).ToString(), 1).Should().Be("43");
-            cache2.TryRemove(43, out _).Should().BeFalse();
+            cache2.GetOrAdd(42, static (k, i) => (k + i).ToString(), 1).ShouldBe("43");
+            cache2.TryRemove(43, out _).ShouldBeFalse();
             var first = cache2.First();
-            cache2.TryRemove(first).Should().BeTrue();
+            cache2.TryRemove(first).ShouldBeTrue();
         }
     }
 }

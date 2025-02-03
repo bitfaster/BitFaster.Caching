@@ -1,9 +1,8 @@
-﻿
+﻿using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Atomic
@@ -18,8 +17,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             dictionary.GetOrAdd(1, k => k);
 
-            dictionary.TryGetValue(1, out int value).Should().BeTrue();
-            value.Should().Be(1);
+            dictionary.TryGetValue(1, out int value).ShouldBeTrue();
+            value.ShouldBe(1);
         }
 
         [Fact]
@@ -27,8 +26,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             await dictionaryAsync.GetOrAddAsync(1, k => Task.FromResult(k));
 
-            dictionaryAsync.TryGetValue(1, out int value).Should().BeTrue();
-            value.Should().Be(1);
+            dictionaryAsync.TryGetValue(1, out int value).ShouldBeTrue();
+            value.ShouldBe(1);
         }
 
         [Fact]
@@ -36,8 +35,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             dictionary.GetOrAdd(1, (k,a) => k + a, 2);
 
-            dictionary.TryGetValue(1, out int value).Should().BeTrue();
-            value.Should().Be(3);
+            dictionary.TryGetValue(1, out int value).ShouldBeTrue();
+            value.ShouldBe(3);
         }
 
         [Fact]
@@ -45,20 +44,20 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             await dictionaryAsync.GetOrAddAsync(1, (k, a) => Task.FromResult(k + a), 2);
 
-            dictionaryAsync.TryGetValue(1, out int value).Should().BeTrue();
-            value.Should().Be(3);
+            dictionaryAsync.TryGetValue(1, out int value).ShouldBeTrue();
+            value.ShouldBe(3);
         }
 
         [Fact]
         public void WhenKeyDoesNotExistTryGetReturnsFalse()
         {
-            dictionary.TryGetValue(1, out int _).Should().BeFalse();
+            dictionary.TryGetValue(1, out int _).ShouldBeFalse();
         }
 
         [Fact]
         public void WhenKeyDoesNotExistAsyncTryGetReturnsFalse()
         {
-            dictionaryAsync.TryGetValue(1, out int _).Should().BeFalse();
+            dictionaryAsync.TryGetValue(1, out int _).ShouldBeFalse();
         }
 
         [Fact]
@@ -66,8 +65,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             dictionary.GetOrAdd(1, k => k);
 
-            dictionary.TryRemove(1, out int value).Should().BeTrue();
-            value.Should().Be(1);
+            dictionary.TryRemove(1, out int value).ShouldBeTrue();
+            value.ShouldBe(1);
         }
 
         [Fact]
@@ -75,8 +74,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             await dictionaryAsync.GetOrAddAsync(1, k => Task.FromResult(k));
 
-            dictionaryAsync.TryRemove(1, out int value).Should().BeTrue();
-            value.Should().Be(1);
+            dictionaryAsync.TryRemove(1, out int value).ShouldBeTrue();
+            value.ShouldBe(1);
         }
 
         [Fact]
@@ -84,8 +83,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             dictionary.GetOrAdd(1, k => k);
 
-            dictionary.TryRemove(new KeyValuePair<int, int>(1, 1)).Should().BeTrue();
-            dictionary.TryGetValue(1, out _).Should().BeFalse();
+            dictionary.TryRemove(new KeyValuePair<int, int>(1, 1)).ShouldBeTrue();
+            dictionary.TryGetValue(1, out _).ShouldBeFalse();
         }
 
         [Fact]
@@ -93,20 +92,20 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             await dictionaryAsync.GetOrAddAsync(1, k => Task.FromResult(k));
 
-            dictionaryAsync.TryRemove(new KeyValuePair<int, int>(1, 1)).Should().BeTrue();
-            dictionaryAsync.TryGetValue(1, out _).Should().BeFalse();
+            dictionaryAsync.TryRemove(new KeyValuePair<int, int>(1, 1)).ShouldBeTrue();
+            dictionaryAsync.TryGetValue(1, out _).ShouldBeFalse();
         }
 
         [Fact]
         public void WhenKeyDoesNotExistTryRemoveReturnsFalse()
         {
-            dictionary.TryRemove(1, out int _).Should().BeFalse();
+            dictionary.TryRemove(1, out int _).ShouldBeFalse();
         }
 
         [Fact]
         public void WhenKeyDoesNotExistAsyncTryRemoveReturnsFalse()
         {
-            dictionaryAsync.TryRemove(1, out int _).Should().BeFalse();
+            dictionaryAsync.TryRemove(1, out int _).ShouldBeFalse();
         }
     }
 }

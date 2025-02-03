@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+﻿using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -21,7 +21,7 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(7199370, 7199370)]
         public void NextPrimeGreaterThan(int input, int nextPrime)
         {
-            ConcurrentDictionarySize.NextPrimeGreaterThan(input).Should().Be(nextPrime);
+            ConcurrentDictionarySize.NextPrimeGreaterThan(input).ShouldBe(nextPrime);
         }
 
         [Theory]
@@ -35,7 +35,7 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(2003828731, 250478587)] // test overflow
         public void Estimate(int input, int optimal)
         {
-            ConcurrentDictionarySize.Estimate(input).Should().Be(optimal);
+            ConcurrentDictionarySize.Estimate(input).ShouldBe(optimal);
         }
     }
 }

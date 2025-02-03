@@ -1,6 +1,6 @@
 ﻿using System;
 using BitFaster.Caching.Lfu;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lfu
@@ -13,7 +13,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var list = new LfuNodeList<int, int>();
             Action remove = () => { list.RemoveFirst(); };
-            remove.Should().Throw<InvalidOperationException>();
+            remove.ShouldThrow<InvalidOperationException>();
         }
 #endif
 
@@ -22,7 +22,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var list = new LfuNodeList<int, int>();
 
-            list.Last.Should().BeNull();
+            list.Last.ShouldBeNull();
         }
 
         [Fact]
@@ -35,7 +35,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             list.AddLast(node1);
             list.AddLast(node2);
 
-            list.Last.Should().BeSameAs(node2);
+            list.Last.ShouldBeSameAs(node2);
         }
 
         [Fact]
@@ -48,7 +48,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             list.AddLast(node1);
             list.AddLast(node2);
 
-            node2.Previous.Should().BeSameAs(node1);
+            node2.Previous.ShouldBeSameAs(node1);
         }
 
         [Fact]
@@ -61,7 +61,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             list.AddLast(node1);
             list.AddLast(node2);
 
-            node1.Previous.Should().BeNull();
+            node1.Previous.ShouldBeNull();
         }
     }
 }

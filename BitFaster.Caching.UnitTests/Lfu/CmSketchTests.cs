@@ -1,7 +1,6 @@
-﻿
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BitFaster.Caching.Lfu;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lfu
@@ -40,11 +39,11 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             }
 
-            baseline.Size.Should().Be(sketch.Size);
+            baseline.Size.ShouldBe(sketch.Size);
 
             for (int i = 0; i < 1_048_576; i++)
             {
-                sketch.EstimateFrequency(i).Should().Be(baseline.EstimateFrequency(i));
+                sketch.EstimateFrequency(i).ShouldBe(baseline.EstimateFrequency(i));
             }
         }
 
@@ -54,14 +53,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             sketch = new CmSketchCore<int, I>(0, EqualityComparer<int>.Default);
 
-            sketch.ResetSampleSize.Should().Be(10);
+            sketch.ResetSampleSize.ShouldBe(10);
         }
 
         [SkippableFact]
         public void WhenIncrementedOnceCountIsOne()
         {
             sketch.Increment(1);
-            sketch.EstimateFrequency(1).Should().Be(1);
+            sketch.EstimateFrequency(1).ShouldBe(1);
         }
 
         [SkippableFact]
@@ -72,7 +71,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 sketch.Increment(1);
             }
 
-            sketch.EstimateFrequency(1).Should().Be(15);
+            sketch.EstimateFrequency(1).ShouldBe(15);
         }
 
         [SkippableFact]
@@ -82,8 +81,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             sketch.Increment(1);
             sketch.Increment(2);
 
-            sketch.EstimateFrequency(1).Should().Be(2);
-            sketch.EstimateFrequency(2).Should().Be(1);
+            sketch.EstimateFrequency(1).ShouldBe(2);
+            sketch.EstimateFrequency(2).ShouldBe(1);
         }
 
         [SkippableFact]
@@ -99,15 +98,15 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
                 if (sketch.Size != i)
                 {
-                    i.Should().NotBe(1, "sketch should not be reset on the first iteration. Resize logic is broken");
+                    i.ShouldNotBe(1, "sketch should not be reset on the first iteration. Resize logic is broken");
 
                     reset = true;
                     break;
                 }
             }
 
-            reset.Should().BeTrue();
-            sketch.Size.Should().BeLessThan(10 * 64);
+            reset.ShouldBeTrue();
+            sketch.Size.ShouldBeLessThan(10 * 64);
         }
 
         [SkippableFact]
@@ -119,8 +118,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             sketch.Clear();
 
-            sketch.EstimateFrequency(1).Should().Be(0);
-            sketch.EstimateFrequency(2).Should().Be(0);
+            sketch.EstimateFrequency(1).ShouldBe(0);
+            sketch.EstimateFrequency(2).ShouldBe(0);
         }
 
         [SkippableFact]
@@ -150,19 +149,19 @@ namespace BitFaster.Caching.UnitTests.Lfu
             {
                 if ((i == 0) || (i == 1) || (i == 3) || (i == 5) || (i == 7) || (i == 9))
                 {
-                    popularity[i].Should().BeLessThanOrEqualTo(popularity[2]);
+                    popularity[i].ShouldBeLessThanOrEqualTo(popularity[2]);
                 }
                 else if (i == 2)
                 {
-                    popularity[2].Should().BeLessThanOrEqualTo(popularity[4]);
+                    popularity[2].ShouldBeLessThanOrEqualTo(popularity[4]);
                 }
                 else if (i == 4)
                 {
-                    popularity[4].Should().BeLessThanOrEqualTo(popularity[6]);
+                    popularity[4].ShouldBeLessThanOrEqualTo(popularity[6]);
                 }
                 else if (i == 6)
                 {
-                    popularity[6].Should().BeLessThanOrEqualTo(popularity[8]);
+                    popularity[6].ShouldBeLessThanOrEqualTo(popularity[8]);
                 }
             }
         }
