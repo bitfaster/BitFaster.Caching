@@ -5,11 +5,13 @@ using System.Collections.Generic;
 using Xunit;
 using System.Runtime.InteropServices;
 using BitFaster.Caching.UnitTests.Retry;
+using Xunit.Abstractions;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
     public class ConcurrentTLruTests
     {
+        private readonly ITestOutputHelper testOutputHelper;
         private readonly TimeSpan timeToLive = TimeSpan.FromMilliseconds(10);
         private readonly ICapacityPartition capacity = new EqualCapacityPartition(9);
         private ConcurrentTLru<int, string> lru;
@@ -31,8 +33,9 @@ namespace BitFaster.Caching.UnitTests.Lru
             return new ConcurrentTLru<K, V>(1, capacity, EqualityComparer<K>.Default, timeToLive);
         }
 
-        public ConcurrentTLruTests()
+        public ConcurrentTLruTests(ITestOutputHelper testOutputHelper)
         {
+            this.testOutputHelper = testOutputHelper;
             lru = CreateTLru<int, string>(capacity, timeToLive);
         }
 
@@ -316,6 +319,31 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
+        public void WhenItemsAreRemovedTrimExpiredRemovesDeletedItemsFromQueues()
+        {
+            lru = CreateTLru<int, string>(capacity, TimeSpan.FromMinutes(1));
+
+            for (int i = 0; i < lru.Capacity; i++)
+            {
+                lru.GetOrAdd(i, valueFactory.Create);
+            }
+
+            Print();                  // Hot [6,7,8] Warm [1,2,3] Cold [0,4,5]
+
+            lru.TryRemove(0);
+            lru.TryRemove(1);
+            lru.TryRemove(6);
+
+            lru.Policy.ExpireAfterWrite.Value.TrimExpired();
+
+            Print();                  // Hot [7,8] Warm [2,3] Cold [4,5]
+
+            lru.HotCount.Should().Be(2);
+            lru.WarmCount.Should().Be(2);
+            lru.ColdCount.Should().Be(2);
+        }
+
+        [Fact]
         public void ConstructWithDefaultCtorReturnsCapacity()
         {
             var x = new ConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
@@ -337,6 +365,13 @@ namespace BitFaster.Caching.UnitTests.Lru
             var x = new ConcurrentTLru<int, int>(1, new EqualCapacityPartition(3), EqualityComparer<int>.Default, TimeSpan.FromSeconds(1));
 
             x.Capacity.Should().Be(3);
+        }
+
+        private void Print()
+        {
+#if DEBUG
+            this.testOutputHelper.WriteLine(this.lru.FormatLruString());
+#endif
         }
     }
 }
