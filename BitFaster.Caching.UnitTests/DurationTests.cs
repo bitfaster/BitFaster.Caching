@@ -10,8 +10,6 @@ namespace BitFaster.Caching.UnitTests
 {
     public class DurationTests
     {
-        public static readonly ulong epsilon = (ulong)Duration.FromMilliseconds(20).raw;
-
         private readonly ITestOutputHelper testOutputHelper;
 
         public DurationTests(ITestOutputHelper testOutputHelper)
@@ -22,25 +20,26 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void SinceEpoch()
         {
+            // epsilon is 1/200 of a second
+            long epsilon = Stopwatch.Frequency / 200;
+
 #if NETCOREAPP3_0_OR_GREATER
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                Duration.SinceEpoch().raw.ShouldBe(Stopwatch.GetTimestamp());
+                TimeSpan.FromTicks(Duration.SinceEpoch().raw).ShouldBe(TimeSpan.FromTicks(Stopwatch.GetTimestamp()), TimeSpan.FromTicks(epsilon));
             }
             else
             {
-                Duration.SinceEpoch().raw.ShouldBe(Environment.TickCount64);
+                TimeSpan.FromTicks(Duration.SinceEpoch().raw).ShouldBe(TimeSpan.FromTicks(Environment.TickCount64), TimeSpan.FromTicks(epsilon));
             }
 #else
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                Duration.SinceEpoch().raw.ShouldBe(Duration.GetTickCount64());
+                TimeSpan.FromTicks(Duration.SinceEpoch().raw).ShouldBe(TimeSpan.FromTicks(Duration.GetTickCount64()), TimeSpan.FromTicks(epsilon));
             }
             else
             {
-                // eps is 1/200 of a second
-                ulong eps = (ulong)(Stopwatch.Frequency / 200);
-                Duration.SinceEpoch().raw.ShouldBe(Stopwatch.GetTimestamp());
+                TimeSpan.FromTicks(Duration.SinceEpoch().raw).ShouldBe(TimeSpan.FromTicks(Stopwatch.GetTimestamp()), TimeSpan.FromTicks(epsilon));
             }
 #endif
         }
