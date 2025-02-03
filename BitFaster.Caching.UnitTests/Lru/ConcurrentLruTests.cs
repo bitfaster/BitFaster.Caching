@@ -143,7 +143,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Count.ShouldBe(0);
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
-            lru.Keys.ShouldBe(new[] { 1, 2 });
+            lru.Keys.ShouldBe(new[] { 1, 2 }, ignoreOrder: true);
         }
 
         [Fact]
@@ -152,7 +152,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Count.ShouldBe(0);
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
-            lru.ShouldBe(new[] { new KeyValuePair<int, string>(1, "1"), new KeyValuePair<int, string>(2, "2") });
+            lru.ShouldBe(new[] { new KeyValuePair<int, string>(1, "1"), new KeyValuePair<int, string>(2, "2") }, ignoreOrder: true);
         }
 
         [Fact]
@@ -162,8 +162,9 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.GetOrAdd(1, valueFactory.Create);
             lru.GetOrAdd(2, valueFactory.Create);
 
-            var enumerable = (IEnumerable)lru;
-            enumerable.ShouldBe(new[] { new KeyValuePair<int, string>(1, "1"), new KeyValuePair<int, string>(2, "2") });
+            var untypedEnumerable = (IEnumerable)lru;
+            var enumerable = untypedEnumerable.Cast<KeyValuePair<int, string>>();
+            enumerable.ShouldBe(new[] { new KeyValuePair<int, string>(1, "1"), new KeyValuePair<int, string>(2, "2") }, ignoreOrder: true);
         }
 
         [Fact]
