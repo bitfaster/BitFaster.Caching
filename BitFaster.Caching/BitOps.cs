@@ -44,7 +44,7 @@ namespace BitFaster.Caching
             x |= x >> 16;
             return x + 1;
 #else
-            return 1u << -BitOperations.LeadingZeroCount(x - 1);
+            return BitOperations.RoundUpToPowerOf2(x);
 #endif
         }
 
@@ -66,7 +66,7 @@ namespace BitFaster.Caching
             x |= x >> 32;
             return x + 1;
 #else
-            return 1ul << -BitOperations.LeadingZeroCount(x - 1);
+            return BitOperations.RoundUpToPowerOf2(x);
 #endif
         }
 
@@ -113,14 +113,16 @@ namespace BitFaster.Caching
         public static int BitCount(uint x)
         {
 #if NETSTANDARD2_0
-            var count = 0;
-            while (x != 0)
-            {
-                count++;
-                x &= x - 1; //walking through all the bits which are set to one
-            }
+            const uint c1 = 0x_55555555u;
+            const uint c2 = 0x_33333333u;
+            const uint c3 = 0x_0F0F0F0Fu;
+            const uint c4 = 0x_01010101u;
 
-            return count;
+            x -= (x >> 1) & c1;
+            x = (x & c2) + ((x >> 2) & c2);
+            x = (((x + (x >> 4)) & c3) * c4) >> 24;
+
+            return (int)x;
 #else
             return BitOperations.PopCount(x);
 #endif
@@ -144,14 +146,16 @@ namespace BitFaster.Caching
         public static int BitCount(ulong x)
         {
 #if NETSTANDARD2_0
-            var count = 0;
-            while (x != 0)
-            {
-                count++;
-                x &= x - 1; //walking through all the bits which are set to one
-            }
+            const ulong c1 = 0x_55555555_55555555ul;
+            const ulong c2 = 0x_33333333_33333333ul;
+            const ulong c3 = 0x_0F0F0F0F_0F0F0F0Ful;
+            const ulong c4 = 0x_01010101_01010101ul;
 
-            return count;
+            x -= (x >> 1) & c1;
+            x = (x & c2) + ((x >> 2) & c2);
+            x = (((x + (x >> 4)) & c3) * c4) >> 56;
+
+            return (int)x;
 #else
             return BitOperations.PopCount(x);
 #endif
