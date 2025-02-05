@@ -9,10 +9,6 @@ namespace BitFaster.Caching.Lru
     [DebuggerDisplay("{Hot}/{Warm}/{Cold}")]
     public class EqualCapacityPartition : ICapacityPartition
     {
-        private readonly int hotCapacity;
-        private readonly int warmCapacity;
-        private readonly int coldCapacity;
-
         /// <summary>
         /// Initializes a new instance of the EqualCapacityPartition class with the specified total capacity.
         /// </summary>
@@ -20,19 +16,19 @@ namespace BitFaster.Caching.Lru
         public EqualCapacityPartition(int totalCapacity)
         {
             var (hot, warm, cold) = ComputeQueueCapacity(totalCapacity);
-            this.hotCapacity = hot;
-            this.warmCapacity = warm;
-            this.coldCapacity = cold;
+            this.Hot = hot;
+            this.Warm = warm;
+            this.Cold = cold;
         }
 
         ///<inheritdoc/>
-        public int Cold => this.coldCapacity;
+        public int Cold { get; }
 
         ///<inheritdoc/>
-        public int Warm => this.warmCapacity;
+        public int Warm { get; }
 
         ///<inheritdoc/>
-        public int Hot => this.hotCapacity;
+        public int Hot { get; }
 
         private static (int hot, int warm, int cold) ComputeQueueCapacity(int capacity)
         {
