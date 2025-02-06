@@ -15,10 +15,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="totalCapacity">The total capacity.</param>
         public EqualCapacityPartition(int totalCapacity)
         {
-            var (hot, warm, cold) = ComputeQueueCapacity(totalCapacity);
-            this.Hot = hot;
-            this.Warm = warm;
-            this.Cold = cold;
+            (Hot, Warm, Cold) = ComputeQueueCapacity(totalCapacity);
         }
 
         ///<inheritdoc/>
