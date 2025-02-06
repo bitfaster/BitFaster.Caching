@@ -91,8 +91,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.removedItems.First().Key.Should().Be(1);
         }
 
-        // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+// backcompat: remove conditional compile
+#if NET
         [Fact]
         public void WhenUpdatedEventHandlerIsRegisteredItIsFired()
         {
@@ -258,8 +258,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
             cache.Keys.Count().Should().Be(0);
         }
 
-       // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+// backcompat: remove conditional compile
+#if NET
         [Fact]
         public void WhenRemovedValueIsReturned()
         {

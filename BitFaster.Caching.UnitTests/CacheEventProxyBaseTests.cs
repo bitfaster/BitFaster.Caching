@@ -55,7 +55,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
 // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         [Fact]
         public void WheUpdatedEventHandlerIsRegisteredItIsFired()
         {
@@ -155,7 +155,7 @@ namespace BitFaster.Caching.UnitTests
 
             this.testCacheEvents.FireUpdated(1, new AtomicFactory<int, int>(2), new AtomicFactory<int, int>(3));
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
             this.updatedItems.First().Key.Should().Be(1);
 #else
             this.updatedItems.Should().BeEmpty();

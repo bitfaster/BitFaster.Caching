@@ -34,7 +34,7 @@ namespace BitFaster.Caching
         /// <returns>Smallest power of two greater than or equal to x.</returns>
         public static uint CeilingPowerOfTwo(uint x)
         {
-#if NETSTANDARD2_0
+#if NETSTANDARD
             // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
             --x;
             x |= x >> 1;
@@ -55,7 +55,7 @@ namespace BitFaster.Caching
         /// <returns>Smallest power of two greater than or equal to x.</returns>
         internal static ulong CeilingPowerOfTwo(ulong x)
         {
-#if NETSTANDARD2_0
+#if NETSTANDARD
             // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
             --x;
             x |= x >> 1;
@@ -87,7 +87,7 @@ namespace BitFaster.Caching
         /// <returns>The number of trailing zero bits.</returns>
         internal static int TrailingZeroCount(ulong x)
         {
-#if NETSTANDARD2_0
+#if NETSTANDARD
             // https://codereview.stackexchange.com/questions/288007/c-bit-utility-functions-popcount-trailing-zeros-count-reverse-all-bits
             return BitCount(~x & (x - 1));
 #else
@@ -112,7 +112,7 @@ namespace BitFaster.Caching
         /// <returns>The number of 1 bits.</returns>
         public static int BitCount(uint x)
         {
-#if NETSTANDARD2_0
+#if NETSTANDARD
             var count = 0;
             while (x != 0)
             {
@@ -143,7 +143,7 @@ namespace BitFaster.Caching
         /// <returns>The number of 1 bits.</returns>
         public static int BitCount(ulong x)
         {
-#if NETSTANDARD2_0
+#if NETSTANDARD
             var count = 0;
             while (x != 0)
             {

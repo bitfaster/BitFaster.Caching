@@ -254,7 +254,7 @@ namespace BitFaster.Caching.Lru
                 {
                     var kvp = new KeyValuePair<K, LinkedListNode<LruItem>>(item.Key, node);
 
-#if NET6_0_OR_GREATER
+#if NET
                     if (this.dictionary.TryRemove(kvp))
 #else
                     // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/

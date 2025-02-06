@@ -10,7 +10,7 @@ namespace BitFaster.Caching.Benchmarks
     [DisassemblyDiagnoser(printSource: true, maxDepth: 3)]
     [SimpleJob(RuntimeMoniker.Net48)]
 #endif
-    [SimpleJob(RuntimeMoniker.Net60)]
+    [SimpleJob(RuntimeMoniker.Net90)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class DrainBenchmarks
     {
@@ -187,7 +187,7 @@ namespace BitFaster.Caching.Benchmarks
         public void DrainArray()
         {
             Add();
-#if NETCOREAPP3_1_OR_GREATER
+#if NET
             buffer.DrainTo(output.AsSpan());
 #else
             buffer.DrainTo(new ArraySegment<string>(output));

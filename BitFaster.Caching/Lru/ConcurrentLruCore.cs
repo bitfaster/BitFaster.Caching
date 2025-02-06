@@ -313,8 +313,8 @@ namespace BitFaster.Caching.Lru
                     if (EqualityComparer<V>.Default.Equals(existing.Value, item.Value))
                     {
                         var kvp = new KeyValuePair<K, I>(item.Key, existing);
-#if NET6_0_OR_GREATER
-                    if (this.dictionary.TryRemove(kvp))
+#if NET
+                        if (this.dictionary.TryRemove(kvp))
 #else
                         // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
                         if (((ICollection<KeyValuePair<K, I>>)this.dictionary).Remove(kvp))
@@ -391,7 +391,7 @@ namespace BitFaster.Caching.Lru
 
                         this.itemPolicy.Update(existing);
 // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
                         this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
 #endif
                         Disposer<V>.Dispose(oldValue);
@@ -805,7 +805,7 @@ namespace BitFaster.Caching.Lru
 
                     var kvp = new KeyValuePair<K, I>(item.Key, item);
 
-#if NET6_0_OR_GREATER
+#if NET
                     if (this.dictionary.TryRemove(kvp))
 #else
                     // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
@@ -900,7 +900,7 @@ namespace BitFaster.Caching.Lru
         // heap, which slows down the policies with hit counter logic in benchmarks. Likely
         // this approach keeps the structs data members in the same CPU cache line as the LRU.
         // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Upd = {Updated}, Evict = {Evicted}")]
 #else
         [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Evict = {Evicted}")]
@@ -925,7 +925,7 @@ namespace BitFaster.Caching.Lru
             public long Evicted => lru.telemetryPolicy.Evicted;
 
 // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
             public long Updated => lru.telemetryPolicy.Updated;
 #endif
             public int Capacity => lru.Capacity;
@@ -939,7 +939,7 @@ namespace BitFaster.Caching.Lru
             }
 
 // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
             public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
             {
                 add { this.lru.telemetryPolicy.ItemUpdated += value; }

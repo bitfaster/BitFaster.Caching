@@ -54,8 +54,8 @@ namespace BitFaster.Caching
         /// in the cache, or the new value if the key was not in the cache.</returns>
         V GetOrAdd(K key, Func<K, V> valueFactory);
 
-        // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+// backcompat: remove conditional compile
+#if NET
         /// <summary>
         /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
         /// existing value if the key already exists.
