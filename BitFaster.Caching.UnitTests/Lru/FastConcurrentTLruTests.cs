@@ -1,8 +1,7 @@
-﻿using FluentAssertions;
+﻿using Shouldly;
 using BitFaster.Caching.Lru;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Xunit;
 using System.Threading.Tasks;
 
@@ -17,8 +16,8 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.GetOrAdd("foo", k => 1);
 
-            lru.TryGet("FOO", out var value).Should().BeTrue();
-            value.Should().Be(1);
+            lru.TryGet("FOO", out var value).ShouldBeTrue();
+            value.ShouldBe(1);
         }
 
         [Fact]
@@ -26,7 +25,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var x = new FastConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
 
-            x.Capacity.Should().Be(3);
+            x.Capacity.ShouldBe(3);
         }
 
         [Fact]
@@ -34,7 +33,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var x = new FastConcurrentTLru<int, int>(1, new EqualCapacityPartition(3), EqualityComparer<int>.Default, TimeSpan.FromSeconds(1));
 
-            x.Capacity.Should().Be(3);
+            x.Capacity.ShouldBe(3);
         }
 
         [Fact]
@@ -51,7 +50,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             lru.Policy.ExpireAfterWrite.Value.TrimExpired();
 
-            lru.Count.Should().Be(0);
+            lru.Count.ShouldBe(0);
         }
 
         [Fact]
@@ -59,7 +58,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var x = new FastConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
 
-            x.Metrics.HasValue.Should().BeFalse();
+            x.Metrics.HasValue.ShouldBeFalse();
         }
 
         [Fact]
@@ -67,7 +66,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var x = new FastConcurrentTLru<int, int>(3, TimeSpan.FromSeconds(1));
 
-            x.Events.HasValue.Should().BeFalse();
+            x.Events.HasValue.ShouldBeFalse();
         }
     }
 }

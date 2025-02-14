@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
@@ -18,7 +14,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             Action validate = () => { p.Validate(); };
 
-            validate.Should().NotThrow();
+            validate.ShouldNotThrow();
         }
 
         [Fact]
@@ -28,7 +24,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             Action validate = () => { p.Validate(); };
 
-            validate.Should().Throw<ArgumentOutOfRangeException>();
+            validate.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Fact]
@@ -38,7 +34,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             Action validate = () => { p.Validate(); };
 
-            validate.Should().Throw<ArgumentOutOfRangeException>();
+            validate.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Fact]
@@ -48,7 +44,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             Action validate = () => { p.Validate(); };
 
-            validate.Should().Throw<ArgumentOutOfRangeException>();
+            validate.ShouldThrow<ArgumentOutOfRangeException>();
         }
     }
 }

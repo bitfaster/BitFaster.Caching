@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests
@@ -21,7 +21,7 @@ namespace BitFaster.Caching.UnitTests
                     {
                         using (var l = this.cache.ScopedGetOrAdd(j, k => new Scoped<Disposable>(new Disposable(k))))
                         {
-                            l.Value.IsDisposed.Should().BeFalse($"ref count {l.ReferenceCount}");
+                            l.Value.IsDisposed.ShouldBeFalse($"ref count {l.ReferenceCount}");
                         }
                     }
                 });

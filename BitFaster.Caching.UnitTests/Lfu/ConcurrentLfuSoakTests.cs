@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -107,7 +107,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.output.WriteLine($"Cache misses {cache.Metrics.Value.Misses} (sampled {samplePercent}%)");
             this.output.WriteLine($"Maintenance ops {cache.Scheduler.RunCount}");
 
-            cache.Metrics.Value.Misses.Should().Be(iterations);
+            cache.Metrics.Value.Misses.ShouldBe(iterations);
         }
 
         private void VerifyHits(ConcurrentLfu<int, int> cache, int iterations, int minSamples)
@@ -140,7 +140,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 this.output.WriteLine($"Error: {cache.Scheduler.LastException.Value}");
             }
 
-            cache.Metrics.Value.Hits.Should().BeGreaterThanOrEqualTo(minSamples);
+            cache.Metrics.Value.Hits.ShouldBeGreaterThanOrEqualTo(minSamples);
 
             // verify this doesn't block or throw
             var b = cache.Scheduler as BackgroundThreadScheduler;
@@ -287,7 +287,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.output.WriteLine($"Cache misses {cache.Metrics.Value.Misses} (sampled {samplePercent}%)");
             this.output.WriteLine($"Maintenance ops {cache.Scheduler.RunCount}");
 
-            cache.Metrics.Value.Misses.Should().Be(loopIterations * threads);
+            cache.Metrics.Value.Misses.ShouldBe(loopIterations * threads);
             RunIntegrityCheck(cache, this.output);
         }
 
@@ -308,7 +308,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             for (var i = 0; i < 100_000; i++)
             {
                 cache.AddOrUpdate(5, "a");
-                cache.TryGet(5, out _).Should().BeTrue("key 'a' should not be deleted");
+                cache.TryGet(5, out _).ShouldBeTrue("key 'a' should not be deleted");
                 cache.AddOrUpdate(5, "x");
             }
 
@@ -422,8 +422,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.DoMaintenance();
 
             // buffers should be empty after maintenance
-            this.readBuffer.Count.Should().Be(0);
-            this.writeBuffer.Count.Should().Be(0);
+            this.readBuffer.Count.ShouldBe(0);
+            this.writeBuffer.Count.ShouldBe(0);
 
             // all the items in the LRUs must exist in the dictionary.
             // no items should be marked as removed after maintenance has run
@@ -435,7 +435,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             VerifyDictionaryInLrus();
 
             // cache must be within capacity
-            cache.Count.Should().BeLessThanOrEqualTo(cache.Capacity, "capacity out of valid range");
+            cache.Count.ShouldBeLessThanOrEqualTo(cache.Capacity, "capacity out of valid range");
         }
 
         private void VerifyLruInDictionary(LfuNodeList<K, V> lfuNodes, ITestOutputHelper output)
@@ -444,10 +444,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             while (node != null) 
             {
-                node.WasRemoved.Should().BeFalse();
-                node.WasDeleted.Should().BeFalse();
+                node.WasRemoved.ShouldBeFalse();
+                node.WasDeleted.ShouldBeFalse();
 
-                cache.TryGet(node.Key, out _).Should().BeTrue($"Orphaned node with key {node.Key} detected.");
+                cache.TryGet(node.Key, out _).ShouldBeTrue($"Orphaned node with key {node.Key} detected.");
 
                 node = node.Next;
             }
@@ -458,7 +458,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             foreach (var kvp in this.cache)
             {
                 var exists = Exists(kvp, this.windowLru) || Exists(kvp, this.probationLru) || Exists(kvp, this.protectedLru);
-                exists.Should().BeTrue($"key {kvp.Key} must exist in LRU lists");
+                exists.ShouldBeTrue($"key {kvp.Key} must exist in LRU lists");
             }
         }
 

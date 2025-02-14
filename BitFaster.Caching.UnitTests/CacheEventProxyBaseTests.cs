@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using BitFaster.Caching.Atomic;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests
@@ -28,7 +28,7 @@ namespace BitFaster.Caching.UnitTests
 
             this.testCacheEvents.FireRemoved(1, new AtomicFactory<int, int>(1), ItemRemovedReason.Removed);
 
-            this.removedItems.First().Key.Should().Be(1);
+            this.removedItems.First().Key.ShouldBe(1);
         }
 
         [Fact]
@@ -39,7 +39,7 @@ namespace BitFaster.Caching.UnitTests
 
             this.testCacheEvents.FireRemoved(1, new AtomicFactory<int, int>(1), ItemRemovedReason.Removed);
 
-            this.removedItems.Count.Should().Be(0);
+            this.removedItems.Count.ShouldBe(0);
         }
 
         [Fact]
@@ -51,7 +51,7 @@ namespace BitFaster.Caching.UnitTests
 
             this.testCacheEvents.FireRemoved(1, new AtomicFactory<int, int>(1), ItemRemovedReason.Removed);
 
-            this.removedItems.First().Key.Should().Be(1);
+            this.removedItems.First().Key.ShouldBe(1);
         }
 
 // backcompat: remove conditional compile
@@ -63,9 +63,9 @@ namespace BitFaster.Caching.UnitTests
 
             this.testCacheEvents.FireUpdated(1, new AtomicFactory<int, int>(2), new AtomicFactory<int, int>(3));
 
-            this.updatedItems.First().Key.Should().Be(1);
-            this.updatedItems.First().OldValue.Should().Be(2);
-            this.updatedItems.First().NewValue.Should().Be(3);
+            this.updatedItems.First().Key.ShouldBe(1);
+            this.updatedItems.First().OldValue.ShouldBe(2);
+            this.updatedItems.First().NewValue.ShouldBe(3);
         }
 
         [Fact]
@@ -76,7 +76,7 @@ namespace BitFaster.Caching.UnitTests
 
             this.testCacheEvents.FireUpdated(1, new AtomicFactory<int, int>(2), new AtomicFactory<int, int>(3));
 
-            this.updatedItems.Count.Should().Be(0);
+            this.updatedItems.Count.ShouldBe(0);
         }
 
         [Fact]
@@ -88,7 +88,7 @@ namespace BitFaster.Caching.UnitTests
 
             this.testCacheEvents.FireUpdated(1, new AtomicFactory<int, int>(2), new AtomicFactory<int, int>(3));
 
-            this.updatedItems.First().Key.Should().Be(1);
+            this.updatedItems.First().Key.ShouldBe(1);
         }
 #endif
         private void OnItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
@@ -156,9 +156,9 @@ namespace BitFaster.Caching.UnitTests
             this.testCacheEvents.FireUpdated(1, new AtomicFactory<int, int>(2), new AtomicFactory<int, int>(3));
 
 #if NETCOREAPP3_0_OR_GREATER
-            this.updatedItems.First().Key.Should().Be(1);
+            this.updatedItems.First().Key.ShouldBe(1);
 #else
-            this.updatedItems.Should().BeEmpty();
+            this.updatedItems.ShouldBeEmpty();
 #endif
         }
 

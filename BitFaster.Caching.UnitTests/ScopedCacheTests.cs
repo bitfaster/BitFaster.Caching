@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests
@@ -21,7 +17,7 @@ namespace BitFaster.Caching.UnitTests
         {
             Action constructor = () => { var x = new ScopedCache<int, Disposable>(null); };
 
-            constructor.Should().Throw<ArgumentNullException>();
+            constructor.ShouldThrow<ArgumentNullException>();
         }
 
         [Fact]
@@ -33,7 +29,7 @@ namespace BitFaster.Caching.UnitTests
 
             scope.Dispose();
 
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeFalse();
+            this.cache.ScopedTryGet(1, out var lifetime).ShouldBeFalse();
         }
 
         [Fact]
@@ -41,7 +37,7 @@ namespace BitFaster.Caching.UnitTests
         {
             this.cache.ScopedGetOrAdd(1, k => new Scoped<Disposable>(new Disposable()));
 
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
+            this.cache.ScopedTryGet(1, out var lifetime).ShouldBeTrue();
         }
 
         [Fact]
@@ -52,7 +48,7 @@ namespace BitFaster.Caching.UnitTests
             
             Action getOrAdd = () => { this.cache.ScopedGetOrAdd(1, k => scope); };
 
-            getOrAdd.Should().Throw<InvalidOperationException>();
+            getOrAdd.ShouldThrow<InvalidOperationException>();
         }
     }
 }

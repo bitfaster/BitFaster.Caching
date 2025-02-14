@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 using Moq;
 
@@ -23,7 +20,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             Action constructor = () => { var x = new AtomicFactoryScopedAsyncCache<int, Disposable>(null); };
 
-            constructor.Should().Throw<ArgumentNullException>();
+            constructor.ShouldThrow<ArgumentNullException>();
         }
 
         [Fact]
@@ -35,7 +32,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             scope.Dispose();
 
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeFalse();
+            this.cache.ScopedTryGet(1, out var lifetime).ShouldBeFalse();
         }
 
         [Fact]
@@ -43,7 +40,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable())));
 
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
+            this.cache.ScopedTryGet(1, out var lifetime).ShouldBeTrue();
         }
 
         [Fact]
@@ -54,7 +51,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             Func<Task> getOrAdd = async () => { await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(scope)); };
 
-            await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
+            var ex = await getOrAdd.ShouldThrowAsync<InvalidOperationException>();;
         }
 
         [Fact]
@@ -65,7 +62,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             var cache = new AtomicFactoryScopedAsyncCache<int, Disposable>(inner.Object);
 
-            cache.Events.HasValue.Should().BeFalse();
+            cache.Events.HasValue.ShouldBeFalse();
         }
 
         // Infer identified AddOrUpdate and TryUpdate as resource leaks. This test verifies correct disposal.
@@ -77,11 +74,11 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             this.cache.AddOrUpdate(1, disposable1);
 
-            this.cache.TryUpdate(1, disposable2).Should().BeTrue();
-            disposable1.IsDisposed.Should().BeTrue();
+            this.cache.TryUpdate(1, disposable2).ShouldBeTrue();
+            disposable1.IsDisposed.ShouldBeTrue();
 
-            this.cache.TryUpdate(1, new Disposable()).Should().BeTrue();
-            disposable2.IsDisposed.Should().BeTrue();
+            this.cache.TryUpdate(1, new Disposable()).ShouldBeTrue();
+            disposable2.IsDisposed.ShouldBeTrue();
         }
     }
 }

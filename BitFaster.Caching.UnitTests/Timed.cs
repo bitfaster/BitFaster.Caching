@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
-using FluentAssertions;
+using Shouldly;
 
 namespace BitFaster.Caching.UnitTests
 {
@@ -70,7 +70,7 @@ namespace BitFaster.Caching.UnitTests
                 }
 
                 Thread.Sleep(200);
-                attempts++.Should().BeLessThan(128, "Unable to run test within verification margin");
+                attempts++.ShouldBeLessThan(128, "Unable to run test within verification margin");
             }
         }
     }

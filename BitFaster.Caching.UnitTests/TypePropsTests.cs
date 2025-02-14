@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests
@@ -20,7 +20,7 @@ namespace BitFaster.Caching.UnitTests
         { 
             var isWriteAtomic = method.MakeGenericMethod(argType);
 
-            isWriteAtomic.Invoke(null, null).Should().BeOfType<bool>().Which.Should().Be(expected);
+            isWriteAtomic.Invoke(null, null).ShouldBeOfType<bool>().ShouldBe(expected);
         }
 
         private static bool IsWriteAtomic<T>()

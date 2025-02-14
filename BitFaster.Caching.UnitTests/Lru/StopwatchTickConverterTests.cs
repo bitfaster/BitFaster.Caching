@@ -1,6 +1,6 @@
 ﻿using System;
 using BitFaster.Caching.Lru;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
@@ -12,7 +12,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         { 
             var timespan = TimeSpan.FromSeconds(1);
 
-            StopwatchTickConverter.FromTicks(StopwatchTickConverter.ToTicks(timespan)).Should().BeCloseTo(timespan, TimeSpan.FromMilliseconds(20));
+            StopwatchTickConverter.FromTicks(StopwatchTickConverter.ToTicks(timespan)).ShouldBe(timespan, TimeSpan.FromMilliseconds(20));
         }
     }
 }

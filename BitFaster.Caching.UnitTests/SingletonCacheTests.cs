@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests
@@ -16,7 +16,7 @@ namespace BitFaster.Caching.UnitTests
 
             var lifetime1 = cache.Acquire("foo");
             var lifetime2 = cache.Acquire("FOO");
-            lifetime1.Value.Should().BeSameAs(lifetime2.Value);
+            lifetime1.Value.ShouldBeSameAs(lifetime2.Value);
             lifetime1.Dispose();
             lifetime2.Dispose();
         }
@@ -28,7 +28,7 @@ namespace BitFaster.Caching.UnitTests
 
             var lifetime1 = cache.Acquire("Foo");
             var lifetime2 = cache.Acquire("Foo");
-            lifetime1.Value.Should().BeSameAs(lifetime2.Value);
+            lifetime1.Value.ShouldBeSameAs(lifetime2.Value);
             lifetime1.Dispose();
             lifetime2.Dispose();
         }
@@ -42,19 +42,19 @@ namespace BitFaster.Caching.UnitTests
             {
                 using (var lifetime2 = cache.Acquire("Foo"))
                 {
-                    lifetime1.ReferenceCount.Should().Be(1);
-                    lifetime2.ReferenceCount.Should().Be(2);
+                    lifetime1.ReferenceCount.ShouldBe(1);
+                    lifetime2.ReferenceCount.ShouldBe(2);
                 }
 
                 using (var lifetime3 = cache.Acquire("Foo"))
                 {
-                    lifetime3.ReferenceCount.Should().Be(2);
+                    lifetime3.ReferenceCount.ShouldBe(2);
                 }
             }
 
             using (var lifetime4 = cache.Acquire("Foo"))
             {
-                lifetime4.ReferenceCount.Should().Be(1);
+                lifetime4.ReferenceCount.ShouldBe(1);
             }
         }
 
@@ -69,7 +69,7 @@ namespace BitFaster.Caching.UnitTests
             var lifetime2 = cache.Acquire("Foo");
             lifetime2.Dispose();
 
-            lifetime1.Value.Should().NotBeSameAs(lifetime2.Value);
+            lifetime1.Value.ShouldNotBeSameAs(lifetime2.Value);
         }
 
         [Fact]
@@ -107,7 +107,7 @@ namespace BitFaster.Caching.UnitTests
 
             await Task.WhenAll(task1, task2);
 
-            lifetime1.Value.Should().BeSameAs(lifetime2.Value);
+            lifetime1.Value.ShouldBeSameAs(lifetime2.Value);
         }
 
         [Fact]
@@ -130,7 +130,7 @@ namespace BitFaster.Caching.UnitTests
                             lock (lifetime.Value)
                             {
                                 int result = Interlocked.Increment(ref count);
-                                result.Should().Be(1);
+                                result.ShouldBe(1);
                                 Interlocked.Decrement(ref count);
                             }
                         }
@@ -151,10 +151,10 @@ namespace BitFaster.Caching.UnitTests
             using (var lifetime = cache.Acquire("Foo"))
             {
                 value = lifetime.Value;
-                value.IsDisposed.Should().BeFalse();
+                value.IsDisposed.ShouldBeFalse();
             }
 
-            value.IsDisposed.Should().BeTrue();
+            value.IsDisposed.ShouldBeTrue();
         }
 
         [Fact]

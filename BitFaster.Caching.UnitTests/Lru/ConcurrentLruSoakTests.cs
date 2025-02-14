@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
-using static BitFaster.Caching.UnitTests.Lru.LruItemSoakTests;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -43,7 +41,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
                 // allow +/- 1 variance for capacity
-                lru.Count.Should().BeInRange(7, 10);
+                lru.Count.ShouldBeInRange(7, 10);
                 RunIntegrityCheck();
             }
         }
@@ -64,7 +62,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
                 // allow +/- 1 variance for capacity
-                lru.Count.Should().BeInRange(7, 10);
+                lru.Count.ShouldBeInRange(7, 10);
                 RunIntegrityCheck();
             }
         }
@@ -86,7 +84,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
                 // allow +/- 1 variance for capacity
-                lru.Count.Should().BeInRange(7, 10);
+                lru.Count.ShouldBeInRange(7, 10);
                 RunIntegrityCheck();
             }
         }
@@ -108,7 +106,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 this.testOutputHelper.WriteLine(string.Join(" ", lru.Keys));
 
                 // allow +/- 1 variance for capacity
-                lru.Count.Should().BeInRange(7, 10);
+                lru.Count.ShouldBeInRange(7, 10);
                 RunIntegrityCheck();
             }
         }
@@ -234,7 +232,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 }
             });
 
-            cache.Metrics.Value.Evicted.Should().Be(0);
+            cache.Metrics.Value.Evicted.ShouldBe(0);
         }
 
         [Fact]
@@ -253,7 +251,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             for (var i = 0; i < 100_000; i++)
             {
                 lru.AddOrUpdate(5, "a");
-                lru.TryGet(5, out _).Should().BeTrue("key 'a' should not be deleted");
+                lru.TryGet(5, out _).ShouldBeTrue("key 'a' should not be deleted");
                 lru.AddOrUpdate(5, "x");
             }
 

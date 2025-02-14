@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Atomic
@@ -30,7 +30,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
                         {
                             using (lifetime)
                             {
-                                lifetime.Value.IsDisposed.Should().BeFalse();
+                                lifetime.Value.IsDisposed.ShouldBeFalse();
                             }
 
                             break;
@@ -40,7 +40,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
                 }
             });
 
-            counters.Sum(x => x).Should().Be(items);
+            counters.Sum(x => x).ShouldBe(items);
         }
 
         [Fact]
@@ -65,7 +65,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
                         {
                             using (lifetime)
                             {
-                                lifetime.Value.IsDisposed.Should().BeFalse();
+                                lifetime.Value.IsDisposed.ShouldBeFalse();
                             }
 
                             break;

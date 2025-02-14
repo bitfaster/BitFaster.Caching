@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+﻿using Shouldly;
 using BitFaster.Caching.Lru;
 using Xunit;
 
@@ -11,61 +11,61 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void HitRatioIsZero()
         {
-            counter.HitRatio.Should().Be(0);
+            counter.HitRatio.ShouldBe(0);
         }
 
         [Fact]
         public void TotalIsZero()
         {
-            counter.Total.Should().Be(0);
+            counter.Total.ShouldBe(0);
         }
 
         [Fact]
         public void HitsIsZero()
         {
-            counter.Hits.Should().Be(0);
+            counter.Hits.ShouldBe(0);
         }
 
         [Fact]
         public void MissesIsZero()
         {
-            counter.Misses.Should().Be(0);
+            counter.Misses.ShouldBe(0);
         }
 
         [Fact]
         public void UpdatedIsZero()
         {
-            counter.Updated.Should().Be(0);
+            counter.Updated.ShouldBe(0);
         }
 
         [Fact]
         public void EvictedIsZero()
         {
-            counter.Evicted.Should().Be(0);
+            counter.Evicted.ShouldBe(0);
         }
 
         [Fact]
         public void IncrementHitCountIsNoOp()
         {
-            counter.Invoking(c => c.IncrementHit()).Should().NotThrow();
+            Should.NotThrow(() => counter.IncrementHit());
         }
 
         [Fact]
         public void IncrementTotalCountIsNoOp()
         {
-            counter.Invoking(c => c.IncrementMiss()).Should().NotThrow();
+            Should.NotThrow(() => counter.IncrementMiss());
         }
 
         [Fact]
         public void OnItemUpdatedIsNoOp()
         {
-            counter.Invoking(c => c.OnItemUpdated(1, 2, 3)).Should().NotThrow();
+            Should.NotThrow(() => counter.OnItemUpdated(1, 2, 3));
         }
 
         [Fact]
         public void OnItemRemovedIsNoOp()
         {
-            counter.Invoking(c => c.OnItemRemoved(1, 2, ItemRemovedReason.Evicted)).Should().NotThrow();
+            Should.NotThrow(() => counter.OnItemRemoved(1, 2, ItemRemovedReason.Evicted));
         }
 
         [Fact]

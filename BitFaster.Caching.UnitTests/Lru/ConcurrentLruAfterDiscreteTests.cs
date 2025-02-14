@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.UnitTests.Retry;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
@@ -39,21 +39,21 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void WhenKeyIsWrongTypeTryGetTimeToExpireIsFalse()
         {
-            lru.Policy.ExpireAfter.Value.TryGetTimeToExpire("foo", out _).Should().BeFalse();
+            lru.Policy.ExpireAfter.Value.TryGetTimeToExpire("foo", out _).ShouldBeFalse();
         }
 
         [Fact]
         public void WhenKeyDoesNotExistTryGetTimeToExpireIsFalse()
         {
-            lru.Policy.ExpireAfter.Value.TryGetTimeToExpire(1, out _).Should().BeFalse();
+            lru.Policy.ExpireAfter.Value.TryGetTimeToExpire(1, out _).ShouldBeFalse();
         }
 
         [RetryFact]
         public void WhenKeyExistsTryGetTimeToExpireReturnsExpiryTime()
         {
             lru.GetOrAdd(1, k => "1");
-            lru.Policy.ExpireAfter.Value.TryGetTimeToExpire(1, out var expiry).Should().BeTrue();
-            expiry.Should().BeCloseTo(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan(), delta);
+            lru.Policy.ExpireAfter.Value.TryGetTimeToExpire(1, out var expiry).ShouldBeTrue();
+            expiry.ShouldBe(TestExpiryCalculator<int, string>.DefaultTimeToExpire.ToTimeSpan(), delta);
         }
 
         [RetryFact]
@@ -69,7 +69,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 TestExpiryCalculator<int, string>.DefaultTimeToExpire.MultiplyBy(ttlWaitMlutiplier),
                 lru =>
                 {
-                    lru.TryGet(1, out var value).Should().BeFalse();
+                    lru.TryGet(1, out var value).ShouldBeFalse();
                 }
             );
         }
@@ -88,7 +88,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lru =>
                 {
                     lru.TryUpdate(1, "3");
-                    lru.TryGet(1, out var value).Should().BeTrue();
+                    lru.TryGet(1, out var value).ShouldBeTrue();
                 }
             );
         }
@@ -118,12 +118,12 @@ namespace BitFaster.Caching.UnitTests.Lru
                 TimeSpan.FromMilliseconds(50),
                 lru =>
                 {
-                    lru.TryGet(1, out _).Should().BeTrue($"First");
+                    lru.TryGet(1, out _).ShouldBeTrue($"First");
                 },
                 TimeSpan.FromMilliseconds(75),
                 lru =>
                 {
-                    lru.TryGet(1, out var value).Should().BeTrue($"Second");
+                    lru.TryGet(1, out var value).ShouldBeTrue($"Second");
                 }
             );
         }
@@ -150,15 +150,15 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lruEvents.GetOrAdd(i + 1, i => $"{i + 1}");
             }
 
-            removedItems.Count.Should().Be(2);
+            removedItems.Count.ShouldBe(2);
 
-            removedItems[0].Key.Should().Be(1);
-            removedItems[0].Value.Should().Be("2");
-            removedItems[0].Reason.Should().Be(ItemRemovedReason.Evicted);
+            removedItems[0].Key.ShouldBe(1);
+            removedItems[0].Value.ShouldBe("2");
+            removedItems[0].Reason.ShouldBe(ItemRemovedReason.Evicted);
 
-            removedItems[1].Key.Should().Be(4);
-            removedItems[1].Value.Should().Be("5");
-            removedItems[1].Reason.Should().Be(ItemRemovedReason.Evicted);
+            removedItems[1].Key.ShouldBe(4);
+            removedItems[1].Value.ShouldBe("5");
+            removedItems[1].Reason.ShouldBe(ItemRemovedReason.Evicted);
         }
 
         [RetryFact]
@@ -190,7 +190,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 {
                     lru.Policy.ExpireAfter.Value.TrimExpired();
 
-                    lru.Count.Should().Be(0);
+                    lru.Count.ShouldBe(0);
                 }
             );
         }
@@ -221,7 +221,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
                   lru.Policy.ExpireAfter.Value.TrimExpired();
 
-                  lru.Count.Should().Be(3);
+                  lru.Count.ShouldBe(3);
               }
           );
         }
@@ -244,7 +244,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 {
                     lru.Policy.Eviction.Value.Trim(1);
 
-                    lru.Count.Should().Be(0);
+                    lru.Count.ShouldBe(0);
                 }
             );
         }
