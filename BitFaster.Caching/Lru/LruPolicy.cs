@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace BitFaster.Caching.Lru
 {
@@ -10,7 +11,7 @@ namespace BitFaster.Caching.Lru
         where K : notnull
     {
         ///<inheritdoc/>
-        public TimeSpan TimeToLive => Defaults.Infinite;
+        public TimeSpan TimeToLive => Timeout.InfiniteTimeSpan;
 
         ///<inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
