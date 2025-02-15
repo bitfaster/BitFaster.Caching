@@ -1,5 +1,5 @@
 ﻿using System.Threading.Tasks;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests
@@ -19,15 +19,15 @@ namespace BitFaster.Caching.UnitTests
                     {
                         using (var l = scope.CreateLifetime())
                         {
-                            l.Value.IsDisposed.Should().BeFalse();
+                            l.Value.IsDisposed.ShouldBeFalse();
                         }
                     }
                 });
 
-                scope.IsDisposed.Should().BeFalse();
+                scope.IsDisposed.ShouldBeFalse();
                 scope.Dispose();
-                scope.TryCreateLifetime(out _).Should().BeFalse();
-                scope.IsDisposed.Should().BeTrue();
+                scope.TryCreateLifetime(out _).ShouldBeFalse();
+                scope.IsDisposed.ShouldBeTrue();
             }
         }
     }

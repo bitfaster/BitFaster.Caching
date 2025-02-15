@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
@@ -16,7 +12,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             Action constructor = () => { var x = new EqualCapacityPartition(2); };
 
-            constructor.Should().Throw<ArgumentOutOfRangeException>();
+            constructor.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Theory]
@@ -28,9 +24,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var p = new EqualCapacityPartition(totalCapacity);
 
-            p.Hot.Should().Be(expectedHot);
-            p.Warm.Should().Be(expectedWarm);
-            p.Cold.Should().Be(expectedCold);
+            p.Hot.ShouldBe(expectedHot);
+            p.Warm.ShouldBe(expectedWarm);
+            p.Cold.ShouldBe(expectedCold);
         }
     }
 }

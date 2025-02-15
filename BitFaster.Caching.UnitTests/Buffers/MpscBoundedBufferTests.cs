@@ -1,6 +1,6 @@
 ﻿using System;
 using BitFaster.Caching.Buffers;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Buffers
@@ -14,19 +14,19 @@ namespace BitFaster.Caching.UnitTests.Buffers
         {
             Action constructor = () => { var x = new MpscBoundedBuffer<string>(-1); };
 
-            constructor.Should().Throw<ArgumentOutOfRangeException>();
+            constructor.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Fact]
         public void SizeIsPowerOfTwo()
         {
-            buffer.Capacity.Should().Be(16);
+            buffer.Capacity.ShouldBe(16);
         }
 
         [Fact]
         public void WhenBufferIsEmptyCountIsZero()
         {
-            buffer.Count.Should().Be(0);
+            buffer.Count.ShouldBe(0);
         }
 
         [Fact]
@@ -34,22 +34,22 @@ namespace BitFaster.Caching.UnitTests.Buffers
         {
             // head < tail
             buffer.TryAdd("1");
-            buffer.Count.Should().Be(1);
+            buffer.Count.ShouldBe(1);
         }
 
         [Fact]
         public void WhenBufferHas15ItemCountIs15()
         {
-            buffer.TryAdd("1").Should().Be(BufferStatus.Success);
-            buffer.TryTake(out var _).Should().Be(BufferStatus.Success);
+            buffer.TryAdd("1").ShouldBe(BufferStatus.Success);
+            buffer.TryTake(out var _).ShouldBe(BufferStatus.Success);
 
             for (var i = 0; i < 15; i++)
             {
-                buffer.TryAdd("0").Should().Be(BufferStatus.Success);
+                buffer.TryAdd("0").ShouldBe(BufferStatus.Success);
             }
 
             // head = 1, tail = 0 : head > tail
-            buffer.Count.Should().Be(15);
+            buffer.Count.ShouldBe(15);
         }
 
         [Fact]
@@ -57,24 +57,24 @@ namespace BitFaster.Caching.UnitTests.Buffers
         {
             for (var i = 0; i < 16; i++)
             {
-                buffer.TryAdd(i.ToString()).Should().Be(BufferStatus.Success);
+                buffer.TryAdd(i.ToString()).ShouldBe(BufferStatus.Success);
             }
 
-            buffer.TryAdd("666").Should().Be(BufferStatus.Full);
+            buffer.TryAdd("666").ShouldBe(BufferStatus.Full);
         }
 
         [Fact]
         public void WhenBufferIsEmptyTryTakeIsFalse()
         {
-            buffer.TryTake(out var _).Should().Be(BufferStatus.Empty);
+            buffer.TryTake(out var _).ShouldBe(BufferStatus.Empty);
         }
 
         [Fact]
         public void WhenItemAddedItCanBeTaken()
         {
-            buffer.TryAdd("123").Should().Be(BufferStatus.Success);
-            buffer.TryTake(out var item).Should().Be(BufferStatus.Success);
-            item.Should().Be("123");
+            buffer.TryAdd("123").ShouldBe(BufferStatus.Success);
+            buffer.TryTake(out var item).ShouldBe(BufferStatus.Success);
+            item.ShouldBe("123");
         }
 
         [Fact]
@@ -83,12 +83,12 @@ namespace BitFaster.Caching.UnitTests.Buffers
             buffer.TryAdd("1");
             buffer.TryAdd("2");
 
-            buffer.Count.Should().Be(2);
+            buffer.Count.ShouldBe(2);
 
             buffer.Clear();
 
-            buffer.Count.Should().Be(0);
-            buffer.TryTake(out var _).Should().Be(BufferStatus.Empty);
+            buffer.Count.ShouldBe(0);
+            buffer.TryTake(out var _).ShouldBe(BufferStatus.Empty);
         }
 
         [Fact]
@@ -97,7 +97,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
             var outputBuffer = new string[16];
             var output = new ArraySegment<string>(outputBuffer);
 
-            buffer.DrainTo(output).Should().Be(0);
+            buffer.DrainTo(output).ShouldBe(0);
         }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -110,11 +110,11 @@ namespace BitFaster.Caching.UnitTests.Buffers
 
             var outputBuffer = new string[16];
 
-            buffer.DrainTo(outputBuffer.AsSpan()).Should().Be(3);
+            buffer.DrainTo(outputBuffer.AsSpan()).ShouldBe(3);
 
-            outputBuffer[0].Should().Be("1");
-            outputBuffer[1].Should().Be("2");
-            outputBuffer[2].Should().Be("3");
+            outputBuffer[0].ShouldBe("1");
+            outputBuffer[1].ShouldBe("2");
+            outputBuffer[2].ShouldBe("3");
         }
 #endif
 
@@ -128,11 +128,11 @@ namespace BitFaster.Caching.UnitTests.Buffers
             var outputBuffer = new string[16];
             var output = new ArraySegment<string>(outputBuffer);
 
-            buffer.DrainTo(output).Should().Be(3);
+            buffer.DrainTo(output).ShouldBe(3);
 
-            outputBuffer[0].Should().Be("1");
-            outputBuffer[1].Should().Be("2");
-            outputBuffer[2].Should().Be("3");
+            outputBuffer[0].ShouldBe("1");
+            outputBuffer[1].ShouldBe("2");
+            outputBuffer[2].ShouldBe("3");
         }
 
         [Fact]
@@ -145,11 +145,11 @@ namespace BitFaster.Caching.UnitTests.Buffers
             var outputBuffer = new string[16];
             var output = new ArraySegment<string>(outputBuffer, 6, 10);
 
-            buffer.DrainTo(output).Should().Be(3);
+            buffer.DrainTo(output).ShouldBe(3);
 
-            outputBuffer[6].Should().Be("1");
-            outputBuffer[7].Should().Be("2");
-            outputBuffer[8].Should().Be("3");
+            outputBuffer[6].ShouldBe("1");
+            outputBuffer[7].ShouldBe("2");
+            outputBuffer[8].ShouldBe("3");
         }
     }
 }

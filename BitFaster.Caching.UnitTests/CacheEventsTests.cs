@@ -1,5 +1,4 @@
-﻿
-using Moq;
+﻿using Moq;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests

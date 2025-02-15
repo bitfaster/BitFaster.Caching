@@ -1,5 +1,5 @@
-﻿using Xunit.Sdk;
-using Xunit;
+﻿using Xunit;
+using Xunit.Sdk;
 
 namespace BitFaster.Caching.UnitTests.Retry
 {

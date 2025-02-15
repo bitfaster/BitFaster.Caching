@@ -1,8 +1,6 @@
-﻿using FluentAssertions;
+﻿using Shouldly;
 using BitFaster.Caching.Lru;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
@@ -14,7 +12,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void TimeToLiveIsInfinite()
         {
-            this.policy.TimeToLive.Should().Be(new TimeSpan(0, 0, 0, 0, -1));
+            this.policy.TimeToLive.ShouldBe(new TimeSpan(0, 0, 0, 0, -1));
         }
 
         [Fact]
@@ -22,8 +20,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            item.Key.Should().Be(1);
-            item.Value.Should().Be(2);
+            item.Key.ShouldBe(1);
+            item.Value.ShouldBe(2);
         }
 
         [Fact]
@@ -31,7 +29,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            item.WasAccessed.Should().BeFalse();
+            item.WasAccessed.ShouldBeFalse();
         }
 
         [Fact]
@@ -42,7 +40,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             this.policy.Touch(item);
 
-            item.WasAccessed.Should().BeTrue();
+            item.WasAccessed.ShouldBeTrue();
         }
 
         [Fact]
@@ -50,7 +48,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            this.policy.ShouldDiscard(item).Should().BeFalse();
+            this.policy.ShouldDiscard(item).ShouldBeFalse();
         }
 
         [Fact]
@@ -59,13 +57,13 @@ namespace BitFaster.Caching.UnitTests.Lru
             var item = this.policy.CreateItem(1, 2);
             item.WasAccessed = true;
 
-            this.policy.ShouldDiscard(item).Should().BeFalse();
+            this.policy.ShouldDiscard(item).ShouldBeFalse();
         }
 
         [Fact]
         public void CanDiscardIsFalse()
         {
-            this.policy.CanDiscard().Should().BeFalse();
+            this.policy.CanDiscard().ShouldBeFalse();
         }
 
         [Theory]
@@ -77,7 +75,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = CreateItem(wasAccessed, wasRemoved);
 
-            this.policy.RouteHot(item).Should().Be(expectedDestination);
+            this.policy.RouteHot(item).ShouldBe(expectedDestination);
         }
 
         [Theory]
@@ -89,7 +87,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = CreateItem(wasAccessed, wasRemoved);
 
-            this.policy.RouteWarm(item).Should().Be(expectedDestination);
+            this.policy.RouteWarm(item).ShouldBe(expectedDestination);
         }
 
         [Theory]
@@ -101,7 +99,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = CreateItem(wasAccessed, wasRemoved);
 
-            this.policy.RouteCold(item).Should().Be(expectedDestination);
+            this.policy.RouteCold(item).ShouldBe(expectedDestination);
         }
 
         private LruItem<int, int> CreateItem(bool wasAccessed, bool wasRemoved)

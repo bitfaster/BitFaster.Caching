@@ -1,5 +1,5 @@
 ﻿using System;
-using FluentAssertions;
+using Shouldly;
 
 namespace BitFaster.Caching.UnitTests
 {
@@ -15,7 +15,7 @@ namespace BitFaster.Caching.UnitTests
 
         public void Dispose()
         {
-            this.IsDisposed.Should().BeFalse();
+            this.IsDisposed.ShouldBeFalse();
             IsDisposed = true;
         }
     }

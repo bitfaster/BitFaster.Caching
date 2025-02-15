@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using System.Threading;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using BitFaster.Caching.UnitTests.Retry;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lfu
@@ -50,8 +49,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 TimeSpan.FromSeconds(2),
                 cache =>
                 { 
-                    cache.TryGet(1, out var value).Should().BeTrue();
-                    cache.TryGet(1, out value).Should().BeTrue();
+                    cache.TryGet(1, out var value).ShouldBeTrue();
+                    cache.TryGet(1, out value).ShouldBeTrue();
                 }
             );
         }
@@ -63,35 +62,35 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             lfu.GetOrAdd("foo", k => 1);
 
-            lfu.TryGet("FOO", out var value).Should().BeTrue();
-            value.Should().Be(1);
+            lfu.TryGet("FOO", out var value).ShouldBeTrue();
+            value.ShouldBe(1);
         }
 
         [Fact]
         public void MetricsHasValueIsTrue()
         {
             var x = new ConcurrentTLfu<int, int>(3, new TestExpiryCalculator<int, int>());
-            x.Metrics.HasValue.Should().BeTrue();
+            x.Metrics.HasValue.ShouldBeTrue();
         }
 
         [Fact]
         public void EventsHasValueIsFalse()
         {
             var x = new ConcurrentTLfu<int, int>(3, new TestExpiryCalculator<int, int>());
-            x.Events.HasValue.Should().BeFalse();
+            x.Events.HasValue.ShouldBeFalse();
         }
 
         [Fact]
         public void DefaultSchedulerIsThreadPool()
         {
-            lfu.Scheduler.Should().BeOfType<ThreadPoolScheduler>();
+            lfu.Scheduler.ShouldBeOfType<ThreadPoolScheduler>();
         }
 
         [Fact]
         public void WhenCalculatorIsAfterWritePolicyIsAfterWrite()
         { 
-            lfu.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
-            lfu.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(timeToLive);
+            lfu.Policy.ExpireAfterWrite.HasValue.ShouldBeTrue();
+            lfu.Policy.ExpireAfterWrite.Value.TimeToLive.ShouldBe(timeToLive);
         }
 
         [Fact]
@@ -99,8 +98,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             lfu = new ConcurrentTLfu<int, string>(capacity, new ExpireAfterAccess<int, string>(timeToLive));
 
-            lfu.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
-            lfu.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(timeToLive);
+            lfu.Policy.ExpireAfterAccess.HasValue.ShouldBeTrue();
+            lfu.Policy.ExpireAfterAccess.Value.TimeToLive.ShouldBe(timeToLive);
         }
 
         [Fact]
@@ -108,8 +107,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             lfu = new ConcurrentTLfu<int, string>(capacity, new TestExpiryCalculator<int, string>());
 
-            lfu.Policy.ExpireAfter.HasValue.Should().BeTrue();
-            (lfu as ITimePolicy).TimeToLive.Should().Be(TimeSpan.Zero);
+            lfu.Policy.ExpireAfter.HasValue.ShouldBeTrue();
+            (lfu as ITimePolicy).TimeToLive.ShouldBe(TimeSpan.Zero);
         }
 
         [Fact]
@@ -121,8 +120,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             lfu.GetOrAdd(1, k => "1");
 
-            lfu.Policy.ExpireAfter.Value.TryGetTimeToExpire(1, out var timeToExpire).Should().BeTrue();
-            timeToExpire.Should().BeCloseTo(TimeSpan.FromMinutes(1), TimeSpan.FromMilliseconds(50));
+            lfu.Policy.ExpireAfter.Value.TryGetTimeToExpire(1, out var timeToExpire).ShouldBeTrue();
+            timeToExpire.ShouldBe(TimeSpan.FromMinutes(1), TimeSpan.FromMilliseconds(50));
         }
 
         [Fact]
@@ -130,7 +129,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             lfu = new ConcurrentTLfu<int, string>(capacity, new TestExpiryCalculator<int, string>());
 
-            lfu.Policy.ExpireAfter.Value.TryGetTimeToExpire(1, out _).Should().BeFalse();
+            lfu.Policy.ExpireAfter.Value.TryGetTimeToExpire(1, out _).ShouldBeFalse();
         }
 
         [Fact]
@@ -138,7 +137,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             lfu = new ConcurrentTLfu<int, string>(capacity, new TestExpiryCalculator<int, string>());
 
-            lfu.Policy.ExpireAfter.Value.TryGetTimeToExpire("string", out _).Should().BeFalse();
+            lfu.Policy.ExpireAfter.Value.TryGetTimeToExpire("string", out _).ShouldBeFalse();
         }
 
         // policy can expire after write
@@ -148,7 +147,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             lfu.GetOrAdd(1, valueFactory.Create);
 
-            lfu.TryGet(1, out var value).Should().BeTrue();
+            lfu.TryGet(1, out var value).ShouldBeTrue();
         }
 
         [RetryFact]
@@ -164,7 +163,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 timeToLive.MultiplyBy(ttlWaitMlutiplier),
                 lfu =>
                 {
-                    lfu.TryGet(1, out var value).Should().BeFalse();
+                    lfu.TryGet(1, out var value).ShouldBeFalse();
                 }
             );
         }
@@ -185,7 +184,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                     // This is a bit flaky below 2 secs pause - seems like it doesnt always
                     // remove the item
                     lfu.Policy.ExpireAfterWrite.Value.TrimExpired();
-                    lfu.Count.Should().Be(0);
+                    lfu.Count.ShouldBe(0);
                 }
             );
         }
@@ -208,7 +207,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                     // If we defer computing time to the maintenance loop, we
                     // need to call maintenance here for the timestamp to be updated
                     lfu.DoMaintenance();
-                    lfu.TryGet(1, out var value).Should().BeTrue();
+                    lfu.TryGet(1, out var value).ShouldBeTrue();
                 }
             );
         }
