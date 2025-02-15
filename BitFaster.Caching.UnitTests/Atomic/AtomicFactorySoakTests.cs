@@ -2,8 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
-using BitFaster.Caching.Lru;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Atomic
@@ -27,7 +26,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
                 }
             });
 
-            counters.Sum(x => x).Should().Be(items);
+            counters.Sum(x => x).ShouldBe(items);
         }
     }
 }

@@ -1,10 +1,6 @@
-﻿using FluentAssertions;
-using FluentAssertions.Extensions;
+﻿using Shouldly;
 using BitFaster.Caching.Lru;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -17,7 +13,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void TimeToLiveShouldBeTenSecs()
         {
-            this.policy.TimeToLive.Should().Be(TimeSpan.FromSeconds(10));
+            this.policy.TimeToLive.ShouldBe(TimeSpan.FromSeconds(10));
         }
 
         [Fact]
@@ -25,8 +21,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            item.Key.Should().Be(1);
-            item.Value.Should().Be(2);
+            item.Key.ShouldBe(1);
+            item.Value.ShouldBe(2);
         }
 
         [Fact]
@@ -34,7 +30,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
 
-            item.TimeStamp.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMilliseconds(100));
+            item.TimeStamp.ShouldBe(DateTime.UtcNow, TimeSpan.FromMilliseconds(100));
         }
 
         [Fact]
@@ -45,7 +41,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             this.policy.Touch(item);
 
-            item.WasAccessed.Should().BeTrue();
+            item.WasAccessed.ShouldBeTrue();
         }
 
         [Fact]
@@ -58,7 +54,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             this.policy.Update(item);
 
-            item.TimeStamp.Should().BeAfter(ts);
+            item.TimeStamp.ShouldBeGreaterThan(ts);
         }
 
         [Fact]
@@ -67,7 +63,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             var item = this.policy.CreateItem(1, 2);
             item.TimeStamp = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(11));
 
-            this.policy.ShouldDiscard(item).Should().BeTrue();
+            this.policy.ShouldDiscard(item).ShouldBeTrue();
         }
 
         [Fact]
@@ -76,13 +72,13 @@ namespace BitFaster.Caching.UnitTests.Lru
             var item = this.policy.CreateItem(1, 2);
             item.TimeStamp = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(9));
 
-            this.policy.ShouldDiscard(item).Should().BeFalse();
+            this.policy.ShouldDiscard(item).ShouldBeFalse();
         }
 
         [Fact]
         public void CanDiscardIsTrue()
         { 
-            this.policy.CanDiscard().Should().BeTrue();
+            this.policy.CanDiscard().ShouldBeTrue();
         }
 
         [Theory]
@@ -98,7 +94,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = CreateItem(wasAccessed, wasRemoved, isExpired);
 
-            this.policy.RouteHot(item).Should().Be(expectedDestination);
+            this.policy.RouteHot(item).ShouldBe(expectedDestination);
         }
 
         [Theory]
@@ -114,7 +110,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = CreateItem(wasAccessed, wasRemoved, isExpired);
 
-            this.policy.RouteWarm(item).Should().Be(expectedDestination);
+            this.policy.RouteWarm(item).ShouldBe(expectedDestination);
         }
 
         [Theory]
@@ -130,7 +126,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = CreateItem(wasAccessed, wasRemoved, isExpired);
 
-            this.policy.RouteCold(item).Should().Be(expectedDestination);
+            this.policy.RouteCold(item).ShouldBe(expectedDestination);
         }
 
         private TimeStampedLruItem<int, int> CreateItem(bool wasAccessed, bool wasRemoved, bool isExpired)

@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Scheduler;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Scheduler
@@ -14,18 +14,18 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         [Fact]
         public void IsBackground()
         {
-            scheduler.IsBackground.Should().BeTrue();
+            scheduler.IsBackground.ShouldBeTrue();
         }
 
         [Fact]
         public async Task WhenWorkIsScheduledCountIsIncremented()
         {
-            scheduler.RunCount.Should().Be(0);
+            scheduler.RunCount.ShouldBe(0);
 
             scheduler.Run(() => { });
             await Task.Yield();
 
-            scheduler.RunCount.Should().Be(1);
+            scheduler.RunCount.ShouldBe(1);
         }
 
         [Fact]
@@ -37,19 +37,19 @@ namespace BitFaster.Caching.UnitTests.Scheduler
             scheduler.Run(() => { Volatile.Write(ref run, true); tcs.SetResult(true); });
             await tcs.Task;
 
-            Volatile.Read(ref run).Should().BeTrue();
+            Volatile.Read(ref run).ShouldBeTrue();
         }
 
         [Fact]
         public async Task WhenWorkDoesNotThrowLastExceptionIsEmpty()
         {
-            scheduler.RunCount.Should().Be(0);
+            scheduler.RunCount.ShouldBe(0);
 
 
             scheduler.Run(() => { });
             await Task.Yield();
 
-            scheduler.LastException.HasValue.Should().BeFalse();
+            scheduler.LastException.HasValue.ShouldBeFalse();
         }
 
         [Fact]
@@ -61,8 +61,8 @@ namespace BitFaster.Caching.UnitTests.Scheduler
             await tcs.Task;
             await scheduler.WaitForExceptionAsync();
 
-            scheduler.LastException.HasValue.Should().BeTrue();
-            scheduler.LastException.Value.Should().BeOfType<InvalidCastException>();
+            scheduler.LastException.HasValue.ShouldBeTrue();
+            scheduler.LastException.Value.ShouldBeOfType<InvalidCastException>();
         }
 
         [Fact]
@@ -77,7 +77,7 @@ namespace BitFaster.Caching.UnitTests.Scheduler
 
             mre.Set();
 
-            scheduler.RunCount.Should().BeCloseTo(BackgroundThreadScheduler.MaxBacklog, 1);
+            scheduler.RunCount.ShouldBe(BackgroundThreadScheduler.MaxBacklog);
         }
 
         [Fact]

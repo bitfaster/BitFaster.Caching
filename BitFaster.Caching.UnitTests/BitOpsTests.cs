@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using FluentAssertions;
+﻿using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests
@@ -17,7 +12,7 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(536870913, 1073741824)]
         public void IntCeilingPowerOfTwo(int input, int power)
         {
-            BitOps.CeilingPowerOfTwo(input).Should().Be(power);
+            BitOps.CeilingPowerOfTwo(input).ShouldBe(power);
         }
 
         [Theory]
@@ -28,7 +23,7 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(34359738368, 34359738368)]
         public void LongCeilingPowerOfTwo(long input, long power)
         {
-            BitOps.CeilingPowerOfTwo(input).Should().Be(power);
+            BitOps.CeilingPowerOfTwo(input).ShouldBe(power);
         }
 
         [Theory]
@@ -39,7 +34,7 @@ namespace BitFaster.Caching.UnitTests
 
         public void UIntCeilingPowerOfTwo(uint input, uint power)
         {
-            BitOps.CeilingPowerOfTwo(input).Should().Be(power);
+            BitOps.CeilingPowerOfTwo(input).ShouldBe(power);
         }
 
         [Theory]
@@ -51,7 +46,7 @@ namespace BitFaster.Caching.UnitTests
 
         public void UlongCeilingPowerOfTwo(ulong input, ulong power)
         {
-            BitOps.CeilingPowerOfTwo(input).Should().Be(power);
+            BitOps.CeilingPowerOfTwo(input).ShouldBe(power);
         }
 
         [Theory]
@@ -65,7 +60,7 @@ namespace BitFaster.Caching.UnitTests
 
         public void LongTrailingZeroCount(long input, int count)
         {
-            BitOps.TrailingZeroCount(input).Should().Be(count);
+            BitOps.TrailingZeroCount(input).ShouldBe(count);
         }
 
         [Theory]
@@ -79,25 +74,25 @@ namespace BitFaster.Caching.UnitTests
 
         public void ULongTrailingZeroCount(ulong input, int count)
         {
-            BitOps.TrailingZeroCount(input).Should().Be(count);
+            BitOps.TrailingZeroCount(input).ShouldBe(count);
         }
 
         [Fact]
         public void IntBitCount()
         {
-            BitOps.BitCount(666).Should().Be(5);
+            BitOps.BitCount(666).ShouldBe(5);
         }
 
         [Fact]
         public void LongtBitCount()
         {
-            BitOps.BitCount(666L).Should().Be(5);
+            BitOps.BitCount(666L).ShouldBe(5);
         }
 
         [Fact]
         public void ULongtBitCount()
         {
-            BitOps.BitCount(666UL).Should().Be(5);
+            BitOps.BitCount(666UL).ShouldBe(5);
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿using BitFaster.Caching.Counters;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Counters
@@ -9,7 +9,7 @@ namespace BitFaster.Caching.UnitTests.Counters
         [Fact]
         public void InitialValueIsZero()
         {
-            new Counter().Count().Should().Be(0);
+            new Counter().Count().ShouldBe(0);
         }
 
         [Fact]
@@ -19,7 +19,7 @@ namespace BitFaster.Caching.UnitTests.Counters
 
             adder.Increment();
 
-            adder.Count().Should().Be(1);
+            adder.Count().ShouldBe(1);
         }
     }
 }

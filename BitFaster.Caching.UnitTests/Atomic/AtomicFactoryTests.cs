@@ -1,9 +1,8 @@
-﻿
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Atomic
@@ -15,8 +14,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             var a = new AtomicFactory<int, int>();
 
-            a.IsValueCreated.Should().BeFalse();
-            a.ValueIfCreated.Should().Be(0);
+            a.IsValueCreated.ShouldBeFalse();
+            a.ValueIfCreated.ShouldBe(0);
         }
 
         [Fact]
@@ -24,28 +23,28 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             var a = new AtomicFactory<int, int>(1);
 
-            a.ValueIfCreated.Should().Be(1);
-            a.IsValueCreated.Should().BeTrue();
+            a.ValueIfCreated.ShouldBe(1);
+            a.IsValueCreated.ShouldBeTrue();
         }
 
         [Fact]
         public void WhenValueCreatedValueReturned()
         {
             var a = new AtomicFactory<int, int>();
-            a.GetValue(1, k => 2).Should().Be(2);
+            a.GetValue(1, k => 2).ShouldBe(2);
 
-            a.ValueIfCreated.Should().Be(2);
-            a.IsValueCreated.Should().BeTrue();
+            a.ValueIfCreated.ShouldBe(2);
+            a.IsValueCreated.ShouldBeTrue();
         }
 
         [Fact]
         public void WhenValueCreatedWithArgValueReturned()
         {
             var a = new AtomicFactory<int, int>();
-            a.GetValue(1, (k, a) => k + a, 7).Should().Be(8);
+            a.GetValue(1, (k, a) => k + a, 7).ShouldBe(8);
 
-            a.ValueIfCreated.Should().Be(8);
-            a.IsValueCreated.Should().BeTrue();
+            a.ValueIfCreated.ShouldBe(8);
+            a.IsValueCreated.ShouldBeTrue();
         }
 
         [Fact]
@@ -53,7 +52,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             var a = new AtomicFactory<int, int>();
             a.GetValue(1, k => 2);
-            a.GetValue(1, k => 3).Should().Be(2);
+            a.GetValue(1, k => 3).ShouldBe(2);
         }
 
         [Fact]
@@ -61,7 +60,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             var a = new AtomicFactory<int, int>();
             a.GetValue(1, (k, a) => k + a, 7);
-            a.GetValue(1, (k, a) => k + a, 9).Should().Be(8);
+            a.GetValue(1, (k, a) => k + a, 9).ShouldBe(8);
         }
 
         [Fact]
@@ -69,7 +68,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             new AtomicFactory<int, int>()
                 .GetHashCode()
-                .Should().Be(0);
+                .ShouldBe(0);
         }
 
         [Fact]
@@ -77,7 +76,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             new AtomicFactory<int, int>(1)
                 .GetHashCode()
-                .Should().Be(1);
+                .ShouldBe(1);
         }
 
         [Fact]
@@ -86,7 +85,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var a = new AtomicFactory<int, int>();
             var b = new AtomicFactory<int, int>();
 
-            a.Equals(b).Should().BeFalse();
+            a.Equals(b).ShouldBeFalse();
         }
 
         [Fact]
@@ -95,7 +94,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var a = new AtomicFactory<int, int>(1);
             var b = new AtomicFactory<int, int>();
 
-            a.Equals(b).Should().BeFalse();
+            a.Equals(b).ShouldBeFalse();
         }
 
         [Fact]
@@ -103,7 +102,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             new AtomicFactory<int, int>(1)
                 .Equals(null)
-                .Should().BeFalse();
+                .ShouldBeFalse();
         }
 
         [Fact]
@@ -113,7 +112,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             new AtomicFactory<int, int>(1)
                 .Equals(other)
-                .Should().BeTrue();
+                .ShouldBeTrue();
         }
 
         [Fact]
@@ -161,10 +160,10 @@ namespace BitFaster.Caching.UnitTests.Atomic
             factory.WaitOne();
             resume.Set();
 
-            (await first).Should().Be(result);
-            (await second).Should().Be(result);
+            (await first).ShouldBe(result);
+            (await second).ShouldBe(result);
 
-            winnerCount.Should().Be(1);
+            winnerCount.ShouldBe(1);
         }
 
         [Fact]
@@ -219,8 +218,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
                 Func<Task> act1 = () => first;
                 Func<Task> act2 = () => second;
 
-                await act1.Should().ThrowAsync<Exception>();
-                await act2.Should().ThrowAsync<Exception>();
+                await act1.ShouldThrowAsync<Exception>();;
+                await act2.ShouldThrowAsync<Exception>();;
 
                 if (throwCount == 1)
                 {
@@ -228,7 +227,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
                 }
             }
 
-            timesContended.Should().BeGreaterThan(0);
+            timesContended.ShouldBeGreaterThan(0);
         }
 
         [Fact]
@@ -271,11 +270,11 @@ namespace BitFaster.Caching.UnitTests.Atomic
             Func<Task> act1 = () => first;
             Func<Task> act2 = () => second;
 
-            await act1.Should().ThrowAsync<Exception>();
-            await act2.Should().ThrowAsync<Exception>();
+            await act1.ShouldThrowAsync<Exception>();;
+            await act2.ShouldThrowAsync<Exception>();;
 
             // verify exception is no longer cached
-            atomicFactory.GetValue(1, k => k).Should().Be(1);
+            atomicFactory.GetValue(1, k => k).ShouldBe(1);
         }
     }
 }

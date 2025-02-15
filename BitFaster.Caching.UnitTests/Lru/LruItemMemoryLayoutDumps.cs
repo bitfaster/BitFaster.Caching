@@ -1,5 +1,4 @@
-﻿using System;
-using BitFaster.Caching.Lru;
+﻿using BitFaster.Caching.Lru;
 using ObjectLayoutInspector;
 using Xunit;
 using Xunit.Abstractions;

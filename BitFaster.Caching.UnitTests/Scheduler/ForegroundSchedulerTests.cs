@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitFaster.Caching.Scheduler;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Scheduler
@@ -16,17 +12,17 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         [Fact]
         public void IsNotBackground()
         {
-            scheduler.IsBackground.Should().BeFalse();
+            scheduler.IsBackground.ShouldBeFalse();
         }
 
         [Fact]
         public void WhenWorkIsScheduledCountIsIncremented()
         {
-            scheduler.RunCount.Should().Be(0);
+            scheduler.RunCount.ShouldBe(0);
 
             scheduler.Run(() => { });
 
-            scheduler.RunCount.Should().Be(1);
+            scheduler.RunCount.ShouldBe(1);
         }
 
         [Fact]
@@ -36,17 +32,17 @@ namespace BitFaster.Caching.UnitTests.Scheduler
 
             scheduler.Run(() => { run = true; });
 
-            run.Should().BeTrue();
+            run.ShouldBeTrue();
         }
 
         [Fact]
         public void WhenWorkDoesNotThrowLastExceptionIsEmpty()
         {
-            scheduler.RunCount.Should().Be(0);
+            scheduler.RunCount.ShouldBe(0);
 
             scheduler.Run(() => { });
 
-            scheduler.LastException.HasValue.Should().BeFalse();
+            scheduler.LastException.HasValue.ShouldBeFalse();
         }
 
         [Fact]
@@ -54,7 +50,7 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         {
             Action work = () => { scheduler.Run(() => { throw new InvalidCastException(); }); };
 
-            work.Should().Throw<InvalidCastException>();
+            work.ShouldThrow<InvalidCastException>();
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿
-using FluentAssertions;
+﻿using Shouldly;
 using Moq;
 using Xunit;
 
@@ -15,7 +14,7 @@ namespace BitFaster.Caching.UnitTests
             var metrics = new Mock<ICacheMetrics>();
             metrics.CallBase = true;
 
-            metrics.Object.Updated.Should().Be(0);
+            metrics.Object.Updated.ShouldBe(0);
         }
     }
 #endif

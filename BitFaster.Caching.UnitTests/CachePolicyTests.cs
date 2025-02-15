@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+﻿using Shouldly;
 using Moq;
 using Xunit;
 
@@ -14,10 +14,10 @@ namespace BitFaster.Caching.UnitTests
 
             var cp = new CachePolicy(new Optional<IBoundedPolicy>(eviction.Object), new Optional<ITimePolicy>(expire.Object));
 
-            cp.Eviction.Value.Should().Be(eviction.Object);
-            cp.ExpireAfterWrite.Value.Should().Be(expire.Object);
-            cp.ExpireAfterAccess.HasValue.Should().BeFalse();
-            cp.ExpireAfter.HasValue.Should().BeFalse();
+            cp.Eviction.Value.ShouldBe(eviction.Object);
+            cp.ExpireAfterWrite.Value.ShouldBe(expire.Object);
+            cp.ExpireAfterAccess.HasValue.ShouldBeFalse();
+            cp.ExpireAfter.HasValue.ShouldBeFalse();
         }
     }
 }

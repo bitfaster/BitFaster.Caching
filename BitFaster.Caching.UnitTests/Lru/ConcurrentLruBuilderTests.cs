@@ -1,7 +1,7 @@
 ﻿using System;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
@@ -14,7 +14,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             ICache<int, int> lru = new ConcurrentLruBuilder<int, int>()
                 .Build();
 
-            lru.Should().BeOfType<FastConcurrentLru<int, int>>();
+            lru.ShouldBeOfType<FastConcurrentLru<int, int>>();
         }
 
         [Fact]
@@ -24,7 +24,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithMetrics()
                 .Build();
 
-            lru.Should().BeOfType<ConcurrentLru<int, int>>();
+            lru.ShouldBeOfType<ConcurrentLru<int, int>>();
         }
 
         [Fact]
@@ -34,7 +34,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
                 .Build();
 
-            lru.Should().BeOfType<FastConcurrentTLru<int, int>>();
+            lru.ShouldBeOfType<FastConcurrentTLru<int, int>>();
         }
 
         [Fact]
@@ -45,8 +45,8 @@ namespace BitFaster.Caching.UnitTests.Lru
                  .WithMetrics()
                  .Build();
 
-            lru.Should().BeOfType<ConcurrentTLru<int, int>>();
-            lru.Policy.Eviction.Value.Capacity.Should().Be(128);
+            lru.ShouldBeOfType<ConcurrentTLru<int, int>>();
+            lru.Policy.Eviction.Value.Capacity.ShouldBe(128);
         }
 
         [Fact]
@@ -56,7 +56,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .AsAsyncCache()
                 .Build();
 
-            lru.Should().BeOfType<FastConcurrentLru<int, int>>();
+            lru.ShouldBeOfType<FastConcurrentLru<int, int>>();
         }
 
         [Fact]
@@ -67,7 +67,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .AsAsyncCache()
                 .Build();
 
-            lru.Should().BeOfType<ConcurrentLru<int, int>>();
+            lru.ShouldBeOfType<ConcurrentLru<int, int>>();
         }
 
         [Fact]
@@ -78,7 +78,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .AsAsyncCache()
                 .Build();
 
-            lru.Should().BeOfType<FastConcurrentTLru<int, int>>();
+            lru.ShouldBeOfType<FastConcurrentTLru<int, int>>();
         }
 
         [Fact]
@@ -90,8 +90,8 @@ namespace BitFaster.Caching.UnitTests.Lru
                  .AsAsyncCache()
                  .Build();
 
-            lru.Should().BeOfType<ConcurrentTLru<int, int>>();
-            lru.Policy.Eviction.Value.Capacity.Should().Be(128);
+            lru.ShouldBeOfType<ConcurrentTLru<int, int>>();
+            lru.Policy.Eviction.Value.Capacity.ShouldBe(128);
         }
 
         [Fact]
@@ -102,7 +102,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .Build();
 
             fastLru.GetOrAdd("a", k => 1);
-            fastLru.TryGet("A", out var value).Should().BeTrue();
+            fastLru.TryGet("A", out var value).ShouldBeTrue();
         }
 
         [Fact]
@@ -113,7 +113,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             Action constructor = () => { var x = b.Build(); };
 
-            constructor.Should().Throw<ArgumentOutOfRangeException>();
+            constructor.ShouldThrow<ArgumentOutOfRangeException>();
         }
 
         [Fact]
@@ -123,7 +123,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+            lru.Policy.Eviction.Value.Capacity.ShouldBe(3);
         }
 
         [Fact]
@@ -133,7 +133,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(new FavorWarmPartition(6))
                 .Build();
 
-            lru.Policy.Eviction.Value.Capacity.Should().Be(6);
+            lru.Policy.Eviction.Value.Capacity.ShouldBe(6);
         }
 
         [Fact]
@@ -143,10 +143,10 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
                 .Build();
 
-            expireAfterAccess.Metrics.HasValue.Should().BeFalse();
-            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
-            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
-            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+            expireAfterAccess.Metrics.HasValue.ShouldBeFalse();
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.ShouldBeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.ShouldBe(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.ShouldBeFalse();
         }
 
         [Fact]
@@ -157,10 +157,10 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithMetrics()
                 .Build();
 
-            expireAfterAccess.Metrics.HasValue.Should().BeTrue();
-            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
-            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
-            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+            expireAfterAccess.Metrics.HasValue.ShouldBeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.ShouldBeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.ShouldBe(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.ShouldBeFalse();
         }
 
         [Fact]
@@ -171,7 +171,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithExpireAfterWrite(TimeSpan.FromSeconds(2));
 
             Action act = () => builder.Build();
-            act.Should().Throw<InvalidOperationException>();
+            act.ShouldThrow<InvalidOperationException>();
         }
 
         [Fact]
@@ -181,11 +181,11 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
                 .Build();
 
-            expireAfter.Metrics.HasValue.Should().BeFalse();
-            expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
+            expireAfter.Metrics.HasValue.ShouldBeFalse();
+            expireAfter.Policy.ExpireAfter.HasValue.ShouldBeTrue();
 
-            expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
-            expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfterAccess.HasValue.ShouldBeFalse();
+            expireAfter.Policy.ExpireAfterWrite.HasValue.ShouldBeFalse();
         }
 
         [Fact]
@@ -196,11 +196,11 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
                 .Build();
 
-            expireAfter.Metrics.HasValue.Should().BeFalse();
-            expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
+            expireAfter.Metrics.HasValue.ShouldBeFalse();
+            expireAfter.Policy.ExpireAfter.HasValue.ShouldBeTrue();
 
-            expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
-            expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfterAccess.HasValue.ShouldBeFalse();
+            expireAfter.Policy.ExpireAfterWrite.HasValue.ShouldBeFalse();
         }
 
         [Fact]
@@ -211,11 +211,11 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithMetrics()
                 .Build();
 
-            expireAfter.Metrics.HasValue.Should().BeTrue();
-            expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
+            expireAfter.Metrics.HasValue.ShouldBeTrue();
+            expireAfter.Policy.ExpireAfter.HasValue.ShouldBeTrue();
 
-            expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
-            expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfterAccess.HasValue.ShouldBeFalse();
+            expireAfter.Policy.ExpireAfterWrite.HasValue.ShouldBeFalse();
         }
 
         [Fact]
@@ -226,7 +226,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)));
 
             Action act = () => builder.Build();
-            act.Should().Throw<InvalidOperationException>();
+            act.ShouldThrow<InvalidOperationException>();
         }
 
         [Fact]
@@ -237,7 +237,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)));
 
             Action act = () => builder.Build();
-            act.Should().Throw<InvalidOperationException>();
+            act.ShouldThrow<InvalidOperationException>();
         }
 
         [Fact]
@@ -249,7 +249,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)));
 
             Action act = () => builder.Build();
-            act.Should().Throw<InvalidOperationException>();
+            act.ShouldThrow<InvalidOperationException>();
         }
 
         [Fact]
@@ -260,7 +260,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .AsScopedCache();
 
             Action act = () => builder.Build();
-            act.Should().Throw<InvalidOperationException>();
+            act.ShouldThrow<InvalidOperationException>();
         }
 
         [Fact]
@@ -272,7 +272,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithAtomicGetOrAdd();
 
             Action act = () => builder.Build();
-            act.Should().Throw<InvalidOperationException>();
+            act.ShouldThrow<InvalidOperationException>();
         }
 
         [Fact]
@@ -284,7 +284,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .AsScopedCache();
 
             Action act = () => builder.Build();
-            act.Should().Throw<InvalidOperationException>();
+            act.ShouldThrow<InvalidOperationException>();
         }
 
         [Fact]
@@ -297,7 +297,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithAtomicGetOrAdd();
 
             Action act = () => builder.Build();
-            act.Should().Throw<InvalidOperationException>();
+            act.ShouldThrow<InvalidOperationException>();
         }
 
         //  There are 15 combinations to test:
@@ -359,8 +359,8 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeOfType<ScopedCache<int, Disposable>>();
-            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+            lru.ShouldBeOfType<ScopedCache<int, Disposable>>();
+            lru.Policy.Eviction.Value.Capacity.ShouldBe(3);
         }
 
         // 2
@@ -372,7 +372,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeOfType<AtomicFactoryCache<int, int>>();
+            lru.ShouldBeOfType<AtomicFactoryCache<int, int>>();
         }
 
         // 3
@@ -384,7 +384,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
+            lru.ShouldBeAssignableTo<IAsyncCache<int, int>>();
         }
 
         // 4
@@ -397,8 +397,8 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
-            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+            lru.ShouldBeOfType<AtomicFactoryScopedCache<int, Disposable>>();
+            lru.Policy.Eviction.Value.Capacity.ShouldBe(3);
         }
 
         // 5
@@ -411,8 +411,8 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeOfType<AtomicFactoryScopedCache<int, Disposable>>();
-            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+            lru.ShouldBeOfType<AtomicFactoryScopedCache<int, Disposable>>();
+            lru.Policy.Eviction.Value.Capacity.ShouldBe(3);
         }
 
         // 6
@@ -425,9 +425,9 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+            lru.ShouldBeAssignableTo<IScopedAsyncCache<int, Disposable>>();
 
-            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+            lru.Policy.Eviction.Value.Capacity.ShouldBe(3);
         }
 
         // 7
@@ -440,8 +440,8 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
-            lru.Policy.Eviction.Value.Capacity.Should().Be(3);
+            lru.ShouldBeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+            lru.Policy.Eviction.Value.Capacity.ShouldBe(3);
         }
 
         // 8
@@ -454,7 +454,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
+            lru.ShouldBeAssignableTo<IAsyncCache<int, int>>();
         }
 
         // 9
@@ -467,7 +467,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeAssignableTo<IAsyncCache<int, int>>();
+            lru.ShouldBeAssignableTo<IAsyncCache<int, int>>();
         }
 
         // 10
@@ -481,7 +481,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+            lru.ShouldBeAssignableTo<IScopedAsyncCache<int, Disposable>>();
         }
 
         // 11
@@ -495,7 +495,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+            lru.ShouldBeAssignableTo<IScopedAsyncCache<int, Disposable>>();
         }
 
         // 12
@@ -509,7 +509,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+            lru.ShouldBeAssignableTo<IScopedAsyncCache<int, Disposable>>();
         }
 
         // 13
@@ -523,7 +523,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+            lru.ShouldBeAssignableTo<IScopedAsyncCache<int, Disposable>>();
         }
 
         // 14
@@ -537,7 +537,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+            lru.ShouldBeAssignableTo<IScopedAsyncCache<int, Disposable>>();
         }
 
         // 15
@@ -551,7 +551,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 .WithCapacity(3)
                 .Build();
 
-            lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
+            lru.ShouldBeAssignableTo<IScopedAsyncCache<int, Disposable>>();
         }
     }
 }

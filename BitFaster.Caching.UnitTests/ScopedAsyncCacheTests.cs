@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests
@@ -18,7 +18,7 @@ namespace BitFaster.Caching.UnitTests
         {
             Action constructor = () => { var x = new ScopedAsyncCache<int, Disposable>(null); };
 
-            constructor.Should().Throw<ArgumentNullException>();
+            constructor.ShouldThrow<ArgumentNullException>();
         }
 
         [Fact]
@@ -30,7 +30,7 @@ namespace BitFaster.Caching.UnitTests
 
             scope.Dispose();
 
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeFalse();
+            this.cache.ScopedTryGet(1, out var lifetime).ShouldBeFalse();
         }
 
         [Fact]
@@ -38,7 +38,7 @@ namespace BitFaster.Caching.UnitTests
         {
             await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(new Scoped<Disposable>(new Disposable())));
 
-            this.cache.ScopedTryGet(1, out var lifetime).Should().BeTrue();
+            this.cache.ScopedTryGet(1, out var lifetime).ShouldBeTrue();
         }
 
         [Fact]
@@ -49,7 +49,7 @@ namespace BitFaster.Caching.UnitTests
 
             Func<Task> getOrAdd = async () => { await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(scope)); };
 
-            await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
+            var ex = await getOrAdd.ShouldThrowAsync<InvalidOperationException>();;
         }
 
 // backcompat: remove conditional compile
@@ -62,7 +62,7 @@ namespace BitFaster.Caching.UnitTests
 
             Func<Task> getOrAdd = async () => { await this.cache.ScopedGetOrAddAsync(1, (k, a) => Task.FromResult(scope), 2); };
 
-            await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
+            var ex = await getOrAdd.ShouldThrowAsync<InvalidOperationException>();;
         }
 #endif
     }
