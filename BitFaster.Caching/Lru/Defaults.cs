@@ -6,11 +6,6 @@ namespace BitFaster.Caching.Lru
 {
     internal static class Defaults
     {
-        public static int ConcurrencyLevel
-        {
-            get { return Environment.ProcessorCount; }
-        }
-
-        public static readonly TimeSpan Infinite = new(0, 0, 0, 0, -1);
+        public static int ConcurrencyLevel => Environment.ProcessorCount;
     }
 }
