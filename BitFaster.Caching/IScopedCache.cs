@@ -60,8 +60,8 @@ namespace BitFaster.Caching
         /// the cache.</returns>
         Lifetime<V> ScopedGetOrAdd(K key, Func<K, Scoped<V>> valueFactory);
 
-        // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+// backcompat: remove conditional compile
+#if NET
         /// <summary>
         /// Adds a key/scoped value pair to the cache if the key does not already exist. Returns a lifetime for either 
         /// the new value, or the existing value if the key already exists.

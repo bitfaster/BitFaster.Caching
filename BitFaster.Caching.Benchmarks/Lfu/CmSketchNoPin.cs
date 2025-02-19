@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 
-#if NET6_0_OR_GREATER
+#if NET
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -57,7 +56,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         /// <returns>The estimated frequency of the value.</returns>
         public int EstimateFrequency(T value)
         {
-#if NET48
+#if NETFRAMEWORK
             return EstimateFrequencyStd(value);
 #else
 
@@ -67,7 +66,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             {
                 return EstimateFrequencyAvx(value);
             }
-#if NET6_0_OR_GREATER
+#if NET
             else if (isa.IsArm64Supported)
             {
                 return EstimateFrequencyArm(value);
@@ -86,7 +85,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         /// <param name="value">The value.</param>
         public void Increment(T value)
         {
-#if NET48
+#if NETFRAMEWORK
             IncrementStd(value);
 #else
 
@@ -96,7 +95,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             {
                 IncrementAvx(value);
             }
-#if NET6_0_OR_GREATER
+#if NET
             else if (isa.IsArm64Supported)
             {
                 IncrementArm(value);
@@ -233,7 +232,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             size = (size - (count0 >> 2)) >> 1;
         }
 
-#if NET6_0_OR_GREATER
+#if NET
         private unsafe int EstimateFrequencyAvx(T value)
         {
             int blockHash = Spread(comparer.GetHashCode(value));
@@ -267,11 +266,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
                     .AsUInt16();
 
                 // set the zeroed high parts of the long value to ushort.Max
-#if NET6_0
                 count = Avx2.Blend(count, Vector128<ushort>.AllBitsSet, 0b10101010);
-#else
-                count = Avx2.Blend(count, Vector128.Create(ushort.MaxValue), 0b10101010);
-#endif
 
                 return Avx2.MinHorizontal(count).GetElement(0);
             }
@@ -333,7 +328,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         }
 #endif
 
-#if NET6_0_OR_GREATER
+#if NET
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private unsafe void IncrementArm(T value)
         {

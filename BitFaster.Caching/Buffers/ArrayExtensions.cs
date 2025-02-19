@@ -6,7 +6,7 @@ namespace BitFaster.Caching.Buffers
     // Used to avoid conditional compilation to work with Span<T> and ArraySegment<T>.
     internal static class ArrayExtensions
     {
-#if NETSTANDARD2_0
+#if NETSTANDARD
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static T[] AsSpanOrArray<T>(this T[] array)
         { 

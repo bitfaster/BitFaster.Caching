@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace BitFaster.Caching
+﻿namespace BitFaster.Caching
 {
     internal class Padding
     {

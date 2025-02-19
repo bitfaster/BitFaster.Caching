@@ -113,7 +113,7 @@ namespace BitFaster.Caching.Atomic
         }
 
         // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         ///<inheritdoc/>
         ///<remarks>
         ///If the value factory is still executing, returns false.

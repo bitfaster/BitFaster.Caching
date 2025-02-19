@@ -863,7 +863,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
 // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         [Fact]
         public void WhenKeyExistsTryUpdateIncrementsUpdateCount()
         {
@@ -942,7 +942,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
 // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         [Fact]
         public void WhenItemExistsAddOrUpdateFiresUpdateEvent()
         {

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-#if NETCOREAPP3_1_OR_GREATER
+#if NET
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -53,7 +53,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         /// <returns>The estimated frequency of the value.</returns>
         public int EstimateFrequency(T value)
         {
-#if !NETCOREAPP3_1_OR_GREATER
+#if !NET
             return EstimateFrequencyStd(value);
 #else
 
@@ -76,7 +76,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         /// <param name="value">The value.</param>
         public void Increment(T value)
         {
-#if !NETCOREAPP3_1_OR_GREATER
+#if !NET
             IncrementStd(value);
 #else
 
@@ -207,7 +207,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             return (int)((y >> 16) ^ y);
         }
 
-#if NETCOREAPP3_1_OR_GREATER
+#if NET
         private unsafe int EstimateFrequencyAvx(T value)
         {
             int hash = Spread(comparer.GetHashCode(value));

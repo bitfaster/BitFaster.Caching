@@ -41,7 +41,7 @@ namespace BitFaster.Caching.Benchmarks
         [Benchmark()]
         public long EnvironmentTickCount64()
         {
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
             return Environment.TickCount64;
 #else
             return 0;

@@ -166,7 +166,7 @@ namespace BitFaster.Caching.Lfu
                 TakeCandidatesInLruOrder(this.windowLru, candidates, itemCount);
             }
 
-#if NET6_0_OR_GREATER
+#if NET
             foreach (var candidate in CollectionsMarshal.AsSpan(candidates))
 #else
             foreach (var candidate in candidates)
@@ -301,7 +301,7 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl(MethodImplOptions.NoInlining)]
         void TryRemove(N node)
         {
-#if NET6_0_OR_GREATER
+#if NET
                 if (this.dictionary.TryRemove(new KeyValuePair<K, N>(node.Key, node)))
 #else
                 // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
@@ -323,7 +323,7 @@ namespace BitFaster.Caching.Lfu
                     {
                         var kvp = new KeyValuePair<K, N>(item.Key, node);
 
-#if NET6_0_OR_GREATER
+#if NET
                         if (this.dictionary.TryRemove(kvp))
 #else
                         // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
@@ -821,7 +821,7 @@ namespace BitFaster.Caching.Lfu
             // This handles the case where the same key exists in the write buffer both
             // as added and removed. Remove via KVP ensures we don't remove added nodes.
             var kvp = new KeyValuePair<K, N>(evictee.Key, (N)evictee);
-#if NET6_0_OR_GREATER
+#if NET
             this.dictionary.TryRemove(kvp);
 #else
             ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
