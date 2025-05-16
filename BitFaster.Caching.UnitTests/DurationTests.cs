@@ -22,7 +22,7 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void SinceEpoch()
         {
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 // eps is 1/200 of a second
@@ -36,7 +36,7 @@ namespace BitFaster.Caching.UnitTests
 #else
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                Duration.SinceEpoch().raw.Should().BeCloseTo(Duration.GetTickCount64(), 15);
+                Duration.SinceEpoch().raw.Should().BeCloseTo(Environment.TickCount, 15);
             }
             else
             {
@@ -50,7 +50,7 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void ToTimeSpan()
         {
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 new Duration(100).ToTimeSpan().Should().BeCloseTo(new TimeSpan(100), TimeSpan.FromMilliseconds(50));
@@ -75,7 +75,7 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public void FromTimeSpan()
         {
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 Duration.FromTimeSpan(TimeSpan.FromSeconds(1)).raw

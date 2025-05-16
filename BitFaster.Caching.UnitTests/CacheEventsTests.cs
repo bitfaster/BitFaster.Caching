@@ -5,7 +5,7 @@ using Xunit;
 namespace BitFaster.Caching.UnitTests
 {
 // backcompat: remove 
-#if NETCOREAPP3_1_OR_GREATER
+#if NET
     public class CacheEventsTests
     {
         [Fact]

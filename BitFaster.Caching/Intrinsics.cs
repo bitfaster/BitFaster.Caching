@@ -1,8 +1,5 @@
-﻿#if !NETSTANDARD2_0
+﻿#if NET
 using System.Runtime.Intrinsics.X86;
-#endif
-
-#if NET6_0_OR_GREATER
 using System.Runtime.Intrinsics.Arm;
 #endif
 
@@ -18,7 +15,7 @@ namespace BitFaster.Caching
         /// </summary>
         bool IsAvx2Supported { get; }
 
-#if NET6_0_OR_GREATER
+#if NET
         /// <summary>
         /// Gets a value indicating whether Arm64 is supported.
         /// </summary>
@@ -31,15 +28,15 @@ namespace BitFaster.Caching
     /// </summary>
     public readonly struct DetectIsa : IsaProbe
     {
-#if NETSTANDARD2_0
-        /// <inheritdoc/>
-        public bool IsAvx2Supported => false;
-#else
+#if NET
         /// <inheritdoc/>
         public bool IsAvx2Supported => Avx2.IsSupported;
+#else
+        /// <inheritdoc/>
+        public bool IsAvx2Supported => false;
 #endif
 
-#if NET6_0_OR_GREATER
+#if NET
         /// <inheritdoc/>
         public bool IsArm64Supported => AdvSimd.Arm64.IsSupported;
 #else

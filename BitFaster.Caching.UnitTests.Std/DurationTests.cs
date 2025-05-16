@@ -25,7 +25,7 @@ namespace BitFaster.Caching.UnitTests.Std
             // On .NET Standard, only windows uses TickCount64
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                Duration.SinceEpoch().raw.Should().BeCloseTo(Duration.GetTickCount64(), 15);
+                Duration.SinceEpoch().raw.Should().BeCloseTo(Environment.TickCount64, 15);
             }
             else
             {

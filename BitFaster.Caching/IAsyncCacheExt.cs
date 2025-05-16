@@ -17,7 +17,7 @@ namespace BitFaster.Caching
         // certain build targets, for other build targets we will define them within this new interface to avoid breaking
         // existing clients.
 // backcompat: remove conditional compile
-#if !NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD
         /// <summary>
         /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
         /// existing value if the key already exists.

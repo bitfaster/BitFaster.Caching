@@ -24,15 +24,15 @@ namespace BitFaster.Caching
         // this also avoids overflow when multipling long.MaxValue by 1.0
         internal static readonly TimeSpan MaxRepresentable = TimeSpan.FromTicks((long)(long.MaxValue / 100.0d));
 
-        internal static readonly Duration Zero = new Duration(0);
+        internal static readonly Duration Zero = new(0);
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         private static readonly bool IsMacOS = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 #else
         private static readonly bool IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
         [DllImport("kernel32")]
-        internal static extern long GetTickCount64();
+        private static extern long GetTickCount64();
 #endif
 
         internal Duration(long raw)
@@ -43,56 +43,48 @@ namespace BitFaster.Caching
         /// <summary>
         /// Gets the time since the system epoch.
         /// </summary>
-        /// <returns>A duration</returns>
+        /// <returns>A duration.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Duration SinceEpoch()
         {
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
             if (IsMacOS)
             {
                 return new Duration(Stopwatch.GetTimestamp());
             }
-            else
-            {
-                return new Duration(Environment.TickCount64);
-            }
+
+            return new Duration(Environment.TickCount64);
 #else
             if (IsWindows)
             {
                 return new Duration(GetTickCount64());
             }
-            else
-            {
-                return new Duration(Stopwatch.GetTimestamp());
-            }
+
+            return new Duration(Stopwatch.GetTimestamp());
 #endif
         }
 
         /// <summary>
         /// Converts the duration to a TimeSpan.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A TimeSpan.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TimeSpan ToTimeSpan()
         {
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
             if (IsMacOS)
             {
                 return StopwatchTickConverter.FromTicks(raw);
             }
-            else
-            {
-                return TimeSpan.FromMilliseconds(raw);
-            }
+
+            return TimeSpan.FromMilliseconds(raw);
 #else
             if (IsWindows)
             {
                 return TimeSpan.FromMilliseconds(raw);
             }
-            else
-            {
-                return StopwatchTickConverter.FromTicks(raw);
-            }
+
+            return StopwatchTickConverter.FromTicks(raw);
 #endif
         }
 
@@ -104,24 +96,20 @@ namespace BitFaster.Caching
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Duration FromTimeSpan(TimeSpan timeSpan)
         {
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
             if (IsMacOS)
             {
                 return new Duration(StopwatchTickConverter.ToTicks(timeSpan));
             }
-            else
-            {
-                return new Duration((long)timeSpan.TotalMilliseconds);
-            }
+
+            return new Duration((long)timeSpan.TotalMilliseconds);
 #else
             if (IsWindows)
             {
                 return new Duration((long)timeSpan.TotalMilliseconds);
             }
-            else
-            {
-                return new Duration(StopwatchTickConverter.ToTicks(timeSpan));
-            }
+
+            return new Duration(StopwatchTickConverter.ToTicks(timeSpan));
 #endif
         }
 

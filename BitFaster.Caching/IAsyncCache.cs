@@ -54,8 +54,8 @@ namespace BitFaster.Caching
         /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
         ValueTask<V> GetOrAddAsync(K key, Func<K, Task<V>> valueFactory);
 
-        // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+// backcompat: remove conditional compile
+#if !NETSTANDARD
         /// <summary>
         /// Adds a key/value pair to the cache if the key does not already exist. Returns the new value, or the 
         /// existing value if the key already exists.

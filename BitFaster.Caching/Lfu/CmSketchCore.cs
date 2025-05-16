@@ -4,14 +4,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-
-#if !NETSTANDARD2_0
+#if NET
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-
-#endif
-
-#if NET6_0_OR_GREATER
 using System.Runtime.Intrinsics.Arm;
 #endif
 
@@ -39,7 +34,7 @@ namespace BitFaster.Caching.Lfu
         private const long OneMask = 0x1111111111111111L;
 
         private long[] table;
-#if NET6_0_OR_GREATER
+#if NET
         private long* tableAddr;
 #endif
         private int sampleSize;
@@ -76,7 +71,7 @@ namespace BitFaster.Caching.Lfu
         /// <returns>The estimated frequency of the value.</returns>
         public int EstimateFrequency(T value)
         {
-#if NETSTANDARD2_0
+#if NETSTANDARD
             return EstimateFrequencyStd(value);
 #else
 
@@ -86,7 +81,7 @@ namespace BitFaster.Caching.Lfu
             {
                 return EstimateFrequencyAvx(value);
             }
-#if NET6_0_OR_GREATER
+#if NET
             else if (isa.IsArm64Supported)
             {
                 return EstimateFrequencyArm(value);
@@ -105,7 +100,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="value">The value.</param>
         public void Increment(T value)
         {
-#if NETSTANDARD2_0
+#if NETSTANDARD
             IncrementStd(value);
 #else
 
@@ -115,7 +110,7 @@ namespace BitFaster.Caching.Lfu
             {
                 IncrementAvx(value);
             }
-#if NET6_0_OR_GREATER
+#if NET
             else if (isa.IsArm64Supported)
             {
                 IncrementArm(value);
@@ -142,7 +137,7 @@ namespace BitFaster.Caching.Lfu
         {
             int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);
 
-#if NET6_0_OR_GREATER
+#if NET
             I isa = default;
             if (isa.IsAvx2Supported || isa.IsArm64Supported)
             {
@@ -291,7 +286,7 @@ namespace BitFaster.Caching.Lfu
             size = (size - (count0 >> 2)) >> 1;
         }
 
-#if !NETSTANDARD2_0
+#if !NETSTANDARD
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private unsafe int EstimateFrequencyAvx(T value)
         {
@@ -305,25 +300,16 @@ namespace BitFaster.Caching.Lfu
 
             Vector256<ulong> indexLong = Avx2.PermuteVar8x32(Vector256.Create(index, Vector128<int>.Zero), Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7)).AsUInt64();
 
-#if NET6_0_OR_GREATER
             long* tablePtr = tableAddr;
-#else
-            fixed (long* tablePtr = table)
-#endif
-            {
-                Vector128<ushort> count = Avx2.PermuteVar8x32(Avx2.And(Avx2.ShiftRightLogicalVariable(Avx2.GatherVector256(tablePtr, blockOffset, 8), indexLong), Vector256.Create(0xfL)).AsInt32(), Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7))
-                    .GetLower()
-                    .AsUInt16();
 
-                // set the zeroed high parts of the long value to ushort.Max
-#if NET6_0_OR_GREATER
-                count = Avx2.Blend(count, Vector128<ushort>.AllBitsSet, 0b10101010);
-#else
-                count = Avx2.Blend(count, Vector128.Create(ushort.MaxValue), 0b10101010);
-#endif
+            Vector128<ushort> count = Avx2.PermuteVar8x32(Avx2.And(Avx2.ShiftRightLogicalVariable(Avx2.GatherVector256(tablePtr, blockOffset, 8), indexLong), Vector256.Create(0xfL)).AsInt32(), Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7))
+                .GetLower()
+                .AsUInt16();
 
-                return Avx2.MinHorizontal(count).GetElement(0);
-            }
+            // set the zeroed high parts of the long value to ushort.Max
+            count = Avx2.Blend(count, Vector128<ushort>.AllBitsSet, 0b10101010);
+
+            return Avx2.MinHorizontal(count).GetElement(0);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -340,34 +326,29 @@ namespace BitFaster.Caching.Lfu
             Vector256<ulong> offsetLong = Avx2.PermuteVar8x32(Vector256.Create(index, Vector128<int>.Zero), Vector256.Create(0, 4, 1, 5, 2, 5, 3, 7)).AsUInt64();
             Vector256<long> mask = Avx2.ShiftLeftLogicalVariable(Vector256.Create(0xfL), offsetLong);
 
-#if NET6_0_OR_GREATER
             long* tablePtr = tableAddr;
-#else
-            fixed (long* tablePtr = table)
-#endif
+
+            // Note masked is 'equal' - therefore use AndNot below
+            Vector256<long> masked = Avx2.CompareEqual(Avx2.And(Avx2.GatherVector256(tablePtr, blockOffset, 8), mask), mask);
+
+            // Mask to zero out non matches (add zero below) - first operand is NOT then AND result (order matters)
+            Vector256<long> inc = Avx2.AndNot(masked, Avx2.ShiftLeftLogicalVariable(Vector256.Create(1L), offsetLong));
+
+            bool wasInc = Avx2.MoveMask(Avx2.CompareEqual(masked.AsByte(), Vector256<byte>.Zero).AsByte()) == unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
+
+            tablePtr[blockOffset.GetElement(0)] += inc.GetElement(0);
+            tablePtr[blockOffset.GetElement(1)] += inc.GetElement(1);
+            tablePtr[blockOffset.GetElement(2)] += inc.GetElement(2);
+            tablePtr[blockOffset.GetElement(3)] += inc.GetElement(3);
+
+            if (wasInc && (++size == sampleSize))
             {
-                // Note masked is 'equal' - therefore use AndNot below
-                Vector256<long> masked = Avx2.CompareEqual(Avx2.And(Avx2.GatherVector256(tablePtr, blockOffset, 8), mask), mask);
-
-                // Mask to zero out non matches (add zero below) - first operand is NOT then AND result (order matters)
-                Vector256<long> inc = Avx2.AndNot(masked, Avx2.ShiftLeftLogicalVariable(Vector256.Create(1L), offsetLong));
-
-                bool wasInc = Avx2.MoveMask(Avx2.CompareEqual(masked.AsByte(), Vector256<byte>.Zero).AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
-
-                tablePtr[blockOffset.GetElement(0)] += inc.GetElement(0);
-                tablePtr[blockOffset.GetElement(1)] += inc.GetElement(1);
-                tablePtr[blockOffset.GetElement(2)] += inc.GetElement(2);
-                tablePtr[blockOffset.GetElement(3)] += inc.GetElement(3);
-
-                if (wasInc && (++size == sampleSize))
-                {
-                    Reset();
-                }
+                Reset();
             }
         }
 #endif
 
-#if NET6_0_OR_GREATER
+#if NET
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private unsafe void IncrementArm(T value)
         {

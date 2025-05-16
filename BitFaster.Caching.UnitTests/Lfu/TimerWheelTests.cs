@@ -122,7 +122,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.lfuNodeList.Count.Should().Be(0);
         }
 
-#if NET6_0_OR_GREATER
+#if NET
         [Theory]
         [MemberData(nameof(ClockData))]
         public void WhenAdvanceBackwardsNothingIsEvicted(long clock)

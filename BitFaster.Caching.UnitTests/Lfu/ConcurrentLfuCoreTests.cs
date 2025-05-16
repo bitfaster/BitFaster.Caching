@@ -41,7 +41,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             valueFactory.timesCalled.Should().Be(1);
             result1.Should().Be(result2);
         }
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         [Fact]
         public void WhenKeyIsRequestedWithArgItIsCreatedAndCached()
         {
@@ -63,7 +63,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             result1.Should().Be(result2);
         }
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         [Fact]
         public async Task WhenKeyIsRequestedWithArgItIsCreatedAndCachedAsync()
         {
@@ -105,7 +105,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu.TryGet(1, out _).Should().BeFalse();
         }
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NET
         [Fact]
         public void WhenKeyExistsTryRemoveReturnsValue()
         {
