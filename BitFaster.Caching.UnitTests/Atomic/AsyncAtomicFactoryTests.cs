@@ -96,7 +96,15 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
             {
-                unobservedExceptionThrown = true;
+                if (e.Exception?.InnerException is ArithmeticException)
+                {
+                    unobservedExceptionThrown = true;
+                }
+                else
+                {
+                    Assert.Fail(e.Exception?.ToString());
+                }
+
                 e.SetObserved();
             }
 
@@ -110,6 +118,8 @@ namespace BitFaster.Caching.UnitTests.Atomic
                 catch (ArithmeticException)
                 {
                 }
+
+                await a.GetValueAsync(12, (i) => Task.FromResult(24));
             }
         }
 
