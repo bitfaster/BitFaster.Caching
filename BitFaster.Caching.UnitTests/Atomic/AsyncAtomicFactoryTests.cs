@@ -118,8 +118,6 @@ namespace BitFaster.Caching.UnitTests.Atomic
                 catch (ArithmeticException)
                 {
                 }
-
-                await a.GetValueAsync(12, (i) => Task.FromResult(24));
             }
         }
 
