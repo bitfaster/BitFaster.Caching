@@ -174,10 +174,9 @@ namespace BitFaster.Caching.Atomic
 
                         return scope;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         Volatile.Write(ref isTaskInitialized, false);
-                        tcs.SetException(ex);
                         throw;
                     }
                 }

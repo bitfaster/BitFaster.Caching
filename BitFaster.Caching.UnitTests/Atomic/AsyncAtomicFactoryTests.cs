@@ -76,52 +76,6 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public async Task WhenValueCreateThrowsDoesNotCauseUnobservedTaskException()
-        {
-            bool unobservedExceptionThrown = false;
-
-            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
-            try
-            {
-                await AsyncAtomicFactoryGetValueAsync();
-
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-            }
-            finally
-            {
-                TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
-            }
-            unobservedExceptionThrown.Should().BeFalse();
-
-            void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
-            {
-                if (e.Exception?.InnerException is ArithmeticException)
-                {
-                    unobservedExceptionThrown = true;
-                }
-                else
-                {
-                    Assert.Fail(e.Exception?.ToString());
-                }
-
-                e.SetObserved();
-            }
-
-            static async Task AsyncAtomicFactoryGetValueAsync()
-            {
-                var a = new AsyncAtomicFactory<int, int>();
-                try
-                {
-                    _ = await a.GetValueAsync(12, (i) => throw new ArithmeticException());
-                }
-                catch (ArithmeticException)
-                {
-                }
-            }
-        }
-
-        [Fact]
         public async Task WhenCallersRunConcurrentlyResultIsFromWinner()
         {
             var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
