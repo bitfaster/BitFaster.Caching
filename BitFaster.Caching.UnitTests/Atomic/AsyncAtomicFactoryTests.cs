@@ -157,6 +157,45 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public async Task WhenValueCreateThrowsDoesNotCauseUnobservedTaskException()
+        {
+            bool unobservedExceptionThrown = false;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+            try
+            {
+                await AsyncAtomicFactoryGetValueAsync();
+
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+            finally
+            {
+                TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+            }
+
+            unobservedExceptionThrown.Should().BeFalse();
+
+            void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+            {
+                unobservedExceptionThrown = true;
+                e.SetObserved();
+            }
+
+            static async Task AsyncAtomicFactoryGetValueAsync()
+            {
+                var a = new AsyncAtomicFactory<int, int>();
+                try
+                {
+                    _ = await a.GetValueAsync(12, i => throw new ArithmeticException());
+                }
+                catch (ArithmeticException)
+                {
+                }
+            }
+        }
+
+        [Fact]
         public void WhenValueNotCreatedHashCodeIsZero()
         {
             new AsyncAtomicFactory<int, int>()

@@ -159,7 +159,10 @@ namespace BitFaster.Caching.Atomic
                     {
                         Volatile.Write(ref isInitialized, false);
                         tcs.SetException(ex);
-                        throw;
+
+                        // always await the task to avoid unobserved task exceptions - normal case is that no other task is waiting.
+                        // this will re-throw the exception.
+                        await tcs.Task.ConfigureAwait(false);
                     }
                 }
 
