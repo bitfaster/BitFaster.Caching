@@ -156,6 +156,49 @@ namespace BitFaster.Caching.UnitTests.Atomic
             winnerCount.Should().Be(1);
         }
 
+
+        [Fact]
+        public async Task WhenCallersRunConcurrentlyWithFailureSameExceptionIsPropagated()
+        {
+            var enter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var resume = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>();
+
+            var first = atomicFactory.TryCreateLifetimeAsync(1, async k =>
+            {
+                enter.SetResult(true);
+                await resume.Task;
+
+                throw new ArithmeticException("1");
+            }).AsTask(); ;
+
+            var second = atomicFactory.TryCreateLifetimeAsync(1, async k =>
+            {
+                enter.SetResult(true);
+                await resume.Task;
+
+                throw new InvalidOperationException("2");
+            }).AsTask();
+
+            await enter.Task;
+            resume.SetResult(true);
+
+            // Both tasks will throw, but the first one to complete will propagate its exception
+            // Both exceptions should be the same. If they are not, there will be an aggregate exception.
+            try
+            {
+                await Task.WhenAll(first, second)
+                    .TimeoutAfter(TimeSpan.FromSeconds(5), "Tasks did not complete within the expected time. Exceptions are not propagated between callers correctly.");
+            }
+            catch (ArithmeticException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
+
         [Fact]
         public async Task WhenDisposedWhileInitResultIsDisposed()
         {
