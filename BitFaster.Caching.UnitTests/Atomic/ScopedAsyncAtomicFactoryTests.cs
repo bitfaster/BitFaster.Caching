@@ -4,11 +4,19 @@ using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace BitFaster.Caching.UnitTests.Atomic
 {
     public class ScopedAsyncAtomicFactoryTests
     {
+        private readonly ITestOutputHelper outputHelper;
+
+        public ScopedAsyncAtomicFactoryTests(ITestOutputHelper outputHelper)
+        {
+            this.outputHelper = outputHelper;
+        }
+
         [Fact]
         public void WhenScopeIsNotCreatedScopeIfCreatedReturnsNull()
         {
@@ -105,7 +113,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             var holder = new IntHolder() { actualNumber = 2 };
             var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>(holder);
-            
+
             atomicFactory.Dispose();
 
             holder.disposed.Should().BeTrue();
@@ -152,7 +160,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             result1.l.Value.actualNumber.Should().Be(winningNumber);
             result2.l.Value.actualNumber.Should().Be(winningNumber);
-                
+
             winnerCount.Should().Be(1);
         }
 
@@ -199,14 +207,14 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public async Task WhenValueCreateThrowsDoesNotCauseUnobservedTaskException()
+        public async Task WhenCreateFromFactoryLifetimeThrowsDoesNotCauseUnobservedTaskException()
         {
             bool unobservedExceptionThrown = false;
             TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
             try
             {
-                await AsyncAtomicFactoryGetValueAsync();
+                await ScopedAsyncAtomicFactoryTryCreateLifetimeAsync();
 
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
@@ -220,11 +228,12 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
             {
+                outputHelper.WriteLine($"Unobserved task exception {e.Exception}");
                 unobservedExceptionThrown = true;
                 e.SetObserved();
             }
 
-            static async Task AsyncAtomicFactoryGetValueAsync()
+            static async Task ScopedAsyncAtomicFactoryTryCreateLifetimeAsync()
             {
                 var a = new ScopedAsyncAtomicFactory<int, IntHolder>();
                 try

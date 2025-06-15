@@ -4,11 +4,19 @@ using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace BitFaster.Caching.UnitTests.Atomic
 {
     public class AsyncAtomicFactoryTests
     {
+        private readonly ITestOutputHelper outputHelper;
+
+        public AsyncAtomicFactoryTests(ITestOutputHelper outputHelper)
+        {
+            this.outputHelper = outputHelper;
+        }
+
         [Fact]
         public void DefaultCtorValueIsNotCreated()
         {
@@ -178,6 +186,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
             {
+                outputHelper.WriteLine($"Unobserved task exception {e.Exception}");
                 unobservedExceptionThrown = true;
                 e.SetObserved();
             }
