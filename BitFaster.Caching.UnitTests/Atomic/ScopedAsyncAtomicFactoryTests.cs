@@ -156,7 +156,6 @@ namespace BitFaster.Caching.UnitTests.Atomic
             winnerCount.Should().Be(1);
         }
 
-
         [Fact]
         public async Task WhenCallersRunConcurrentlyWithFailureSameExceptionIsPropagated()
         {
@@ -196,6 +195,48 @@ namespace BitFaster.Caching.UnitTests.Atomic
             }
             catch (InvalidOperationException)
             {
+            }
+        }
+
+        [Fact]
+        public async Task WhenValueCreateThrowsDoesNotCauseUnobservedTaskException()
+        {
+            bool unobservedExceptionThrown = false;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+            try
+            {
+                await AsyncAtomicFactoryGetValueAsync();
+
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+            finally
+            {
+                TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+            }
+
+            unobservedExceptionThrown.Should().BeFalse();
+
+            void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+            {
+                unobservedExceptionThrown = true;
+                e.SetObserved();
+            }
+
+            static async Task AsyncAtomicFactoryGetValueAsync()
+            {
+                var a = new ScopedAsyncAtomicFactory<int, IntHolder>();
+                try
+                {
+                    _ = await a.TryCreateLifetimeAsync(1, k =>
+                    {
+                        throw new ArithmeticException();
+                    });
+                }
+                catch (ArithmeticException)
+                {
+                }
             }
         }
 
