@@ -4,11 +4,19 @@ using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace BitFaster.Caching.UnitTests.Atomic
 {
     public class ScopedAsyncAtomicFactoryTests
     {
+        private readonly ITestOutputHelper outputHelper;
+
+        public ScopedAsyncAtomicFactoryTests(ITestOutputHelper outputHelper)
+        {
+            this.outputHelper = outputHelper;
+        }
+
         [Fact]
         public void WhenScopeIsNotCreatedScopeIfCreatedReturnsNull()
         {
@@ -105,7 +113,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             var holder = new IntHolder() { actualNumber = 2 };
             var atomicFactory = new ScopedAsyncAtomicFactory<int, IntHolder>(holder);
-            
+
             atomicFactory.Dispose();
 
             holder.disposed.Should().BeTrue();
@@ -152,10 +160,9 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             result1.l.Value.actualNumber.Should().Be(winningNumber);
             result2.l.Value.actualNumber.Should().Be(winningNumber);
-                
+
             winnerCount.Should().Be(1);
         }
-
 
         [Fact]
         public async Task WhenCallersRunConcurrentlyWithFailureSameExceptionIsPropagated()
@@ -196,6 +203,49 @@ namespace BitFaster.Caching.UnitTests.Atomic
             }
             catch (InvalidOperationException)
             {
+            }
+        }
+
+        [Fact]
+        public async Task WhenCreateFromFactoryLifetimeThrowsDoesNotCauseUnobservedTaskException()
+        {
+            bool unobservedExceptionThrown = false;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+            try
+            {
+                await ScopedAsyncAtomicFactoryTryCreateLifetimeAsync();
+
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+            finally
+            {
+                TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+            }
+
+            unobservedExceptionThrown.Should().BeFalse();
+
+            void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+            {
+                outputHelper.WriteLine($"Unobserved task exception {e.Exception}");
+                unobservedExceptionThrown = true;
+                e.SetObserved();
+            }
+
+            static async Task ScopedAsyncAtomicFactoryTryCreateLifetimeAsync()
+            {
+                var a = new ScopedAsyncAtomicFactory<int, IntHolder>();
+                try
+                {
+                    _ = await a.TryCreateLifetimeAsync(1, k =>
+                    {
+                        throw new ArithmeticException();
+                    });
+                }
+                catch (ArithmeticException)
+                {
+                }
             }
         }
 

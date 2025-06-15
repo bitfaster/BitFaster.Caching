@@ -4,11 +4,19 @@ using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace BitFaster.Caching.UnitTests.Atomic
 {
     public class AsyncAtomicFactoryTests
     {
+        private readonly ITestOutputHelper outputHelper;
+
+        public AsyncAtomicFactoryTests(ITestOutputHelper outputHelper)
+        {
+            this.outputHelper = outputHelper;
+        }
+
         [Fact]
         public void DefaultCtorValueIsNotCreated()
         {
@@ -153,6 +161,46 @@ namespace BitFaster.Caching.UnitTests.Atomic
             }
             catch (InvalidOperationException)
             {
+            }
+        }
+
+        [Fact]
+        public async Task WhenValueCreateThrowsDoesNotCauseUnobservedTaskException()
+        {
+            bool unobservedExceptionThrown = false;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+            try
+            {
+                await AsyncAtomicFactoryGetValueAsync();
+
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+            finally
+            {
+                TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+            }
+
+            unobservedExceptionThrown.Should().BeFalse();
+
+            void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+            {
+                outputHelper.WriteLine($"Unobserved task exception {e.Exception}");
+                unobservedExceptionThrown = true;
+                e.SetObserved();
+            }
+
+            static async Task AsyncAtomicFactoryGetValueAsync()
+            {
+                var a = new AsyncAtomicFactory<int, int>();
+                try
+                {
+                    _ = await a.GetValueAsync(12, i => throw new ArithmeticException());
+                }
+                catch (ArithmeticException)
+                {
+                }
             }
         }
 
