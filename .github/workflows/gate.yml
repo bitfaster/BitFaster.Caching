@@ -22,9 +22,7 @@ jobs:
       with:
         dotnet-version: |
           3.1.x
-          6.0.x
-          8.0.x
-          9.0.x
+
     - name: Install dependencies
       run: dotnet restore
     - name: Build
@@ -55,6 +53,32 @@ jobs:
         flag-name: win3
         parallel: true
 
+    - name: Publish NuGet artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: NuGet package
+        path: BitFaster.Caching/bin/Release/
+  win2:
+
+    runs-on: windows-latest
+
+    permissions:
+      checks: write
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          6.0.x
+          8.0.x
+          9.0.x
+    - name: Install dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
     - name: Test (6.0)
       run: dotnet test --no-restore --verbosity normal -f net6.0 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results6.trx"   
     - name: Upload test results (6.0)
@@ -69,7 +93,7 @@ jobs:
       with:
           name: test-results-win6-std
           path: BitFaster.Caching.UnitTests.Std/TestResults/results6.trx
-    
+
     - name: Publish coverage report to coveralls.io (6.0)
       uses: coverallsapp/github-action@master   
       with:
@@ -78,11 +102,28 @@ jobs:
         flag-name: win6
         parallel: true
 
-    - name: Publish NuGet artifacts
-      uses: actions/upload-artifact@v4
+    - name: Test (9.0)
+      run: dotnet test --no-restore --verbosity normal -f net9.0 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results9.trx"   
+    - name: Upload test results (9.0)
+      uses: actions/upload-artifact@v4  # upload test results
+      if: success() || failure()        # run this step even if previous step failed
       with:
-        name: NuGet package
-        path: BitFaster.Caching/bin/Release/
+          name: test-results-win9
+          path: BitFaster.Caching.UnitTests/TestResults/results9.trx
+    - name: Upload test results (9.0 .NET Std)
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+          name: test-results-win9-std
+          path: BitFaster.Caching.UnitTests.Std/TestResults/results9.trx
+    
+    - name: Publish coverage report to coveralls.io (9.0)
+      uses: coverallsapp/github-action@master   
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }} 
+        path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.net9.0.info
+        flag-name: win9
+        parallel: true
 
   mac:
 
@@ -170,7 +211,7 @@ jobs:
 
   coverage:
 
-    needs: [win, mac, linux]
+    needs: [win, win2, mac, linux]
     
     runs-on: ubuntu-latest
     
