@@ -12,7 +12,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void TestConcurrencyLevel()
         {
-            // Note that on .net8+, -1 indicates the default concurrency level
             var b = new ConcurrentLfuBuilder<int, int>()
                 .WithConcurrencyLevel(0);
 
