@@ -95,7 +95,7 @@ jobs:
       - name: Test
         run: |
           dotnet test --no-restore --verbosity normal -f ${{ matrix.framework }} ${{ matrix.coverage && '/p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov' || '' }} --logger "trx;LogFileName=${{ matrix.results }}"
-        shell: bash
+        shell: gitbash
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
