@@ -94,6 +94,14 @@ jobs:
           name: test-results-win6-std
           path: BitFaster.Caching.UnitTests.Std/TestResults/results6.trx
 
+    - name: Publish coverage report to coveralls.io (6.0)
+      uses: coverallsapp/github-action@master   
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }} 
+        path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.net6.0.info
+        flag-name: win6
+        parallel: true
+
     - name: Test (9.0)
       run: dotnet test --no-restore --verbosity normal -f net9.0 /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov --logger "trx;LogFileName=results9.trx"   
     - name: Upload test results (9.0)
