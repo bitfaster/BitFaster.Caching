@@ -34,7 +34,7 @@ jobs:
             artifact: test-results-win3
             std: false
             flag: win3
-            publish_nuget: true
+            publish_nuget: false
 
           - os: windows-latest
             framework: net6.0
