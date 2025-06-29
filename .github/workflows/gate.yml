@@ -94,9 +94,7 @@ jobs:
 
       - name: Test
         run: |
-          dotnet test --no-restore --verbosity normal -f ${{ matrix.framework }} \
-            ${{ matrix.coverage && '/p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov' || '' }} \
-            --logger "trx;LogFileName=${{ matrix.results }}"
+          dotnet test --no-restore --verbosity normal -f ${{ matrix.framework }} ${{ matrix.coverage && '/p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov' || '' }} --logger "trx;LogFileName=${{ matrix.results }}"
         shell: bash
 
       - name: Upload test results
