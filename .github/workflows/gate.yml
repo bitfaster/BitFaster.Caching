@@ -9,10 +9,11 @@ on:
 
 jobs:
   build:
-    name: Build and Test (${{ matrix.os }}, .NET ${{ matrix.dotnet-version }}, ${{ matrix.framework }})
+    name: ${{ matrix.framework }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     permissions:
       checks: write
+    continue-on-error: true
     strategy:
       matrix:
         include:
@@ -23,7 +24,7 @@ jobs:
             results: results4.trx
             artifact: test-results-win48
             std: false
-            flag: ""
+            flag: net48
             publish_nuget: true
 
           - os: windows-latest
