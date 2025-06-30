@@ -187,7 +187,7 @@ namespace BitFaster.Caching.Benchmarks
         public void DrainArray()
         {
             Add();
-#if NETCOREAPP3_1_OR_GREATER
+#if NET
             buffer.DrainTo(output.AsSpan());
 #else
             buffer.DrainTo(new ArraySegment<string>(output));
