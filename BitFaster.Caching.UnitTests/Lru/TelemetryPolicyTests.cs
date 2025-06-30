@@ -148,7 +148,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
 // backcompat: remove 
-#if NETCOREAPP3_1_OR_GREATER
+#if NET
         [Fact]
         public void WhenInterfaceDefaultItemUpdatedRegisteredNoOp()
         {

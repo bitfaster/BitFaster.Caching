@@ -57,7 +57,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         /// <returns>The estimated frequency of the value.</returns>
         public int EstimateFrequency(T value)
         {
-#if NET48
+#if NETFRAMEWORK
             return EstimateFrequencyStd(value);
 #else
 
@@ -86,7 +86,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         /// <param name="value">The value.</param>
         public void Increment(T value)
         {
-#if NET48
+#if NETFRAMEWORK
             IncrementStd(value);
 #else
 
