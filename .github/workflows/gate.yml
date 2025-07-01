@@ -135,6 +135,7 @@ jobs:
     name: Coveralls Finished
     needs: build
     runs-on: ubuntu-latest
+    if: ${{ success() }} # Only run if all build jobs succeed
     steps:
       - name: Coveralls Finished
         uses: coverallsapp/github-action@master
