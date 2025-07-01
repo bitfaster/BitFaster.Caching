@@ -13,8 +13,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       checks: write
-    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         include:
           # Windows
@@ -135,7 +135,6 @@ jobs:
     name: Coveralls Finished
     needs: build
     runs-on: ubuntu-latest
-    if: ${{ success() }} # Only run if all build jobs succeed
     steps:
       - name: Coveralls Finished
         uses: coverallsapp/github-action@master
