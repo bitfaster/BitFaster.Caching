@@ -199,7 +199,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             return ((int)hash) & tableMask;
         }
 
-        private int Spread(int x)
+        private static int Spread(int x)
         {
             uint y = (uint)x;
             y = ((y >> 16) ^ y) * 0x45d9f3b;
