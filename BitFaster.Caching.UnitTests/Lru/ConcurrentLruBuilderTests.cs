@@ -109,7 +109,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void TestConcurrencyLevel()
         {
             var b = new ConcurrentLruBuilder<int, int>()
-                .WithConcurrencyLevel(-1);
+                .WithConcurrencyLevel(0);
 
             Action constructor = () => { var x = b.Build(); };
 

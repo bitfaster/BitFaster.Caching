@@ -13,7 +13,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void TestConcurrencyLevel()
         {
             var b = new ConcurrentLfuBuilder<int, int>()
-                .WithConcurrencyLevel(-1);
+                .WithConcurrencyLevel(0);
 
             Action constructor = () => { var x = b.Build(); };
 

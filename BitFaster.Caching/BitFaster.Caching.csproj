@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netcoreapp3.1;net6.0;net9.0</TargetFrameworks>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>13.0</LangVersion>
     <Authors>Alex Peck</Authors>
     <Company />
     <Product>BitFaster.Caching</Product>
@@ -10,7 +10,7 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>ReadMe.md</PackageReadmeFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>2.5.3</Version>
+    <Version>2.5.4</Version>
     <Copyright>Copyright © Alex Peck $([System.DateTime]::Now.ToString(yyyy))</Copyright>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitfaster/BitFaster.Caching</RepositoryUrl>
@@ -22,15 +22,15 @@
     <IncludeSymbols>True</IncludeSymbols>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <AssemblyVersion>2.5.3.0</AssemblyVersion>
-    <FileVersion>2.5.3.0</FileVersion>
+    <AssemblyVersion>2.5.4.0</AssemblyVersion>
+    <FileVersion>2.5.4.0</FileVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <IsTrimmable>true</IsTrimmable>
     <Nullable>enable</Nullable>
     <!--Package Validation-->
     <EnablePackageValidation>true</EnablePackageValidation>
-    <PackageValidationBaselineVersion>2.5.1</PackageValidationBaselineVersion>    
+    <PackageValidationBaselineVersion>2.5.4</PackageValidationBaselineVersion>    
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
