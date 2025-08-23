@@ -6,11 +6,11 @@ using BenchmarkDotNet.Jobs;
 
 namespace BitFaster.Caching.Benchmarks
 {
-#if Windows
-    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
-    [SimpleJob(RuntimeMoniker.Net48)]
-#endif
-    [SimpleJob(RuntimeMoniker.Net60)]
+//#if Windows
+//    [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
+//    [SimpleJob(RuntimeMoniker.Net48)]
+//#endif
+    [SimpleJob(RuntimeMoniker.Net90)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class TimeBenchmarks
     {
@@ -70,6 +70,16 @@ namespace BitFaster.Caching.Benchmarks
         public Duration DurationSinceEpoch()
         {
             return Duration.SinceEpoch();
+        }
+
+        [Benchmark()]
+        public long SystemTimeProvider()
+        {
+#if NET9_0_OR_GREATER
+            return TimeProvider.System.GetTimestamp();
+#else
+            return 0;
+#endif
         }
     }
 
