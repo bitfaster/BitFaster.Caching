@@ -11,6 +11,7 @@ namespace BitFaster.Caching.Benchmarks
     [SimpleJob(RuntimeMoniker.Net48)]
 #endif
     [SimpleJob(RuntimeMoniker.Net60)]
+    [SimpleJob(RuntimeMoniker.Net90)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class TimeBenchmarks
     {
@@ -70,6 +71,16 @@ namespace BitFaster.Caching.Benchmarks
         public Duration DurationSinceEpoch()
         {
             return Duration.SinceEpoch();
+        }
+
+        [Benchmark()]
+        public long SystemTimeProvider()
+        {
+#if NET8_0_OR_GREATER
+            return TimeProvider.System.GetTimestamp();
+#else
+            return 0;
+#endif
         }
     }
 
