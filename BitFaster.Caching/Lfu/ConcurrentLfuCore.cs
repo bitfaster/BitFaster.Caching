@@ -39,10 +39,11 @@ namespace BitFaster.Caching.Lfu
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
 
-    internal struct ConcurrentLfuCore<K, V, N, P> : IBoundedPolicy
+    internal struct ConcurrentLfuCore<K, V, N, P, E> : IBoundedPolicy
         where K : notnull
         where N : LfuNode<K, V>
-        where P : struct, INodePolicy<K, V, N>
+        where P : struct, INodePolicy<K, V, N, E>
+        where E : struct, IEventPolicy<K, V>
     {
         private const int MaxWriteBufferRetries = 64;
 
@@ -78,7 +79,16 @@ namespace BitFaster.Caching.Lfu
 
         internal P policy;
 
-        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers, P policy)
+        /// <summary>
+        /// The event policy.
+        /// </summary>
+        /// <remarks>
+        /// Since E is a struct, making it readonly will force the runtime to make defensive copies
+        /// if mutate methods are called. Therefore, field must be mutable to maintain count.
+        /// </remarks>
+        internal E eventPolicy;
+
+        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers, P policy, E eventPolicy)
         {
             if (capacity < 3)
                 Throw.ArgOutOfRange(nameof(capacity));
@@ -108,6 +118,8 @@ namespace BitFaster.Caching.Lfu
             this.drainBuffers = drainBuffers;
 
             this.policy = policy;
+
+            this.eventPolicy = eventPolicy;
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -373,6 +385,10 @@ namespace BitFaster.Caching.Lfu
                 {
                     if (!node.WasRemoved)
                     {
+                        // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+                        V oldValue = node.Value;
+#endif
                         node.Value = value;
 
                         // It's ok for this to be lossy, since the node is already tracked
@@ -380,6 +396,11 @@ namespace BitFaster.Caching.Lfu
                         this.writeBuffer.TryAdd(node);
                         TryScheduleDrain();
                         this.policy.OnWrite(node);
+
+                        // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+                        this.eventPolicy.OnItemUpdated(key, oldValue, value);
+#endif
                         return true;
                     }
                 }
@@ -637,6 +658,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     // if a write is in the buffer and is then removed in the buffer, it will enter OnWrite twice.
                     // we mark as deleted to avoid double counting/disposing it
+                    this.eventPolicy.OnItemRemoved(node.Key, node.Value, ItemRemovedReason.Removed);
                     this.metrics.evictedCount++;
                     Disposer<V>.Dispose(node.Value);
                     node.WasDeleted = true;
@@ -839,6 +861,7 @@ namespace BitFaster.Caching.Lfu
             ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
 #endif
             evictee.list?.Remove(evictee);
+            this.eventPolicy.OnItemRemoved(evictee.Key, evictee.Value, ItemRemovedReason.Evicted);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
 
