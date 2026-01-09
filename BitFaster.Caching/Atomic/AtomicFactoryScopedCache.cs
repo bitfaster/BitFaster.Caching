@@ -31,7 +31,7 @@ namespace BitFaster.Caching.Atomic
                 Throw.ArgNull(ExceptionArgument.cache);
 
             this.cache = cache;
-            
+
             if (cache.Events.HasValue)
             {
                 this.events = new Optional<ICacheEvents<K, Scoped<V>>>(new EventProxy(cache.Events.Value!));
@@ -148,8 +148,8 @@ namespace BitFaster.Caching.Atomic
             foreach (var kvp in this.cache)
             {
                 if (kvp.Value.IsScopeCreated)
-                { 
-                    yield return new KeyValuePair<K, Scoped<V>>(kvp.Key, kvp.Value.ScopeIfCreated!); 
+                {
+                    yield return new KeyValuePair<K, Scoped<V>>(kvp.Key, kvp.Value.ScopeIfCreated!);
                 }
             }
         }
@@ -161,7 +161,7 @@ namespace BitFaster.Caching.Atomic
 
         private class EventProxy : CacheEventProxyBase<K, ScopedAtomicFactory<K, V>, Scoped<V>>
         {
-            public EventProxy(ICacheEvents<K, ScopedAtomicFactory<K, V>> inner) 
+            public EventProxy(ICacheEvents<K, ScopedAtomicFactory<K, V>> inner)
                 : base(inner)
             {
             }

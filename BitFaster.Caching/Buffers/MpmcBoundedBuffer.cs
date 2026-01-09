@@ -212,7 +212,7 @@ namespace BitFaster.Caching.Buffers
         public void Clear()
         {
             while (TryTake(out _) != BufferStatus.Empty)
-            { 
+            {
             }
         }
 

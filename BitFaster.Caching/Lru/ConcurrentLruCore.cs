@@ -147,8 +147,8 @@ namespace BitFaster.Caching.Lru
             foreach (var kvp in this.dictionary)
             {
                 if (!itemPolicy.ShouldDiscard(kvp.Value))
-                { 
-                    yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.Value); 
+                {
+                    yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.Value);
                 }
             }
         }
@@ -390,7 +390,7 @@ namespace BitFaster.Caching.Lru
                         existing.Value = value;
 
                         this.itemPolicy.Update(existing);
-// backcompat: remove conditional compile
+                        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
                         this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
 #endif
@@ -481,7 +481,7 @@ namespace BitFaster.Caching.Lru
                 lock (this.dictionary)
                 {
                     this.TrimAllDiscardedItems();
-                } 
+                }
             }
         }
 
@@ -924,7 +924,7 @@ namespace BitFaster.Caching.Lru
 
             public long Evicted => lru.telemetryPolicy.Evicted;
 
-// backcompat: remove conditional compile
+            // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
             public long Updated => lru.telemetryPolicy.Updated;
 #endif
@@ -938,7 +938,7 @@ namespace BitFaster.Caching.Lru
                 remove { this.lru.telemetryPolicy.ItemRemoved -= value; }
             }
 
-// backcompat: remove conditional compile
+            // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
             public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
             {

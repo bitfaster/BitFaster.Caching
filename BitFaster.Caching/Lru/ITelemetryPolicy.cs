@@ -27,7 +27,7 @@ namespace BitFaster.Caching.Lru
         /// <param name="reason">The reason for removal.</param>
         void OnItemRemoved(K key, V value, ItemRemovedReason reason);
 
-// backcompat: remove conditional compile
+        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
         /// <summary>
         /// Register the update of an item.

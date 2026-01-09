@@ -11,7 +11,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         private readonly TestExpiryCalculator<int, int> expiryCalculator;
         private readonly DiscretePolicy<int, int> policy;
 
-        public DiscretePolicyTests() 
+        public DiscretePolicyTests()
         {
             expiryCalculator = new TestExpiryCalculator<int, int>();
             policy = new DiscretePolicy<int, int>(expiryCalculator);
@@ -36,13 +36,13 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var timeToExpire = Duration.FromMinutes(60);
 
-            expiryCalculator.ExpireAfterCreate = (k, v) => 
+            expiryCalculator.ExpireAfterCreate = (k, v) =>
             {
                 k.Should().Be(1);
                 v.Should().Be(2);
                 return timeToExpire;
             };
-            
+
             var item = this.policy.CreateItem(1, 2);
 
             item.Key.Should().Be(1);

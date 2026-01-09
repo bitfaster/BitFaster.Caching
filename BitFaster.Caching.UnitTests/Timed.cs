@@ -66,7 +66,7 @@ namespace BitFaster.Caching.UnitTests
                     {
                         third(state);
                         return;
-                    }    
+                    }
                 }
 
                 Thread.Sleep(200);

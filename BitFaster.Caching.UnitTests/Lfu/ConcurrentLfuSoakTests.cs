@@ -153,7 +153,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.Run(threads, () => {
+            await Threaded.Run(threads, () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     lfu.GetOrAdd(i + 1, i => i.ToString());
@@ -169,7 +170,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.RunAsync(threads, async () => {
+            await Threaded.RunAsync(threads, async () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     await lfu.GetOrAddAsync(i + 1, i => Task.FromResult(i.ToString()));
@@ -185,7 +187,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.Run(threads, () => {
+            await Threaded.Run(threads, () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     // use the arg overload
@@ -202,7 +205,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.RunAsync(threads, async () => {
+            await Threaded.RunAsync(threads, async () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     // use the arg overload
@@ -219,7 +223,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.Run(threads, () => {
+            await Threaded.Run(threads, () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     lfu.TryUpdate(i + 1, i.ToString());
@@ -236,7 +241,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.Run(threads, () => {
+            await Threaded.Run(threads, () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     lfu.TryRemove(i + 1);
@@ -253,7 +259,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.Run(threads, () => {
+            await Threaded.Run(threads, () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     lfu.TryRemove(new KeyValuePair<int, string>(i + 1, (i + 1).ToString()));
@@ -295,7 +302,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public async Task WhenConcurrentUpdateAndRemoveKvp()
         {
             var cache = new ConcurrentLfu<int, string>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
-            TaskCompletionSource<int> tcs = new TaskCompletionSource<int> ();
+            TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
 
             var removal = Task.Run(() =>
             {
@@ -323,7 +330,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Theory]
         [Repeat(10)]
         public async Task WhenValueIsBigStructNoLiveLock(int _)
-        { 
+        {
             using var source = new CancellationTokenSource();
             var started = new TaskCompletionSource<bool>();
             var cache = new ConcurrentLfu<int, Guid>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
@@ -345,13 +352,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.AddOrUpdate(1, Guid.NewGuid());
 
                 if (cancelToken.IsCancellationRequested)
-                { 
-                    return; 
+                {
+                    return;
                 }
             }
         }
 
-        private void Checker(ICache<int, Guid> cache,CancellationTokenSource source)
+        private void Checker(ICache<int, Guid> cache, CancellationTokenSource source)
         {
             for (int count = 0; count < 100_000; ++count)
             {
@@ -378,7 +385,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             RunIntegrityCheck(lfu, this.output);
         }
 
-        private static void RunIntegrityCheck<K,V>(ConcurrentLfu<K,V> cache, ITestOutputHelper output)
+        private static void RunIntegrityCheck<K, V>(ConcurrentLfu<K, V> cache, ITestOutputHelper output)
         {
             new ConcurrentLfuIntegrityChecker<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>(cache.Core).Validate(output);
         }
@@ -442,7 +449,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var node = lfuNodes.First;
 
-            while (node != null) 
+            while (node != null)
             {
                 node.WasRemoved.Should().BeFalse();
                 node.WasDeleted.Should().BeFalse();

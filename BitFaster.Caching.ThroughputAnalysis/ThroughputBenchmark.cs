@@ -46,7 +46,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 var sw = Stopwatch.StartNew();
                 Run(Stage.Pilot, 0, threads, config, cache);
 
-                valid = sw.Elapsed > TimeSpan.FromMilliseconds(800) ? valid + 1 : 0;    
+                valid = sw.Elapsed > TimeSpan.FromMilliseconds(800) ? valid + 1 : 0;
 
                 if (valid > 3)
                 {
@@ -54,8 +54,8 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 }
 
                 if (valid == 0)
-                { 
-                    config.Iterations = config.Iterations < 5 ? config.Iterations + 1 : (int)(1.2 * config.Iterations); 
+                {
+                    config.Iterations = config.Iterations < 5 ? config.Iterations + 1 : (int)(1.2 * config.Iterations);
                 }
             }
 

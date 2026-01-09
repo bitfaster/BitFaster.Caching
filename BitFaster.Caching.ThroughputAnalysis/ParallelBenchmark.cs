@@ -26,8 +26,8 @@ namespace BitFaster.Caching.ThroughputAnalysis
 
             // try to mitigate spam from MemoryCache
             for (int i = 0; i < 3; i++)
-            { 
-                GC.Collect(); 
+            {
+                GC.Collect();
             }
 
             var sw = Stopwatch.StartNew();

@@ -1,6 +1,6 @@
 ﻿using System;
-using BitFaster.Caching.Lru.Builder;
 using BitFaster.Caching.Atomic;
+using BitFaster.Caching.Lru.Builder;
 
 namespace BitFaster.Caching.Lru
 {

@@ -9,7 +9,7 @@ namespace BitFaster.Caching.Buffers
 #if NETSTANDARD2_0
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static T[] AsSpanOrArray<T>(this T[] array)
-        { 
+        {
             return array;
         }
 

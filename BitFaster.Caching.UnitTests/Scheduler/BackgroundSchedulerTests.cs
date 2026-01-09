@@ -56,7 +56,7 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         public async Task WhenWorkThrowsLastExceptionIsPopulated()
         {
             var tcs = new TaskCompletionSource<bool>();
-            scheduler.Run(() => { tcs.SetResult(true);  throw new InvalidCastException(); });
+            scheduler.Run(() => { tcs.SetResult(true); throw new InvalidCastException(); });
 
             await tcs.Task;
             await scheduler.WaitForExceptionAsync();

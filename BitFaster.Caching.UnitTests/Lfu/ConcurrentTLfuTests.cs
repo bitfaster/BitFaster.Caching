@@ -29,7 +29,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         // This is a scenario test to verify maintenance is run promptly after read.
         [RetryFact]
         public void WhenItemIsAccessedTimeToExpireIsUpdated()
-        { 
+        {
             var cache = new ConcurrentLfuBuilder<int, int>()
                 .WithCapacity(10)
                 .WithExpireAfterAccess(TimeSpan.FromSeconds(5))
@@ -49,7 +49,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 },
                 TimeSpan.FromSeconds(2),
                 cache =>
-                { 
+                {
                     cache.TryGet(1, out var value).Should().BeTrue();
                     cache.TryGet(1, out value).Should().BeTrue();
                 }
@@ -89,7 +89,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         [Fact]
         public void WhenCalculatorIsAfterWritePolicyIsAfterWrite()
-        { 
+        {
             lfu.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
             lfu.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(timeToLive);
         }

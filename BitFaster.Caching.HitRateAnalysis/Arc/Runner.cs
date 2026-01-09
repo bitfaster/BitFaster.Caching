@@ -22,7 +22,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Arc
             await this.config.File.DownloadIfNotExistsAsync();
 
             Console.WriteLine("Running...");
-            
+
             var sw = Stopwatch.StartNew();
 
             int count = this.config.Analysis.First().CacheSize >= 1_000_000 ? AnalyzeLarge() : AnalyzeSmall();

@@ -60,7 +60,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Glimpse
                 var line = sr.ReadLine();
 
                 if (long.TryParse(line, out var value))
-                { 
+                {
                     yield return value;
                 }
             }

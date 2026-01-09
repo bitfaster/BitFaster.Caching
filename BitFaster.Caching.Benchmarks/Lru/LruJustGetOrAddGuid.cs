@@ -1,4 +1,8 @@
-﻿using Benchly;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
+using Benchly;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
@@ -6,10 +10,6 @@ using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 using Microsoft.Extensions.Caching.Memory;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace BitFaster.Caching.Benchmarks
 {
@@ -23,7 +23,7 @@ namespace BitFaster.Caching.Benchmarks
     // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/
     // [ThreadingDiagnoser] // Requires .NET Core
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
-    [ColumnChart(Title= "Guid Lookup Latency ({JOB})", Output = OutputMode.PerJob, Colors = "darkslategray,royalblue,royalblue,#ffbf00,indianred,indianred")]
+    [ColumnChart(Title = "Guid Lookup Latency ({JOB})", Output = OutputMode.PerJob, Colors = "darkslategray,royalblue,royalblue,#ffbf00,indianred,indianred")]
     public class LruJustGetOrAddGuid
     {
         private static readonly ConcurrentDictionary<int, Guid> dictionary = new ConcurrentDictionary<int, Guid>(8, 9, EqualityComparer<int>.Default);
@@ -38,7 +38,7 @@ namespace BitFaster.Caching.Benchmarks
         private static readonly int key = 1;
         private static System.Runtime.Caching.MemoryCache memoryCache = System.Runtime.Caching.MemoryCache.Default;
 
-        Microsoft.Extensions.Caching.Memory.MemoryCache exMemoryCache 
+        Microsoft.Extensions.Caching.Memory.MemoryCache exMemoryCache
             = new Microsoft.Extensions.Caching.Memory.MemoryCache(new MemoryCacheOptionsAccessor());
 
         private static readonly byte[] b = new byte[8];
@@ -53,7 +53,7 @@ namespace BitFaster.Caching.Benchmarks
         [GlobalCleanup]
         public void GlobalCleanup()
         {
-           background.Dispose();
+            background.Dispose();
         }
 
         [Benchmark(Baseline = true)]

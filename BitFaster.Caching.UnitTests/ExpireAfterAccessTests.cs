@@ -9,7 +9,7 @@ namespace BitFaster.Caching.UnitTests
         private readonly Duration expiry = Duration.FromMinutes(1);
         private readonly ExpireAfterAccess<int, int> expiryCalculator;
 
-        public ExpireAfterAccessTests() 
+        public ExpireAfterAccessTests()
         {
             expiryCalculator = new(expiry.ToTimeSpan());
         }
@@ -22,7 +22,7 @@ namespace BitFaster.Caching.UnitTests
 
         [Fact]
         public void AfterCreateReturnsTimeToExpire()
-        { 
+        {
             expiryCalculator.GetExpireAfterCreate(1, 2).Should().Be(expiry);
         }
 

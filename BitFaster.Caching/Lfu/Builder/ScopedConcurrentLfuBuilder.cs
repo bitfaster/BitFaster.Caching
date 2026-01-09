@@ -10,7 +10,7 @@ namespace BitFaster.Caching.Lfu.Builder
     /// <typeparam name="W">The type of the wrapped cache value.</typeparam>
     public sealed class ScopedConcurrentLfuBuilder<K, V, W> : LfuBuilderBase<K, V, ScopedConcurrentLfuBuilder<K, V, W>, IScopedCache<K, V>>
         where K : notnull
-        where V : IDisposable 
+        where V : IDisposable
         where W : IScoped<V>
     {
         private readonly ConcurrentLfuBuilder<K, W> inner;

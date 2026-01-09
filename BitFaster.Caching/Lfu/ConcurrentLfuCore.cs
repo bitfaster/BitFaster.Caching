@@ -38,7 +38,7 @@ namespace BitFaster.Caching.Lfu
     /// </summary>
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    
+
     internal struct ConcurrentLfuCore<K, V, N, P> : IBoundedPolicy
         where K : notnull
         where N : LfuNode<K, V>
@@ -84,15 +84,15 @@ namespace BitFaster.Caching.Lfu
                 Throw.ArgOutOfRange(nameof(capacity));
 
             int dictionaryCapacity = ConcurrentDictionarySize.Estimate(capacity);
-            this.dictionary = new (concurrencyLevel, dictionaryCapacity, comparer);
+            this.dictionary = new(concurrencyLevel, dictionaryCapacity, comparer);
 
             // cap concurrency at proc count * 2
             int readStripes = Math.Min(BitOps.CeilingPowerOfTwo(concurrencyLevel), BitOps.CeilingPowerOfTwo(Environment.ProcessorCount * 2));
-            this.readBuffer = new (readStripes, DefaultBufferSize);
+            this.readBuffer = new(readStripes, DefaultBufferSize);
 
             // Cap the write buffer to the cache size, or 128. Whichever is smaller.
             int writeBufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);
-            this.writeBuffer = new (writeBufferSize);
+            this.writeBuffer = new(writeBufferSize);
 
             this.cmSketch = new CmSketch<K>(capacity, comparer);
             this.windowLru = new LfuNodeList<K, V>();
@@ -162,7 +162,7 @@ namespace BitFaster.Caching.Lfu
 
                 int lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
                 itemCount = Math.Min(itemCount, lruCount);
-                candidates = new (itemCount);
+                candidates = new(itemCount);
 
                 // Note: this is LRU order eviction, Caffeine is based on frequency
                 // walk in lru order, get itemCount keys to evict
@@ -309,8 +309,8 @@ namespace BitFaster.Caching.Lfu
 #if NET6_0_OR_GREATER
                 if (this.dictionary.TryRemove(new KeyValuePair<K, N>(node.Key, node)))
 #else
-                // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
-                if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(new KeyValuePair<K, N>(node.Key, node)))
+            // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+            if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(new KeyValuePair<K, N>(node.Key, node)))
 #endif
             {
                 node.WasRemoved = true;
@@ -323,7 +323,7 @@ namespace BitFaster.Caching.Lfu
             if (this.dictionary.TryGetValue(item.Key, out var node))
             {
                 lock (node)
-                { 
+                {
                     if (EqualityComparer<V>.Default.Equals(node.Value, item.Value))
                     {
                         var kvp = new KeyValuePair<K, N>(item.Key, node);
@@ -370,10 +370,10 @@ namespace BitFaster.Caching.Lfu
             if (this.dictionary.TryGetValue(key, out var node))
             {
                 lock (node)
-                { 
+                {
                     if (!node.WasRemoved)
                     {
-                         node.Value = value;
+                        node.Value = value;
 
                         // It's ok for this to be lossy, since the node is already tracked
                         // and we will just lose ordering/hit count, but not orphan the node.
@@ -409,8 +409,8 @@ namespace BitFaster.Caching.Lfu
             {
                 // LRUs can contain items that are already removed, skip those 
                 if (!curr.WasRemoved)
-                { 
-                    candidates.Add(curr); 
+                {
+                    candidates.Add(curr);
                 }
 
                 curr = curr.Next;
@@ -519,7 +519,7 @@ namespace BitFaster.Caching.Lfu
                 }
             }
         }
-        
+
         internal void DrainBuffers()
         {
             bool done = false;
@@ -612,10 +612,10 @@ namespace BitFaster.Caching.Lfu
             switch (node.Position)
             {
                 case Position.Window:
-                    this.windowLru.MoveToEnd(node); 
+                    this.windowLru.MoveToEnd(node);
                     break;
                 case Position.Probation:
-                    PromoteProbation(node); 
+                    PromoteProbation(node);
                     break;
                 case Position.Protected:
                     this.protectedLru.MoveToEnd(node);
@@ -884,7 +884,7 @@ namespace BitFaster.Caching.Lfu
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void VolatileWrite(int newStatus)
-            { 
+            {
                 Volatile.Write(ref this.drainStatus.Value, newStatus);
             }
 
@@ -896,7 +896,7 @@ namespace BitFaster.Caching.Lfu
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool Cas(int oldStatus, int newStatus)
-            { 
+            {
                 return Interlocked.CompareExchange(ref this.drainStatus.Value, newStatus, oldStatus) == oldStatus;
             }
 

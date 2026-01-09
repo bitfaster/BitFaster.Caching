@@ -9,7 +9,7 @@ namespace BitFaster.Caching.UnitTests.Lru
     {
         [Fact]
         public void WhenConvertingToTicksIsReversable()
-        { 
+        {
             var timespan = TimeSpan.FromSeconds(1);
 
             StopwatchTickConverter.FromTicks(StopwatchTickConverter.ToTicks(timespan)).Should().BeCloseTo(timespan, TimeSpan.FromMilliseconds(20));

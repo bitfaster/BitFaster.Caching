@@ -16,7 +16,8 @@ namespace BitFaster.Caching.UnitTests
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
+                await Threaded.Run(4, () =>
+                {
                     for (int j = 0; j < 100000; j++)
                     {
                         using (var l = this.cache.ScopedGetOrAdd(j, k => new Scoped<Disposable>(new Disposable(k))))

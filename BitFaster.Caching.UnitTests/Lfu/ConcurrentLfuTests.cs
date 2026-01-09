@@ -368,9 +368,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
             // W [19] Protected [12,13,14,15,16,17,18,0,1,2,3,4,5,6,7] Probation [8,9,10,11]
             for (int j = 0; j < 10; j++)
                 for (int i = 0; i < 20; i++)
-            {
-                cache.GetOrAdd(i, k => k);
-            }
+                {
+                    cache.GetOrAdd(i, k => k);
+                }
 
             cache.DoMaintenance();
             LogLru();
@@ -476,7 +476,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.TryGet(-1, out var _).Should().BeFalse();
         }
 
-// backcompat: remove conditional compile
+        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
         [Fact]
         public void WhenWriteBufferIsFullUpdatesAreDropped()
@@ -602,7 +602,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         [Fact]
         public void WhenKeyExistsAddOrUpdateGuidUpdatesExistingItem()
-        { 
+        {
             var lfu2 = new ConcurrentLfu<int, Guid>(1, 40, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
 
             var b = new byte[8];
@@ -797,7 +797,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             this.output.WriteLine($"Count {cache.Count}");
             this.output.WriteLine($"Keys {string.Join(",", cache.Keys.Select(k => k.ToString()))}");
-            
+
         }
 
         private void LogLru()

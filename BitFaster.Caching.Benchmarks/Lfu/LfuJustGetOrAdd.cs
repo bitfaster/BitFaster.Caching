@@ -1,12 +1,12 @@
-﻿using BenchmarkDotNet.Attributes;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using Benchly;
+using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
-using Benchly;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace BitFaster.Caching.Benchmarks
 {
@@ -40,7 +40,7 @@ namespace BitFaster.Caching.Benchmarks
         [GlobalCleanup]
         public void GlobalCleanup()
         {
-           background.Dispose();
+            background.Dispose();
         }
 
         [Benchmark(Baseline = true)]

@@ -11,7 +11,7 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <param name="maximumSize">The maximum size.</param>
         /// <param name="comparer">The equality comparer.</param>
-        public CmSketch(long maximumSize, IEqualityComparer<T> comparer) 
+        public CmSketch(long maximumSize, IEqualityComparer<T> comparer)
             : base(maximumSize, comparer)
         {
         }

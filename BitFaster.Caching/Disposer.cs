@@ -12,7 +12,7 @@ namespace BitFaster.Caching
     /// </summary>
     /// <typeparam name="T">The type of object to dispose</typeparam>
     public static class Disposer<T>
-    { 
+    {
         /// <summary>
         /// Dispose value if it implements the IDisposable interface.
         /// </summary>

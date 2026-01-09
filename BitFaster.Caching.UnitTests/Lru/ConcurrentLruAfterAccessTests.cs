@@ -111,7 +111,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lru,
                 lru =>
                 {
-                    
+
 
                     lru.GetOrAdd(1, valueFactory.Create);
 
@@ -121,7 +121,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 lru =>
                 {
                     lru.TryGet(1, out _).Should().BeTrue($"First");
-                }, 
+                },
                 TimeSpan.FromMilliseconds(75),
                 lru =>
                 {
@@ -186,7 +186,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                     return lru;
                 },
                 timeToLive.MultiplyBy(ttlWaitMlutiplier),
-                lru => 
+                lru =>
                 {
                     lru.Policy.ExpireAfterAccess.Value.TrimExpired();
 

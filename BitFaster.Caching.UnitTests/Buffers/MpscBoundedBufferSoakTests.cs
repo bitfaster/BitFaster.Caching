@@ -90,7 +90,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
         {
             this.testOutputHelper.WriteLine($"ProcessorCount={Environment.ProcessorCount}.");
 
-            var fill = CreateParallelFill(buffer, threads:4, itemsPerThread:256);
+            var fill = CreateParallelFill(buffer, threads: 4, itemsPerThread: 256);
 
             var count = Threaded.Run(4, () =>
             {
@@ -103,13 +103,13 @@ namespace BitFaster.Caching.UnitTests.Buffers
                     count = newcount;
                 }
             });
-                
+
             await fill.TimeoutAfter(Timeout, "fill timed out");
             await count.TimeoutAfter(Timeout, "count timed out");
         }
 
         private Task CreateParallelFill(MpscBoundedBuffer<string> buffer, int threads, int itemsPerThread)
-        { 
+        {
             return Threaded.Run(threads, () =>
             {
                 var spin = new SpinWait();

@@ -2,11 +2,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
+using BitFaster.Caching.Lru;
 using FluentAssertions;
-using Xunit;
 using Moq;
+using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Atomic
 {

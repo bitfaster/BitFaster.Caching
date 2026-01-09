@@ -43,7 +43,7 @@ namespace BitFaster.Caching.Lru.Builder
         /// Get the custom expiry.
         /// </summary>
         /// <returns>The expiry.</returns>
-        public IExpiryCalculator<K, V>? GetExpiry<V>() 
+        public IExpiryCalculator<K, V>? GetExpiry<V>()
         {
             if (this.expiry == null)
             {
@@ -52,8 +52,8 @@ namespace BitFaster.Caching.Lru.Builder
 
             var e = this.expiry as IExpiryCalculator<K, V>;
 
-            if (e == null)                                              
-                Throw.InvalidOp($"Incompatible IExpiryCalculator value generic type argument, expected {typeof(IExpiryCalculator<K,V>)} but found {this.expiry.GetType()}");
+            if (e == null)
+                Throw.InvalidOp($"Incompatible IExpiryCalculator value generic type argument, expected {typeof(IExpiryCalculator<K, V>)} but found {this.expiry.GetType()}");
 
             return e;
         }

@@ -1,12 +1,12 @@
-﻿using FluentAssertions;
-using BitFaster.Caching.Lru;
-using System;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BitFaster.Caching.Lru;
+using FluentAssertions;
 using Xunit;
-using System.Collections;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -428,7 +428,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.TryUpdate(2, "3").Should().BeFalse();
         }
 
-// backcompat: remove conditional compile
+        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
         [Fact]
         public void WhenKeyExistsTryUpdateIncrementsUpdateCount()
@@ -537,7 +537,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
         [Fact]
         public void WhenTrimCountIsZeroThrows()
-        { 
+        {
             lru.Invoking(l => lru.Trim(0)).Should().Throw<ArgumentOutOfRangeException>();
         }
 

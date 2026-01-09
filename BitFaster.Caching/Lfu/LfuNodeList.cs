@@ -186,7 +186,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     node = null;
                 }
-                
+
                 return true;
             }
 
