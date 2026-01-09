@@ -514,9 +514,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void EventsAreDisabled()
+        public void EventsAreEnabled()
         {
-            cache.Events.HasValue.Should().BeFalse();
+            cache.Events.HasValue.Should().BeTrue();
         }
 
         [Fact]

@@ -75,10 +75,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void EventsHasValueIsFalse()
+        public void EventsAreEnabled()
         {
             var x = new ConcurrentTLfu<int, int>(3, new TestExpiryCalculator<int, int>());
-            x.Events.HasValue.Should().BeFalse();
+            x.Events.HasValue.Should().BeTrue();
         }
 
         [Fact]
