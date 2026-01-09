@@ -162,12 +162,13 @@ namespace BitFaster.Caching.Atomic
 #pragma warning disable CA2002 // Do not lock on objects with weak identity
         private class Initializer
         {
+            private readonly Lock locker = LockFactory.Create();
             private bool isInitialized;
             private Scoped<V>? value;
 
             public Scoped<V> CreateScope<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
             {
-                lock (this)
+                lock (locker)
                 {
                     if (isInitialized)
                     {
@@ -183,7 +184,7 @@ namespace BitFaster.Caching.Atomic
 
             public Scoped<V> TryCreateDisposedScope()
             {
-                lock (this)
+                lock (locker)
                 {
                     if (isInitialized)
                     {
