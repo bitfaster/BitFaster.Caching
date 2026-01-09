@@ -20,7 +20,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private readonly TimerWheel<int, IDisposable> timerWheel;
         private readonly WheelEnumerator<int, IDisposable> wheelEnumerator;
         private readonly LfuNodeList<int, IDisposable> lfuNodeList;
-        private readonly ExpireAfterPolicy<int, IDisposable,NoEventPolicy<int, IDisposable>> policy;
+        private readonly ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>> policy;
         private ConcurrentLfuCore<int, IDisposable, TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>>, NoEventPolicy<int, IDisposable>> cache;
 
         public TimerWheelTests(ITestOutputHelper testOutputHelper)

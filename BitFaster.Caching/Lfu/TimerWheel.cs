@@ -52,7 +52,7 @@ namespace BitFaster.Caching.Lfu
 
                 for (int j = 0; j < wheels[i].Length; j++)
                 {
-                    wheels[i][j] = TimeOrderNode< K, V>.CreateSentinel();
+                    wheels[i][j] = TimeOrderNode<K, V>.CreateSentinel();
                 }
             }
         }
@@ -86,12 +86,12 @@ namespace BitFaster.Caching.Lfu
                     long previousTicks = (long)(((ulong)previousTime) >> TimerWheel.Shift[i]);
                     long currentTicks = (long)(((ulong)currentTime.raw) >> TimerWheel.Shift[i]);
                     long delta = (currentTicks - previousTicks);
-                    
+
                     if (delta <= 0L)
                     {
                         break;
                     }
-                    
+
                     Expire<N, P, T, E>(ref cache, i, previousTicks, delta);
                 }
             }
@@ -284,7 +284,7 @@ namespace BitFaster.Caching.Lfu
             TimeOrderNode<K, V> sentinel = timerWheel[probe];
             TimeOrderNode<K, V> next = sentinel.GetNextInTimeOrder();
 
-            return (next == sentinel) ? long.MaxValue: (TimerWheel.Spans[index] - (time & spanMask));
+            return (next == sentinel) ? long.MaxValue : (TimerWheel.Spans[index] - (time & spanMask));
         }
     }
 }

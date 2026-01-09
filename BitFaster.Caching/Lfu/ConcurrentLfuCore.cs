@@ -648,7 +648,7 @@ namespace BitFaster.Caching.Lfu
 
         private static class RemoveEventInliner
         {
-            private static readonly bool IsEnabled = typeof(E) == typeof(EventPolicy<K,V>);
+            private static readonly bool IsEnabled = typeof(E) == typeof(EventPolicy<K, V>);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static void OnRemovedEvent(ConcurrentLfuCore<K, V, N, P, E> cache, N node)
