@@ -162,11 +162,11 @@ namespace BitFaster.Caching.UnitTests
         {
             var cache = new SingletonCache<string, DisposeTest>();
 
-            var tasks = Enumerable.Range(0, 64).Select(i => Task.Run(() => 
-            { 
+            var tasks = Enumerable.Range(0, 64).Select(i => Task.Run(() =>
+            {
                 using (var handle = cache.Acquire("Foo"))
-                { 
-                    handle.Value.ThrowIfDisposed();    
+                {
+                    handle.Value.ThrowIfDisposed();
                 }
             }));
 

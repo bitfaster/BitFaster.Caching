@@ -11,7 +11,7 @@ namespace BitFaster.Caching.UnitTests
 {
     public class ScopedCacheTests : ScopedCacheTestBase
     {
-        public ScopedCacheTests() 
+        public ScopedCacheTests()
             : base(new ScopedCache<int, Disposable>(new ConcurrentLru<int, Scoped<Disposable>>(capacity)))
         {
         }
@@ -28,7 +28,7 @@ namespace BitFaster.Caching.UnitTests
         public void WhenScopeIsDisposedTryGetReturnsFalse()
         {
             var scope = new Scoped<Disposable>(new Disposable());
-            
+
             this.cache.ScopedGetOrAdd(1, k => scope);
 
             scope.Dispose();
@@ -49,7 +49,7 @@ namespace BitFaster.Caching.UnitTests
         {
             var scope = new Scoped<Disposable>(new Disposable());
             scope.Dispose();
-            
+
             Action getOrAdd = () => { this.cache.ScopedGetOrAdd(1, k => scope); };
 
             getOrAdd.Should().Throw<InvalidOperationException>();

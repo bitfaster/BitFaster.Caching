@@ -32,7 +32,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
+                await Threaded.Run(4, () =>
+                {
                     for (int i = 0; i < 100000; i++)
                     {
                         lru.GetOrAdd(i + 1, i => i.ToString());
@@ -53,7 +54,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.RunAsync(4, async () => {
+                await Threaded.RunAsync(4, async () =>
+                {
                     for (int i = 0; i < 100000; i++)
                     {
                         await lru.GetOrAddAsync(i + 1, i => Task.FromResult(i.ToString()));
@@ -74,7 +76,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
+                await Threaded.Run(4, () =>
+                {
                     for (int i = 0; i < 100000; i++)
                     {
                         // use the arg overload
@@ -96,7 +99,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.RunAsync(4, async () => {
+                await Threaded.RunAsync(4, async () =>
+                {
                     for (int i = 0; i < 100000; i++)
                     {
                         // use the arg overload
@@ -118,7 +122,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
+                await Threaded.Run(4, () =>
+                {
                     for (int i = 0; i < 100000; i++)
                     {
                         lru.TryRemove(i + 1);
@@ -138,7 +143,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
+                await Threaded.Run(4, () =>
+                {
                     for (int i = 0; i < 100000; i++)
                     {
                         lru.TryRemove(new KeyValuePair<int, string>(i + 1, (i + 1).ToString()));
@@ -158,7 +164,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
+                await Threaded.Run(4, () =>
+                {
                     for (int i = 0; i < 100000; i++)
                     {
                         lru.TryUpdate(i + 1, i.ToString());
@@ -178,7 +185,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
+                await Threaded.Run(4, () =>
+                {
                     for (int i = 0; i < 100000; i++)
                     {
                         lru.AddOrUpdate(i + 1, i.ToString());
@@ -200,7 +208,8 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
+                await Threaded.Run(4, () =>
+                {
                     var b = new byte[8];
                     for (int i = 0; i < 100000; i++)
                     {
@@ -240,7 +249,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public async Task WhenConcurrentUpdateAndRemoveKvp()
         {
-            TaskCompletionSource<int> tcs = new TaskCompletionSource<int> ();
+            TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
 
             var removal = Task.Run(() =>
             {
@@ -266,7 +275,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Repeat(10)]
         public async Task WhenConcurrentGetAndClearCacheEndsInConsistentState(int iteration)
         {
-            await Threaded.Run(4, r => {
+            await Threaded.Run(4, r =>
+            {
                 for (int i = 0; i < 100000; i++)
                 {
                     // clear 6,250 times per 1_000_000 iters
@@ -289,7 +299,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Repeat(10)]
         public async Task WhenConcurrentGetAndClearDuringWarmupCacheEndsInConsistentState(int iteration)
         {
-            await Threaded.Run(4, r => {
+            await Threaded.Run(4, r =>
+            {
                 for (int i = 0; i < 100000; i++)
                 {
                     // clear 25,000 times per 1_000_000 iters
@@ -315,7 +326,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Theory]
         [Repeat(10)]
         public async Task WhenValueIsBigStructNoLiveLock(int _)
-        { 
+        {
             using var source = new CancellationTokenSource();
             var started = new TaskCompletionSource<bool>();
             var cache = new ConcurrentLru<int, Guid>(1, capacity, EqualityComparer<int>.Default);
@@ -337,13 +348,13 @@ namespace BitFaster.Caching.UnitTests.Lru
                 cache.AddOrUpdate(1, Guid.NewGuid());
 
                 if (cancelToken.IsCancellationRequested)
-                { 
-                    return; 
+                {
+                    return;
                 }
             }
         }
 
-        private void Checker(ICache<int, Guid> cache,CancellationTokenSource source)
+        private void Checker(ICache<int, Guid> cache, CancellationTokenSource source)
         {
             for (int count = 0; count < 100_000; ++count)
             {

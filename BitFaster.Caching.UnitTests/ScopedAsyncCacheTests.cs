@@ -8,7 +8,7 @@ namespace BitFaster.Caching.UnitTests
 {
     public class ScopedAsyncCacheTests : ScopedAsyncCacheTestBase
     {
-        public ScopedAsyncCacheTests() 
+        public ScopedAsyncCacheTests()
             : base(new ScopedAsyncCache<int, Disposable>(new ConcurrentLru<int, Scoped<Disposable>>(capacity)))
         {
         }
@@ -52,7 +52,7 @@ namespace BitFaster.Caching.UnitTests
             await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
         }
 
-// backcompat: remove conditional compile
+        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
         [Fact]
         public async Task GetOrAddAsyncArgDisposedScopeThrows()

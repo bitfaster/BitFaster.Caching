@@ -32,7 +32,7 @@ namespace BitFaster.Caching
         /// </summary>
         long Evicted { get; }
 
-// backcompat: remove conditional compile
+        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
         /// <summary>
         /// Gets the total number of updated items.

@@ -158,7 +158,8 @@ namespace BitFaster.Caching.Lfu
                 default:
                     afterCustom = new Optional<IDiscreteTimePolicy>(this);
                     break;
-            };
+            }
+            ;
 
             return new CachePolicy(new Optional<IBoundedPolicy>(this), afterWrite, afterAccess, afterCustom);
         }

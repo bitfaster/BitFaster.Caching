@@ -1,9 +1,9 @@
-﻿using FluentAssertions;
-using BitFaster.Caching.Lru;
+﻿using System;
 using System.Collections.Generic;
-using Xunit;
+using BitFaster.Caching.Lru;
+using FluentAssertions;
 using Moq;
-using System;
+using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -147,7 +147,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             eventSourceList[0].Should().Be(this);
         }
 
-// backcompat: remove 
+        // backcompat: remove 
 #if NET
         [Fact]
         public void WhenInterfaceDefaultItemUpdatedRegisteredNoOp()

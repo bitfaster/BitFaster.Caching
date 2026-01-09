@@ -1,14 +1,14 @@
-﻿using FluentAssertions;
-using BitFaster.Caching.Lru;
-using System;
+﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using BitFaster.Caching.Lru;
+using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
-using System.Collections.Concurrent;
-using System.Reflection;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -705,7 +705,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             Print();                                    // Hot [6,7,8] Warm [1,2,3] Cold [0,4,5]
             lru.Metrics.Value.Evicted.Should().Be(0);
- 
+
             lru.GetOrAdd(-1, valueFactory.Create);
 
             lru.TryRemove(-1);
@@ -862,7 +862,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.TryUpdate(2, "3").Should().BeFalse();
         }
 
-// backcompat: remove conditional compile
+        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
         [Fact]
         public void WhenKeyExistsTryUpdateIncrementsUpdateCount()
@@ -905,9 +905,9 @@ namespace BitFaster.Caching.UnitTests.Lru
 
         [Fact]
         public void WhenKeyExistsAddOrUpdateGuidUpdatesExistingItem()
-        { 
-            var lru2 = new ConcurrentLru<int, Guid>(1, capacity, EqualityComparer<int>.Default);    
-            
+        {
+            var lru2 = new ConcurrentLru<int, Guid>(1, capacity, EqualityComparer<int>.Default);
+
             var b = new byte[8];
             lru2.AddOrUpdate(1, new Guid(1, 0, 0, b));
             lru2.AddOrUpdate(1, new Guid(2, 0, 0, b));
@@ -941,7 +941,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.WarmCount.Should().Be(1); // items must have been enqueued and cycled for one of them to reach the warm queue
         }
 
-// backcompat: remove conditional compile
+        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
         [Fact]
         public void WhenItemExistsAddOrUpdateFiresUpdateEvent()
@@ -1054,7 +1054,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             // By default capacity is 9. Test all possible states of touched items
             // in the cache.
 
-            for (int i = 0; i < itemCount; i++) 
+            for (int i = 0; i < itemCount; i++)
             {
                 lru.AddOrUpdate(i, "1");
             }
@@ -1081,16 +1081,16 @@ namespace BitFaster.Caching.UnitTests.Lru
         public void WhenWarmThenClearedIsWarmIsReset()
         {
             for (int i = 0; i < 20; i++)
-            { 
-                lru.GetOrAdd(i, k => k.ToString()); 
+            {
+                lru.GetOrAdd(i, k => k.ToString());
             }
 
             lru.Clear();
             lru.Count.Should().Be(0);
 
             for (int i = 0; i < 20; i++)
-            { 
-                lru.GetOrAdd(i, k => k.ToString()); 
+            {
+                lru.GetOrAdd(i, k => k.ToString());
             }
 
             lru.Count.Should().Be(capacity.Hot + capacity.Warm + capacity.Cold);

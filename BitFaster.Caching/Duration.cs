@@ -36,8 +36,8 @@ namespace BitFaster.Caching
 #endif
 
         internal Duration(long raw)
-        { 
-            this.raw = raw; 
+        {
+            this.raw = raw;
         }
 
         /// <summary>

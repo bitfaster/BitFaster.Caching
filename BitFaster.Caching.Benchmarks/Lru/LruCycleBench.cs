@@ -26,7 +26,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [SimpleJob(RuntimeMoniker.Net48)]
 #endif
-    [SimpleJob(RuntimeMoniker.Net60)]  
+    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class LruCycleBench
@@ -52,7 +52,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
             field = e.Key;
         }
 
-        [Benchmark(Baseline =true)]
+        [Benchmark(Baseline = true)]
         public void FastConcurrentLru()
         {
             Func<int, int> func = x => x;

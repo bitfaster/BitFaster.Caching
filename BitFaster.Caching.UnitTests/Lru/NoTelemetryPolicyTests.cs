@@ -1,5 +1,5 @@
-﻿using FluentAssertions;
-using BitFaster.Caching.Lru;
+﻿using BitFaster.Caching.Lru;
+using FluentAssertions;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru

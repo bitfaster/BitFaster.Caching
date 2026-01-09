@@ -88,7 +88,7 @@ namespace BitFaster.Caching.Benchmarks
     }
 
     public static class Disposer2<T>
-    { 
+    {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Dispose(T value)
         {

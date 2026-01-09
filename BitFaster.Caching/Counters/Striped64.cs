@@ -88,7 +88,7 @@ namespace BitFaster.Caching.Counters
         /// during table initialization races. Updated via CAS.
         /// </summary>
         protected PaddedLong @base = new();
-        
+
         /// <summary>
         /// When non-null, size is a power of 2.
         /// </summary>
@@ -247,7 +247,7 @@ namespace BitFaster.Caching.Counters
                 }
                 // Fall back on using base
                 else if (this.@base.CompareAndSwap(v = this.@base.VolatileRead(), v + x))
-                    break;                          
+                    break;
             }
         }
     }

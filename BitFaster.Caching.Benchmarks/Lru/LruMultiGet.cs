@@ -1,10 +1,10 @@
-﻿using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
-using BitFaster.Caching.Lru;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.Caching;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
+using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Benchmarks.Lru
 {
@@ -71,7 +71,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
             Func<int, int> func = x => x;
 
             for (int j = 0; j < 4; j++)
-            { 
+            {
                 for (int i = 0; i < 6; i++)
                 {
                     dictionary.GetOrAdd(i, func);

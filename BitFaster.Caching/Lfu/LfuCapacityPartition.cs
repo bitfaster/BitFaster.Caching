@@ -10,7 +10,7 @@ namespace BitFaster.Caching.Lfu
     public sealed class LfuCapacityPartition
     {
         private readonly int max;
-        
+
         private int windowCapacity;
         private int protectedCapacity;
         private int probationCapacity;

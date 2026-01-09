@@ -1,13 +1,13 @@
-﻿using FluentAssertions;
-using FluentAssertions.Extensions;
-using BitFaster.Caching.Lru;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Xunit;
+using BitFaster.Caching.Lru;
 using BitFaster.Caching.UnitTests.Retry;
+using FluentAssertions;
+using FluentAssertions.Extensions;
+using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {

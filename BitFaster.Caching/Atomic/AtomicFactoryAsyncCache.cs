@@ -153,8 +153,8 @@ namespace BitFaster.Caching.Atomic
             foreach (var kvp in this.cache)
             {
                 if (kvp.Value.IsValueCreated)
-                { 
-                    yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.ValueIfCreated!); 
+                {
+                    yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.ValueIfCreated!);
                 }
             }
         }

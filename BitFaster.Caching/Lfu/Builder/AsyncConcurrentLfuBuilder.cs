@@ -28,7 +28,7 @@ namespace BitFaster.Caching.Lfu.Builder
         ///<inheritdoc/>
         public override IAsyncCache<K, V> Build()
         {
-            return(ConcurrentLfuFactory.Create<K, V>(this.info) as IAsyncCache<K, V>)!;
+            return (ConcurrentLfuFactory.Create<K, V>(this.info) as IAsyncCache<K, V>)!;
         }
     }
 }

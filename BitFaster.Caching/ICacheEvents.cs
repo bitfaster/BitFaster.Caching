@@ -12,7 +12,7 @@ namespace BitFaster.Caching
         /// </summary>
         event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved;
 
-// backcompat: remove conditional compile
+        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
         /// <summary>
         /// Occurs when an item is updated.

@@ -148,8 +148,8 @@ namespace BitFaster.Caching.Atomic
             foreach (var kvp in this.cache)
             {
                 if (kvp.Value.IsScopeCreated)
-                { 
-                    yield return new KeyValuePair<K, Scoped<V>>(kvp.Key, kvp.Value.ScopeIfCreated!); 
+                {
+                    yield return new KeyValuePair<K, Scoped<V>>(kvp.Key, kvp.Value.ScopeIfCreated!);
                 }
             }
         }

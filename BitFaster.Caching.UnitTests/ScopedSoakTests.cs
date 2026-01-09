@@ -14,7 +14,8 @@ namespace BitFaster.Caching.UnitTests
             {
                 var scope = new Scoped<Disposable>(new Disposable(i));
 
-                await Threaded.Run(4, () => {
+                await Threaded.Run(4, () =>
+                {
                     for (int i = 0; i < 100000; i++)
                     {
                         using (var l = scope.CreateLifetime())

@@ -27,7 +27,8 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Repeat(10)]
         public async Task WhenSoakConcurrentGetCacheEndsInConsistentState(int iteration)
         {
-            await Threaded.Run(4, () => {
+            await Threaded.Run(4, () =>
+            {
                 for (int j = 0; j < 100000; j++)
                 {
                     for (int i = 0; i < lru.Capacity; i++)

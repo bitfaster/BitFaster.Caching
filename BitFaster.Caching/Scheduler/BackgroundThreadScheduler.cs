@@ -79,7 +79,7 @@ namespace BitFaster.Caching.Scheduler
                         {
                             action!();
                         }
-                        else 
+                        else
                         {
                             spinner.SpinOnce();
                         }

@@ -16,7 +16,7 @@ namespace BitFaster.Caching.UnitTests
 
         [Fact]
         public void TimeToExpireReturnsCtorArg()
-        { 
+        {
             expiryCalculator.TimeToExpire.Should().Be(expiry.ToTimeSpan());
         }
 

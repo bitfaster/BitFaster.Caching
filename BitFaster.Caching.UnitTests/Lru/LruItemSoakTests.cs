@@ -17,7 +17,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Theory]
         [Repeat(soakIterations)]
         public async Task DetectTornStruct(int _)
-        { 
+        {
             using var source = new CancellationTokenSource();
             var started = new TaskCompletionSource<bool>();
 
@@ -38,8 +38,8 @@ namespace BitFaster.Caching.UnitTests.Lru
                 item.SeqLockWrite(MassiveStruct.B);
 
                 if (cancelToken.IsCancellationRequested)
-                { 
-                    return; 
+                {
+                    return;
                 }
             }
         }
@@ -53,16 +53,16 @@ namespace BitFaster.Caching.UnitTests.Lru
                 var t = item.SeqLockRead();
 
                 if (t != MassiveStruct.A && t != MassiveStruct.B)
-                {    
-                    throw new Exception($"Value is torn after {count} iterations"); 
+                {
+                    throw new Exception($"Value is torn after {count} iterations");
                 }
             }
 
             source.Cancel();
         }
 
-        #pragma warning disable CS0659 // Object.Equals but no GetHashCode
-        #pragma warning disable CS0661 // operator== but no GetHashCode     
+#pragma warning disable CS0659 // Object.Equals but no GetHashCode
+#pragma warning disable CS0661 // operator== but no GetHashCode     
         public struct MassiveStruct : IEquatable<MassiveStruct>
         {
             // To repro on x64, struct should be larger than a cache line (64 bytes).
@@ -79,8 +79,8 @@ namespace BitFaster.Caching.UnitTests.Lru
             public long i;
 
             public static readonly MassiveStruct A = new MassiveStruct();
-            public static readonly MassiveStruct B = new MassiveStruct() 
-            { a = long.MaxValue, b = long.MaxValue, c = long.MaxValue, d = long.MaxValue, e = long.MaxValue, f= long.MaxValue, g = long.MaxValue, h = long.MaxValue, i = long.MaxValue };
+            public static readonly MassiveStruct B = new MassiveStruct()
+            { a = long.MaxValue, b = long.MaxValue, c = long.MaxValue, d = long.MaxValue, e = long.MaxValue, f = long.MaxValue, g = long.MaxValue, h = long.MaxValue, i = long.MaxValue };
 
             public override bool Equals(object obj)
             {
@@ -110,7 +110,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 return !(left == right);
             }
         }
-        #pragma warning restore CS0659
-        #pragma warning restore CS0661
+#pragma warning restore CS0659
+#pragma warning restore CS0661
     }
 }
