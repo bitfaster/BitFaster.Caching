@@ -1,4 +1,5 @@
 ﻿using System;
+using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -51,7 +52,7 @@ namespace BitFaster.Caching.Lfu
 
                 for (int j = 0; j < wheels[i].Length; j++)
                 {
-                    wheels[i][j] = TimeOrderNode<K, V>.CreateSentinel();
+                    wheels[i][j] = TimeOrderNode< K, V>.CreateSentinel();
                 }
             }
         }
@@ -61,7 +62,7 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <param name="cache"></param>
         /// <param name="currentTime"></param>
-        public void Advance<N, P, E>(ref ConcurrentLfuCore<K, V, N, P, E> cache, Duration currentTime)
+        public void Advance<N, P, T, E>(ref ConcurrentLfuCore<K, V, N, P, E> cache, Duration currentTime)
             where N : LfuNode<K, V>
             where P : struct, INodePolicy<K, V, N, E>
             where E : struct, IEventPolicy<K, V>
@@ -85,13 +86,13 @@ namespace BitFaster.Caching.Lfu
                     long previousTicks = (long)(((ulong)previousTime) >> TimerWheel.Shift[i]);
                     long currentTicks = (long)(((ulong)currentTime.raw) >> TimerWheel.Shift[i]);
                     long delta = (currentTicks - previousTicks);
-
+                    
                     if (delta <= 0L)
                     {
                         break;
                     }
-
-                    Expire(ref cache, i, previousTicks, delta);
+                    
+                    Expire<N, P, T, E>(ref cache, i, previousTicks, delta);
                 }
             }
             catch (Exception)
@@ -102,7 +103,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         // Expires entries or reschedules into the proper bucket if still active.
-        private void Expire<N, P, E>(ref ConcurrentLfuCore<K, V, N, P, E> cache, int index, long previousTicks, long delta)
+        private void Expire<N, P, T, E>(ref ConcurrentLfuCore<K, V, N, P, E> cache, int index, long previousTicks, long delta)
             where N : LfuNode<K, V>
             where P : struct, INodePolicy<K, V, N, E>
             where E : struct, IEventPolicy<K, V>
@@ -283,7 +284,7 @@ namespace BitFaster.Caching.Lfu
             TimeOrderNode<K, V> sentinel = timerWheel[probe];
             TimeOrderNode<K, V> next = sentinel.GetNextInTimeOrder();
 
-            return (next == sentinel) ? long.MaxValue : (TimerWheel.Spans[index] - (time & spanMask));
+            return (next == sentinel) ? long.MaxValue: (TimerWheel.Spans[index] - (time & spanMask));
         }
     }
 }

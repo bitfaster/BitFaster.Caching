@@ -142,7 +142,7 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, P, E> cache) where P : struct, INodePolicy<K, V, TimeOrderNode<K, V>, E>
         {
-            wheel.Advance(ref cache, Duration.SinceEpoch());
+            wheel.Advance<TimeOrderNode<K, V>, P, TimeOrderNode<K, V>, E>(ref cache, Duration.SinceEpoch());
         }
     }
 }
