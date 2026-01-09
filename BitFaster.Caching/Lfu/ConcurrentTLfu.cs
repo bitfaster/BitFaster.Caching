@@ -42,7 +42,9 @@ namespace BitFaster.Caching.Lfu
         public Optional<ICacheMetrics> Metrics => core.Metrics;
 
         ///<inheritdoc/>
-        public Optional<ICacheEvents<K, V>> Events => new(core.eventPolicy);
+        public Optional<ICacheEvents<K, V>> Events => new(new Proxy(this));
+
+        internal ref EventPolicy<K, V> EventPolicyRef => ref this.core.eventPolicy;
 
         ///<inheritdoc/>
         public CachePolicy Policy => CreatePolicy();
@@ -71,6 +73,7 @@ namespace BitFaster.Caching.Lfu
         public void Clear()
         {
             core.Clear();
+            DoMaintenance();
         }
 
         ///<inheritdoc/>
@@ -101,6 +104,7 @@ namespace BitFaster.Caching.Lfu
         public void Trim(int itemCount)
         {
             core.Trim(itemCount);
+            DoMaintenance();
         }
 
         ///<inheritdoc/>
@@ -193,6 +197,54 @@ namespace BitFaster.Caching.Lfu
         public void TrimExpired()
         {
             DoMaintenance();
+        }
+
+        // To get JIT optimizations, policies must be structs.
+        // If the structs are returned directly via properties, they will be copied. Since
+        // eventPolicy is a mutable struct, copy is bad. One workaround is to store the
+        // state within the struct in an object. Since the struct points to the same object
+        // it becomes immutable. However, this object is then somewhere else on the
+        // heap, which slows down the policies with hit counter logic in benchmarks. Likely
+        // this approach keeps the structs data members in the same CPU cache line as the LFU.
+        private class Proxy : ICacheEvents<K, V>
+        {
+            private readonly ConcurrentTLfu<K, V> lfu;
+
+            public Proxy(ConcurrentTLfu<K, V> lfu)
+            {
+                this.lfu = lfu;
+            }
+
+            public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
+            {
+                add
+                {
+                    ref var policy = ref this.lfu.EventPolicyRef;
+                    policy.ItemRemoved += value;
+                }
+                remove
+                {
+                    ref var policy = ref this.lfu.EventPolicyRef;
+                    policy.ItemRemoved -= value;
+                }
+            }
+
+            // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+            public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
+            {
+                add
+                {
+                    ref var policy = ref this.lfu.EventPolicyRef;
+                    policy.ItemUpdated += value;
+                }
+                remove
+                {
+                    ref var policy = ref this.lfu.EventPolicyRef;
+                    policy.ItemUpdated -= value;
+                }
+            }
+#endif
         }
     }
 }
