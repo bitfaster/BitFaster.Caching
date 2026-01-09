@@ -20,8 +20,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private readonly TimerWheel<int, IDisposable> timerWheel;
         private readonly WheelEnumerator<int, IDisposable> wheelEnumerator;
         private readonly LfuNodeList<int, IDisposable> lfuNodeList;
-        private readonly ExpireAfterPolicy<int, IDisposable> policy;
-        private ConcurrentLfuCore<int, IDisposable, TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable>> cache;
+        private readonly ExpireAfterPolicy<int, IDisposable,NoEventPolicy<int, IDisposable>> policy;
+        private ConcurrentLfuCore<int, IDisposable, TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>>, NoEventPolicy<int, IDisposable>> cache;
 
         public TimerWheelTests(ITestOutputHelper testOutputHelper)
         {
@@ -29,9 +29,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfuNodeList = new();
             timerWheel = new();
             wheelEnumerator = new(timerWheel, testOutputHelper);
-            policy = new ExpireAfterPolicy<int, IDisposable>(new TestExpiryCalculator<int, IDisposable>());
+            policy = new ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>>(new TestExpiryCalculator<int, IDisposable>());
             cache = new(
-                Defaults.ConcurrencyLevel, 3, new ThreadPoolScheduler(), EqualityComparer<int>.Default, () => { }, policy);
+                Defaults.ConcurrencyLevel, 3, new ThreadPoolScheduler(), EqualityComparer<int>.Default, () => { }, policy, default);
         }
 
         [Theory]
@@ -48,7 +48,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 timerWheel.Schedule(node);
             }
 
-            timerWheel.Advance(ref cache, new Duration(clock) + duration);
+            timerWheel.Advance<TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>>, NoEventPolicy<int, IDisposable>, NoEventPolicy<int, IDisposable>>(ref cache, new Duration(clock) + duration);
 
             var expired = items.Where(n => ((DisposeTracker)n.Value).Expired);
             expired.Count().Should().Be(expiredCount);
@@ -68,7 +68,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var item = new DisposeTracker();
             timerWheel.Schedule(AddNode(1, item, new Duration(clock2 + TimerWheel.Spans[0])));
 
-            timerWheel.Advance(ref cache, new Duration(clock2 + 13 * TimerWheel.Spans[0]));
+            timerWheel.Advance<TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>>, NoEventPolicy<int, IDisposable>, NoEventPolicy<int, IDisposable>>(ref cache, new Duration(clock2 + 13 * TimerWheel.Spans[0]));
 
             item.Expired.Should().BeTrue();
         }
@@ -90,13 +90,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var initialPosition = wheelEnumerator.PositionOf(120);
 
             Duration t45 = clockD + Duration.FromSeconds(45); // discard T15, T120 in wheel[1]
-            timerWheel.Advance(ref cache, t45);
+            timerWheel.Advance<TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>>, NoEventPolicy<int, IDisposable>, NoEventPolicy<int, IDisposable>>(ref cache, t45);
 
             lfuNodeList.Count.Should().Be(1); // verify discarded T15
             wheelEnumerator.PositionOf(15).Should().Be(WheelPosition.None);
 
             Duration t110 = clockD + Duration.FromSeconds(110);
-            timerWheel.Advance(ref cache, t110);
+            timerWheel.Advance<TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>>, NoEventPolicy<int, IDisposable>, NoEventPolicy<int, IDisposable>>(ref cache, t110);
 
             lfuNodeList.Count.Should().Be(1); // verify not discarded, T120 in wheel[0]
             var rescheduledPosition = wheelEnumerator.PositionOf(120);
@@ -104,7 +104,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             rescheduledPosition.Should().BeLessThan(initialPosition);
 
             Duration t130 = clockD + Duration.FromSeconds(130);
-            timerWheel.Advance(ref cache, t130);
+            timerWheel.Advance<TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>>, NoEventPolicy<int, IDisposable>, NoEventPolicy<int, IDisposable>>(ref cache, t130);
 
             lfuNodeList.Count.Should().Be(0); // verify discarded T120
             wheelEnumerator.PositionOf(120).Should().Be(WheelPosition.None);
@@ -117,7 +117,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var item = new DisposeTracker();
             timerWheel.Schedule(AddNode(1, item, new Duration(timerWheel.time + TimerWheel.Spans[0])));
 
-            timerWheel.Advance(ref cache, new Duration(timerWheel.time + (TimerWheel.Spans[3] * 365)));
+            timerWheel.Advance<TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>>, NoEventPolicy<int, IDisposable>, NoEventPolicy<int, IDisposable>>(ref cache, new Duration(timerWheel.time + (TimerWheel.Spans[3] * 365)));
 
             this.lfuNodeList.Count.Should().Be(0);
         }
@@ -139,7 +139,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             for (int i = 0; i < TimerWheel.Buckets.Length; i++)
             {
-                timerWheel.Advance(ref cache, new Duration(clock - 3 * TimerWheel.Spans[i]));
+                timerWheel.Advance<TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>>, NoEventPolicy<int, IDisposable>, NoEventPolicy<int, IDisposable>>(ref cache, new Duration(clock - 3 * TimerWheel.Spans[i]));
             }
 
             this.lfuNodeList.Count.Should().Be(1_000);
@@ -155,7 +155,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             timerWheel.Schedule(AddNode(1, new DisposeThrows(), new Duration(clock.raw + TimerWheel.Spans[1])));
 
             // This should expire the node, call evict, then throw via DisposeThrows.Dispose()
-            Action advance = () => timerWheel.Advance(ref cache, new Duration(clock.raw + (2 * TimerWheel.Spans[1])));
+            Action advance = () => timerWheel.Advance<TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>>, NoEventPolicy<int, IDisposable>, NoEventPolicy<int, IDisposable>>(ref cache, new Duration(clock.raw + (2 * TimerWheel.Spans[1])));
             advance.Should().Throw<InvalidOperationException>();
 
             timerWheel.time.Should().Be(clock.raw);
@@ -224,7 +224,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             timerWheel.Schedule(AddNode(2, new DisposeTracker(), t80)); // wheel 1
 
             Duration t45 = clockD + Duration.FromSeconds(45); // discard T15, T80 in wheel[1]
-            timerWheel.Advance(ref cache, t45);
+            timerWheel.Advance<TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable, NoEventPolicy<int, IDisposable>>, NoEventPolicy<int, IDisposable>, NoEventPolicy<int, IDisposable>>(ref cache, t45);
 
             lfuNodeList.Count.Should().Be(1); // verify discarded
 
