@@ -194,7 +194,7 @@ namespace BitFaster.Caching.Lfu
 #endif
             {
                 Evict(candidate, reason);
-            }         
+            }
         }
 
         private bool TryAdd(K key, V value)
