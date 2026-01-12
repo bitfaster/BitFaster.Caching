@@ -135,7 +135,7 @@ namespace BitFaster.Caching.Lfu
                     {
                         if ((node.GetTimestamp() - time) < 0)
                         {
-                            cache.Evict(node);
+                            cache.Evict(node, ItemRemovedReason.Evicted);
                         }
                         else
                         {

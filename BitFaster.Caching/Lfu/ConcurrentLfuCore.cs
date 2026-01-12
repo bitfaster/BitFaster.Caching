@@ -155,7 +155,7 @@ namespace BitFaster.Caching.Lfu
 
         public void Clear()
         {
-            Trim(int.MaxValue);
+            Trim(int.MaxValue, ItemRemovedReason.Cleared);
 
             lock (maintenanceLock)
             {
@@ -167,14 +167,19 @@ namespace BitFaster.Caching.Lfu
 
         public void Trim(int itemCount)
         {
+            Trim(itemCount, ItemRemovedReason.Trimmed);
+        }
+
+        private void Trim(int itemCount, ItemRemovedReason reason)
+        {
             List<LfuNode<K, V>> candidates;
             lock (maintenanceLock)
             {
-                Maintenance();
+                Maintenance(reason: reason);
 
                 int lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
                 itemCount = Math.Min(itemCount, lruCount);
-                candidates = new(itemCount);
+                candidates = new List<LfuNode<K, V>>(itemCount);
 
                 // Note: this is LRU order eviction, Caffeine is based on frequency
                 // walk in lru order, get itemCount keys to evict
@@ -182,15 +187,14 @@ namespace BitFaster.Caching.Lfu
                 TakeCandidatesInLruOrder(this.protectedLru, candidates, itemCount);
                 TakeCandidatesInLruOrder(this.windowLru, candidates, itemCount);
             }
-
 #if NET6_0_OR_GREATER
             foreach (var candidate in CollectionsMarshal.AsSpan(candidates))
 #else
             foreach (var candidate in candidates)
 #endif
             {
-                this.TryRemove(candidate.Key);
-            }
+                Evict(candidate, reason);
+            }         
         }
 
         private bool TryAdd(K key, V value)
@@ -565,7 +569,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private bool Maintenance(N? droppedWrite = null)
+        private bool Maintenance(N? droppedWrite = null, ItemRemovedReason reason = ItemRemovedReason.Evicted)
         {
             this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
 
@@ -602,7 +606,7 @@ namespace BitFaster.Caching.Lfu
             }
 
             policy.ExpireEntries(ref this);
-            EvictEntries();
+            EvictEntries(reason);
             this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
             ReFitProtected();
 
@@ -729,10 +733,10 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private void EvictEntries()
+        private void EvictEntries(ItemRemovedReason reason)
         {
             var candidate = EvictFromWindow();
-            EvictFromMain(candidate);
+            EvictFromMain(candidate, reason);
         }
 
         private LfuNode<K, V> EvictFromWindow()
@@ -779,7 +783,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private void EvictFromMain(LfuNode<K, V> candidateNode)
+        private void EvictFromMain(LfuNode<K, V> candidateNode, ItemRemovedReason reason)
         {
             var victim = new EvictIterator(this.cmSketch, this.probationLru.First); // victims are LRU position in probation
             var candidate = new EvictIterator(this.cmSketch, candidateNode);
@@ -795,7 +799,7 @@ namespace BitFaster.Caching.Lfu
 
                 if (victim.node == candidate.node)
                 {
-                    Evict(candidate.node!);
+                    Evict(candidate.node!, reason);
                     break;
                 }
 
@@ -803,7 +807,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     var evictee = candidate.node;
                     candidate.Next();
-                    Evict(evictee);
+                    Evict(evictee, reason);
                     continue;
                 }
 
@@ -811,7 +815,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     var evictee = victim.node;
                     victim.Next();
-                    Evict(evictee);
+                    Evict(evictee, reason);
                     continue;
                 }
 
@@ -824,7 +828,7 @@ namespace BitFaster.Caching.Lfu
                     victim.Next();
                     candidate.Next();
 
-                    Evict(evictee);
+                    Evict(evictee, reason);
                 }
                 else
                 {
@@ -833,7 +837,7 @@ namespace BitFaster.Caching.Lfu
                     // candidate is initialized to first cand, and iterates forwards
                     candidate.Next();
 
-                    Evict(evictee);
+                    Evict(evictee, reason);
                 }
             }
 
@@ -845,11 +849,11 @@ namespace BitFaster.Caching.Lfu
 
                 if (AdmitCandidate(victim1.Key, victim2.Key))
                 {
-                    Evict(victim2);
+                    Evict(victim2, reason);
                 }
                 else
                 {
-                    Evict(victim1);
+                    Evict(victim1, reason);
                 }
             }
         }
@@ -863,7 +867,7 @@ namespace BitFaster.Caching.Lfu
             return candidateFreq > victimFreq;
         }
 
-        internal void Evict(LfuNode<K, V> evictee)
+        internal void Evict(LfuNode<K, V> evictee, ItemRemovedReason reason)
         {
             evictee.WasRemoved = true;
             evictee.WasDeleted = true;
@@ -877,7 +881,7 @@ namespace BitFaster.Caching.Lfu
             ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
 #endif
             evictee.list?.Remove(evictee);
-            this.eventPolicy.OnItemRemoved(evictee.Key, evictee.Value, ItemRemovedReason.Evicted);
+            this.eventPolicy.OnItemRemoved(evictee.Key, evictee.Value, reason);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
 
