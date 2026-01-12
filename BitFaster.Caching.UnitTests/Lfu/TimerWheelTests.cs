@@ -21,7 +21,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private readonly WheelEnumerator<int, IDisposable> wheelEnumerator;
         private readonly LfuNodeList<int, IDisposable> lfuNodeList;
         private readonly ExpireAfterPolicy<int, IDisposable> policy;
-        private ConcurrentLfuCore<int, IDisposable, TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable>> cache;
+        private ConcurrentLfuCore<int, IDisposable, TimeOrderNode<int, IDisposable>, ExpireAfterPolicy<int, IDisposable>, NoTelemetryPolicy<int, IDisposable>> cache;
 
         public TimerWheelTests(ITestOutputHelper testOutputHelper)
         {
@@ -31,7 +31,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             wheelEnumerator = new(timerWheel, testOutputHelper);
             policy = new ExpireAfterPolicy<int, IDisposable>(new TestExpiryCalculator<int, IDisposable>());
             cache = new(
-                Defaults.ConcurrencyLevel, 3, new ThreadPoolScheduler(), EqualityComparer<int>.Default, () => { }, policy);
+                Defaults.ConcurrencyLevel, 3, new ThreadPoolScheduler(), EqualityComparer<int>.Default, () => { }, policy, default);
         }
 
         [Theory]
