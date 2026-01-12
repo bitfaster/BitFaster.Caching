@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.UnitTests.Retry;
 using FluentAssertions;
 using Xunit;
 
@@ -67,7 +68,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             item.WasAccessed.Should().BeTrue();
         }
 
-        [Fact]
+        [RetryFact]
         public async Task TouchUpdatesTicksCount()
         {
             var item = this.policy.CreateItem(1, 2);
@@ -80,7 +81,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             item.TickCount.Should().BeGreaterThan(tc);
         }
 
-        [Fact]
+        [RetryFact]
         public async Task UpdateUpdatesTickCount()
         {
             var item = this.policy.CreateItem(1, 2);
