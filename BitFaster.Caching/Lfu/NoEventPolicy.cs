@@ -13,12 +13,6 @@ namespace BitFaster.Caching.Lfu
         where K : notnull
     {
         ///<inheritdoc/>
-        public long Updated => 0;
-
-        ///<inheritdoc/>
-        public long Evicted => 0;
-
-        ///<inheritdoc/>
         public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
         {
             // no-op, nothing is registered
