@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet test:*)",
+      "Bash(dotnet build:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(dotnet format:*)"
+    ]
+  }
+}
