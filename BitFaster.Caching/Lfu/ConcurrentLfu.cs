@@ -220,11 +220,8 @@ namespace BitFaster.Caching.Lfu
 
         // To get JIT optimizations, policies must be structs.
         // If the structs are returned directly via properties, they will be copied. Since
-        // eventPolicy is a mutable struct, copy is bad. One workaround is to store the
-        // state within the struct in an object. Since the struct points to the same object
-        // it becomes immutable. However, this object is then somewhere else on the
-        // heap, which slows down the policies with hit counter logic in benchmarks. Likely
-        // this approach keeps the structs data members in the same CPU cache line as the LFU.
+        // eventPolicy is a mutable struct, copy is bad since changes are lost.
+        // Hence it is returned by ref and mutated via Proxy.
         private class Proxy : ICacheEvents<K, V>
         {
             private readonly ConcurrentLfu<K, V> lfu;
