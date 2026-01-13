@@ -10,7 +10,7 @@ namespace BitFaster.Caching.Lfu
     /// <typeparam name="K">The type of the Key</typeparam>
     /// <typeparam name="V">The type of the value</typeparam>
     [DebuggerDisplay("Upd = {Updated}, Evict = {Evicted}")]
-    public struct EventPolicy<K, V> : IEventPolicy<K, V>
+    internal struct EventPolicy<K, V> : IEventPolicy<K, V>
         where K : notnull
     {
         private object eventSource;

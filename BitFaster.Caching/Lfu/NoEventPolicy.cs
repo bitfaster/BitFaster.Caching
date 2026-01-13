@@ -9,7 +9,7 @@ namespace BitFaster.Caching.Lfu
     /// </summary>
     /// <typeparam name="K">The type of the key.</typeparam>
     /// <typeparam name="V">The type of the value.</typeparam>
-    public struct NoEventPolicy<K, V> : IEventPolicy<K, V>
+    internal struct NoEventPolicy<K, V> : IEventPolicy<K, V>
         where K : notnull
     {
         ///<inheritdoc/>

@@ -6,7 +6,7 @@ namespace BitFaster.Caching.Lfu
     /// </summary>
     /// <typeparam name="K">The type of the key.</typeparam>
     /// <typeparam name="V">The type of the value.</typeparam>
-    public interface IEventPolicy<K, V> : ICacheEvents<K, V>
+    internal interface IEventPolicy<K, V> : ICacheEvents<K, V>
         where K : notnull
     {
         /// <summary>
