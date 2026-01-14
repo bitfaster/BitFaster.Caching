@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using BitFaster.Caching.Lfu;
@@ -20,6 +22,19 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         // on MacOS time measurement seems to be less stable, give longer pause
         private int ttlWaitMlutiplier = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 8 : 2;
+
+        private List<ItemRemovedEventArgs<int, int>> removedItems = new List<ItemRemovedEventArgs<int, int>>();
+        private List<ItemUpdatedEventArgs<int, int>> updatedItems = new List<ItemUpdatedEventArgs<int, int>>();
+
+        private void OnLfuItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
+        {
+            removedItems.Add(e);
+        }
+
+        private void OnLfuItemUpdated(object sender, ItemUpdatedEventArgs<int, int> e)
+        {
+            updatedItems.Add(e);
+        }
 
         public ConcurrentTLfuTests()
         {
@@ -75,10 +90,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void EventsHasValueIsFalse()
+        public void EventsAreEnabled()
         {
             var x = new ConcurrentTLfu<int, int>(3, new TestExpiryCalculator<int, int>());
-            x.Events.HasValue.Should().BeFalse();
+            x.Events.HasValue.Should().BeTrue();
         }
 
         [Fact]
@@ -212,5 +227,154 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             );
         }
+
+        [Fact]
+        public void WhenItemIsRemovedRemovedEventIsFired()
+        {
+            removedItems.Clear();
+            var lfuEvents = new ConcurrentTLfu<int, int>(20, new TestExpiryCalculator<int, int>());
+            lfuEvents.Events.Value.ItemRemoved += OnLfuItemRemoved;
+
+            lfuEvents.GetOrAdd(1, i => i + 2);
+
+            lfuEvents.TryRemove(1).Should().BeTrue();
+
+            // Maintenance is needed for events to be processed
+            lfuEvents.DoMaintenance();
+
+            removedItems.Count.Should().Be(1);
+            removedItems[0].Key.Should().Be(1);
+            removedItems[0].Value.Should().Be(3);
+            removedItems[0].Reason.Should().Be(ItemRemovedReason.Removed);
+        }
+
+        [Fact]
+        public void WhenItemRemovedEventIsUnregisteredEventIsNotFired()
+        {
+            removedItems.Clear();
+            var lfuEvents = new ConcurrentTLfu<int, int>(20, new TestExpiryCalculator<int, int>());
+
+            lfuEvents.Events.Value.ItemRemoved += OnLfuItemRemoved;
+            lfuEvents.Events.Value.ItemRemoved -= OnLfuItemRemoved;
+
+            lfuEvents.GetOrAdd(1, i => i + 1);
+            lfuEvents.TryRemove(1);
+            lfuEvents.DoMaintenance();
+
+            removedItems.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenValueEvictedItemRemovedEventIsFired()
+        {
+            removedItems.Clear();
+            var lfuEvents = new ConcurrentTLfu<int, int>(6, new TestExpiryCalculator<int, int>());
+            lfuEvents.Events.Value.ItemRemoved += OnLfuItemRemoved;
+
+            // Fill cache to capacity
+            for (int i = 0; i < 6; i++)
+            {
+                lfuEvents.GetOrAdd(i, i => i);
+            }
+
+            // This should trigger eviction
+            lfuEvents.GetOrAdd(100, i => i);
+            lfuEvents.DoMaintenance();
+
+            // At least one item should be evicted
+            removedItems.Count.Should().BeGreaterThan(0);
+            removedItems.Any(r => r.Reason == ItemRemovedReason.Evicted).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenItemsAreTrimmedAnEventIsFired()
+        {
+            removedItems.Clear();
+            var lfuEvents = new ConcurrentTLfu<int, int>(20, new TestExpiryCalculator<int, int>());
+            lfuEvents.Events.Value.ItemRemoved += OnLfuItemRemoved;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lfuEvents.GetOrAdd(i, i => i);
+            }
+
+            lfuEvents.Trim(2);
+
+            removedItems.Count.Should().Be(2);
+            removedItems.All(r => r.Reason == ItemRemovedReason.Trimmed).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenItemsAreClearedAnEventIsFired()
+        {
+            removedItems.Clear();
+            var lfuEvents = new ConcurrentTLfu<int, int>(20, new TestExpiryCalculator<int, int>());
+            lfuEvents.Events.Value.ItemRemoved += OnLfuItemRemoved;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lfuEvents.GetOrAdd(i, i => i);
+            }
+
+            lfuEvents.Clear();
+
+            removedItems.Count.Should().Be(6);
+            removedItems.All(r => r.Reason == ItemRemovedReason.Cleared).Should().BeTrue();
+        }
+
+        // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+        [Fact]
+        public void WhenItemExistsAddOrUpdateFiresUpdateEvent()
+        {
+            updatedItems.Clear();
+            var lfuEvents = new ConcurrentTLfu<int, int>(20, new TestExpiryCalculator<int, int>());
+            lfuEvents.Events.Value.ItemUpdated += OnLfuItemUpdated;
+
+            lfuEvents.AddOrUpdate(1, 2);
+            lfuEvents.AddOrUpdate(2, 3);
+
+            lfuEvents.AddOrUpdate(1, 3);
+
+            updatedItems.Count.Should().Be(1);
+            updatedItems[0].Key.Should().Be(1);
+            updatedItems[0].OldValue.Should().Be(2);
+            updatedItems[0].NewValue.Should().Be(3);
+        }
+
+        [Fact]
+        public void WhenItemExistsTryUpdateFiresUpdateEvent()
+        {
+            updatedItems.Clear();
+            var lfuEvents = new ConcurrentTLfu<int, int>(20, new TestExpiryCalculator<int, int>());
+            lfuEvents.Events.Value.ItemUpdated += OnLfuItemUpdated;
+
+            lfuEvents.AddOrUpdate(1, 2);
+            lfuEvents.AddOrUpdate(2, 3);
+
+            lfuEvents.TryUpdate(1, 3);
+
+            updatedItems.Count.Should().Be(1);
+            updatedItems[0].Key.Should().Be(1);
+            updatedItems[0].OldValue.Should().Be(2);
+            updatedItems[0].NewValue.Should().Be(3);
+        }
+
+        [Fact]
+        public void WhenItemUpdatedEventIsUnregisteredEventIsNotFired()
+        {
+            updatedItems.Clear();
+            var lfuEvents = new ConcurrentTLfu<int, int>(20, new TestExpiryCalculator<int, int>());
+
+            lfuEvents.Events.Value.ItemUpdated += OnLfuItemUpdated;
+            lfuEvents.Events.Value.ItemUpdated -= OnLfuItemUpdated;
+
+            lfuEvents.AddOrUpdate(1, 2);
+            lfuEvents.AddOrUpdate(1, 2);
+            lfuEvents.AddOrUpdate(1, 2);
+
+            updatedItems.Count.Should().Be(0);
+        }
+#endif
     }
 }

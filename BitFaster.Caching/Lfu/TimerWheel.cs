@@ -1,4 +1,5 @@
 ﻿using System;
+using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -61,9 +62,10 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <param name="cache"></param>
         /// <param name="currentTime"></param>
-        public void Advance<N, P>(ref ConcurrentLfuCore<K, V, N, P> cache, Duration currentTime)
+        public void Advance<N, P, T, E>(ref ConcurrentLfuCore<K, V, N, P, E> cache, Duration currentTime)
             where N : LfuNode<K, V>
-            where P : struct, INodePolicy<K, V, N>
+            where P : struct, INodePolicy<K, V, N, E>
+            where E : struct, IEventPolicy<K, V>
         {
             long previousTime = time;
             time = currentTime.raw;
@@ -90,7 +92,7 @@ namespace BitFaster.Caching.Lfu
                         break;
                     }
 
-                    Expire(ref cache, i, previousTicks, delta);
+                    Expire<N, P, T, E>(ref cache, i, previousTicks, delta);
                 }
             }
             catch (Exception)
@@ -101,9 +103,10 @@ namespace BitFaster.Caching.Lfu
         }
 
         // Expires entries or reschedules into the proper bucket if still active.
-        private void Expire<N, P>(ref ConcurrentLfuCore<K, V, N, P> cache, int index, long previousTicks, long delta)
+        private void Expire<N, P, T, E>(ref ConcurrentLfuCore<K, V, N, P, E> cache, int index, long previousTicks, long delta)
             where N : LfuNode<K, V>
-            where P : struct, INodePolicy<K, V, N>
+            where P : struct, INodePolicy<K, V, N, E>
+            where E : struct, IEventPolicy<K, V>
         {
             TimeOrderNode<K, V>[] timerWheel = wheels[index];
             int mask = timerWheel.Length - 1;
@@ -132,7 +135,7 @@ namespace BitFaster.Caching.Lfu
                     {
                         if ((node.GetTimestamp() - time) < 0)
                         {
-                            cache.Evict(node);
+                            cache.Evict(node, ItemRemovedReason.Evicted);
                         }
                         else
                         {
