@@ -5,7 +5,8 @@
       "Bash(dotnet build:*)",
       "Bash(ls:*)",
       "Bash(find:*)",
-      "Bash(dotnet format:*)"
+      "Bash(dotnet format:*)",
+      "Bash(dotnet run:*)"
     ]
   }
 }
