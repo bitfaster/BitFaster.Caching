@@ -21,13 +21,13 @@ Parse the arguments: the first argument is the benchmark name, and the optional 
 If a framework is specified, execute:
 
 ```bash
-dotnet run -c Release --project BitFaster.Caching.Benchmarks --framework <Framework> -- --filter "<BenchmarkName>" -j short --warmupCount 3 --iterationCount 5 -d --disasmDepth 5
+dotnet run -c Release --project BitFaster.Caching.Benchmarks --framework <Framework> --filter "<BenchmarkName>" -j short --warmupCount 3 --iterationCount 5 -d --disasmDepth 5
 ```
 
 If no framework is specified, default to `net9.0`:
 
 ```bash
-dotnet run -c Release --project BitFaster.Caching.Benchmarks --framework net9.0 -- --filter "<BenchmarkName>" -j short --warmupCount 3 --iterationCount 5 -d --disasmDepth 5
+dotnet run -c Release --project BitFaster.Caching.Benchmarks --framework net9.0 --filter "<BenchmarkName>" -j short --warmupCount 3 --iterationCount 5 -d --disasmDepth 5
 ```
 
 The `--warmupCount 3 --iterationCount 5` options reduce warmup and iteration counts for faster execution while still executing the code enough times to JIT optimized code.
