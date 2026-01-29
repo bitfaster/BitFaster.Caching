@@ -10,10 +10,6 @@ using BitFaster.Caching.Scheduler;
 
 namespace BitFaster.Caching.Benchmarks
 {
-#if Windows
-    [SimpleJob(RuntimeMoniker.Net48)]
-#endif
-    [SimpleJob(RuntimeMoniker.Net60)]
     //[DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser(displayGenColumns: false)]
     // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/

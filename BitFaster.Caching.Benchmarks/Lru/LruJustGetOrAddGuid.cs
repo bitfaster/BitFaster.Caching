@@ -16,9 +16,7 @@ namespace BitFaster.Caching.Benchmarks
 
 #if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
-    [SimpleJob(RuntimeMoniker.Net48)]
 #endif
-    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/
     // [ThreadingDiagnoser] // Requires .NET Core
