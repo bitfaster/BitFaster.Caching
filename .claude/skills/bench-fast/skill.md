@@ -5,29 +5,29 @@ Run a benchmark quickly with minimal iterations to generate assembly code via Di
 ## Usage
 
 ```
-/bench-fast <BenchmarkName> [<Framework>]
+/bench-fast <BenchmarkName> [<Runtimes>]
 ```
 
 ## Arguments
 
-- `$ARGUMENTS` - The name of the benchmark class to run (e.g., `LruJustGetOrAdd`, `LfuJustGetOrAdd`, `SketchIncrement`), optionally followed by a target framework (e.g., `net9.0`, `net8.0`, `net6.0`)
+- `$ARGUMENTS` - The name of the benchmark class to run (e.g., `LruJustGetOrAdd`, `LfuJustGetOrAdd`, `SketchIncrement`), optionally followed by a list of one or more runtimes (e.g., `net48`, `net9.0` or `net48 net9.0`)
 
 ## Instructions
 
-Run the specified benchmark from BitFaster.Caching.Benchmarks with minimal iterations using BenchmarkDotNet's dry job mode.
+Run the specified benchmark from BitFaster.Caching.Benchmarks with minimal iterations using BenchmarkDotNet's command line.
 
-Parse the arguments: the first argument is the benchmark name, and the optional second argument is the target framework.
+Parse the arguments: the first argument is the benchmark name, and the optional second argument is the list of runtimes.
 
-If a framework is specified, execute:
+If a runtime arg is specified, execute:
 
 ```bash
-dotnet run -c Release --project BitFaster.Caching.Benchmarks --framework <Framework> --filter "<BenchmarkName>" -j short --warmupCount 3 --iterationCount 5 -d --disasmDepth 5
+dotnet run -c Release --project BitFaster.Caching.Benchmarks --framework net9.0 -- --runtimes <Runtimes> --filter "<BenchmarkName>" -j short --warmupCount 3 --iterationCount 5 -d --disasmDepth 5
 ```
 
-If no framework is specified, default to `net9.0`:
+If no runtime is specified, simply omit that command line arg:
 
 ```bash
-dotnet run -c Release --project BitFaster.Caching.Benchmarks --framework net9.0 --filter "<BenchmarkName>" -j short --warmupCount 3 --iterationCount 5 -d --disasmDepth 5
+dotnet run -c Release --project BitFaster.Caching.Benchmarks --framework net9.0 -- --filter "<BenchmarkName>" -j short --warmupCount 3 --iterationCount 5 -d --disasmDepth 5
 ```
 
 The `--warmupCount 3 --iterationCount 5` options reduce warmup and iteration counts for faster execution while still executing the code enough times to JIT optimized code.
