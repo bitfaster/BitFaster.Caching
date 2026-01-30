@@ -45,24 +45,27 @@ Invoke the `/split-asm` skill to generate individual assembly code files:
 
 ### Step 4: Organize into baseline directory
 
-Get the current git branch name and convert it to a valid directory name by replacing forward slashes with dashes:
+Get the current git branch name and convert it to a valid directory name by replacing forward slashes with dashes, then append the short commit hash:
 
 ```bash
 git rev-parse --abbrev-ref HEAD | tr '/' '-'
+git rev-parse --short HEAD
 ```
 
-For example, `users/alexpeck/foo` becomes `users-alexpeck-foo`.
+Combine these to form the directory name: `<sanitized-branch-name>-<commit-hash>`.
+
+For example, branch `users/alexpeck/foo` at commit `abc1234` becomes `users-alexpeck-foo-abc1234`.
 
 Create the baseline directory structure preserving the benchmark name and runtime hierarchy. For each benchmark and runtime combination found in `BenchmarkDotNet.Artifacts/results/`:
 
 1. Extract the short benchmark name from the full benchmark path (e.g., `BitFaster.Caching.Benchmarks.LruJustGetOrAdd` → `LruJustGetOrAdd`)
-2. Create the directory `baseline/<sanitized-branch-name>/<benchmarkname>/<runtime>/`
+2. Create the directory `baseline/<sanitized-branch-name>-<commit-hash>/<benchmarkname>/<runtime>/`
 3. Copy all files from the corresponding `BenchmarkDotNet.Artifacts/results/<full-benchmark-name>/<runtime>/` directory
 
 The final structure should be:
 ```
 baseline/
-  <sanitized-branch-name>/
+  <sanitized-branch-name>-<commit-hash>/
     <benchmarkname>/
       <runtime>/
         <MethodName>-asm.md
@@ -73,7 +76,7 @@ baseline/
 For example:
 ```
 baseline/
-  users-alexpeck-skills/
+  users-alexpeck-skills-16c32c5/
     LruJustGetOrAdd/
       .NET 6.0.36 (6.0.3624.51421), X64 RyuJIT AVX2/
         FastConcurrentLru-asm.md
