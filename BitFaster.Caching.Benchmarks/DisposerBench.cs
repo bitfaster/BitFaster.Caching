@@ -9,9 +9,7 @@ namespace BitFaster.Caching.Benchmarks
     // https://github.com/dotnet/runtime/issues/4920
 #if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 3)]
-    [SimpleJob(RuntimeMoniker.Net48)]
 #endif
-    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class DisposerBench
