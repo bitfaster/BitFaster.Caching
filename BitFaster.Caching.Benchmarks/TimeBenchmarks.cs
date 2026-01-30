@@ -8,10 +8,7 @@ namespace BitFaster.Caching.Benchmarks
 {
 #if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
-    [SimpleJob(RuntimeMoniker.Net48)]
 #endif
-    [SimpleJob(RuntimeMoniker.Net60)]
-    [SimpleJob(RuntimeMoniker.Net90)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class TimeBenchmarks
     {

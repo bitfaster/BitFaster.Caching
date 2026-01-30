@@ -23,9 +23,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     //|     ConcurrentTLru | 169.7 ns | 0.86 ns | 0.80 ns |  1.52 |    0.02 | 0.0098 |   5,982 B |      43 B |
 #if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
-    [SimpleJob(RuntimeMoniker.Net48)]
 #endif
-    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class LruZipDistribution

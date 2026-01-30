@@ -24,9 +24,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     //|         ClassicLru | 16.35 us | 0.091 us | 0.076 us |  0.72 |      4 KB | 3.2959 |     14 KB |
 #if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
-    [SimpleJob(RuntimeMoniker.Net48)]
 #endif
-    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class LruCycleBench

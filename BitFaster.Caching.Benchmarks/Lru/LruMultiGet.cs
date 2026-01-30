@@ -26,9 +26,7 @@ namespace BitFaster.Caching.Benchmarks.Lru
     //|          MemoryCache | 117.075 ns | 1.7664 ns | 1.5658 ns | 13.96 |    0.18 |      94 B | 0.0073 |      32 B |
 #if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
-    [SimpleJob(RuntimeMoniker.Net48)]
 #endif
-    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class LruMultiGet
