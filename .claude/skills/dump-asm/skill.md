@@ -1,22 +1,23 @@
-# dump-asm
-
-Generate assembly code for a benchmark and organize output into a baseline directory named after the current git branch.
+---
+name: dump-asm
+description: Generate assembly for code exercised by a benchmark and organize output into a baseline directory named after the current git branch. Use to generate assembly code that can be diff'd between branches.
+---
 
 ## Usage
 
 ```
-/dump-asm <BenchmarkName> [<Framework>]
+/dump-asm <BenchmarkName> [<Runtimes>]
 ```
 
 ## Arguments
 
-- `$ARGUMENTS` - The name of the benchmark class to run (e.g., `LruJustGetOrAdd`, `LfuJustGetOrAdd`, `SketchIncrement`), optionally followed by a target framework (e.g., `net9.0`, `net8.0`, `net6.0`)
+- `$ARGUMENTS` - The name of the benchmark class to run (e.g., `LruJustGetOrAdd`, `LfuJustGetOrAdd`, `SketchIncrement`), optionally followed by a list of one or more runtimes (e.g., `net48`, `net9.0` or `net48 net9.0`)
 
 ## Instructions
 
 This skill orchestrates benchmark assembly generation and organizes the output for comparison.
 
-Parse the arguments: the first argument is the benchmark name, and the optional second argument is the target framework.
+Parse the arguments: the first argument is the benchmark name, and the optional second argument is the list of runtimes.
 
 ### Step 1: Clean artifacts
 
@@ -28,26 +29,18 @@ rm -rf BenchmarkDotNet.Artifacts
 
 ### Step 2: Run benchmark
 
-Run the bench-fast skill with the provided benchmark name and optional framework to generate assembly code.
+Invoke the `/bench-fast` skill with the provided benchmark name and optional runtime to generate assembly code:
 
-If a framework is specified, execute:
-
-```bash
-dotnet run -c Release --project BitFaster.Caching.Benchmarks --framework <Framework> --filter "<BenchmarkName>" -j short --warmupCount 3 --iterationCount 5 -d --disasmDepth 5
 ```
-
-If no framework is specified, default to `net9.0`:
-
-```bash
-dotnet run -c Release --project BitFaster.Caching.Benchmarks --framework net9.0 --filter "<BenchmarkName>" -j short --warmupCount 3 --iterationCount 5 -d --disasmDepth 5
+/bench-fast <BenchmarkName> [<Runtimes>]
 ```
 
 ### Step 3: Split assembly files
 
-Run the split-asm skill to generate individual assembly code files:
+Invoke the `/split-asm` skill to generate individual assembly code files:
 
-```bash
-dotnet run --project C:/repo/splitasm/splitasm -- BenchmarkDotNet.Artifacts/results
+```
+/split-asm
 ```
 
 ### Step 4: Organize into baseline directory

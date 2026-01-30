@@ -1,6 +1,7 @@
-# split-asm
-
-Split BenchmarkDotNet assembly markdown files into individual files per benchmark method using splitasm.
+---
+name: split-asm
+description: Split BenchmarkDotNet assembly markdown files into individual files per benchmark method using splitasm. Use to break one big assembly code file per benchmark into one file per benchmark method. 
+---
 
 ## Usage
 

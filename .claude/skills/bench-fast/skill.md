@@ -1,6 +1,7 @@
-# bench-fast
-
-Run a benchmark quickly with minimal iterations to generate assembly code via DisassemblyDiagnoser.
+---
+name: bench-fast
+description: Run a benchmark with minimal iterations to generate assembly code via BenchmarkDotNet's DisassemblyDiagnoser. Use to generate one big assembly code file per benchmark. 
+---
 
 ## Usage
 
