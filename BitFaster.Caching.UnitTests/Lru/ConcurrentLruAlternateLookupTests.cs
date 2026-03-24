@@ -87,17 +87,20 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void AlternateLookupAddOrUpdateAddsAndUpdatesValue()
+        public void AlternateLookupTryUpdateReturnsFalseForMissingKeyAndUpdatesExistingValue()
         {
             var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
             ReadOnlySpan<char> key = "42";
 
-            alternate.AddOrUpdate(key, "value-42");
-            cache.TryGet("42", out var value).Should().BeTrue();
-            value.Should().Be("value-42");
+            alternate.TryUpdate(key, "value-42").Should().BeFalse();
+            cache.TryGet("42", out _).Should().BeFalse();
 
-            alternate.AddOrUpdate(key, "updated");
+            cache.GetOrAdd("42", _ => "value-42");
+            alternate.TryUpdate(key, "updated").Should().BeTrue();
+
+            cache.TryGet("42", out var value).Should().BeTrue();
+            value.Should().Be("updated");
             alternate.TryGet(key, out value).Should().BeTrue();
             value.Should().Be("updated");
         }

@@ -976,22 +976,10 @@ namespace BitFaster.Caching.Lru
                 return this.Lru.TryAdd(actualKey, value);
             }
 
-            public void AddOrUpdate(TAlternateKey key, V value)
+            public bool TryUpdate(TAlternateKey key, V value)
             {
                 K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
-
-                while (true)
-                {
-                    if (this.Lru.TryUpdate(actualKey, value))
-                    {
-                        return;
-                    }
-
-                    if (this.Lru.TryAdd(actualKey, value))
-                    {
-                        return;
-                    }
-                }
+                return this.Lru.TryUpdate(actualKey, value);
             }
 
             public V GetOrAdd(TAlternateKey key, Func<TAlternateKey, V> valueFactory)
