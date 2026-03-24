@@ -6,38 +6,38 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class ConcurrentLruAlternateCacheTests
+    public class ConcurrentLruAlternateLookupTests
     {
         [Fact]
-        public void TryGetAlternateCacheReturnsLookupForCompatibleComparer()
+        public void TryGetAlternateLookupReturnsLookupForCompatibleComparer()
         {
             var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
             cache.GetOrAdd("42", _ => "value");
             ReadOnlySpan<char> key = "42";
 
-            cache.TryGetAlternateCache<ReadOnlySpan<char>>(out var alternate).Should().BeTrue();
+            cache.TryGetAlternateLookup<ReadOnlySpan<char>>(out var alternate).Should().BeTrue();
             alternate.TryGet(key, out var value).Should().BeTrue();
             value.Should().Be("value");
         }
 
         [Fact]
-        public void GetAlternateCacheThrowsForIncompatibleComparer()
+        public void GetAlternateLookupThrowsForIncompatibleComparer()
         {
             var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
 
-            Action act = () => cache.GetAlternateCache<int>();
+            Action act = () => cache.GetAlternateLookup<int>();
 
             act.Should().Throw<InvalidOperationException>().WithMessage("Incompatible comparer");
-            cache.TryGetAlternateCache<int>(out var alternate).Should().BeFalse();
+            cache.TryGetAlternateLookup<int>(out var alternate).Should().BeFalse();
             alternate.Should().BeNull();
         }
 
         [Fact]
-        public void AlternateCacheTryRemoveReturnsActualKeyAndValue()
+        public void AlternateLookupTryRemoveReturnsActualKeyAndValue()
         {
             var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
             cache.GetOrAdd("42", _ => "value");
-            var alternate = cache.GetAlternateCache<ReadOnlySpan<char>>();
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
             ReadOnlySpan<char> key = "42";
 
             alternate.TryRemove(key, out var actualKey, out var value).Should().BeTrue();
@@ -48,10 +48,10 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void AlternateCacheGetOrAddUsesAlternateKeyOnMissAndHit()
+        public void AlternateLookupGetOrAddUsesAlternateKeyOnMissAndHit()
         {
             var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
-            var alternate = cache.GetAlternateCache<ReadOnlySpan<char>>();
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
             var factoryCalls = 0;
             ReadOnlySpan<char> key = "42";
 

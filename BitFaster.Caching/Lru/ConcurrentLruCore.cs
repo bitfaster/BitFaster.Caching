@@ -909,12 +909,12 @@ namespace BitFaster.Caching.Lru
         }
 
         /// <summary>
-        /// Gets an alternate cache view that can use an alternate key type with the configured comparer.
+        /// Gets an alternate lookup that can use an alternate key type with the configured comparer.
         /// </summary>
         /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
-        /// <returns>An alternate cache view.</returns>
+        /// <returns>An alternate lookup.</returns>
         /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
-        public IAlternateCache<TAlternateKey, K, V> GetAlternateCache<TAlternateKey>()
+        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
             if (!IsCompatibleKey<TAlternateKey>(this.dictionary))
@@ -922,21 +922,21 @@ namespace BitFaster.Caching.Lru
                 Throw.IncompatibleComparer();
             }
 
-            return new AlternateCache<TAlternateKey>(this);
+            return new AlternateLookup<TAlternateKey>(this);
         }
 
         /// <summary>
-        /// Attempts to get an alternate cache view that can use an alternate key type with the configured comparer.
+        /// Attempts to get an alternate lookup that can use an alternate key type with the configured comparer.
         /// </summary>
         /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
-        /// <param name="lookup">The alternate cache view when available.</param>
+        /// <param name="lookup">The alternate lookup when available.</param>
         /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
-        public bool TryGetAlternateCache<TAlternateKey>([MaybeNullWhen(false)] out IAlternateCache<TAlternateKey, K, V> lookup)
+        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
         {
             if (IsCompatibleKey<TAlternateKey>(this.dictionary))
             {
-                lookup = new AlternateCache<TAlternateKey>(this);
+                lookup = new AlternateLookup<TAlternateKey>(this);
                 return true;
             }
 
@@ -944,10 +944,10 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
-        internal readonly struct AlternateCache<TAlternateKey> : IAlternateCache<TAlternateKey, K, V>
+        internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>
             where TAlternateKey : notnull, allows ref struct
         {
-            internal AlternateCache(ConcurrentLruCore<K, V, I, P, T> lru)
+            internal AlternateLookup(ConcurrentLruCore<K, V, I, P, T> lru)
             {
                 Debug.Assert(lru is not null);
                 Debug.Assert(IsCompatibleKey<TAlternateKey>(lru.dictionary));

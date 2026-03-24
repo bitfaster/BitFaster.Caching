@@ -5,12 +5,12 @@ using System.Diagnostics.CodeAnalysis;
 namespace BitFaster.Caching
 {
     /// <summary>
-    /// Provides alternate-key access to a cache.
+    /// Provides an alternate-key lookup over a cache.
     /// </summary>
     /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
     /// <typeparam name="TKey">The cache key type.</typeparam>
     /// <typeparam name="TValue">The cache value type.</typeparam>
-    public interface IAlternateCache<TAlternateKey, TKey, TValue>
+    public interface IAlternateLookup<TAlternateKey, TKey, TValue>
         where TAlternateKey : notnull, allows ref struct
         where TKey : notnull
     {
