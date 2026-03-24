@@ -980,10 +980,6 @@ namespace BitFaster.Caching.Lru
                     }
 
                     K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
-                    if (this.Lru.dictionary.TryGetValue(actualKey, out var item) && this.Lru.GetOrDiscard(item, out value))
-                    {
-                        return value;
-                    }
 
                     value = valueFactory(key);
                     if (this.Lru.TryAdd(actualKey, value))
@@ -1003,10 +999,6 @@ namespace BitFaster.Caching.Lru
                     }
 
                     K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
-                    if (this.Lru.dictionary.TryGetValue(actualKey, out var item) && this.Lru.GetOrDiscard(item, out value))
-                    {
-                        return value;
-                    }
 
                     value = valueFactory(key, factoryArgument);
                     if (this.Lru.TryAdd(actualKey, value))
