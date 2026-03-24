@@ -974,20 +974,20 @@ namespace BitFaster.Caching.Lru
             /// <summary>
             /// Gets an existing value or adds a new value using an alternate key.
             /// </summary>
-            /// <param name="altKey">The alternate key.</param>
+            /// <param name="key">The alternate key.</param>
             /// <param name="valueFactory">The value factory.</param>
             /// <returns>The cached value.</returns>
-            TValue GetOrAdd(TAlternateKey altKey, Func<TAlternateKey, TValue> valueFactory);
+            TValue GetOrAdd(TAlternateKey key, Func<TAlternateKey, TValue> valueFactory);
 
             /// <summary>
             /// Gets an existing value or adds a new value using an alternate key and factory argument.
             /// </summary>
             /// <typeparam name="TArg">The factory argument type.</typeparam>
-            /// <param name="altKey">The alternate key.</param>
+            /// <param name="key">The alternate key.</param>
             /// <param name="valueFactory">The value factory.</param>
             /// <param name="factoryArgument">The factory argument.</param>
             /// <returns>The cached value.</returns>
-            TValue GetOrAdd<TArg>(TAlternateKey altKey, Func<TAlternateKey, TArg, TValue> valueFactory, TArg factoryArgument);
+            TValue GetOrAdd<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, TValue> valueFactory, TArg factoryArgument);
         }
 
         internal readonly struct AlternateCache<TAlternateKey> : IAlternateCache<TAlternateKey, K, V>
@@ -1032,36 +1032,46 @@ namespace BitFaster.Caching.Lru
                 return false;
             }
 
-            public V GetOrAdd(TAlternateKey altKey, Func<TAlternateKey, V> valueFactory)
+            public V GetOrAdd(TAlternateKey key, Func<TAlternateKey, V> valueFactory)
             {
                 while (true)
                 {
-                    if (this.TryGet(altKey, out var value))
+                    if (this.TryGet(key, out var value))
                     {
                         return value;
                     }
 
-                    K key = GetAlternateComparer<TAlternateKey>(this.Lru.dictionary).Create(altKey);
-                    value = valueFactory(altKey);
-                    if (this.Lru.TryAdd(key, value))
+                    K actualKey = GetAlternateComparer<TAlternateKey>(this.Lru.dictionary).Create(key);
+                    if (this.Lru.dictionary.TryGetValue(actualKey, out var item) && this.Lru.GetOrDiscard(item, out value))
+                    {
+                        return value;
+                    }
+
+                    value = valueFactory(key);
+                    if (this.Lru.TryAdd(actualKey, value))
                     {
                         return value;
                     }
                 }
             }
 
-            public V GetOrAdd<TArg>(TAlternateKey altKey, Func<TAlternateKey, TArg, V> valueFactory, TArg factoryArgument)
+            public V GetOrAdd<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, V> valueFactory, TArg factoryArgument)
             {
                 while (true)
                 {
-                    if (this.TryGet(altKey, out var value))
+                    if (this.TryGet(key, out var value))
                     {
                         return value;
                     }
 
-                    K key = GetAlternateComparer<TAlternateKey>(this.Lru.dictionary).Create(altKey);
-                    value = valueFactory(altKey, factoryArgument);
-                    if (this.Lru.TryAdd(key, value))
+                    K actualKey = GetAlternateComparer<TAlternateKey>(this.Lru.dictionary).Create(key);
+                    if (this.Lru.dictionary.TryGetValue(actualKey, out var item) && this.Lru.GetOrDiscard(item, out value))
+                    {
+                        return value;
+                    }
+
+                    value = valueFactory(key, factoryArgument);
+                    if (this.Lru.TryAdd(actualKey, value))
                     {
                         return value;
                     }
