@@ -908,6 +908,12 @@ namespace BitFaster.Caching.Lru
             return Unsafe.As<IAlternateEqualityComparer<TAlternateKey, K>>(d.Comparer!);
         }
 
+        /// <summary>
+        /// Gets an alternate cache view that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <returns>An alternate cache view.</returns>
+        /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
         public IAlternateCache<TAlternateKey, K, V> GetAlternateCache<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
@@ -919,6 +925,12 @@ namespace BitFaster.Caching.Lru
             return new AlternateCache<TAlternateKey>(this);
         }
 
+        /// <summary>
+        /// Attempts to get an alternate cache view that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <param name="lookup">The alternate cache view when available.</param>
+        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
         public bool TryGetAlternateCache<TAlternateKey>([MaybeNullWhen(false)] out IAlternateCache<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
         {
@@ -932,16 +944,49 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
+        /// <summary>
+        /// Provides alternate-key access to a cache.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <typeparam name="TKey">The cache key type.</typeparam>
+        /// <typeparam name="TValue">The cache value type.</typeparam>
         public interface IAlternateCache<TAlternateKey, TKey, TValue>
             where TAlternateKey : notnull, allows ref struct
             where TKey : notnull
         {
+            /// <summary>
+            /// Attempts to get a value using an alternate key.
+            /// </summary>
+            /// <param name="key">The alternate key.</param>
+            /// <param name="value">The cached value when found.</param>
+            /// <returns><see langword="true" /> when the key is found; otherwise, <see langword="false" />.</returns>
             bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out TValue value);
 
+            /// <summary>
+            /// Attempts to remove a value using an alternate key.
+            /// </summary>
+            /// <param name="key">The alternate key.</param>
+            /// <param name="actualKey">The removed cache key.</param>
+            /// <param name="value">The removed value.</param>
+            /// <returns><see langword="true" /> when the key is found; otherwise, <see langword="false" />.</returns>
             bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out TKey actualKey, [MaybeNullWhen(false)] out TValue value);
 
+            /// <summary>
+            /// Gets an existing value or adds a new value using an alternate key.
+            /// </summary>
+            /// <param name="altKey">The alternate key.</param>
+            /// <param name="valueFactory">The value factory.</param>
+            /// <returns>The cached value.</returns>
             TValue GetOrAdd(TAlternateKey altKey, Func<TAlternateKey, TValue> valueFactory);
 
+            /// <summary>
+            /// Gets an existing value or adds a new value using an alternate key and factory argument.
+            /// </summary>
+            /// <typeparam name="TArg">The factory argument type.</typeparam>
+            /// <param name="altKey">The alternate key.</param>
+            /// <param name="valueFactory">The value factory.</param>
+            /// <param name="factoryArgument">The factory argument.</param>
+            /// <returns>The cached value.</returns>
             TValue GetOrAdd<TArg>(TAlternateKey altKey, Func<TAlternateKey, TArg, TValue> valueFactory, TArg factoryArgument);
         }
 
