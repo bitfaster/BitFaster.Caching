@@ -893,21 +893,6 @@ namespace BitFaster.Caching.Lru
         }
 
 #if NET9_0_OR_GREATER
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsCompatibleKey<TAlternateKey>(ConcurrentDictionary<K, I> d)
-            where TAlternateKey : notnull, allows ref struct
-        {
-            return d.Comparer is IAlternateEqualityComparer<TAlternateKey, K>;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static IAlternateEqualityComparer<TAlternateKey, K> GetAlternateComparer<TAlternateKey>(ConcurrentDictionary<K, I> d)
-            where TAlternateKey : notnull, allows ref struct
-        {
-            Debug.Assert(IsCompatibleKey<TAlternateKey>(d));
-            return Unsafe.As<IAlternateEqualityComparer<TAlternateKey, K>>(d.Comparer!);
-        }
-
         /// <summary>
         /// Gets an alternate lookup that can use an alternate key type with the configured comparer.
         /// </summary>
@@ -917,7 +902,7 @@ namespace BitFaster.Caching.Lru
         public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
-            if (!IsCompatibleKey<TAlternateKey>(this.dictionary))
+            if (!this.dictionary.IsCompatibleKey<TAlternateKey, K, I>())
             {
                 Throw.IncompatibleComparer();
             }
@@ -934,7 +919,7 @@ namespace BitFaster.Caching.Lru
         public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
         {
-            if (IsCompatibleKey<TAlternateKey>(this.dictionary))
+            if (this.dictionary.IsCompatibleKey<TAlternateKey, K, I>())
             {
                 lookup = new AlternateLookup<TAlternateKey>(this);
                 return true;
@@ -950,7 +935,7 @@ namespace BitFaster.Caching.Lru
             internal AlternateLookup(ConcurrentLruCore<K, V, I, P, T> lru)
             {
                 Debug.Assert(lru is not null);
-                Debug.Assert(IsCompatibleKey<TAlternateKey>(lru.dictionary));
+                Debug.Assert(lru.dictionary.IsCompatibleKey<TAlternateKey, K, I>());
                 this.Lru = lru;
                 this.Alternate = lru.dictionary.GetAlternateLookup<TAlternateKey>();
             }
@@ -994,7 +979,7 @@ namespace BitFaster.Caching.Lru
                         return value;
                     }
 
-                    K actualKey = GetAlternateComparer<TAlternateKey>(this.Lru.dictionary).Create(key);
+                    K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
                     if (this.Lru.dictionary.TryGetValue(actualKey, out var item) && this.Lru.GetOrDiscard(item, out value))
                     {
                         return value;
@@ -1017,7 +1002,7 @@ namespace BitFaster.Caching.Lru
                         return value;
                     }
 
-                    K actualKey = GetAlternateComparer<TAlternateKey>(this.Lru.dictionary).Create(key);
+                    K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
                     if (this.Lru.dictionary.TryGetValue(actualKey, out var item) && this.Lru.GetOrDiscard(item, out value))
                     {
                         return value;
