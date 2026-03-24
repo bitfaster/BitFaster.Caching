@@ -952,15 +952,16 @@ namespace BitFaster.Caching.Lru
                 Debug.Assert(lru is not null);
                 Debug.Assert(IsCompatibleKey<TAlternateKey>(lru.dictionary));
                 this.Lru = lru;
+                this.Alternate = lru.dictionary.GetAlternateLookup<TAlternateKey>();
             }
 
             internal ConcurrentLruCore<K, V, I, P, T> Lru { get; }
 
+            internal ConcurrentDictionary<K, I>.AlternateLookup<TAlternateKey> Alternate { get; }
+
             public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
             {
-                var alternate = this.Lru.dictionary.GetAlternateLookup<TAlternateKey>();
-
-                if (alternate.TryGetValue(key, out var item))
+                if (this.Alternate.TryGetValue(key, out var item))
                 {
                     return this.Lru.GetOrDiscard(item, out value);
                 }
@@ -972,9 +973,7 @@ namespace BitFaster.Caching.Lru
 
             public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey, [MaybeNullWhen(false)] out V value)
             {
-                var alternate = this.Lru.dictionary.GetAlternateLookup<TAlternateKey>();
-
-                if (alternate.TryRemove(key, out actualKey, out var item))
+                if (this.Alternate.TryRemove(key, out actualKey, out var item))
                 {
                     this.Lru.OnRemove(actualKey, item, ItemRemovedReason.Removed);
                     value = item.Value;
