@@ -381,23 +381,31 @@ namespace BitFaster.Caching.Lru
         {
             if (this.dictionary.TryGetValue(key, out var existing))
             {
-                lock (existing)
+                return this.TryUpdateValue(existing, value);
+            }
+
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryUpdateValue(I existing, V value)
+        {
+            lock (existing)
+            {
+                if (!existing.WasRemoved)
                 {
-                    if (!existing.WasRemoved)
-                    {
-                        V oldValue = existing.Value;
+                    V oldValue = existing.Value;
 
-                        existing.Value = value;
+                    existing.Value = value;
 
-                        this.itemPolicy.Update(existing);
-                        // backcompat: remove conditional compile
+                    this.itemPolicy.Update(existing);
+                    // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
-                        this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
+                    this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
 #endif
-                        Disposer<V>.Dispose(oldValue);
+                    Disposer<V>.Dispose(oldValue);
 
-                        return true;
-                    }
+                    return true;
                 }
             }
 
@@ -978,8 +986,12 @@ namespace BitFaster.Caching.Lru
 
             public bool TryUpdate(TAlternateKey key, V value)
             {
-                K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
-                return this.Lru.TryUpdate(actualKey, value);
+                if (this.Alternate.TryGetValue(key, out var existing))
+                {
+                    return this.Lru.TryUpdateValue(existing, value);
+                }
+
+                return false;
             }
 
             public V GetOrAdd(TAlternateKey key, Func<TAlternateKey, V> valueFactory)
