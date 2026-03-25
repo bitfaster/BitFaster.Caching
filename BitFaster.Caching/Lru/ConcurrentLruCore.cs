@@ -990,6 +990,9 @@ namespace BitFaster.Caching.Lru
 
             public void AddOrUpdate(TAlternateKey key, V value)
             {
+                K actualKey = default!;
+                bool hasActualKey = false;
+
                 while (true)
                 {
                     if (this.TryUpdate(key, value))
@@ -997,7 +1000,12 @@ namespace BitFaster.Caching.Lru
                         return;
                     }
 
-                    K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
+                    if (!hasActualKey)
+                    {
+                        actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
+                        hasActualKey = true;
+                    }
+
                     if (this.Lru.TryAdd(actualKey, value))
                     {
                         return;
