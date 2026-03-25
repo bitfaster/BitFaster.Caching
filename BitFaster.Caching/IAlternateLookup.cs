@@ -32,14 +32,6 @@ namespace BitFaster.Caching
         bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out TKey actualKey, [MaybeNullWhen(false)] out TValue value);
 
         /// <summary>
-        /// Attempts to add a value using an alternate key.
-        /// </summary>
-        /// <param name="key">The alternate key.</param>
-        /// <param name="value">The value to add.</param>
-        /// <returns><see langword="true" /> when the key was added; otherwise, <see langword="false" />.</returns>
-        bool TryAdd(TAlternateKey key, TValue value);
-
-        /// <summary>
         /// Attempts to update an existing value using an alternate key.
         /// </summary>
         /// <param name="key">The alternate key.</param>

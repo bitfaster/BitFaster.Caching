@@ -978,12 +978,6 @@ namespace BitFaster.Caching.Lru
                 return false;
             }
 
-            public bool TryAdd(TAlternateKey key, V value)
-            {
-                K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
-                return this.Lru.TryAdd(actualKey, value);
-            }
-
             public bool TryUpdate(TAlternateKey key, V value)
             {
                 if (this.Alternate.TryGetValue(key, out var existing))
