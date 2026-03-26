@@ -988,6 +988,31 @@ namespace BitFaster.Caching.Lru
                 return false;
             }
 
+            public void AddOrUpdate(TAlternateKey key, V value)
+            {
+                K actualKey = default!;
+                bool hasActualKey = false;
+
+                while (true)
+                {
+                    if (this.TryUpdate(key, value))
+                    {
+                        return;
+                    }
+
+                    if (!hasActualKey)
+                    {
+                        actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
+                        hasActualKey = true;
+                    }
+
+                    if (this.Lru.TryAdd(actualKey, value))
+                    {
+                        return;
+                    }
+                }
+            }
+
             public V GetOrAdd(TAlternateKey key, Func<TAlternateKey, V> valueFactory)
             {
                 while (true)

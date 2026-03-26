@@ -40,6 +40,13 @@ namespace BitFaster.Caching
         bool TryUpdate(TAlternateKey key, TValue value);
 
         /// <summary>
+        /// Adds a value using an alternate key or updates the existing value.
+        /// </summary>
+        /// <param name="key">The alternate key.</param>
+        /// <param name="value">The value to add or update.</param>
+        void AddOrUpdate(TAlternateKey key, TValue value);
+
+        /// <summary>
         /// Gets an existing value or adds a new value using an alternate key.
         /// </summary>
         /// <param name="key">The alternate key.</param>
