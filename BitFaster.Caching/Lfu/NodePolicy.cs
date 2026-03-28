@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using BitFaster.Caching.Lru;
 
 namespace BitFaster.Caching.Lfu
 {
@@ -15,7 +16,7 @@ namespace BitFaster.Caching.Lfu
         void AfterRead(N node);
         void AfterWrite(N node);
         void OnEvict(N node);
-        void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, N, P> cache) where P : struct, INodePolicy<K, V, N>;
+        void ExpireEntries<P, T>(ref ConcurrentLfuCore<K, V, N, P, T> cache) where P : struct, INodePolicy<K, V, N> where T : struct, ITelemetryPolicy<K, V>;
     }
 
     internal struct AccessOrderPolicy<K, V> : INodePolicy<K, V, AccessOrderNode<K, V>>
@@ -59,7 +60,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, P> cache) where P : struct, INodePolicy<K, V, AccessOrderNode<K, V>>
+        public void ExpireEntries<P, T>(ref ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, P, T> cache) where P : struct, INodePolicy<K, V, AccessOrderNode<K, V>> where T : struct, ITelemetryPolicy<K, V>
         {
         }
     }
@@ -137,7 +138,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, P> cache) where P : struct, INodePolicy<K, V, TimeOrderNode<K, V>>
+        public void ExpireEntries<P, T>(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, P, T> cache) where P : struct, INodePolicy<K, V, TimeOrderNode<K, V>> where T : struct, ITelemetryPolicy<K, V>
         {
             wheel.Advance(ref cache, Duration.SinceEpoch());
         }

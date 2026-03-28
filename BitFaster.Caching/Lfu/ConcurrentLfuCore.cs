@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Counters;
+using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 
 #if DEBUG
@@ -39,10 +40,11 @@ namespace BitFaster.Caching.Lfu
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
 
-    internal struct ConcurrentLfuCore<K, V, N, P> : IBoundedPolicy
+    internal struct ConcurrentLfuCore<K, V, N, P, T> : IBoundedPolicy
         where K : notnull
         where N : LfuNode<K, V>
         where P : struct, INodePolicy<K, V, N>
+        where T : struct, ITelemetryPolicy<K, V>
     {
         private const int MaxWriteBufferRetries = 64;
 
@@ -78,7 +80,16 @@ namespace BitFaster.Caching.Lfu
 
         internal P policy;
 
-        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers, P policy)
+        /// <summary>
+        /// The telemetry policy.
+        /// </summary>
+        /// <remarks>
+        /// Since T is a struct, making it readonly will force the runtime to make defensive copies
+        /// if mutate methods are called. Therefore, field must be mutable to maintain count.
+        /// </remarks>
+        internal T telemetryPolicy;
+
+        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers, P policy, T telemetryPolicy)
         {
             if (capacity < 3)
                 Throw.ArgOutOfRange(nameof(capacity));
@@ -108,6 +119,7 @@ namespace BitFaster.Caching.Lfu
             this.drainBuffers = drainBuffers;
 
             this.policy = policy;
+            this.telemetryPolicy = telemetryPolicy;
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -115,7 +127,9 @@ namespace BitFaster.Caching.Lfu
 
         public int Capacity => this.capacity.Capacity;
 
-        public Optional<ICacheMetrics> Metrics => new(this.metrics);
+        public Optional<ICacheMetrics> Metrics => CreateMetrics(ref this);
+
+        public Optional<ICacheEvents<K, V>> Events => CreateEvents(ref this);
 
         public CachePolicy Policy => new(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
@@ -143,7 +157,7 @@ namespace BitFaster.Caching.Lfu
 
         public void Clear()
         {
-            Trim(int.MaxValue);
+            TrimInternal(int.MaxValue, ItemRemovedReason.Cleared);
 
             lock (maintenanceLock)
             {
@@ -154,6 +168,11 @@ namespace BitFaster.Caching.Lfu
         }
 
         public void Trim(int itemCount)
+        {
+            TrimInternal(itemCount, ItemRemovedReason.Trimmed);
+        }
+
+        private void TrimInternal(int itemCount, ItemRemovedReason reason)
         {
             List<LfuNode<K, V>> candidates;
             lock (maintenanceLock)
@@ -177,7 +196,7 @@ namespace BitFaster.Caching.Lfu
             foreach (var candidate in candidates)
 #endif
             {
-                this.TryRemove(candidate.Key);
+                this.TryRemoveInternal(candidate.Key, out _, reason);
             }
         }
 
@@ -336,6 +355,7 @@ namespace BitFaster.Caching.Lfu
 #endif
                         {
                             node.WasRemoved = true;
+                            this.telemetryPolicy.OnItemRemoved(item.Key, node.Value, ItemRemovedReason.Removed);
                             AfterWrite(node);
                             return true;
                         }
@@ -348,9 +368,20 @@ namespace BitFaster.Caching.Lfu
 
         public bool TryRemove(K key, [MaybeNullWhen(false)] out V value)
         {
+            return TryRemoveInternal(key, out value, ItemRemovedReason.Removed);
+        }
+
+        public bool TryRemove(K key)
+        {
+            return this.TryRemove(key, out var _);
+        }
+
+        private bool TryRemoveInternal(K key, [MaybeNullWhen(false)] out V value, ItemRemovedReason reason)
+        {
             if (this.dictionary.TryRemove(key, out var node))
             {
                 node.WasRemoved = true;
+                this.telemetryPolicy.OnItemRemoved(key, node.Value, reason);
                 AfterWrite(node);
                 value = node.Value;
                 return true;
@@ -358,11 +389,6 @@ namespace BitFaster.Caching.Lfu
 
             value = default;
             return false;
-        }
-
-        public bool TryRemove(K key)
-        {
-            return this.TryRemove(key, out var _);
         }
 
         public bool TryUpdate(K key, V value)
@@ -373,7 +399,16 @@ namespace BitFaster.Caching.Lfu
                 {
                     if (!node.WasRemoved)
                     {
+                        // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+                        var oldValue = node.Value;
+#endif
                         node.Value = value;
+
+                        // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+                        this.telemetryPolicy.OnItemUpdated(key, oldValue, value);
+#endif
 
                         // It's ok for this to be lossy, since the node is already tracked
                         // and we will just lose ordering/hit count, but not orphan the node.
@@ -839,6 +874,7 @@ namespace BitFaster.Caching.Lfu
             ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
 #endif
             evictee.list?.Remove(evictee);
+            this.telemetryPolicy.OnItemRemoved(evictee.Key, evictee.Value, ItemRemovedReason.Evicted);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
 
@@ -928,6 +964,84 @@ namespace BitFaster.Caching.Lfu
                 }
 
                 return "Invalid state";
+            }
+        }
+
+        private static Optional<ICacheMetrics> CreateMetrics(ref ConcurrentLfuCore<K, V, N, P, T> lfu)
+        {
+            if (typeof(T) == typeof(NoTelemetryPolicy<K, V>))
+            {
+                return Optional<ICacheMetrics>.None();
+            }
+
+            return new(new Proxy(ref lfu));
+        }
+
+        private static Optional<ICacheEvents<K, V>> CreateEvents(ref ConcurrentLfuCore<K, V, N, P, T> lfu)
+        {
+            if (typeof(T) == typeof(NoTelemetryPolicy<K, V>))
+            {
+                return Optional<ICacheEvents<K, V>>.None();
+            }
+
+            return new(new Proxy(ref lfu));
+        }
+
+        // To get JIT optimizations, policies must be structs.
+        // If the structs are returned directly via properties, they will be copied. Since
+        // telemetryPolicy is a mutable struct, copy is bad. One workaround is to store the
+        // state within the struct in an object. Since the struct points to the same object
+        // it becomes immutable. However, this object is then somewhere else on the
+        // heap, which slows down the policies with hit counter logic in benchmarks. Likely
+        // this approach keeps the structs data members in the same CPU cache line as the LFU.
+        // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+        [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Upd = {Updated}, Evict = {Evicted}")]
+#else
+        [DebuggerDisplay("Hit = {Hits}, Miss = {Misses}, Evict = {Evicted}")]
+#endif
+        private class Proxy : ICacheMetrics, ICacheEvents<K, V>, IBoundedPolicy
+        {
+            private readonly ConcurrentLfuCore<K, V, N, P, T> lfu;
+
+            public Proxy(ref ConcurrentLfuCore<K, V, N, P, T> lfu)
+            {
+                this.lfu = lfu;
+            }
+
+            public double HitRatio => lfu.telemetryPolicy.HitRatio;
+
+            public long Total => lfu.telemetryPolicy.Total;
+
+            public long Hits => lfu.telemetryPolicy.Hits;
+
+            public long Misses => lfu.telemetryPolicy.Misses;
+
+            public long Evicted => lfu.telemetryPolicy.Evicted;
+
+            // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+            public long Updated => lfu.telemetryPolicy.Updated;
+#endif
+            public int Capacity => lfu.Capacity;
+
+            public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
+            {
+                add { this.lfu.telemetryPolicy.ItemRemoved += value; }
+                remove { this.lfu.telemetryPolicy.ItemRemoved -= value; }
+            }
+
+            // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+            public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
+            {
+                add { this.lfu.telemetryPolicy.ItemUpdated += value; }
+                remove { this.lfu.telemetryPolicy.ItemUpdated -= value; }
+            }
+#endif
+            public void Trim(int itemCount)
+            {
+                lfu.Trim(itemCount);
             }
         }
 

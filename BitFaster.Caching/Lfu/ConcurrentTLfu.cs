@@ -13,16 +13,20 @@ namespace BitFaster.Caching.Lfu
         where K : notnull
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
-        private ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V>> core;
+        private ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V>, TelemetryPolicy<K, V>> core;
 
         public ConcurrentTLfu(int capacity, IExpiryCalculator<K, V> expiryCalculator)
         {
-            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers(), new(expiryCalculator));
+            var telemetryPolicy = new TelemetryPolicy<K, V>();
+            telemetryPolicy.SetEventSource(this);
+            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers(), new(expiryCalculator), telemetryPolicy);
         }
 
         public ConcurrentTLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, IExpiryCalculator<K, V> expiryCalculator)
         {
-            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), new(expiryCalculator));
+            var telemetryPolicy = new TelemetryPolicy<K, V>();
+            telemetryPolicy.SetEventSource(this);
+            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), new(expiryCalculator), telemetryPolicy);
         }
 
         // structs cannot declare self referencing lambda functions, therefore pass this in from the ctor
@@ -38,7 +42,7 @@ namespace BitFaster.Caching.Lfu
         public Optional<ICacheMetrics> Metrics => core.Metrics;
 
         ///<inheritdoc/>
-        public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
+        public Optional<ICacheEvents<K, V>> Events => core.Events;
 
         ///<inheritdoc/>
         public CachePolicy Policy => CreatePolicy();

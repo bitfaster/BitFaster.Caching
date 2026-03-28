@@ -36,7 +36,7 @@ namespace BitFaster.Caching.Lfu
         where K : notnull
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
-        private ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> core;
+        private ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>, TelemetryPolicy<K, V>> core;
 
         /// <summary>
         /// The default buffer size.
@@ -49,7 +49,9 @@ namespace BitFaster.Caching.Lfu
         /// <param name="capacity">The capacity.</param>
         public ConcurrentLfu(int capacity)
         {
-            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers(), default);
+            var telemetryPolicy = new TelemetryPolicy<K, V>();
+            telemetryPolicy.SetEventSource(this);
+            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers(), default, telemetryPolicy);
         }
 
         /// <summary>
@@ -61,10 +63,12 @@ namespace BitFaster.Caching.Lfu
         /// <param name="comparer">The equality comparer.</param>
         public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
-            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), default);
+            var telemetryPolicy = new TelemetryPolicy<K, V>();
+            telemetryPolicy.SetEventSource(this);
+            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), default, telemetryPolicy);
         }
 
-        internal ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>> Core => core;
+        internal ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>, TelemetryPolicy<K, V>> Core => core;
 
         // structs cannot declare self referencing lambda functions, therefore pass this in from the ctor
         private void DrainBuffers()
@@ -79,7 +83,7 @@ namespace BitFaster.Caching.Lfu
         public Optional<ICacheMetrics> Metrics => core.Metrics;
 
         ///<inheritdoc/>
-        public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
+        public Optional<ICacheEvents<K, V>> Events => core.Events;
 
         ///<inheritdoc/>
         public CachePolicy Policy => core.Policy;
