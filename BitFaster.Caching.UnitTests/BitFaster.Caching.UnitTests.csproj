@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>net48;netcoreapp3.1;net6.0;net9.0</TargetFrameworks>
-    <LangVersion>10.0</LangVersion>  
+    <LangVersion Condition="'$(TargetFramework)' == 'net9.0'">13.0</LangVersion>
+    <LangVersion Condition="'$(TargetFramework)' != 'net9.0'">10.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

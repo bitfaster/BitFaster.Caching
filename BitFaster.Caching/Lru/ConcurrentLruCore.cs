@@ -381,23 +381,31 @@ namespace BitFaster.Caching.Lru
         {
             if (this.dictionary.TryGetValue(key, out var existing))
             {
-                lock (existing)
+                return this.TryUpdateValue(existing, value);
+            }
+
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryUpdateValue(I existing, V value)
+        {
+            lock (existing)
+            {
+                if (!existing.WasRemoved)
                 {
-                    if (!existing.WasRemoved)
-                    {
-                        V oldValue = existing.Value;
+                    V oldValue = existing.Value;
 
-                        existing.Value = value;
+                    existing.Value = value;
 
-                        this.itemPolicy.Update(existing);
-                        // backcompat: remove conditional compile
+                    this.itemPolicy.Update(existing);
+                    // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
-                        this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
+                    this.telemetryPolicy.OnItemUpdated(existing.Key, oldValue, existing.Value);
 #endif
-                        Disposer<V>.Dispose(oldValue);
+                    Disposer<V>.Dispose(oldValue);
 
-                        return true;
-                    }
+                    return true;
                 }
             }
 
@@ -891,6 +899,159 @@ namespace BitFaster.Caching.Lru
 
             return new(new Proxy(lru));
         }
+
+#if NET9_0_OR_GREATER
+        /// <summary>
+        /// Gets an alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <returns>An alternate lookup.</returns>
+        /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
+        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (!this.dictionary.IsCompatibleKey<TAlternateKey, K, I>())
+            {
+                Throw.IncompatibleComparer();
+            }
+
+            return new AlternateLookup<TAlternateKey>(this);
+        }
+
+        /// <summary>
+        /// Attempts to get an alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <param name="lookup">The alternate lookup when available.</param>
+        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
+        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (this.dictionary.IsCompatibleKey<TAlternateKey, K, I>())
+            {
+                lookup = new AlternateLookup<TAlternateKey>(this);
+                return true;
+            }
+
+            lookup = default;
+            return false;
+        }
+
+        internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>
+            where TAlternateKey : notnull, allows ref struct
+        {
+            internal AlternateLookup(ConcurrentLruCore<K, V, I, P, T> lru)
+            {
+                Debug.Assert(lru is not null);
+                Debug.Assert(lru.dictionary.IsCompatibleKey<TAlternateKey, K, I>());
+                this.Lru = lru;
+                this.Alternate = lru.dictionary.GetAlternateLookup<TAlternateKey>();
+            }
+
+            internal ConcurrentLruCore<K, V, I, P, T> Lru { get; }
+
+            internal ConcurrentDictionary<K, I>.AlternateLookup<TAlternateKey> Alternate { get; }
+
+            public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
+            {
+                if (this.Alternate.TryGetValue(key, out var item))
+                {
+                    return this.Lru.GetOrDiscard(item, out value);
+                }
+
+                value = default;
+                this.Lru.telemetryPolicy.IncrementMiss();
+                return false;
+            }
+
+            public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey, [MaybeNullWhen(false)] out V value)
+            {
+                if (this.Alternate.TryRemove(key, out actualKey, out var item))
+                {
+                    this.Lru.OnRemove(actualKey, item, ItemRemovedReason.Removed);
+                    value = item.Value;
+                    return true;
+                }
+
+                actualKey = default;
+                value = default;
+                return false;
+            }
+
+            public bool TryUpdate(TAlternateKey key, V value)
+            {
+                if (this.Alternate.TryGetValue(key, out var existing))
+                {
+                    return this.Lru.TryUpdateValue(existing, value);
+                }
+
+                return false;
+            }
+
+            public void AddOrUpdate(TAlternateKey key, V value)
+            {
+                K actualKey = default!;
+                bool hasActualKey = false;
+
+                while (true)
+                {
+                    if (this.TryUpdate(key, value))
+                    {
+                        return;
+                    }
+
+                    if (!hasActualKey)
+                    {
+                        actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
+                        hasActualKey = true;
+                    }
+
+                    if (this.Lru.TryAdd(actualKey, value))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            public V GetOrAdd(TAlternateKey key, Func<TAlternateKey, V> valueFactory)
+            {
+                while (true)
+                {
+                    if (this.TryGet(key, out var value))
+                    {
+                        return value;
+                    }
+
+                    K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
+
+                    value = valueFactory(key);
+                    if (this.Lru.TryAdd(actualKey, value))
+                    {
+                        return value;
+                    }
+                }
+            }
+
+            public V GetOrAdd<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, V> valueFactory, TArg factoryArgument)
+            {
+                while (true)
+                {
+                    if (this.TryGet(key, out var value))
+                    {
+                        return value;
+                    }
+
+                    K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
+
+                    value = valueFactory(key, factoryArgument);
+                    if (this.Lru.TryAdd(actualKey, value))
+                    {
+                        return value;
+                    }
+                }
+            }
+        }
+#endif
 
         // To get JIT optimizations, policies must be structs.
         // If the structs are returned directly via properties, they will be copied. Since  

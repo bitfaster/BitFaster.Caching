@@ -94,6 +94,58 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
         }
 
+#if NET9_0_OR_GREATER
+        [Fact]
+        public async Task WhenSoakConcurrentAlternateLookupGetCacheEndsInConsistentState()
+        {
+            var alternateLru = new ConcurrentLru<string, string>(1, capacity, StringComparer.Ordinal);
+            var alternate = alternateLru.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () =>
+                {
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        string key = (i + 1).ToString();
+                        alternate.GetOrAdd(key.AsSpan(), static keySpan => keySpan.ToString());
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{alternateLru.HotCount} {alternateLru.WarmCount} {alternateLru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", alternateLru.Keys));
+
+                alternateLru.Count.Should().BeInRange(7, 10);
+                new ConcurrentLruIntegrityChecker<string, string, LruItem<string, string>, LruPolicy<string, string>, TelemetryPolicy<string, string>>(alternateLru).Validate();
+            }
+        }
+
+        [Fact]
+        public async Task WhenSoakConcurrentAlternateLookupGetWithArgCacheEndsInConsistentState()
+        {
+            var alternateLru = new ConcurrentLru<string, string>(1, capacity, StringComparer.Ordinal);
+            var alternate = alternateLru.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () =>
+                {
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        string key = (i + 1).ToString();
+                        alternate.GetOrAdd(key.AsSpan(), static (keySpan, prefix) => prefix + keySpan.ToString(), "prefix-");
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{alternateLru.HotCount} {alternateLru.WarmCount} {alternateLru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", alternateLru.Keys));
+
+                alternateLru.Count.Should().BeInRange(7, 10);
+                new ConcurrentLruIntegrityChecker<string, string, LruItem<string, string>, LruPolicy<string, string>, TelemetryPolicy<string, string>>(alternateLru).Validate();
+            }
+        }
+#endif
+
         [Fact]
         public async Task WhenSoakConcurrentGetAsyncWithArgCacheEndsInConsistentState()
         {
@@ -137,6 +189,33 @@ namespace BitFaster.Caching.UnitTests.Lru
                 RunIntegrityCheck();
             }
         }
+
+#if NET9_0_OR_GREATER
+        [Fact]
+        public async Task WhenSoakConcurrentAlternateLookupGetAndRemoveCacheEndsInConsistentState()
+        {
+            var alternateLru = new ConcurrentLru<string, string>(1, capacity, StringComparer.Ordinal);
+            var alternate = alternateLru.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () =>
+                {
+                    for (int i = 0; i < 100000; i++)
+                    {
+                        string key = (i + 1).ToString();
+                        alternate.TryRemove(key.AsSpan(), out _, out _);
+                        alternate.GetOrAdd(key.AsSpan(), static keySpan => keySpan.ToString());
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{alternateLru.HotCount} {alternateLru.WarmCount} {alternateLru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", alternateLru.Keys));
+
+                new ConcurrentLruIntegrityChecker<string, string, LruItem<string, string>, LruPolicy<string, string>, TelemetryPolicy<string, string>>(alternateLru).Validate();
+            }
+        }
+#endif
 
         [Fact]
         public async Task WhenSoakConcurrentGetAndRemoveKvpCacheEndsInConsistentState()
