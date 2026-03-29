@@ -666,7 +666,14 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        // Force inlining
         private void OnWrite(N node)
+        {
+            OnWriteImpl(node);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void OnWriteImpl(N node)
         {
             // Nodes can be removed while they are in the write buffer, in which case they should
             // not be added back into the LRU.
