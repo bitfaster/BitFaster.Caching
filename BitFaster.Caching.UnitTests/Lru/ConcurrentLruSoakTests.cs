@@ -108,7 +108,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                     for (int i = 0; i < 100000; i++)
                     {
                         string key = (i + 1).ToString();
-                        alternate.GetOrAdd(key.AsSpan(), static key => key.ToString());
+                        alternate.GetOrAdd(key.AsSpan(), static keySpan => keySpan.ToString());
                     }
                 });
 
@@ -133,7 +133,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                     for (int i = 0; i < 100000; i++)
                     {
                         string key = (i + 1).ToString();
-                        alternate.GetOrAdd(key.AsSpan(), static (key, _) => key.ToString(), string.Empty);
+                        alternate.GetOrAdd(key.AsSpan(), static (keySpan, _) => keySpan.ToString(), string.Empty);
                     }
                 });
 
