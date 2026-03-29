@@ -937,6 +937,42 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
+        /// <summary>
+        /// Gets an async alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <returns>An async alternate lookup.</returns>
+        /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
+        public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (!this.dictionary.IsCompatibleKey<TAlternateKey, K, I>())
+            {
+                Throw.IncompatibleComparer();
+            }
+
+            return new AsyncAlternateLookup<TAlternateKey>(this);
+        }
+
+        /// <summary>
+        /// Attempts to get an async alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <param name="lookup">The async alternate lookup when available.</param>
+        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
+        public bool TryGetAsyncAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAsyncAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (this.dictionary.IsCompatibleKey<TAlternateKey, K, I>())
+            {
+                lookup = new AsyncAlternateLookup<TAlternateKey>(this);
+                return true;
+            }
+
+            lookup = default;
+            return false;
+        }
+
         internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>
             where TAlternateKey : notnull, allows ref struct
         {
@@ -1047,6 +1083,147 @@ namespace BitFaster.Caching.Lru
                     if (this.Lru.TryAdd(actualKey, value))
                     {
                         return value;
+                    }
+                }
+            }
+        }
+
+        internal readonly struct AsyncAlternateLookup<TAlternateKey> : IAsyncAlternateLookup<TAlternateKey, K, V>
+            where TAlternateKey : notnull, allows ref struct
+        {
+            internal AsyncAlternateLookup(ConcurrentLruCore<K, V, I, P, T> lru)
+            {
+                Debug.Assert(lru is not null);
+                Debug.Assert(lru.dictionary.IsCompatibleKey<TAlternateKey, K, I>());
+                this.Lru = lru;
+                this.Alternate = lru.dictionary.GetAlternateLookup<TAlternateKey>();
+            }
+
+            internal ConcurrentLruCore<K, V, I, P, T> Lru { get; }
+
+            internal ConcurrentDictionary<K, I>.AlternateLookup<TAlternateKey> Alternate { get; }
+
+            public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
+            {
+                if (this.Alternate.TryGetValue(key, out var item))
+                {
+                    return this.Lru.GetOrDiscard(item, out value);
+                }
+
+                value = default;
+                this.Lru.telemetryPolicy.IncrementMiss();
+                return false;
+            }
+
+            public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey, [MaybeNullWhen(false)] out V value)
+            {
+                if (this.Alternate.TryRemove(key, out actualKey, out var item))
+                {
+                    this.Lru.OnRemove(actualKey, item, ItemRemovedReason.Removed);
+                    value = item.Value;
+                    return true;
+                }
+
+                actualKey = default;
+                value = default;
+                return false;
+            }
+
+            public bool TryUpdate(TAlternateKey key, V value)
+            {
+                if (this.Alternate.TryGetValue(key, out var existing))
+                {
+                    return this.Lru.TryUpdateValue(existing, value);
+                }
+
+                return false;
+            }
+
+            public void AddOrUpdate(TAlternateKey key, V value)
+            {
+                K actualKey = default!;
+                bool hasActualKey = false;
+
+                while (true)
+                {
+                    if (this.TryUpdate(key, value))
+                    {
+                        return;
+                    }
+
+                    if (!hasActualKey)
+                    {
+                        actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
+                        hasActualKey = true;
+                    }
+
+                    if (this.Lru.TryAdd(actualKey, value))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            public ValueTask<V> GetOrAddAsync(TAlternateKey key, Func<TAlternateKey, Task<V>> valueFactory)
+            {
+                if (this.TryGet(key, out var value))
+                {
+                    return new ValueTask<V>(value);
+                }
+
+                K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
+                Task<V> task = valueFactory(key);
+
+                return GetOrAddAsyncSlow(actualKey, task);
+            }
+
+            public V GetOrAdd<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, V> valueFactory, TArg factoryArgument)
+            {
+                while (true)
+                {
+                    if (this.TryGet(key, out var value))
+                    {
+                        return value;
+                    }
+
+                    K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
+
+                    value = valueFactory(key, factoryArgument);
+                    if (this.Lru.TryAdd(actualKey, value))
+                    {
+                        return value;
+                    }
+                }
+            }
+
+            public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            {
+                if (this.TryGet(key, out var value))
+                {
+                    return new ValueTask<V>(value);
+                }
+
+                K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
+                Task<V> task = valueFactory(key, factoryArgument);
+
+                return GetOrAddAsyncSlow(actualKey, task);
+            }
+
+            private async ValueTask<V> GetOrAddAsyncSlow(K actualKey, Task<V> task)
+            {
+                V value = await task.ConfigureAwait(false);
+
+                if (this.Lru.TryAdd(actualKey, value))
+                {
+                    return value;
+                }
+
+                // Another thread added a value for this key first, retrieve it.
+                while (true)
+                {
+                    if (this.Lru.TryGet(actualKey, out V? existing))
+                    {
+                        return existing;
                     }
                 }
             }
