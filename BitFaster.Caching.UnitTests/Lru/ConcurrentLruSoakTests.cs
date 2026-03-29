@@ -133,7 +133,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                     for (int i = 0; i < 100000; i++)
                     {
                         string key = (i + 1).ToString();
-                        alternate.GetOrAdd(key.AsSpan(), static (keySpan, _) => keySpan.ToString(), string.Empty);
+                        alternate.GetOrAdd(key.AsSpan(), static (keySpan, prefix) => prefix + keySpan.ToString(), "prefix-");
                     }
                 });
 
