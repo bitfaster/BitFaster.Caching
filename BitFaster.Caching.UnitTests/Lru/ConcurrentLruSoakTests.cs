@@ -1,19 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
-using static BitFaster.Caching.UnitTests.Lru.LruItemSoakTests;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
     [Collection("Soak")]
     public class ConcurrentLruSoakTests
     {
+        private const int loopIterations = 100_000;
+        private const int bufferLen = 6;
+
         private readonly ITestOutputHelper testOutputHelper;
         private const int hotCap = 3;
         private const int warmCap = 3;
@@ -34,7 +35,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.Run(4, () =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         lru.GetOrAdd(i + 1, i => i.ToString());
                     }
@@ -56,7 +57,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.RunAsync(4, async () =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         await lru.GetOrAddAsync(i + 1, i => Task.FromResult(i.ToString()));
                     }
@@ -78,7 +79,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.Run(4, () =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         // use the arg overload
                         lru.GetOrAdd(i + 1, (i, s) => i.ToString(), "Foo");
@@ -105,7 +106,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.Run(4, () =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         string key = (i + 1).ToString();
                         alternate.GetOrAdd(key.AsSpan(), static keySpan => keySpan.ToString());
@@ -130,7 +131,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.Run(4, () =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         string key = (i + 1).ToString();
                         alternate.GetOrAdd(key.AsSpan(), static (keySpan, prefix) => prefix + keySpan.ToString(), "prefix-");
@@ -153,7 +154,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.RunAsync(4, async () =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         // use the arg overload
                         await lru.GetOrAddAsync(i + 1, (i, s) => Task.FromResult(i.ToString()), "Foo");
@@ -176,7 +177,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.Run(4, () =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         lru.TryRemove(i + 1);
                         lru.GetOrAdd(i + 1, i => i.ToString());
@@ -201,8 +202,8 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.Run(4, () =>
                 {
-                    Span<char> key = stackalloc char[6];
-                    for (int i = 0; i < 100000; i++)
+                    Span<char> key = stackalloc char[bufferLen];
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         (i + 1).TryFormat(key, out int written);
                         var keySpan = key.Slice(0, written);
@@ -218,7 +219,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
         }
 
-#pragma warning disable CA2014 // stackalloc in loop is required because Span<char> cannot cross await boundaries
         [Fact]
         public async Task WhenSoakConcurrentAsyncAlternateLookupGetAsyncCacheEndsInConsistentState()
         {
@@ -229,11 +229,11 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.RunAsync(4, async () =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    var key = new char[bufferLen];
+                    for (int i = 0; i < loopIterations; i++)
                     {
-                        Span<char> key = stackalloc char[6];
                         (i + 1).TryFormat(key, out int written);
-                        await alternate.GetOrAddAsync(key.Slice(0, written), static keySpan => Task.FromResult(keySpan.ToString()));
+                        await alternate.GetOrAddAsync(key.AsSpan().Slice(0, written), static keySpan => Task.FromResult(keySpan.ToString()));
                     }
                 });
 
@@ -255,11 +255,11 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.RunAsync(4, async () =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    var key = new char[bufferLen];
+                    for (int i = 0; i < loopIterations; i++)
                     {
-                        Span<char> key = stackalloc char[6];
                         (i + 1).TryFormat(key, out int written);
-                        await alternate.GetOrAddAsync(key.Slice(0, written), static (keySpan, prefix) => Task.FromResult(prefix + keySpan.ToString()), "prefix-");
+                        await alternate.GetOrAddAsync(key.AsSpan().Slice(0, written), static (keySpan, prefix) => Task.FromResult(prefix + keySpan.ToString()), "prefix-");
                     }
                 });
 
@@ -270,7 +270,6 @@ namespace BitFaster.Caching.UnitTests.Lru
                 new ConcurrentLruIntegrityChecker<string, string, LruItem<string, string>, LruPolicy<string, string>, TelemetryPolicy<string, string>>(alternateLru).Validate();
             }
         }
-#pragma warning restore CA2014
 #endif
 
         [Fact]
@@ -280,7 +279,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.Run(4, () =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         lru.TryRemove(new KeyValuePair<int, string>(i + 1, (i + 1).ToString()));
                         lru.GetOrAdd(i + 1, i => i.ToString());
@@ -301,7 +300,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.Run(4, () =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         lru.TryUpdate(i + 1, i.ToString());
                         lru.GetOrAdd(i + 1, i => i.ToString());
@@ -322,7 +321,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.Run(4, () =>
                 {
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         lru.AddOrUpdate(i + 1, i.ToString());
                         lru.GetOrAdd(i + 1, i => i.ToString());
@@ -346,7 +345,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 await Threaded.Run(4, () =>
                 {
                     var b = new byte[8];
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         lruVT.TryUpdate(i + 1, new Guid(i, 0, 0, b));
                         lruVT.GetOrAdd(i + 1, x => new Guid(x, 0, 0, b));
@@ -412,7 +411,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             await Threaded.Run(4, r =>
             {
-                for (int i = 0; i < 100000; i++)
+                for (int i = 0; i < loopIterations; i++)
                 {
                     // clear 6,250 times per 1_000_000 iters
                     if (r == 0 && (i & 15) == 15)
@@ -436,7 +435,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             await Threaded.Run(4, r =>
             {
-                for (int i = 0; i < 100000; i++)
+                for (int i = 0; i < loopIterations; i++)
                 {
                     // clear 25,000 times per 1_000_000 iters
                     // capacity is 9, so we will try to clear before warmup is done
