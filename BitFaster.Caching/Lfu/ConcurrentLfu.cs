@@ -36,7 +36,7 @@ namespace BitFaster.Caching.Lfu
         where K : notnull
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
-        private ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V, NoEventPolicy<K, V>>, NoEventPolicy<K, V>> core;
+        private ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V, EventPolicy<K, V>>, EventPolicy<K, V>> core;
 
         /// <summary>
         /// The default buffer size.
@@ -49,7 +49,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="capacity">The capacity.</param>
         public ConcurrentLfu(int capacity)
         {
-            NoEventPolicy<K, V> eventPolicy = default;
+            EventPolicy<K, V> eventPolicy = default;
             eventPolicy.SetEventSource(this);
             this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers(), default, eventPolicy);
         }
@@ -63,12 +63,12 @@ namespace BitFaster.Caching.Lfu
         /// <param name="comparer">The equality comparer.</param>
         public ConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
-            NoEventPolicy<K, V> eventPolicy = default;
+            EventPolicy<K, V> eventPolicy = default;
             eventPolicy.SetEventSource(this);
             this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), default, eventPolicy);
         }
 
-        internal ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V, NoEventPolicy<K, V>>, NoEventPolicy<K, V>> Core => core;
+        internal ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V, EventPolicy<K, V>>, EventPolicy<K, V>> Core => core;
 
         // structs cannot declare self referencing lambda functions, therefore pass this in from the ctor
         private void DrainBuffers()
@@ -85,7 +85,7 @@ namespace BitFaster.Caching.Lfu
         ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => new(new Proxy(this));
 
-        internal ref NoEventPolicy<K, V> EventPolicyRef => ref this.core.eventPolicy;
+        internal ref EventPolicy<K, V> EventPolicyRef => ref this.core.eventPolicy;
 
         ///<inheritdoc/>
         public CachePolicy Policy => core.Policy;
@@ -206,6 +206,32 @@ namespace BitFaster.Caching.Lfu
         {
             return core.GetEnumerator();
         }
+
+#if NET9_0_OR_GREATER
+        /// <summary>
+        /// Gets an alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <returns>An alternate lookup.</returns>
+        /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
+        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            return core.GetAlternateLookup<TAlternateKey>();
+        }
+
+        /// <summary>
+        /// Attempts to get an alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <param name="lookup">The alternate lookup when available.</param>
+        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
+        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            return core.TryGetAlternateLookup(out lookup);
+        }
+#endif
 
 #if DEBUG
         /// <summary>

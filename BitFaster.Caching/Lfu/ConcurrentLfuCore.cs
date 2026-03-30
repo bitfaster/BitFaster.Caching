@@ -289,25 +289,33 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                if (!policy.IsExpired(node))
-                {
-                    bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
-
-                    if (this.drainStatus.ShouldDrain(delayable))
-                    {
-                        TryScheduleDrain();
-                    }
-                    this.policy.OnRead(node);
-                    value = node.Value;
-                    return true;
-                }
-                else
-                {
-                    // expired case, immediately remove from the dictionary
-                    TryRemove(node);
-                }
+                return GetOrDiscard(node, out value);
             }
 
+            this.metrics.requestMissCount.Increment();
+
+            value = default;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool GetOrDiscard(N node, [MaybeNullWhen(false)] out V value)
+        {
+            if (!policy.IsExpired(node))
+            {
+                bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
+
+                if (this.drainStatus.ShouldDrain(delayable))
+                {
+                    TryScheduleDrain();
+                }
+                this.policy.OnRead(node);
+                value = node.Value;
+                return true;
+            }
+
+            // expired case, immediately remove from the dictionary
+            TryRemove(node);
             this.metrics.requestMissCount.Increment();
 
             value = default;
@@ -385,14 +393,22 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                lock (node)
+                return TryUpdateValue(node, value);
+            }
+
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryUpdateValue(N node, V value)
+        {
+            lock (node)
+            {
+                if (!node.WasRemoved)
                 {
-                    if (!node.WasRemoved)
+                    if (typeof(E) == typeof(EventPolicy<K, V>))
                     {
-                        // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
                         V oldValue = node.Value;
-#endif
                         node.Value = value;
 
                         // It's ok for this to be lossy, since the node is already tracked
@@ -400,13 +416,20 @@ namespace BitFaster.Caching.Lfu
                         this.writeBuffer.TryAdd(node);
                         TryScheduleDrain();
                         this.policy.OnWrite(node);
-
-                        // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
-                        this.eventPolicy.OnItemUpdated(key, oldValue, value);
-#endif
-                        return true;
+                        this.eventPolicy.OnItemUpdated(node.Key, oldValue, value);
                     }
+                    else
+                    {
+                        node.Value = value;
+
+                        // It's ok for this to be lossy, since the node is already tracked
+                        // and we will just lose ordering/hit count, but not orphan the node.
+                        this.writeBuffer.TryAdd(node);
+                        TryScheduleDrain();
+                        this.policy.OnWrite(node);
+                    }
+
+                    return true;
                 }
             }
 
@@ -650,21 +673,6 @@ namespace BitFaster.Caching.Lfu
             policy.AfterRead(node);
         }
 
-        private static class RemoveEventInliner
-        {
-            private static readonly bool IsEnabled = typeof(E) == typeof(EventPolicy<K, V>);
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void OnRemovedEvent(ConcurrentLfuCore<K, V, N, P, E> cache, N node)
-            {
-                if (IsEnabled)
-                {
-                    // WasRemoved flag is set via TryRemove, else item is evicted via policy
-                    ItemRemovedReason reason = node.WasRemoved ? ItemRemovedReason.Removed : ItemRemovedReason.Evicted;
-                    cache.eventPolicy.OnItemRemoved(node.Key, node.Value, reason);
-                }
-            }
-        }
 
         // Force inlining
         private void OnWrite(N node)
@@ -685,7 +693,11 @@ namespace BitFaster.Caching.Lfu
                 {
                     // if a write is in the buffer and is then removed in the buffer, it will enter OnWrite twice.
                     // we mark as deleted to avoid double counting/disposing it
-                    RemoveEventInliner.OnRemovedEvent(this, node);
+                    if (typeof(E) == typeof(EventPolicy<K, V>))
+                    {
+                        this.eventPolicy.OnItemRemoved(node.Key, node.Value, ItemRemovedReason.Removed);
+                    }
+
                     this.metrics.evictedCount++;
                     Disposer<V>.Dispose(node.Value);
                     node.WasDeleted = true;
@@ -1001,6 +1013,160 @@ namespace BitFaster.Caching.Lfu
 
             public long Evicted => evictedCount;
         }
+
+#if NET9_0_OR_GREATER
+        /// <summary>
+        /// Gets an alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <returns>An alternate lookup.</returns>
+        /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
+        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (!this.dictionary.IsCompatibleKey<TAlternateKey, K, N>())
+            {
+                Throw.IncompatibleComparer();
+            }
+
+            return new AlternateLookup<TAlternateKey>(this);
+        }
+
+        /// <summary>
+        /// Attempts to get an alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <param name="lookup">The alternate lookup when available.</param>
+        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
+        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (this.dictionary.IsCompatibleKey<TAlternateKey, K, N>())
+            {
+                lookup = new AlternateLookup<TAlternateKey>(this);
+                return true;
+            }
+
+            lookup = default;
+            return false;
+        }
+
+        internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>
+            where TAlternateKey : notnull, allows ref struct
+        {
+            internal AlternateLookup(ConcurrentLfuCore<K, V, N, P, E> lfu)
+            {
+                Debug.Assert(lfu.dictionary.IsCompatibleKey<TAlternateKey, K, N>());
+                this.Lfu = lfu;
+                this.Alternate = lfu.dictionary.GetAlternateLookup<TAlternateKey>();
+            }
+
+            internal ConcurrentLfuCore<K, V, N, P, E> Lfu { get; }
+
+            internal ConcurrentDictionary<K, N>.AlternateLookup<TAlternateKey> Alternate { get; }
+
+            public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
+            {
+                if (this.Alternate.TryGetValue(key, out var node))
+                {
+                    return this.Lfu.GetOrDiscard(node, out value);
+                }
+
+                this.Lfu.metrics.requestMissCount.Increment();
+
+                value = default;
+                return false;
+            }
+
+            public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey, [MaybeNullWhen(false)] out V value)
+            {
+                if (this.Alternate.TryRemove(key, out actualKey, out var node))
+                {
+                    node.WasRemoved = true;
+                    this.Lfu.AfterWrite(node);
+                    value = node.Value;
+                    return true;
+                }
+
+                actualKey = default;
+                value = default;
+                return false;
+            }
+
+            public bool TryUpdate(TAlternateKey key, V value)
+            {
+                if (this.Alternate.TryGetValue(key, out var node))
+                {
+                    return this.Lfu.TryUpdateValue(node, value);
+                }
+
+                return false;
+            }
+
+            public void AddOrUpdate(TAlternateKey key, V value)
+            {
+                K actualKey = default!;
+                bool hasActualKey = false;
+
+                while (true)
+                {
+                    if (this.TryUpdate(key, value))
+                    {
+                        return;
+                    }
+
+                    if (!hasActualKey)
+                    {
+                        actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                        hasActualKey = true;
+                    }
+
+                    if (this.Lfu.TryAdd(actualKey, value))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            public V GetOrAdd(TAlternateKey key, Func<TAlternateKey, V> valueFactory)
+            {
+                while (true)
+                {
+                    if (this.TryGet(key, out var value))
+                    {
+                        return value;
+                    }
+
+                    K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+
+                    value = valueFactory(key);
+                    if (this.Lfu.TryAdd(actualKey, value))
+                    {
+                        return value;
+                    }
+                }
+            }
+
+            public V GetOrAdd<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, V> valueFactory, TArg factoryArgument)
+            {
+                while (true)
+                {
+                    if (this.TryGet(key, out var value))
+                    {
+                        return value;
+                    }
+
+                    K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+
+                    value = valueFactory(key, factoryArgument);
+                    if (this.Lfu.TryAdd(actualKey, value))
+                    {
+                        return value;
+                    }
+                }
+            }
+        }
+#endif
 
 #if DEBUG
         /// <summary>
