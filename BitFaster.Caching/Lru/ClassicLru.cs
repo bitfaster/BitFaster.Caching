@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
@@ -451,6 +452,165 @@ namespace BitFaster.Caching.Lru
                 linkedList.AddLast(node);
             }
         }
+
+#if NET9_0_OR_GREATER
+        /// <summary>
+        /// Gets an alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <returns>An alternate lookup.</returns>
+        /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
+        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (!this.dictionary.IsCompatibleKey<TAlternateKey, K, LinkedListNode<LruItem>>())
+            {
+                Throw.IncompatibleComparer();
+            }
+
+            return new AlternateLookup<TAlternateKey>(this);
+        }
+
+        /// <summary>
+        /// Attempts to get an alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <param name="lookup">The alternate lookup when available.</param>
+        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
+        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (this.dictionary.IsCompatibleKey<TAlternateKey, K, LinkedListNode<LruItem>>())
+            {
+                lookup = new AlternateLookup<TAlternateKey>(this);
+                return true;
+            }
+
+            lookup = default;
+            return false;
+        }
+
+        internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>
+            where TAlternateKey : notnull, allows ref struct
+        {
+            internal AlternateLookup(ClassicLru<K, V> lru)
+            {
+                Debug.Assert(lru is not null);
+                Debug.Assert(lru.dictionary.IsCompatibleKey<TAlternateKey, K, LinkedListNode<LruItem>>());
+                this.lru = lru;
+                this.alternate = lru.dictionary.GetAlternateLookup<TAlternateKey>();
+            }
+
+            private readonly ClassicLru<K, V> lru;
+            private readonly ConcurrentDictionary<K, LinkedListNode<LruItem>>.AlternateLookup<TAlternateKey> alternate;
+
+            public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
+            {
+                Interlocked.Increment(ref this.lru.metrics.requestTotalCount);
+
+                if (this.alternate.TryGetValue(key, out var node))
+                {
+                    this.lru.LockAndMoveToEnd(node);
+                    Interlocked.Increment(ref this.lru.metrics.requestHitCount);
+                    value = node.Value.Value;
+                    return true;
+                }
+
+                value = default;
+                return false;
+            }
+
+            public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey, [MaybeNullWhen(false)] out V value)
+            {
+                if (this.alternate.TryRemove(key, out actualKey, out var node))
+                {
+                    this.lru.OnRemove(node);
+                    value = node.Value.Value;
+                    return true;
+                }
+
+                actualKey = default;
+                value = default;
+                return false;
+            }
+
+            public bool TryUpdate(TAlternateKey key, V value)
+            {
+                if (this.alternate.TryGetValue(key, out var node))
+                {
+                    this.lru.LockAndMoveToEnd(node);
+                    node.Value.Value = value;
+                    Interlocked.Increment(ref this.lru.metrics.updatedCount);
+                    return true;
+                }
+
+                return false;
+            }
+
+            public void AddOrUpdate(TAlternateKey key, V value)
+            {
+                K actualKey = default!;
+                bool hasActualKey = false;
+
+                while (true)
+                {
+                    if (this.TryUpdate(key, value))
+                    {
+                        return;
+                    }
+
+                    if (!hasActualKey)
+                    {
+                        actualKey = this.lru.dictionary.GetAlternateComparer<TAlternateKey, K, LinkedListNode<LruItem>>().Create(key);
+                        hasActualKey = true;
+                    }
+
+                    if (this.lru.TryAdd(actualKey, value))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            public V GetOrAdd(TAlternateKey key, Func<TAlternateKey, V> valueFactory)
+            {
+                while (true)
+                {
+                    if (this.TryGet(key, out var value))
+                    {
+                        return value;
+                    }
+
+                    K actualKey = this.lru.dictionary.GetAlternateComparer<TAlternateKey, K, LinkedListNode<LruItem>>().Create(key);
+
+                    value = valueFactory(key);
+                    if (this.lru.TryAdd(actualKey, value))
+                    {
+                        return value;
+                    }
+                }
+            }
+
+            public V GetOrAdd<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, V> valueFactory, TArg factoryArgument)
+            {
+                while (true)
+                {
+                    if (this.TryGet(key, out var value))
+                    {
+                        return value;
+                    }
+
+                    K actualKey = this.lru.dictionary.GetAlternateComparer<TAlternateKey, K, LinkedListNode<LruItem>>().Create(key);
+
+                    value = valueFactory(key, factoryArgument);
+                    if (this.lru.TryAdd(actualKey, value))
+                    {
+                        return value;
+                    }
+                }
+            }
+        }
+#endif
 
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
         /// <returns>An enumerator for the cache.</returns>
