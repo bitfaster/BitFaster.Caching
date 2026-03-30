@@ -273,25 +273,33 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                if (!policy.IsExpired(node))
-                {
-                    bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
-
-                    if (this.drainStatus.ShouldDrain(delayable))
-                    {
-                        TryScheduleDrain();
-                    }
-                    this.policy.OnRead(node);
-                    value = node.Value;
-                    return true;
-                }
-                else
-                {
-                    // expired case, immediately remove from the dictionary
-                    TryRemove(node);
-                }
+                return GetOrDiscard(node, out value);
             }
 
+            this.metrics.requestMissCount.Increment();
+
+            value = default;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool GetOrDiscard(N node, [MaybeNullWhen(false)] out V value)
+        {
+            if (!policy.IsExpired(node))
+            {
+                bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
+
+                if (this.drainStatus.ShouldDrain(delayable))
+                {
+                    TryScheduleDrain();
+                }
+                this.policy.OnRead(node);
+                value = node.Value;
+                return true;
+            }
+
+            // expired case, immediately remove from the dictionary
+            TryRemove(node);
             this.metrics.requestMissCount.Increment();
 
             value = default;
@@ -1015,22 +1023,7 @@ namespace BitFaster.Caching.Lfu
             {
                 if (this.Alternate.TryGetValue(key, out var node))
                 {
-                    if (!this.Lfu.policy.IsExpired(node))
-                    {
-                        bool delayable = this.Lfu.readBuffer.TryAdd(node) != BufferStatus.Full;
-
-                        if (this.Lfu.drainStatus.ShouldDrain(delayable))
-                        {
-                            this.Lfu.TryScheduleDrain();
-                        }
-                        this.Lfu.policy.OnRead(node);
-                        value = node.Value;
-                        return true;
-                    }
-                    else
-                    {
-                        this.Lfu.TryRemove(node);
-                    }
+                    return this.Lfu.GetOrDiscard(node, out value);
                 }
 
                 this.Lfu.metrics.requestMissCount.Increment();
