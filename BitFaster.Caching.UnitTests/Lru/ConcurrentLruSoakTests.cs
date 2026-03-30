@@ -201,11 +201,13 @@ namespace BitFaster.Caching.UnitTests.Lru
             {
                 await Threaded.Run(4, () =>
                 {
+                    Span<char> key = stackalloc char[6];
                     for (int i = 0; i < 100000; i++)
                     {
-                        string key = (i + 1).ToString();
-                        alternate.TryRemove(key.AsSpan(), out _, out _);
-                        alternate.GetOrAdd(key.AsSpan(), static keySpan => keySpan.ToString());
+                        (i + 1).TryFormat(key, out int written);
+                        var keySpan = key.Slice(0, written);
+                        alternate.TryRemove(keySpan, out _, out _);
+                        alternate.GetOrAdd(keySpan, static keySpan => keySpan.ToString());
                     }
                 });
 
@@ -216,6 +218,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
         }
 
+#pragma warning disable CA2014 // stackalloc in loop is required because Span<char> cannot cross await boundaries
         [Fact]
         public async Task WhenSoakConcurrentAsyncAlternateLookupGetAsyncCacheEndsInConsistentState()
         {
@@ -228,8 +231,9 @@ namespace BitFaster.Caching.UnitTests.Lru
                 {
                     for (int i = 0; i < 100000; i++)
                     {
-                        string key = (i + 1).ToString();
-                        await alternate.GetOrAddAsync(key.AsSpan(), static keySpan => Task.FromResult(keySpan.ToString()));
+                        Span<char> key = stackalloc char[6];
+                        (i + 1).TryFormat(key, out int written);
+                        await alternate.GetOrAddAsync(key.Slice(0, written), static keySpan => Task.FromResult(keySpan.ToString()));
                     }
                 });
 
@@ -253,8 +257,9 @@ namespace BitFaster.Caching.UnitTests.Lru
                 {
                     for (int i = 0; i < 100000; i++)
                     {
-                        string key = (i + 1).ToString();
-                        await alternate.GetOrAddAsync(key.AsSpan(), static (keySpan, prefix) => Task.FromResult(prefix + keySpan.ToString()), "prefix-");
+                        Span<char> key = stackalloc char[6];
+                        (i + 1).TryFormat(key, out int written);
+                        await alternate.GetOrAddAsync(key.Slice(0, written), static (keySpan, prefix) => Task.FromResult(prefix + keySpan.ToString()), "prefix-");
                     }
                 });
 
@@ -265,6 +270,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 new ConcurrentLruIntegrityChecker<string, string, LruItem<string, string>, LruPolicy<string, string>, TelemetryPolicy<string, string>>(alternateLru).Validate();
             }
         }
+#pragma warning restore CA2014
 #endif
 
         [Fact]
