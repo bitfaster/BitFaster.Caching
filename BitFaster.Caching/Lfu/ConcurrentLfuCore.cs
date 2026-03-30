@@ -1166,7 +1166,7 @@ namespace BitFaster.Caching.Lfu
                 K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
                 Task<V> task = valueFactory(key);
 
-                return new ValueTask<V>(GetOrAddAsyncSlow(actualKey, task));
+                return GetOrAddAsyncSlow(actualKey, task);
             }
 
             public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, Task<V>> valueFactory, TArg factoryArgument)
@@ -1179,12 +1179,12 @@ namespace BitFaster.Caching.Lfu
                 K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
                 Task<V> task = valueFactory(key, factoryArgument);
 
-                return new ValueTask<V>(GetOrAddAsyncSlow(actualKey, task));
+                return GetOrAddAsyncSlow(actualKey, task);
             }
 
             // Since TAlternateKey can be a ref struct, we can't use async/await in the public GetOrAddAsync methods,
             // so we delegate to this private async method after the value factory is invoked.
-            private async Task<V> GetOrAddAsyncSlow(K actualKey, Task<V> task)
+            private async ValueTask<V> GetOrAddAsyncSlow(K actualKey, Task<V> task)
             {
                 V value = await task.ConfigureAwait(false);
 
