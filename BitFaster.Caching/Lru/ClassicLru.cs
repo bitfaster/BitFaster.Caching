@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -103,10 +104,7 @@ namespace BitFaster.Caching.Lru
 
             if (dictionary.TryGetValue(key, out var node))
             {
-                LockAndMoveToEnd(node);
-                Interlocked.Increment(ref this.metrics.requestHitCount);
-                value = node.Value.Value;
-                return true;
+                return TryGetNode(node, out value);
             }
 
             value = default;
@@ -281,14 +279,11 @@ namespace BitFaster.Caching.Lru
         {
             if (dictionary.TryRemove(key, out var node))
             {
-                OnRemove(node);
-                value = node.Value.Value;
-                return true;
+                return TryRemoveNode(node, out value);
             }
 
             value = default;
             return false;
-
         }
 
         ///<inheritdoc/>
@@ -322,10 +317,7 @@ namespace BitFaster.Caching.Lru
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                LockAndMoveToEnd(node);
-                node.Value.Value = value;
-                Interlocked.Increment(ref this.metrics.updatedCount);
-                return true;
+                return TryUpdateValue(node, value);
             }
 
             return false;
@@ -338,9 +330,7 @@ namespace BitFaster.Caching.Lru
             // first, try to update
             if (this.dictionary.TryGetValue(key, out var existingNode))
             {
-                LockAndMoveToEnd(existingNode);
-                existingNode.Value.Value = value;
-                Interlocked.Increment(ref this.metrics.updatedCount);
+                TryUpdateValue(existingNode, value);
                 return;
             }
 
@@ -453,6 +443,32 @@ namespace BitFaster.Caching.Lru
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryGetNode(LinkedListNode<LruItem> node, [MaybeNullWhen(false)] out V value)
+        {
+            LockAndMoveToEnd(node);
+            Interlocked.Increment(ref this.metrics.requestHitCount);
+            value = node.Value.Value;
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryRemoveNode(LinkedListNode<LruItem> node, [MaybeNullWhen(false)] out V value)
+        {
+            OnRemove(node);
+            value = node.Value.Value;
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryUpdateValue(LinkedListNode<LruItem> node, V value)
+        {
+            LockAndMoveToEnd(node);
+            node.Value.Value = value;
+            Interlocked.Increment(ref this.metrics.updatedCount);
+            return true;
+        }
+
 #if NET9_0_OR_GREATER
         /// <summary>
         /// Gets an alternate lookup that can use an alternate key type with the configured comparer.
@@ -510,10 +526,7 @@ namespace BitFaster.Caching.Lru
 
                 if (this.alternate.TryGetValue(key, out var node))
                 {
-                    this.lru.LockAndMoveToEnd(node);
-                    Interlocked.Increment(ref this.lru.metrics.requestHitCount);
-                    value = node.Value.Value;
-                    return true;
+                    return this.lru.TryGetNode(node, out value);
                 }
 
                 value = default;
@@ -524,9 +537,7 @@ namespace BitFaster.Caching.Lru
             {
                 if (this.alternate.TryRemove(key, out actualKey, out var node))
                 {
-                    this.lru.OnRemove(node);
-                    value = node.Value.Value;
-                    return true;
+                    return this.lru.TryRemoveNode(node, out value);
                 }
 
                 actualKey = default;
@@ -538,10 +549,7 @@ namespace BitFaster.Caching.Lru
             {
                 if (this.alternate.TryGetValue(key, out var node))
                 {
-                    this.lru.LockAndMoveToEnd(node);
-                    node.Value.Value = value;
-                    Interlocked.Increment(ref this.lru.metrics.updatedCount);
-                    return true;
+                    return this.lru.TryUpdateValue(node, value);
                 }
 
                 return false;
