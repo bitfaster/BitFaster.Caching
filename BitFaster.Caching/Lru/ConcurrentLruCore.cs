@@ -33,6 +33,9 @@ namespace BitFaster.Caching.Lru
     ///</list>
     /// </remarks>
     public class ConcurrentLruCore<K, V, I, P, T> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IEnumerable<KeyValuePair<K, V>>
+#if NET9_0_OR_GREATER
+        , IAlternateLookupFactory<K, V>
+#endif
         where K : notnull
         where I : LruItem<K, V>
         where P : struct, IItemPolicy<K, V, I>
@@ -1051,6 +1054,15 @@ namespace BitFaster.Caching.Lru
                 }
             }
         }
+
+        IAlternateLookup<TAlternateKey, K, V> IAlternateLookupFactory<K, V>.GetAlternateLookup<TAlternateKey>()
+            => GetAlternateLookup<TAlternateKey>();
+
+        bool IAlternateLookupFactory<K, V>.TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+            => TryGetAlternateLookup(out lookup);
+
+        IAlternateEqualityComparer<TAlternateKey, K> IAlternateLookupFactory<K, V>.GetAlternateComparer<TAlternateKey>()
+            => dictionary.GetAlternateComparer<TAlternateKey, K, I>();
 #endif
 
         // To get JIT optimizations, policies must be structs.

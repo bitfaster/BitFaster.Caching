@@ -176,5 +176,148 @@ namespace BitFaster.Caching.Atomic
                 return new ItemUpdatedEventArgs<K, Scoped<V>>(inner.Key, inner.OldValue!.ScopeIfCreated, inner.NewValue!.ScopeIfCreated);
             }
         }
+
+#if NET9_0_OR_GREATER
+        /// <summary>
+        /// Gets an alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <returns>An alternate lookup.</returns>
+        /// <exception cref="InvalidOperationException">The inner cache does not support alternate lookup or the configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
+        public IScopedAsyncAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (this.cache is IAlternateLookupFactory<K, ScopedAsyncAtomicFactory<K, V>> factory)
+            {
+                return new AlternateLookup<TAlternateKey>(
+                    factory.GetAlternateLookup<TAlternateKey>(),
+                    this.cache,
+                    factory.GetAlternateComparer<TAlternateKey>());
+            }
+
+            Throw.IncompatibleComparer();
+            return default!; // unreachable
+        }
+
+        /// <summary>
+        /// Attempts to get an alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <param name="lookup">The alternate lookup when available.</param>
+        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
+        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IScopedAsyncAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (this.cache is IAlternateLookupFactory<K, ScopedAsyncAtomicFactory<K, V>> factory &&
+                factory.TryGetAlternateLookup<TAlternateKey>(out var innerLookup))
+            {
+                lookup = new AlternateLookup<TAlternateKey>(
+                    innerLookup,
+                    this.cache,
+                    factory.GetAlternateComparer<TAlternateKey>());
+                return true;
+            }
+
+            lookup = default;
+            return false;
+        }
+
+        internal readonly struct AlternateLookup<TAlternateKey> : IScopedAsyncAlternateLookup<TAlternateKey, K, V>
+            where TAlternateKey : notnull, allows ref struct
+        {
+            private readonly IAlternateLookup<TAlternateKey, K, ScopedAsyncAtomicFactory<K, V>> innerLookup;
+            private readonly ICache<K, ScopedAsyncAtomicFactory<K, V>> cache;
+            private readonly IAlternateEqualityComparer<TAlternateKey, K> comparer;
+
+            internal AlternateLookup(
+                IAlternateLookup<TAlternateKey, K, ScopedAsyncAtomicFactory<K, V>> innerLookup,
+                ICache<K, ScopedAsyncAtomicFactory<K, V>> cache,
+                IAlternateEqualityComparer<TAlternateKey, K> comparer)
+            {
+                this.innerLookup = innerLookup;
+                this.cache = cache;
+                this.comparer = comparer;
+            }
+
+            public bool ScopedTryGet(TAlternateKey key, [MaybeNullWhen(false)] out Lifetime<V> lifetime)
+            {
+                if (this.innerLookup.TryGet(key, out var scope))
+                {
+                    if (scope.TryCreateLifetime(out lifetime))
+                    {
+                        return true;
+                    }
+                }
+
+                lifetime = default;
+                return false;
+            }
+
+            public ValueTask<Lifetime<V>> ScopedGetOrAddAsync(TAlternateKey key, Func<K, Task<Scoped<V>>> valueFactory)
+            {
+                // Fast path: try get via alternate key (no K allocation)
+                if (this.innerLookup.TryGet(key, out var scope) && scope.TryCreateLifetime(out var lifetime))
+                {
+                    return new ValueTask<Lifetime<V>>(lifetime);
+                }
+
+                // Slow path: create actual K and delegate to async helper
+                K actualKey = this.comparer.Create(key);
+                return ScopedGetOrAddAsyncSlow(actualKey, new AsyncValueFactory<K, Scoped<V>>(valueFactory));
+            }
+
+            public ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TArg>(TAlternateKey key, Func<K, TArg, Task<Scoped<V>>> valueFactory, TArg factoryArgument)
+            {
+                // Fast path: try get via alternate key (no K allocation)
+                if (this.innerLookup.TryGet(key, out var scope) && scope.TryCreateLifetime(out var lifetime))
+                {
+                    return new ValueTask<Lifetime<V>>(lifetime);
+                }
+
+                // Slow path: create actual K and delegate to async helper
+                K actualKey = this.comparer.Create(key);
+                return ScopedGetOrAddAsyncSlow(actualKey, new AsyncValueFactoryArg<K, TArg, Scoped<V>>(valueFactory, factoryArgument));
+            }
+
+            private async ValueTask<Lifetime<V>> ScopedGetOrAddAsyncSlow<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
+            {
+                int c = 0;
+                var spinwait = new SpinWait();
+                while (true)
+                {
+                    var scope = cache.GetOrAdd(key, _ => new ScopedAsyncAtomicFactory<K, V>());
+
+                    var (success, lifetime) = await scope.TryCreateLifetimeAsync(key, valueFactory).ConfigureAwait(false);
+
+                    if (success)
+                    {
+                        return lifetime!;
+                    }
+
+                    spinwait.SpinOnce();
+
+                    if (c++ > ScopedCacheDefaults.MaxRetry)
+                        Throw.ScopedRetryFailure();
+                }
+            }
+
+            public bool TryRemove(TAlternateKey key)
+            {
+                return this.innerLookup.TryRemove(key, out _, out _);
+            }
+
+#pragma warning disable CA2000 // Dispose objects before losing scope
+            public bool TryUpdate(TAlternateKey key, V value)
+            {
+                return this.innerLookup.TryUpdate(key, new ScopedAsyncAtomicFactory<K, V>(value));
+            }
+
+            public void AddOrUpdate(TAlternateKey key, V value)
+            {
+                this.innerLookup.AddOrUpdate(key, new ScopedAsyncAtomicFactory<K, V>(value));
+            }
+#pragma warning restore CA2000 // Dispose objects before losing scope
+        }
+#endif
     }
 }
