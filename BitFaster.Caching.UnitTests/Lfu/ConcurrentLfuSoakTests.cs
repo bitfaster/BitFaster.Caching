@@ -323,7 +323,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 {
                     string key = (i + 1).ToString();
                     alternate.TryRemove(key.AsSpan(), out _, out _);
-                    alternate.GetOrAdd(key.AsSpan(), static keySpan => keySpan.ToString());
+                    alternate.AddOrUpdate(key.AsSpan(), key);
                 }
             });
 
