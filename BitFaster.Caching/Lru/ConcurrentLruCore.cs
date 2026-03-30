@@ -951,7 +951,7 @@ namespace BitFaster.Caching.Lru
                 Throw.IncompatibleComparer();
             }
 
-            return new AsyncAlternateLookup<TAlternateKey>(this);
+            return new AlternateLookup<TAlternateKey>(this);
         }
 
         /// <summary>
@@ -965,7 +965,7 @@ namespace BitFaster.Caching.Lru
         {
             if (this.dictionary.IsCompatibleKey<TAlternateKey, K, I>())
             {
-                lookup = new AsyncAlternateLookup<TAlternateKey>(this);
+                lookup = new AlternateLookup<TAlternateKey>(this);
                 return true;
             }
 
@@ -973,7 +973,7 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
-        internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>
+        internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>, IAsyncAlternateLookup<TAlternateKey, K, V>
             where TAlternateKey : notnull, allows ref struct
         {
             internal AlternateLookup(ConcurrentLruCore<K, V, I, P, T> lru)
@@ -1086,83 +1086,6 @@ namespace BitFaster.Caching.Lru
                     }
                 }
             }
-        }
-
-        internal readonly struct AsyncAlternateLookup<TAlternateKey> : IAsyncAlternateLookup<TAlternateKey, K, V>
-            where TAlternateKey : notnull, allows ref struct
-        {
-            internal AsyncAlternateLookup(ConcurrentLruCore<K, V, I, P, T> lru)
-            {
-                Debug.Assert(lru is not null);
-                Debug.Assert(lru.dictionary.IsCompatibleKey<TAlternateKey, K, I>());
-                this.Lru = lru;
-                this.Alternate = lru.dictionary.GetAlternateLookup<TAlternateKey>();
-            }
-
-            internal ConcurrentLruCore<K, V, I, P, T> Lru { get; }
-
-            internal ConcurrentDictionary<K, I>.AlternateLookup<TAlternateKey> Alternate { get; }
-
-            public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
-            {
-                if (this.Alternate.TryGetValue(key, out var item))
-                {
-                    return this.Lru.GetOrDiscard(item, out value);
-                }
-
-                value = default;
-                this.Lru.telemetryPolicy.IncrementMiss();
-                return false;
-            }
-
-            public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey, [MaybeNullWhen(false)] out V value)
-            {
-                if (this.Alternate.TryRemove(key, out actualKey, out var item))
-                {
-                    this.Lru.OnRemove(actualKey, item, ItemRemovedReason.Removed);
-                    value = item.Value;
-                    return true;
-                }
-
-                actualKey = default;
-                value = default;
-                return false;
-            }
-
-            public bool TryUpdate(TAlternateKey key, V value)
-            {
-                if (this.Alternate.TryGetValue(key, out var existing))
-                {
-                    return this.Lru.TryUpdateValue(existing, value);
-                }
-
-                return false;
-            }
-
-            public void AddOrUpdate(TAlternateKey key, V value)
-            {
-                K actualKey = default!;
-                bool hasActualKey = false;
-
-                while (true)
-                {
-                    if (this.TryUpdate(key, value))
-                    {
-                        return;
-                    }
-
-                    if (!hasActualKey)
-                    {
-                        actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
-                        hasActualKey = true;
-                    }
-
-                    if (this.Lru.TryAdd(actualKey, value))
-                    {
-                        return;
-                    }
-                }
-            }
 
             public ValueTask<V> GetOrAddAsync(TAlternateKey key, Func<TAlternateKey, Task<V>> valueFactory)
             {
@@ -1175,25 +1098,6 @@ namespace BitFaster.Caching.Lru
                 Task<V> task = valueFactory(key);
 
                 return GetOrAddAsyncSlow(actualKey, task);
-            }
-
-            public V GetOrAdd<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, V> valueFactory, TArg factoryArgument)
-            {
-                while (true)
-                {
-                    if (this.TryGet(key, out var value))
-                    {
-                        return value;
-                    }
-
-                    K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
-
-                    value = valueFactory(key, factoryArgument);
-                    if (this.Lru.TryAdd(actualKey, value))
-                    {
-                        return value;
-                    }
-                }
             }
 
             public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, Task<V>> valueFactory, TArg factoryArgument)
