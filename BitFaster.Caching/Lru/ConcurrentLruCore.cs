@@ -1113,18 +1113,20 @@ namespace BitFaster.Caching.Lru
                 return GetOrAddAsyncSlow(actualKey, task);
             }
 
+            // Since TAlternateKey can be a ref struct, we can't use async/await in the public GetOrAddAsync methods,
+            // so we delegate to this private async method after the value factory is invoked.
             private async ValueTask<V> GetOrAddAsyncSlow(K actualKey, Task<V> task)
             {
                 V value = await task.ConfigureAwait(false);
 
-                if (this.Lru.TryAdd(actualKey, value))
-                {
-                    return value;
-                }
-
-                // Another thread added a value for this key first, retrieve it.
                 while (true)
                 {
+                    if (this.Lru.TryAdd(actualKey, value))
+                    {
+                        return value;
+                    }
+
+                    // Another thread added a value for this key first, retrieve it.
                     if (this.Lru.TryGet(actualKey, out V? existing))
                     {
                         return existing;
