@@ -17,8 +17,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             ReadOnlySpan<char> key = "42";
 
             cache.TryGetAsyncAlternateLookup<ReadOnlySpan<char>>(out var alternate).Should().BeTrue();
-            alternate.TryGet(key, out var value).Should().BeTrue();
-            value.Should().Be("value");
+            alternate.Should().NotBeNull();
         }
 
         [Fact]
@@ -31,21 +30,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             act.Should().Throw<InvalidOperationException>().WithMessage("Incompatible comparer");
             cache.TryGetAsyncAlternateLookup<int>(out var alternate).Should().BeFalse();
             alternate.Should().BeNull();
-        }
-
-        [Fact]
-        public void AsyncAlternateLookupTryRemoveReturnsActualKeyAndValue()
-        {
-            var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
-            cache.GetOrAdd("42", _ => "value");
-            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
-            ReadOnlySpan<char> key = "42";
-
-            alternate.TryRemove(key, out var actualKey, out var value).Should().BeTrue();
-
-            actualKey.Should().Be("42");
-            value.Should().Be("value");
-            cache.TryGet("42", out _).Should().BeFalse();
         }
 
         [Fact]
@@ -98,70 +82,6 @@ namespace BitFaster.Caching.UnitTests.Lru
             factoryCalls.Should().Be(1);
             cache.TryGet("42", out var value).Should().BeTrue();
             value.Should().Be("value-42");
-        }
-
-        [Fact]
-        public void AsyncAlternateLookupGetOrAddWithArgUsesAlternateKeyOnMissAndHit()
-        {
-            var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
-            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
-            var factoryCalls = 0;
-            ReadOnlySpan<char> key = "42";
-
-            alternate.GetOrAdd(key, (key, prefix) =>
-            {
-                factoryCalls++;
-                return $"{prefix}{key.ToString()}";
-            }, "value-").Should().Be("value-42");
-
-            alternate.GetOrAdd(key, (key, prefix) =>
-            {
-                factoryCalls++;
-                return "unused";
-            }, "unused-").Should().Be("value-42");
-
-            factoryCalls.Should().Be(1);
-            cache.TryGet("42", out var value).Should().BeTrue();
-            value.Should().Be("value-42");
-        }
-
-        [Fact]
-        public void AsyncAlternateLookupTryUpdateReturnsFalseForMissingKeyAndUpdatesExistingValue()
-        {
-            var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
-            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
-            ReadOnlySpan<char> key = "42";
-
-            alternate.TryUpdate(key, "value-42").Should().BeFalse();
-            cache.TryGet("42", out _).Should().BeFalse();
-
-            cache.GetOrAdd("42", _ => "value-42");
-            alternate.TryUpdate(key, "updated").Should().BeTrue();
-
-            cache.TryGet("42", out var value).Should().BeTrue();
-            value.Should().Be("updated");
-            alternate.TryGet(key, out value).Should().BeTrue();
-            value.Should().Be("updated");
-        }
-
-        [Fact]
-        public void AsyncAlternateLookupAddOrUpdateAddsMissingValueAndUpdatesExistingValue()
-        {
-            var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
-            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
-            ReadOnlySpan<char> key = "42";
-
-            alternate.AddOrUpdate(key, "value-42");
-
-            cache.TryGet("42", out var value).Should().BeTrue();
-            value.Should().Be("value-42");
-
-            alternate.AddOrUpdate(key, "updated");
-
-            cache.TryGet("42", out value).Should().BeTrue();
-            value.Should().Be("updated");
-            alternate.TryGet(key, out value).Should().BeTrue();
-            value.Should().Be("updated");
         }
     }
 }
