@@ -369,19 +369,27 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                lock (node)
-                {
-                    if (!node.WasRemoved)
-                    {
-                        node.Value = value;
+                return TryUpdateValue(node, value);
+            }
 
-                        // It's ok for this to be lossy, since the node is already tracked
-                        // and we will just lose ordering/hit count, but not orphan the node.
-                        this.writeBuffer.TryAdd(node);
-                        TryScheduleDrain();
-                        this.policy.OnWrite(node);
-                        return true;
-                    }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryUpdateValue(N node, V value)
+        {
+            lock (node)
+            {
+                if (!node.WasRemoved)
+                {
+                    node.Value = value;
+
+                    // It's ok for this to be lossy, since the node is already tracked
+                    // and we will just lose ordering/hit count, but not orphan the node.
+                    this.writeBuffer.TryAdd(node);
+                    TryScheduleDrain();
+                    this.policy.OnWrite(node);
+                    return true;
                 }
             }
 
@@ -1050,18 +1058,7 @@ namespace BitFaster.Caching.Lfu
             {
                 if (this.Alternate.TryGetValue(key, out var node))
                 {
-                    lock (node)
-                    {
-                        if (!node.WasRemoved)
-                        {
-                            node.Value = value;
-
-                            this.Lfu.writeBuffer.TryAdd(node);
-                            this.Lfu.TryScheduleDrain();
-                            this.Lfu.policy.OnWrite(node);
-                            return true;
-                        }
-                    }
+                    return this.Lfu.TryUpdateValue(node, value);
                 }
 
                 return false;
