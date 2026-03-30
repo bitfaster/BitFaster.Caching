@@ -46,6 +46,15 @@ jobs:
             publish_nuget: false
 
           - os: windows-latest
+            framework: net8.0
+            coverage: true
+            results: results8.trx
+            artifact: test-results-win8
+            std: true
+            flag: win8
+            publish_nuget: false
+
+          - os: windows-latest
             framework: net9.0
             coverage: true
             results: results9.trx
