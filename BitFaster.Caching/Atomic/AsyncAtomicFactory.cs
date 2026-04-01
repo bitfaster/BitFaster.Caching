@@ -137,6 +137,7 @@ namespace BitFaster.Caching.Atomic
 
         private class Initializer
         {
+            private readonly Lock locker = LockFactory.Create();
             private bool isInitialized;
             private Task<V>? valueTask;
 
@@ -178,7 +179,7 @@ namespace BitFaster.Caching.Atomic
                     return valueTask!;
                 }
 
-                lock (this)
+                lock (locker)
                 {
                     if (!isInitialized)
                     {
