@@ -470,12 +470,7 @@ namespace BitFaster.Caching.Lru
         }
 
 #if NET9_0_OR_GREATER
-        /// <summary>
-        /// Gets an alternate lookup that can use an alternate key type with the configured comparer.
-        /// </summary>
-        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
-        /// <returns>An alternate lookup.</returns>
-        /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
+        ///<inheritdoc/>
         public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
@@ -487,12 +482,7 @@ namespace BitFaster.Caching.Lru
             return new AlternateLookup<TAlternateKey>(this);
         }
 
-        /// <summary>
-        /// Attempts to get an alternate lookup that can use an alternate key type with the configured comparer.
-        /// </summary>
-        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
-        /// <param name="lookup">The alternate lookup when available.</param>
-        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
+        ///<inheritdoc/>
         public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
         {

@@ -164,6 +164,22 @@ namespace BitFaster.Caching.Atomic
             return ((AtomicFactoryCache<K, V>)this).GetEnumerator();
         }
 
+#if NET9_0_OR_GREATER
+        ///<inheritdoc/>
+        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            throw new NotSupportedException();
+        }
+
+        ///<inheritdoc/>
+        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            throw new NotSupportedException();
+        }
+#endif
+
         private class EventProxy : CacheEventProxyBase<K, AtomicFactory<K, V>, V>
         {
             public EventProxy(ICacheEvents<K, AtomicFactory<K, V>> inner)
