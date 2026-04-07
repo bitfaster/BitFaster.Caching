@@ -147,6 +147,22 @@ namespace BitFaster.Caching.Atomic
             return cache.TryUpdate(key, new AsyncAtomicFactory<K, V>(value));
         }
 
+#if NET9_0_OR_GREATER
+        ///<inheritdoc/>
+        public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            throw new NotSupportedException();
+        }
+
+        ///<inheritdoc/>
+        public bool TryGetAsyncAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAsyncAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            throw new NotSupportedException();
+        }
+#endif
+
         ///<inheritdoc/>
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
         {
