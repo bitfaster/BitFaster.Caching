@@ -4,12 +4,18 @@ using System.Threading.Tasks;
 using BitFaster.Caching.Scheduler;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace BitFaster.Caching.UnitTests.Scheduler
 {
     public class BackgroundSchedulerTests : IDisposable
     {
         private BackgroundThreadScheduler scheduler = new BackgroundThreadScheduler();
+        private readonly ITestOutputHelper output;
+        public BackgroundSchedulerTests(ITestOutputHelper testOutputHelper)
+        {
+            this.output = testOutputHelper;
+        }
 
         [Fact]
         public void IsBackground()
@@ -80,8 +86,9 @@ namespace BitFaster.Caching.UnitTests.Scheduler
             scheduler.RunCount.Should().BeCloseTo(BackgroundThreadScheduler.MaxBacklog, 1);
         }
 
-        [Fact]
-        public async Task WhenDisposedRunsToCompletion()
+        [Theory]
+        [Repeat(10)]
+        public async Task WhenDisposedRunsToCompletion(int iteration)
         {
             this.scheduler.Dispose();
 
@@ -89,6 +96,10 @@ namespace BitFaster.Caching.UnitTests.Scheduler
 
             if (await Task.WhenAny(completion, Task.Delay(TimeSpan.FromSeconds(60))) != completion)
             {
+                if (this.scheduler.LastException.HasValue)
+                { 
+                    output.WriteLine(this.scheduler.LastException.ToString()); 
+                }
                 throw new Exception("Failed to stop");
             }
         }
