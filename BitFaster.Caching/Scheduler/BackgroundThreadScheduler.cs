@@ -64,7 +64,7 @@ namespace BitFaster.Caching.Scheduler
         {
             var spinner = new SpinWait();
 
-            while (true)
+            while (!cts.IsCancellationRequested)
             {
                 try
                 {
@@ -106,6 +106,11 @@ namespace BitFaster.Caching.Scheduler
         /// </summary>
         public void Dispose()
         {
+            if (cts.IsCancellationRequested)
+            { 
+                return; 
+            }
+
             // prevent hang when cancel runs on the same thread
             this.cts.CancelAfter(TimeSpan.Zero);
         }

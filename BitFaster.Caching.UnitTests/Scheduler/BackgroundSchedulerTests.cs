@@ -93,6 +93,20 @@ namespace BitFaster.Caching.UnitTests.Scheduler
             }
         }
 
+        [Fact]
+        public async Task WhenDoubleDisposedRunsToCompletion()
+        {
+            this.scheduler.Dispose();
+            this.scheduler.Dispose();
+
+            var completion = scheduler.Completion;
+
+            if (await Task.WhenAny(completion, Task.Delay(TimeSpan.FromSeconds(60))) != completion)
+            {
+                throw new Exception("Failed to stop");
+            }
+        }
+
         public void Dispose()
         {
             this?.scheduler.Dispose();
