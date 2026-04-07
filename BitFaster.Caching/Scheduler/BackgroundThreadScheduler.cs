@@ -78,10 +78,6 @@ namespace BitFaster.Caching.Scheduler
                         {
                             action!();
                         }
-                        else if (s == BufferStatus.Empty)
-                        {
-                            break;
-                        }
                         else
                         {
                             spinner.SpinOnce();

@@ -88,7 +88,30 @@ namespace BitFaster.Caching.UnitTests.Scheduler
 
         [Theory]
         [Repeat(10)]
-        public async Task WhenDisposedRunsToCompletion(int iteration)
+        public async Task WhenDisposedRunsToCompletion(int _)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            scheduler.Run(() => { tcs.SetResult(true); });
+            await tcs.Task;
+
+            this.scheduler.Dispose();
+
+            var completion = scheduler.Completion;
+
+            if (await Task.WhenAny(completion, Task.Delay(TimeSpan.FromSeconds(60))) != completion)
+            {
+                if (this.scheduler.LastException.HasValue)
+                {
+                    output.WriteLine(this.scheduler.LastException.ToString());
+                }
+
+                throw new Exception("Failed to stop");
+            }
+        }
+
+        [Theory]
+        [Repeat(10)]
+        public async Task WhenDisposedImmediatelyRunsToCompletion(int _)
         {
             this.scheduler.Dispose();
 
@@ -100,6 +123,7 @@ namespace BitFaster.Caching.UnitTests.Scheduler
                 { 
                     output.WriteLine(this.scheduler.LastException.ToString()); 
                 }
+
                 throw new Exception("Failed to stop");
             }
         }
