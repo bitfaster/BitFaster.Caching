@@ -114,6 +114,7 @@ namespace BitFaster.Caching
         void Clear();
 
 #if NET9_0_OR_GREATER
+// backcompat: add not null constraint to ICache (where K : notnull)
 #pragma warning disable CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
         /// <summary>
         /// Gets an alternate lookup that can use an alternate key type with the configured comparer.
