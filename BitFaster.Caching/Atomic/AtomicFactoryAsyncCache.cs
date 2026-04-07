@@ -152,14 +152,93 @@ namespace BitFaster.Caching.Atomic
         public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
-            throw new NotSupportedException();
+            var inner = cache.GetAlternateLookup<TAlternateKey>();
+            return new AlternateLookup<TAlternateKey>(inner);
         }
 
         ///<inheritdoc/>
         public bool TryGetAsyncAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAsyncAlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
         {
-            throw new NotSupportedException();
+            if (cache.TryGetAlternateLookup<TAlternateKey>(out var inner))
+            {
+                lookup = new AlternateLookup<TAlternateKey>(inner);
+                return true;
+            }
+
+            lookup = default;
+            return false;
+        }
+
+        internal readonly struct AlternateLookup<TAlternateKey> : IAsyncAlternateLookup<TAlternateKey, K, V>
+            where TAlternateKey : notnull, allows ref struct
+        {
+            private readonly IAlternateLookup<TAlternateKey, K, AsyncAtomicFactory<K, V>> inner;
+
+            internal AlternateLookup(IAlternateLookup<TAlternateKey, K, AsyncAtomicFactory<K, V>> inner)
+            {
+                this.inner = inner;
+            }
+
+            public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
+            {
+                if (inner.TryGet(key, out var atomic) && atomic.IsValueCreated)
+                {
+                    value = atomic.ValueIfCreated!;
+                    return true;
+                }
+
+                value = default;
+                return false;
+            }
+
+            public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey, [MaybeNullWhen(false)] out V value)
+            {
+                if (inner.TryRemove(key, out actualKey, out var atomic))
+                {
+                    value = atomic.ValueIfCreated!;
+                    return true;
+                }
+
+                value = default;
+                return false;
+            }
+
+            public bool TryUpdate(TAlternateKey key, V value)
+            {
+                return inner.TryUpdate(key, new AsyncAtomicFactory<K, V>(value));
+            }
+
+            public void AddOrUpdate(TAlternateKey key, V value)
+            {
+                inner.AddOrUpdate(key, new AsyncAtomicFactory<K, V>(value));
+            }
+
+            public ValueTask<V> GetOrAddAsync(TAlternateKey key, Func<TAlternateKey, Task<V>> valueFactory)
+            {
+                var factory = inner.GetOrAdd(key, static _ => new AsyncAtomicFactory<K, V>());
+
+                if (factory.IsValueCreated)
+                {
+                    return new ValueTask<V>(factory.ValueIfCreated!);
+                }
+
+                Task<V> task = valueFactory(key);
+                return factory.GetValueAsync(default(K)!, static (_, t) => t, task);
+            }
+
+            public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            {
+                var factory = inner.GetOrAdd(key, static _ => new AsyncAtomicFactory<K, V>());
+
+                if (factory.IsValueCreated)
+                {
+                    return new ValueTask<V>(factory.ValueIfCreated!);
+                }
+
+                Task<V> task = valueFactory(key, factoryArgument);
+                return factory.GetValueAsync(default(K)!, static (_, t) => t, task);
+            }
         }
 #endif
 
