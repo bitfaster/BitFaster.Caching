@@ -159,13 +159,14 @@ namespace BitFaster.Caching.Atomic
 #pragma warning disable CA2002 // Do not lock on objects with weak identity
         private class Initializer
         {
+            private readonly Lock locker = LockFactory.Create();
             private bool isInitialized;
             private V? value;
             private ExceptionDispatchInfo? exceptionDispatch;
 
             public V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
             {
-                lock (this)
+                lock (locker)
                 {
                     if (isInitialized)
                     {

@@ -26,6 +26,7 @@ namespace BitFaster.Caching.Lru
         private readonly int capacity;
         private readonly ConcurrentDictionary<K, LinkedListNode<LruItem>> dictionary;
         private readonly LinkedList<LruItem> linkedList = new();
+        private readonly Lock locker = LockFactory.Create();
 
         private readonly CacheMetrics metrics = new();
         private readonly CachePolicy policy;
@@ -119,7 +120,7 @@ namespace BitFaster.Caching.Lru
             {
                 LinkedListNode<LruItem>? first = null;
 
-                lock (this.linkedList)
+                lock (this.locker)
                 {
                     if (linkedList.Count >= capacity)
                     {
@@ -299,7 +300,7 @@ namespace BitFaster.Caching.Lru
             // the List & Dictionary. Now thread A will try to move x to the end of the list.
             if (node.List != null)
             {
-                lock (this.linkedList)
+                lock (this.locker)
                 {
                     if (node.List != null)
                     {
@@ -341,7 +342,7 @@ namespace BitFaster.Caching.Lru
             {
                 LinkedListNode<LruItem>? first = null;
 
-                lock (this.linkedList)
+                lock (this.locker)
                 {
                     if (linkedList.Count >= capacity)
                     {
@@ -401,7 +402,7 @@ namespace BitFaster.Caching.Lru
             {
                 LinkedListNode<LruItem>? first = null;
 
-                lock (this.linkedList)
+                lock (this.locker)
                 {
                     if (linkedList.Count > 0)
                     {
@@ -431,7 +432,7 @@ namespace BitFaster.Caching.Lru
                 return;
             }
 
-            lock (this.linkedList)
+            lock (this.locker)
             {
                 if (node.List == null)
                 {
