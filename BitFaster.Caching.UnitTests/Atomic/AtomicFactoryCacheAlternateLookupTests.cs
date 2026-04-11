@@ -71,7 +71,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public void AlternateLookupGetOrAddUsesAlternateKeyOnMissAndHit()
+        public void AlternateLookupGetOrAddUsesActualKeyOnMissAndHit()
         {
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
             var factoryCalls = 0;
@@ -80,7 +80,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             alternate.GetOrAdd(key, key =>
             {
                 factoryCalls++;
-                return $"value-{key.ToString()}";
+                return $"value-{key}";
             }).Should().Be("value-42");
 
             alternate.GetOrAdd(key, (_, prefix) =>
@@ -95,7 +95,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public void AlternateLookupGetOrAddWithArgUsesAlternateKeyOnMissAndHit()
+        public void AlternateLookupGetOrAddWithArgUsesActualKeyOnMissAndHit()
         {
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
             var factoryCalls = 0;
@@ -104,7 +104,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             alternate.GetOrAdd(key, (k, prefix) =>
             {
                 factoryCalls++;
-                return $"{prefix}-{k.ToString()}";
+                return $"{prefix}-{k}";
             }, "value").Should().Be("value-42");
 
             alternate.GetOrAdd(key, (_, prefix) =>
