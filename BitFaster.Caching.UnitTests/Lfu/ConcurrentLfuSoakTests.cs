@@ -329,6 +329,46 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             await RunIntegrityCheckAsync(lfu, iteration);
         }
+
+        [Theory]
+        [Repeat(soakIterations)]
+        public async Task WhenConcurrentAsyncAlternateLookupGetOrAddAsyncCacheEndsInConsistentState(int iteration)
+        {
+            var lfu = CreateStringWithBackgroundScheduler();
+            var alternate = lfu.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            await Threaded.RunAsync(threads, async () =>
+            {
+                var key = new char[8];
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    (i + 1).TryFormat(key, out int written);
+                    await alternate.GetOrAddAsync(key.AsSpan().Slice(0, written), static keySpan => Task.FromResult(keySpan.ToString()));
+                }
+            });
+
+            await RunIntegrityCheckAsync(lfu, iteration);
+        }
+
+        [Theory]
+        [Repeat(soakIterations)]
+        public async Task WhenConcurrentAsyncAlternateLookupGetOrAddAsyncWithArgCacheEndsInConsistentState(int iteration)
+        {
+            var lfu = CreateStringWithBackgroundScheduler();
+            var alternate = lfu.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            await Threaded.RunAsync(threads, async () =>
+            {
+                var key = new char[8];
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    (i + 1).TryFormat(key, out int written);
+                    await alternate.GetOrAddAsync(key.AsSpan().Slice(0, written), static (keySpan, prefix) => Task.FromResult(prefix + keySpan.ToString()), "prefix-");
+                }
+            });
+
+            await RunIntegrityCheckAsync(lfu, iteration);
+        }
 #endif
 
         [Fact]

@@ -1,18 +1,19 @@
 ﻿#if NET9_0_OR_GREATER
 using System;
 using System.Threading.Tasks;
-using BitFaster.Caching.Lru;
+using BitFaster.Caching.Lfu;
+using BitFaster.Caching.Scheduler;
 using FluentAssertions;
 using Xunit;
 
-namespace BitFaster.Caching.UnitTests.Lru
+namespace BitFaster.Caching.UnitTests.Lfu
 {
-    public class ConcurrentLruAsyncAlternateLookupTests
+    public class ConcurrentLfuAsyncAlternateLookupTests
     {
         [Fact]
         public void TryGetAsyncAlternateLookupReturnsLookupForCompatibleComparer()
         {
-            var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
+            var cache = new ConcurrentLfu<string, string>(1, 20, new ForegroundScheduler(), StringComparer.Ordinal);
             cache.GetOrAdd("42", _ => "value");
             ReadOnlySpan<char> key = "42";
 
@@ -23,7 +24,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void GetAsyncAlternateLookupThrowsForIncompatibleComparer()
         {
-            var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
+            var cache = new ConcurrentLfu<string, string>(1, 20, new ForegroundScheduler(), StringComparer.Ordinal);
 
             Action act = () => cache.GetAsyncAlternateLookup<int>();
 
@@ -35,7 +36,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public async Task AsyncAlternateLookupGetOrAddAsyncUsesActualKeyOnMissAndHit()
         {
-            var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
+            var cache = new ConcurrentLfu<string, string>(1, 20, new ForegroundScheduler(), StringComparer.Ordinal);
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
             var factoryCalls = 0;
 
@@ -61,7 +62,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public async Task AsyncAlternateLookupGetOrAddAsyncWithArgUsesActualKeyOnMissAndHit()
         {
-            var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
+            var cache = new ConcurrentLfu<string, string>(1, 20, new ForegroundScheduler(), StringComparer.Ordinal);
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
             var factoryCalls = 0;
 

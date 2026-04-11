@@ -1,19 +1,17 @@
 ﻿#if NET9_0_OR_GREATER
 using System;
-using System.Collections.Generic;
-using BitFaster.Caching.Lfu;
-using BitFaster.Caching.Scheduler;
+using BitFaster.Caching.Lru;
 using FluentAssertions;
 using Xunit;
 
-namespace BitFaster.Caching.UnitTests.Lfu
+namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class ConcurrentLfuAlternateLookupTests
+    public class ClassicLruAlternateLookupTests
     {
         [Fact]
         public void TryGetAlternateLookupReturnsLookupForCompatibleComparer()
         {
-            var cache = new ConcurrentLfu<string, string>(1, 20, new ForegroundScheduler(), StringComparer.Ordinal);
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
             cache.GetOrAdd("42", _ => "value");
             ReadOnlySpan<char> key = "42";
 
@@ -25,7 +23,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void GetAlternateLookupThrowsForIncompatibleComparer()
         {
-            var cache = new ConcurrentLfu<string, string>(1, 20, new ForegroundScheduler(), StringComparer.Ordinal);
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
 
             Action act = () => cache.GetAlternateLookup<int>();
 
@@ -35,9 +33,20 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void AlternateLookupTryGetReturnsFalseForMissingKey()
+        {
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+            ReadOnlySpan<char> key = "42";
+
+            alternate.TryGet(key, out var value).Should().BeFalse();
+            value.Should().BeNull();
+        }
+
+        [Fact]
         public void AlternateLookupTryRemoveReturnsActualKeyAndValue()
         {
-            var cache = new ConcurrentLfu<string, string>(1, 20, new ForegroundScheduler(), StringComparer.Ordinal);
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
             cache.GetOrAdd("42", _ => "value");
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
             ReadOnlySpan<char> key = "42";
@@ -50,9 +59,21 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void AlternateLookupTryRemoveReturnsFalseForMissingKey()
+        {
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+            ReadOnlySpan<char> key = "42";
+
+            alternate.TryRemove(key, out var actualKey, out var value).Should().BeFalse();
+            actualKey.Should().BeNull();
+            value.Should().BeNull();
+        }
+
+        [Fact]
         public void AlternateLookupGetOrAddUsesActualKeyOnMissAndHit()
         {
-            var cache = new ConcurrentLfu<string, string>(1, 20, new ForegroundScheduler(), StringComparer.Ordinal);
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
             var factoryCalls = 0;
             ReadOnlySpan<char> key = "42";
@@ -77,7 +98,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void AlternateLookupTryUpdateReturnsFalseForMissingKeyAndUpdatesExistingValue()
         {
-            var cache = new ConcurrentLfu<string, string>(1, 20, new ForegroundScheduler(), StringComparer.Ordinal);
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
             ReadOnlySpan<char> key = "42";
 
@@ -96,7 +117,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void AlternateLookupAddOrUpdateAddsMissingValueAndUpdatesExistingValue()
         {
-            var cache = new ConcurrentLfu<string, string>(1, 20, new ForegroundScheduler(), StringComparer.Ordinal);
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
             ReadOnlySpan<char> key = "42";
 
@@ -111,6 +132,29 @@ namespace BitFaster.Caching.UnitTests.Lfu
             value.Should().Be("updated");
             alternate.TryGet(key, out value).Should().BeTrue();
             value.Should().Be("updated");
+        }
+
+        [Fact]
+        public void AlternateLookupGetOrAddWithArgUsesActualKeyOnMissAndHit()
+        {
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+            var factoryCalls = 0;
+            ReadOnlySpan<char> key = "42";
+
+            alternate.GetOrAdd(key, (k, prefix) =>
+            {
+                factoryCalls++;
+                return $"{prefix}-{k}";
+            }, "value").Should().Be("value-42");
+
+            alternate.GetOrAdd(key, (_, prefix) =>
+            {
+                factoryCalls++;
+                return prefix;
+            }, "unused").Should().Be("value-42");
+
+            factoryCalls.Should().Be(1);
         }
     }
 }

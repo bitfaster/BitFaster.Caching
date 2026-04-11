@@ -136,6 +136,30 @@ namespace BitFaster.Caching.UnitTests
 
             lifetime.Value.State.Should().Be(3);
         }
+
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void WhenCacheInterfaceDefaultGetAlternateLookupThrows()
+        {
+            var cache = new Mock<ICache<int, int>>();
+            cache.CallBase = true;
+
+            Action getAlternateLookup = () => { cache.Object.GetAlternateLookup<string>(); };
+
+            getAlternateLookup.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
+        public void WhenCacheInterfaceDefaultTryGetAlternateLookupThrows()
+        {
+            var cache = new Mock<ICache<int, int>>();
+            cache.CallBase = true;
+
+            Action tryGetAlternateLookup = () => { cache.Object.TryGetAlternateLookup<string>(out var lookup); };
+
+            tryGetAlternateLookup.Should().Throw<NotSupportedException>();
+        }
+#endif
 #endif
     }
 }

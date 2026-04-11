@@ -901,12 +901,7 @@ namespace BitFaster.Caching.Lru
         }
 
 #if NET9_0_OR_GREATER
-        /// <summary>
-        /// Gets an alternate lookup that can use an alternate key type with the configured comparer.
-        /// </summary>
-        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
-        /// <returns>An alternate lookup.</returns>
-        /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
+        ///<inheritdoc/>
         public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
@@ -918,12 +913,7 @@ namespace BitFaster.Caching.Lru
             return new AlternateLookup<TAlternateKey>(this);
         }
 
-        /// <summary>
-        /// Attempts to get an alternate lookup that can use an alternate key type with the configured comparer.
-        /// </summary>
-        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
-        /// <param name="lookup">The alternate lookup when available.</param>
-        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
+        ///<inheritdoc/>
         public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
         {
@@ -1049,7 +1039,7 @@ namespace BitFaster.Caching.Lru
                 }
             }
 
-            public V GetOrAdd(TAlternateKey key, Func<TAlternateKey, V> valueFactory)
+            public V GetOrAdd(TAlternateKey key, Func<K, V> valueFactory)
             {
                 while (true)
                 {
@@ -1060,7 +1050,7 @@ namespace BitFaster.Caching.Lru
 
                     K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
 
-                    value = valueFactory(key);
+                    value = valueFactory(actualKey);
                     if (this.Lru.TryAdd(actualKey, value))
                     {
                         return value;
@@ -1068,7 +1058,7 @@ namespace BitFaster.Caching.Lru
                 }
             }
 
-            public V GetOrAdd<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, V> valueFactory, TArg factoryArgument)
+            public V GetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
             {
                 while (true)
                 {
@@ -1079,7 +1069,7 @@ namespace BitFaster.Caching.Lru
 
                     K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
 
-                    value = valueFactory(key, factoryArgument);
+                    value = valueFactory(actualKey, factoryArgument);
                     if (this.Lru.TryAdd(actualKey, value))
                     {
                         return value;
@@ -1087,7 +1077,7 @@ namespace BitFaster.Caching.Lru
                 }
             }
 
-            public ValueTask<V> GetOrAddAsync(TAlternateKey key, Func<TAlternateKey, Task<V>> valueFactory)
+            public ValueTask<V> GetOrAddAsync(TAlternateKey key, Func<K, Task<V>> valueFactory)
             {
                 if (this.TryGet(key, out var value))
                 {
@@ -1095,12 +1085,12 @@ namespace BitFaster.Caching.Lru
                 }
 
                 K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
-                Task<V> task = valueFactory(key);
+                Task<V> task = valueFactory(actualKey);
 
-                return new ValueTask<V>(GetOrAddAsyncSlow(actualKey, task));
+                return GetOrAddAsyncSlow(actualKey, task);
             }
 
-            public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
             {
                 if (this.TryGet(key, out var value))
                 {
@@ -1108,14 +1098,14 @@ namespace BitFaster.Caching.Lru
                 }
 
                 K actualKey = this.Lru.dictionary.GetAlternateComparer<TAlternateKey, K, I>().Create(key);
-                Task<V> task = valueFactory(key, factoryArgument);
+                Task<V> task = valueFactory(actualKey, factoryArgument);
 
-                return new ValueTask<V>(GetOrAddAsyncSlow(actualKey, task));
+                return GetOrAddAsyncSlow(actualKey, task);
             }
 
             // Since TAlternateKey can be a ref struct, we can't use async/await in the public GetOrAddAsync methods,
             // so we delegate to this private async method after the value factory is invoked.
-            private async Task<V> GetOrAddAsyncSlow(K actualKey, Task<V> task)
+            private async ValueTask<V> GetOrAddAsyncSlow(K actualKey, Task<V> task)
             {
                 V value = await task.ConfigureAwait(false);
 
