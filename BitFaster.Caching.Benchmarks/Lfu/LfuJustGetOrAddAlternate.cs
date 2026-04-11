@@ -35,7 +35,7 @@ namespace BitFaster.Caching.Benchmarks
         [Benchmark()]
         public int ConcurrentLfuAlternate()
         {
-            Func<ReadOnlySpan<char>, int> func = x => 1;
+            Func<string, int> func = x => 1;
             return alternate.GetOrAdd("foo".AsSpan(), func);
         }
 #endif

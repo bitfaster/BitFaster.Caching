@@ -18,7 +18,7 @@ namespace BitFaster.Caching.Benchmarks
     public class LruJustGetOrAddAlternate
     {
         private static readonly ConcurrentLru<string, int> concurrentLru = new ConcurrentLru<string, int>(8, 9, EqualityComparer<string>.Default);
-        
+
         [Benchmark(Baseline = true)]
         public int ConcurrentLru()
         {
@@ -32,7 +32,7 @@ namespace BitFaster.Caching.Benchmarks
         [Benchmark()]
         public int ConcurrentLruAlternate()
         {
-            Func<ReadOnlySpan<char>, int> func = x => 1;
+            Func<string, int> func = x => 1;
             return alternate.GetOrAdd("foo".AsSpan(), func);
         }
 #endif

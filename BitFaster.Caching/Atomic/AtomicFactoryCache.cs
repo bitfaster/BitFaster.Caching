@@ -231,7 +231,7 @@ namespace BitFaster.Caching.Atomic
                 inner.AddOrUpdate(key, new AtomicFactory<K, V>(value));
             }
 
-            public V GetOrAdd(TAlternateKey key, Func<TAlternateKey, V> valueFactory)
+            public V GetOrAdd(TAlternateKey key, Func<K, V> valueFactory)
             {
                 var atomicFactory = inner.GetOrAdd(key,
                     static (k, factory) => new AtomicFactory<K, V>(factory(k)),
@@ -239,7 +239,7 @@ namespace BitFaster.Caching.Atomic
                 return atomicFactory.ValueIfCreated!;
             }
 
-            public V GetOrAdd<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, V> valueFactory, TArg factoryArgument)
+            public V GetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
             {
                 var atomicFactory = inner.GetOrAdd(key,
                     static (k, args) => new AtomicFactory<K, V>(args.valueFactory(k, args.factoryArgument)),
