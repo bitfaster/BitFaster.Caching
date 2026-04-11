@@ -21,6 +21,19 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private ConcurrentLfu<int, int> cache = new ConcurrentLfu<int, int>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
         private ValueFactory valueFactory = new ValueFactory();
 
+        private List<ItemRemovedEventArgs<int, int>> removedItems = new List<ItemRemovedEventArgs<int, int>>();
+        private List<ItemUpdatedEventArgs<int, int>> updatedItems = new List<ItemUpdatedEventArgs<int, int>>();
+
+        private void OnLfuItemRemoved(object sender, ItemRemovedEventArgs<int, int> e)
+        {
+            removedItems.Add(e);
+        }
+
+        private void OnLfuItemUpdated(object sender, ItemUpdatedEventArgs<int, int> e)
+        {
+            updatedItems.Add(e);
+        }
+
         public ConcurrentLfuTests(ITestOutputHelper output)
         {
             this.output = output;
@@ -514,9 +527,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void EventsAreDisabled()
+        public void EventsAreEnabled()
         {
-            cache.Events.HasValue.Should().BeFalse();
+            cache.Events.HasValue.Should().BeTrue();
         }
 
         [Fact]
@@ -804,8 +817,157 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
 #if DEBUG
             this.output.WriteLine(cache.FormatLfuString());
-#endif        
+#endif
         }
+
+        [Fact]
+        public void WhenItemIsRemovedRemovedEventIsFired()
+        {
+            removedItems.Clear();
+            var lfuEvents = new ConcurrentLfu<int, int>(20);
+            lfuEvents.Events.Value.ItemRemoved += OnLfuItemRemoved;
+
+            lfuEvents.GetOrAdd(1, i => i + 2);
+
+            lfuEvents.TryRemove(1).Should().BeTrue();
+
+            // Maintenance is needed for events to be processed
+            lfuEvents.DoMaintenance();
+
+            removedItems.Count.Should().Be(1);
+            removedItems[0].Key.Should().Be(1);
+            removedItems[0].Value.Should().Be(3);
+            removedItems[0].Reason.Should().Be(ItemRemovedReason.Removed);
+        }
+
+        [Fact]
+        public void WhenItemRemovedEventIsUnregisteredEventIsNotFired()
+        {
+            removedItems.Clear();
+            var lfuEvents = new ConcurrentLfu<int, int>(20);
+
+            lfuEvents.Events.Value.ItemRemoved += OnLfuItemRemoved;
+            lfuEvents.Events.Value.ItemRemoved -= OnLfuItemRemoved;
+
+            lfuEvents.GetOrAdd(1, i => i + 1);
+            lfuEvents.TryRemove(1);
+            lfuEvents.DoMaintenance();
+
+            removedItems.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void WhenValueEvictedItemRemovedEventIsFired()
+        {
+            removedItems.Clear();
+            var lfuEvents = new ConcurrentLfu<int, int>(6);
+            lfuEvents.Events.Value.ItemRemoved += OnLfuItemRemoved;
+
+            // Fill cache to capacity
+            for (int i = 0; i < 6; i++)
+            {
+                lfuEvents.GetOrAdd(i, i => i);
+            }
+
+            // This should trigger eviction
+            lfuEvents.GetOrAdd(100, i => i);
+            lfuEvents.DoMaintenance();
+
+            // At least one item should be evicted
+            removedItems.Count.Should().BeGreaterThan(0);
+            removedItems.Any(r => r.Reason == ItemRemovedReason.Evicted).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenItemsAreTrimmedAnEventIsFired()
+        {
+            removedItems.Clear();
+            var lfuEvents = new ConcurrentLfu<int, int>(20);
+            lfuEvents.Events.Value.ItemRemoved += OnLfuItemRemoved;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lfuEvents.GetOrAdd(i, i => i);
+            }
+
+            lfuEvents.Trim(2);
+
+            removedItems.Count.Should().Be(2);
+            removedItems.All(r => r.Reason == ItemRemovedReason.Trimmed).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WhenItemsAreClearedAnEventIsFired()
+        {
+            removedItems.Clear();
+            var lfuEvents = new ConcurrentLfu<int, int>(20);
+            lfuEvents.Events.Value.ItemRemoved += OnLfuItemRemoved;
+
+            for (int i = 0; i < 6; i++)
+            {
+                lfuEvents.GetOrAdd(i, i => i);
+            }
+
+            lfuEvents.Clear();
+
+            removedItems.Count.Should().Be(6);
+            removedItems.All(r => r.Reason == ItemRemovedReason.Cleared).Should().BeTrue();
+        }
+
+        // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+        [Fact]
+        public void WhenItemExistsAddOrUpdateFiresUpdateEvent()
+        {
+            updatedItems.Clear();
+            var lfuEvents = new ConcurrentLfu<int, int>(20);
+            lfuEvents.Events.Value.ItemUpdated += OnLfuItemUpdated;
+
+            lfuEvents.AddOrUpdate(1, 2);
+            lfuEvents.AddOrUpdate(2, 3);
+
+            lfuEvents.AddOrUpdate(1, 3);
+
+            this.updatedItems.Count.Should().Be(1);
+            this.updatedItems[0].Key.Should().Be(1);
+            this.updatedItems[0].OldValue.Should().Be(2);
+            this.updatedItems[0].NewValue.Should().Be(3);
+        }
+
+        [Fact]
+        public void WhenItemExistsTryUpdateFiresUpdateEvent()
+        {
+            updatedItems.Clear();
+            var lfuEvents = new ConcurrentLfu<int, int>(20);
+            lfuEvents.Events.Value.ItemUpdated += OnLfuItemUpdated;
+
+            lfuEvents.AddOrUpdate(1, 2);
+            lfuEvents.AddOrUpdate(2, 3);
+
+            lfuEvents.TryUpdate(1, 3);
+
+            this.updatedItems.Count.Should().Be(1);
+            this.updatedItems[0].Key.Should().Be(1);
+            this.updatedItems[0].OldValue.Should().Be(2);
+            this.updatedItems[0].NewValue.Should().Be(3);
+        }
+
+        [Fact]
+        public void WhenItemUpdatedEventIsUnregisteredEventIsNotFired()
+        {
+            updatedItems.Clear();
+            var lfuEvents = new ConcurrentLfu<int, int>(20);
+
+            lfuEvents.Events.Value.ItemUpdated += OnLfuItemUpdated;
+            lfuEvents.Events.Value.ItemUpdated -= OnLfuItemUpdated;
+
+            lfuEvents.AddOrUpdate(1, 2);
+            lfuEvents.AddOrUpdate(1, 2);
+            lfuEvents.AddOrUpdate(1, 2);
+
+            updatedItems.Count.Should().Be(0);
+        }
+#endif
 
         public class ValueFactory
         {
