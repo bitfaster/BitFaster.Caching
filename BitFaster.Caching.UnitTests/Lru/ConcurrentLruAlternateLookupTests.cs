@@ -48,7 +48,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void AlternateLookupGetOrAddUsesAlternateKeyOnMissAndHit()
+        public void AlternateLookupGetOrAddUsesActualKeyOnMissAndHit()
         {
             var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
@@ -58,7 +58,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             alternate.GetOrAdd(key, key =>
             {
                 factoryCalls++;
-                return $"value-{key.ToString()}";
+                return $"value-{key}";
             }).Should().Be("value-42");
 
             alternate.GetOrAdd(key, (_, prefix) =>
