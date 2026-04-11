@@ -284,7 +284,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 for (int i = 0; i < loopIterations; i++)
                 {
                     string key = (i + 1).ToString();
-                    alternate.GetOrAdd(key.AsSpan(), static keySpan => keySpan.ToString());
+                    alternate.GetOrAdd(key.AsSpan(), static key => key);
                 }
             });
 
@@ -303,7 +303,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 for (int i = 0; i < loopIterations; i++)
                 {
                     string key = (i + 1).ToString();
-                    alternate.GetOrAdd(key.AsSpan(), static (keySpan, prefix) => prefix + keySpan.ToString(), "prefix-");
+                    alternate.GetOrAdd(key.AsSpan(), static (key, prefix) => prefix + key, "prefix-");
                 }
             });
 
@@ -343,7 +343,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 for (int i = 0; i < loopIterations; i++)
                 {
                     (i + 1).TryFormat(key, out int written);
-                    await alternate.GetOrAddAsync(key.AsSpan().Slice(0, written), static keySpan => Task.FromResult(keySpan.ToString()));
+                    await alternate.GetOrAddAsync(key.AsSpan().Slice(0, written), static key => Task.FromResult(key));
                 }
             });
 
@@ -363,7 +363,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 for (int i = 0; i < loopIterations; i++)
                 {
                     (i + 1).TryFormat(key, out int written);
-                    await alternate.GetOrAddAsync(key.AsSpan().Slice(0, written), static (keySpan, prefix) => Task.FromResult(prefix + keySpan.ToString()), "prefix-");
+                    await alternate.GetOrAddAsync(key.AsSpan().Slice(0, written), static (key, prefix) => Task.FromResult(prefix + key), "prefix-");
                 }
             });
 
