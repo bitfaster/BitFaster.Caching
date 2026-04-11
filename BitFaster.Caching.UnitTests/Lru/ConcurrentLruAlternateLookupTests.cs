@@ -48,7 +48,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public void AlternateLookupGetOrAddUsesAlternateKeyOnMissAndHit()
+        public void AlternateLookupGetOrAddUsesActualKeyOnMissAndHit()
         {
             var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();

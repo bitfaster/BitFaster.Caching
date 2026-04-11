@@ -50,7 +50,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void AlternateLookupGetOrAddUsesAlternateKeyOnMissAndHit()
+        public void AlternateLookupGetOrAddUsesActualKeyOnMissAndHit()
         {
             var cache = new ConcurrentLfu<string, string>(1, 20, new ForegroundScheduler(), StringComparer.Ordinal);
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();

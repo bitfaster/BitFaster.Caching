@@ -33,7 +33,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task AsyncAlternateLookupGetOrAddAsyncUsesAlternateKeyOnMissAndHit()
+        public async Task AsyncAlternateLookupGetOrAddAsyncUsesActualKeyOnMissAndHit()
         {
             var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -59,7 +59,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [Fact]
-        public async Task AsyncAlternateLookupGetOrAddAsyncWithArgUsesAlternateKeyOnMissAndHit()
+        public async Task AsyncAlternateLookupGetOrAddAsyncWithArgUsesActualKeyOnMissAndHit()
         {
             var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();

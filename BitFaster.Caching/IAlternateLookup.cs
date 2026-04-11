@@ -50,7 +50,7 @@ namespace BitFaster.Caching
         /// Gets an existing value or adds a new value using an alternate key.
         /// </summary>
         /// <param name="key">The alternate key.</param>
-        /// <param name="valueFactory">The value factory.</param>
+        /// <param name="valueFactory">The value factory, invoked with the actual cache key when a value must be created.</param>
         /// <returns>The cached value.</returns>
         TValue GetOrAdd(TAlternateKey key, Func<TKey, TValue> valueFactory);
 
@@ -59,7 +59,7 @@ namespace BitFaster.Caching
         /// </summary>
         /// <typeparam name="TArg">The factory argument type.</typeparam>
         /// <param name="key">The alternate key.</param>
-        /// <param name="valueFactory">The value factory.</param>
+        /// <param name="valueFactory">The value factory, invoked with the actual cache key when a value must be created.</param>
         /// <param name="factoryArgument">The factory argument.</param>
         /// <returns>The cached value.</returns>
         TValue GetOrAdd<TArg>(TAlternateKey key, Func<TKey, TArg, TValue> valueFactory, TArg factoryArgument);

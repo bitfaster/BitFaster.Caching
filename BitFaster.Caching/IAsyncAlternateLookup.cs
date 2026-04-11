@@ -51,7 +51,7 @@ namespace BitFaster.Caching
         /// Gets an existing value or adds a new value asynchronously using an alternate key.
         /// </summary>
         /// <param name="key">The alternate key.</param>
-        /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
+        /// <param name="valueFactory">The factory function used to asynchronously generate a value, invoked with the actual cache key.</param>
         /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
         ValueTask<TValue> GetOrAddAsync(TAlternateKey key, Func<TKey, Task<TValue>> valueFactory);
 
@@ -60,7 +60,7 @@ namespace BitFaster.Caching
         /// </summary>
         /// <typeparam name="TArg">The factory argument type.</typeparam>
         /// <param name="key">The alternate key.</param>
-        /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
+        /// <param name="valueFactory">The factory function used to asynchronously generate a value, invoked with the actual cache key.</param>
         /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
         /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
         ValueTask<TValue> GetOrAddAsync<TArg>(TAlternateKey key, Func<TKey, TArg, Task<TValue>> valueFactory, TArg factoryArgument);
