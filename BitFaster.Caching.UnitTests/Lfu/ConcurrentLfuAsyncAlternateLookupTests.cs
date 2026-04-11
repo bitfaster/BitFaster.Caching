@@ -43,7 +43,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var result = await alternate.GetOrAddAsync("42".AsSpan(), key =>
             {
                 factoryCalls++;
-                return Task.FromResult($"value-{key.ToString()}");
+                return Task.FromResult($"value-{key}");
             });
             result.Should().Be("value-42");
 
@@ -69,7 +69,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var result = await alternate.GetOrAddAsync("42".AsSpan(), (key, prefix) =>
             {
                 factoryCalls++;
-                return Task.FromResult($"{prefix}{key.ToString()}");
+                return Task.FromResult($"{prefix}{key}");
             }, "value-");
             result.Should().Be("value-42");
 

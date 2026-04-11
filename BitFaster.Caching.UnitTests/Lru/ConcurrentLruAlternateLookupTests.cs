@@ -58,7 +58,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             alternate.GetOrAdd(key, key =>
             {
                 factoryCalls++;
-                return $"value-{key.ToString()}";
+                return $"value-{key}";
             }).Should().Be("value-42");
 
             alternate.GetOrAdd(key, (_, prefix) =>

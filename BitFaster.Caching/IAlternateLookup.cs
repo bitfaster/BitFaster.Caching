@@ -52,7 +52,7 @@ namespace BitFaster.Caching
         /// <param name="key">The alternate key.</param>
         /// <param name="valueFactory">The value factory.</param>
         /// <returns>The cached value.</returns>
-        TValue GetOrAdd(TAlternateKey key, Func<TAlternateKey, TValue> valueFactory);
+        TValue GetOrAdd(TAlternateKey key, Func<TKey, TValue> valueFactory);
 
         /// <summary>
         /// Gets an existing value or adds a new value using an alternate key and factory argument.
@@ -62,7 +62,7 @@ namespace BitFaster.Caching
         /// <param name="valueFactory">The value factory.</param>
         /// <param name="factoryArgument">The factory argument.</param>
         /// <returns>The cached value.</returns>
-        TValue GetOrAdd<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, TValue> valueFactory, TArg factoryArgument);
+        TValue GetOrAdd<TArg>(TAlternateKey key, Func<TKey, TArg, TValue> valueFactory, TArg factoryArgument);
     }
 }
 #endif
