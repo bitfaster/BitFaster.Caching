@@ -120,8 +120,8 @@ namespace BitFaster.Caching.UnitTests.Scheduler
             if (await Task.WhenAny(completion, Task.Delay(TimeSpan.FromSeconds(60))) != completion)
             {
                 if (this.scheduler.LastException.HasValue)
-                { 
-                    output.WriteLine(this.scheduler.LastException.ToString()); 
+                {
+                    output.WriteLine(this.scheduler.LastException.ToString());
                 }
 
                 throw new Exception("Failed to stop");
