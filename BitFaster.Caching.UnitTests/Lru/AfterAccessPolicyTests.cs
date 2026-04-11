@@ -78,7 +78,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             var timeout = DateTime.UtcNow.AddSeconds(1);
             while (Duration.SinceEpoch().raw == tc && DateTime.UtcNow < timeout)
             {
-                await Task.Delay(1);
+                await Task.Delay(TimeSpan.FromMilliseconds(1));
             }
 
             this.policy.ShouldDiscard(item); // set the time in the policy
@@ -97,7 +97,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             var timeout = DateTime.UtcNow.AddSeconds(1);
             while (Duration.SinceEpoch().raw == tc && DateTime.UtcNow < timeout)
             {
-                await Task.Delay(1);
+                await Task.Delay(TimeSpan.FromMilliseconds(1));
             }
 
             this.policy.Update(item);
