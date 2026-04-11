@@ -214,31 +214,64 @@ namespace BitFaster.Caching.Atomic
                 inner.AddOrUpdate(key, new AsyncAtomicFactory<K, V>(value));
             }
 
-            public ValueTask<V> GetOrAddAsync(TAlternateKey key, Func<TAlternateKey, Task<V>> valueFactory)
+            public ValueTask<V> GetOrAddAsync(TAlternateKey key, Func<K, Task<V>> valueFactory)
             {
-                var factory = inner.GetOrAdd(key, static _ => new AsyncAtomicFactory<K, V>());
-
-                if (factory.IsValueCreated)
+                if (inner.TryGet(key, out var existing) && existing.IsValueCreated)
                 {
-                    return new ValueTask<V>(factory.ValueIfCreated!);
+                    return new ValueTask<V>(existing.ValueIfCreated!);
                 }
 
-                Task<V> task = valueFactory(key);
-                return factory.GetValueAsync(default(K)!, static (_, t) => t, task);
+                return GetOrAddAsyncSlow(key, valueFactory);
             }
 
-            public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<TAlternateKey, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            private ValueTask<V> GetOrAddAsyncSlow(TAlternateKey key, Func<K, Task<V>> valueFactory)
             {
-                var factory = inner.GetOrAdd(key, static _ => new AsyncAtomicFactory<K, V>());
-
-                if (factory.IsValueCreated)
+                var box = new KeyBox<K>();
+                var synchronized = inner.GetOrAdd(key, static (k, state) =>
                 {
-                    return new ValueTask<V>(factory.ValueIfCreated!);
+                    state.box.Key = k;
+                    return new AsyncAtomicFactory<K, V>();
+                }, (box, valueFactory));
+
+                if (synchronized.IsValueCreated)
+                {
+                    return new ValueTask<V>(synchronized.ValueIfCreated!);
                 }
 
-                Task<V> task = valueFactory(key, factoryArgument);
-                return factory.GetValueAsync(default(K)!, static (_, t) => t, task);
+                return synchronized.GetValueAsync(box.Key, valueFactory);
             }
+
+            public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            {
+                if (inner.TryGet(key, out var existing) && existing.IsValueCreated)
+                {
+                    return new ValueTask<V>(existing.ValueIfCreated!);
+                }
+
+                return GetOrAddAsyncSlow(key, valueFactory, factoryArgument);
+            }
+
+            private ValueTask<V> GetOrAddAsyncSlow<TArg>(TAlternateKey key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            {
+                var box = new KeyBox<K>();
+                var synchronized = inner.GetOrAdd(key, static (k, state) =>
+                {
+                    state.box.Key = k;
+                    return new AsyncAtomicFactory<K, V>();
+                }, (box, valueFactory, factoryArgument));
+
+                if (synchronized.IsValueCreated)
+                {
+                    return new ValueTask<V>(synchronized.ValueIfCreated!);
+                }
+
+                return synchronized.GetValueAsync(box.Key, valueFactory, factoryArgument);
+            }
+        }
+
+        private class KeyBox<TKey>
+        {
+            public TKey Key = default!;
         }
 #endif
 

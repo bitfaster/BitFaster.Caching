@@ -109,7 +109,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public async Task AsyncAlternateLookupGetOrAddAsyncUsesAlternateKeyOnMissAndHit()
+        public async Task AsyncAlternateLookupGetOrAddAsyncUsesActualKeyOnMissAndHit()
         {
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
             var factoryCalls = 0;
@@ -117,7 +117,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var result = await alternate.GetOrAddAsync("42".AsSpan(), key =>
             {
                 factoryCalls++;
-                return Task.FromResult($"value-{key.ToString()}");
+                return Task.FromResult($"value-{key}");
             });
             result.Should().Be("value-42");
 
@@ -134,7 +134,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public async Task AsyncAlternateLookupGetOrAddAsyncWithArgUsesAlternateKeyOnMissAndHit()
+        public async Task AsyncAlternateLookupGetOrAddAsyncWithArgUsesActualKeyOnMissAndHit()
         {
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
             var factoryCalls = 0;
@@ -142,7 +142,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var result = await alternate.GetOrAddAsync("42".AsSpan(), (key, prefix) =>
             {
                 factoryCalls++;
-                return Task.FromResult($"{prefix}{key.ToString()}");
+                return Task.FromResult($"{prefix}{key}");
             }, "value-");
             result.Should().Be("value-42");
 
