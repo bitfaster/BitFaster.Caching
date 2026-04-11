@@ -27,7 +27,7 @@ namespace BitFaster.Caching.Scheduler
         private readonly MpmcBoundedBuffer<Action> work = new(MaxBacklog);
 
         private Optional<Exception> lastException = Optional<Exception>.None();
-        readonly TaskCompletionSource<bool> completion = new();
+        private readonly Task completion;
 
         /// <summary>
         /// Initializes a new instance of the BackgroundThreadScheduler class.
@@ -35,11 +35,11 @@ namespace BitFaster.Caching.Scheduler
         public BackgroundThreadScheduler()
         {
             // dedicated thread
-            _ = Task.Factory.StartNew(async () => await Background().ConfigureAwait(false), cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            this.completion = Task.Factory.StartNew(async () => await Background().ConfigureAwait(false), cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         ///<inheritdoc/>
-        public Task Completion => completion.Task;
+        public Task Completion => completion;
 
         ///<inheritdoc/>
         public bool IsBackground => true;
@@ -62,14 +62,13 @@ namespace BitFaster.Caching.Scheduler
 
         private async Task Background()
         {
-            var spinner = new SpinWait();
-
             while (true)
             {
                 try
                 {
                     await semaphore.WaitAsync(cts.Token).ConfigureAwait(false);
 
+                    var spinner = new SpinWait();
                     BufferStatus s;
                     do
                     {
@@ -85,6 +84,7 @@ namespace BitFaster.Caching.Scheduler
                         }
                     }
                     while (s == BufferStatus.Contended);
+
                 }
                 catch (OperationCanceledException)
                 {
@@ -94,11 +94,7 @@ namespace BitFaster.Caching.Scheduler
                 {
                     this.lastException = new Optional<Exception>(ex);
                 }
-
-                spinner.SpinOnce();
             }
-
-            completion.SetResult(true);
         }
 
         /// <summary>

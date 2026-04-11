@@ -7,12 +7,12 @@ using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-    public class ConcurrentLruAsyncAlternateLookupTests
+    public class ClassicLruAsyncAlternateLookupTests
     {
         [Fact]
         public void TryGetAsyncAlternateLookupReturnsLookupForCompatibleComparer()
         {
-            var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
             cache.GetOrAdd("42", _ => "value");
             ReadOnlySpan<char> key = "42";
 
@@ -23,7 +23,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void GetAsyncAlternateLookupThrowsForIncompatibleComparer()
         {
-            var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
 
             Action act = () => cache.GetAsyncAlternateLookup<int>();
 
@@ -35,7 +35,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public async Task AsyncAlternateLookupGetOrAddAsyncUsesActualKeyOnMissAndHit()
         {
-            var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
             var factoryCalls = 0;
 
@@ -61,7 +61,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public async Task AsyncAlternateLookupGetOrAddAsyncWithArgUsesActualKeyOnMissAndHit()
         {
-            var cache = new ConcurrentLru<string, string>(1, 3, StringComparer.Ordinal);
+            var cache = new ClassicLru<string, string>(1, 3, StringComparer.Ordinal);
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
             var factoryCalls = 0;
 

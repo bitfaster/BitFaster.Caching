@@ -255,6 +255,48 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.TryGetAlternateLookup<int>(out var alternate).Should().BeFalse();
             alternate.Should().BeNull();
         }
+
+        [Fact]
+        public void GetAsyncAlternateLookupReturnsLookupForCompatibleComparer()
+        {
+            var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
+            cache.GetOrAdd("42", _ => "value");
+
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            alternate.TryGet("42".AsSpan(), out var value).Should().BeTrue();
+            value.Should().Be("value");
+        }
+
+        [Fact]
+        public void TryGetAsyncAlternateLookupReturnsTrueForCompatibleComparer()
+        {
+            var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
+            cache.GetOrAdd("42", _ => "value");
+
+            cache.TryGetAsyncAlternateLookup<ReadOnlySpan<char>>(out var alternate).Should().BeTrue();
+            alternate.TryGet("42".AsSpan(), out var value).Should().BeTrue();
+            value.Should().Be("value");
+        }
+
+        [Fact]
+        public void GetAsyncAlternateLookupThrowsForIncompatibleComparer()
+        {
+            var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
+
+            Action act = () => cache.GetAsyncAlternateLookup<int>();
+
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TryGetAsyncAlternateLookupReturnsFalseForIncompatibleComparer()
+        {
+            var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
+
+            cache.TryGetAsyncAlternateLookup<int>(out var alternate).Should().BeFalse();
+            alternate.Should().BeNull();
+        }
 #endif
     }
 }
