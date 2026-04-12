@@ -55,7 +55,7 @@ namespace BitFaster.Caching.Atomic
         public ICollection<K> Keys => AtomicEx.FilterKeys<K, AtomicFactory<K, V>>(this.cache, v => v.IsValueCreated);
 
         /// <inheritdoc/>
-        public IEqualityComparer<K> Comparer => this.comparer ?? throw new NotSupportedException("The underlying cache does not support comparer access.");
+        public IEqualityComparer<K> Comparer => this.comparer ?? throw new NotSupportedException("Comparer is not available because the underlying cache does not implement ICacheComparer<K>.");
 
         ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;
