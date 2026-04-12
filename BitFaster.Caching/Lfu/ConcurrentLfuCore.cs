@@ -49,7 +49,6 @@ namespace BitFaster.Caching.Lfu
         private const int DefaultBufferSize = 128;
 
         private readonly ConcurrentDictionary<K, N> dictionary;
-        private readonly IEqualityComparer<K> comparer;
 
         internal readonly StripedMpscBuffer<N> readBuffer;
         internal readonly MpscBoundedBuffer<N> writeBuffer;
@@ -86,7 +85,6 @@ namespace BitFaster.Caching.Lfu
 
             int dictionaryCapacity = ConcurrentDictionarySize.Estimate(capacity);
             this.dictionary = new(concurrencyLevel, dictionaryCapacity, comparer);
-            this.comparer = comparer;
 
             // cap concurrency at proc count * 2
             int readStripes = Math.Min(BitOps.CeilingPowerOfTwo(concurrencyLevel), BitOps.CeilingPowerOfTwo(Environment.ProcessorCount * 2));
@@ -123,7 +121,7 @@ namespace BitFaster.Caching.Lfu
 
         public ICollection<K> Keys => this.dictionary.Keys;
 
-        public IEqualityComparer<K> Comparer => this.comparer;
+        public IEqualityComparer<K> Comparer => this.dictionary.GetComparer();
 
         public IScheduler Scheduler => scheduler;
 

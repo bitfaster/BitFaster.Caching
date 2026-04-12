@@ -19,7 +19,6 @@ namespace BitFaster.Caching.Atomic
     {
         private readonly ICache<K, AsyncAtomicFactory<K, V>> cache;
         private readonly Optional<ICacheEvents<K, V>> events;
-        private readonly IEqualityComparer<K>? comparer;
 
         /// <summary>
         /// Initializes a new instance of the AtomicFactoryAsyncCache class with the specified inner cache.
@@ -31,7 +30,6 @@ namespace BitFaster.Caching.Atomic
                 Throw.ArgNull(ExceptionArgument.cache);
 
             this.cache = cache;
-            this.comparer = (cache as ICacheComparer<K>)?.Comparer;
 
             if (cache.Events.HasValue)
             {
@@ -56,7 +54,7 @@ namespace BitFaster.Caching.Atomic
         public ICollection<K> Keys => AtomicEx.FilterKeys<K, AsyncAtomicFactory<K, V>>(this.cache, v => v.IsValueCreated);
 
         /// <inheritdoc/>
-        public IEqualityComparer<K> Comparer => this.comparer ?? throw new NotSupportedException("Comparer is not available because the underlying cache does not implement ICacheComparer<K>.");
+        public IEqualityComparer<K> Comparer => (this.cache as ICacheComparer<K>)?.Comparer ?? throw new NotSupportedException("Comparer is not available because the underlying cache does not implement ICacheComparer<K>.");
 
         ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;

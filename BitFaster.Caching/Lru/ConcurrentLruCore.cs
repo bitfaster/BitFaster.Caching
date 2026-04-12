@@ -48,7 +48,6 @@ namespace BitFaster.Caching.Lru
         private PaddedQueueCount counter;
 
         private readonly ICapacityPartition capacity;
-        private readonly IEqualityComparer<K> comparer;
 
         private readonly P itemPolicy;
         private bool isWarm = false;
@@ -86,7 +85,6 @@ namespace BitFaster.Caching.Lru
 
             capacity.Validate();
             this.capacity = capacity;
-            this.comparer = comparer;
 
             this.hotQueue = new ConcurrentQueue<I>();
             this.warmQueue = new ConcurrentQueue<I>();
@@ -137,7 +135,7 @@ namespace BitFaster.Caching.Lru
         public ICollection<K> Keys => this.dictionary.Keys;
 
         /// <inheritdoc/>
-        public IEqualityComparer<K> Comparer => this.comparer;
+        public IEqualityComparer<K> Comparer => this.dictionary.GetComparer();
 
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
         /// <returns>An enumerator for the cache.</returns>
