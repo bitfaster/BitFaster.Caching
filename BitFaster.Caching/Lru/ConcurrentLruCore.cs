@@ -32,7 +32,7 @@ namespace BitFaster.Caching.Lru
     ///   <item><description>When cold is full, cold tail is moved to warm head or removed from dictionary on depending on WasAccessed.</description></item>
     ///</list>
     /// </remarks>
-    public class ConcurrentLruCore<K, V, I, P, T> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IEnumerable<KeyValuePair<K, V>>
+    public class ConcurrentLruCore<K, V, I, P, T> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IEnumerable<KeyValuePair<K, V>>, ICacheComparer<K>
         where K : notnull
         where I : LruItem<K, V>
         where P : struct, IItemPolicy<K, V, I>
@@ -48,6 +48,7 @@ namespace BitFaster.Caching.Lru
         private PaddedQueueCount counter;
 
         private readonly ICapacityPartition capacity;
+        private readonly IEqualityComparer<K> comparer;
 
         private readonly P itemPolicy;
         private bool isWarm = false;
@@ -85,6 +86,7 @@ namespace BitFaster.Caching.Lru
 
             capacity.Validate();
             this.capacity = capacity;
+            this.comparer = comparer;
 
             this.hotQueue = new ConcurrentQueue<I>();
             this.warmQueue = new ConcurrentQueue<I>();
@@ -134,10 +136,8 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         public ICollection<K> Keys => this.dictionary.Keys;
 
-#if NET9_0_OR_GREATER
         /// <inheritdoc/>
-        public IEqualityComparer<K> Comparer => this.dictionary.Comparer;
-#endif
+        public IEqualityComparer<K> Comparer => this.comparer;
 
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
         /// <returns>An enumerator for the cache.</returns>

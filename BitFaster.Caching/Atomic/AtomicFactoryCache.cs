@@ -13,11 +13,12 @@ namespace BitFaster.Caching.Atomic
     /// <typeparam name="V">The type of values in the cache.</typeparam>
     [DebuggerTypeProxy(typeof(CacheDebugView<,>))]
     [DebuggerDisplay("Count = {Count}")]
-    public sealed class AtomicFactoryCache<K, V> : ICache<K, V>
+    public sealed class AtomicFactoryCache<K, V> : ICache<K, V>, ICacheComparer<K>
         where K : notnull
     {
         private readonly ICache<K, AtomicFactory<K, V>> cache;
         private readonly Optional<ICacheEvents<K, V>> events;
+        private readonly IEqualityComparer<K>? comparer;
 
         /// <summary>
         /// Initializes a new instance of the ScopedCache class with the specified inner cache.
@@ -29,6 +30,7 @@ namespace BitFaster.Caching.Atomic
                 Throw.ArgNull(ExceptionArgument.cache);
 
             this.cache = cache;
+            this.comparer = (cache as ICacheComparer<K>)?.Comparer;
 
             if (cache.Events.HasValue)
             {
@@ -52,10 +54,8 @@ namespace BitFaster.Caching.Atomic
         ///<inheritdoc/>
         public ICollection<K> Keys => AtomicEx.FilterKeys<K, AtomicFactory<K, V>>(this.cache, v => v.IsValueCreated);
 
-#if NET9_0_OR_GREATER
         /// <inheritdoc/>
-        public IEqualityComparer<K> Comparer => this.cache.Comparer;
-#endif
+        public IEqualityComparer<K> Comparer => this.comparer ?? throw new NotSupportedException();
 
         ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;
@@ -65,6 +65,7 @@ namespace BitFaster.Caching.Atomic
         {
             this.cache.AddOrUpdate(key, new AtomicFactory<K, V>(value));
         }
+
 
         ///<inheritdoc/>
         public void Clear()

@@ -32,7 +32,7 @@ namespace BitFaster.Caching.Lfu
     /// https://github.com/ben-manes/caffeine
     [DebuggerTypeProxy(typeof(ConcurrentLfu<,>.LfuDebugView<>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
-    public sealed class ConcurrentLfu<K, V> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IBoundedPolicy
+    public sealed class ConcurrentLfu<K, V> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IBoundedPolicy, ICacheComparer<K>
         where K : notnull
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
@@ -87,10 +87,8 @@ namespace BitFaster.Caching.Lfu
         ///<inheritdoc/>
         public ICollection<K> Keys => core.Keys;
 
-#if NET9_0_OR_GREATER
         /// <inheritdoc/>
         public IEqualityComparer<K> Comparer => this.core.Comparer;
-#endif
 
         ///<inheritdoc/>
         public int Capacity => core.Capacity;

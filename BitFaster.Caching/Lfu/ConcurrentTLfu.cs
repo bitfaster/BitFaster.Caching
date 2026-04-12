@@ -9,7 +9,7 @@ using BitFaster.Caching.Scheduler;
 namespace BitFaster.Caching.Lfu
 {
     // LFU with time-based expiry policy. Provided as a wrapper around ConcurrentLfuCore to hide generic item and policy.
-    internal sealed class ConcurrentTLfu<K, V> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IBoundedPolicy, ITimePolicy, IDiscreteTimePolicy
+    internal sealed class ConcurrentTLfu<K, V> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IBoundedPolicy, ITimePolicy, IDiscreteTimePolicy, ICacheComparer<K>
         where K : notnull
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
@@ -46,10 +46,8 @@ namespace BitFaster.Caching.Lfu
         ///<inheritdoc/>
         public ICollection<K> Keys => core.Keys;
 
-#if NET9_0_OR_GREATER
         /// <inheritdoc/>
         public IEqualityComparer<K> Comparer => this.core.Comparer;
-#endif
 
         ///<inheritdoc/>
         public int Capacity => core.Capacity;

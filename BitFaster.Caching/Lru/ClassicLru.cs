@@ -20,7 +20,7 @@ namespace BitFaster.Caching.Lru
     /// </remarks>
     /// <typeparam name="K">The type of the key</typeparam>
     /// <typeparam name="V">The type of the value</typeparam>
-    public sealed class ClassicLru<K, V> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IBoundedPolicy, IEnumerable<KeyValuePair<K, V>>
+    public sealed class ClassicLru<K, V> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IBoundedPolicy, IEnumerable<KeyValuePair<K, V>>, ICacheComparer<K>
         where K : notnull
     {
         private readonly int capacity;
@@ -29,6 +29,7 @@ namespace BitFaster.Caching.Lru
 
         private readonly CacheMetrics metrics = new();
         private readonly CachePolicy policy;
+        private readonly IEqualityComparer<K> comparer;
 
         /// <summary>
         /// Initializes a new instance of the ClassicLru class with the specified capacity.
@@ -56,6 +57,7 @@ namespace BitFaster.Caching.Lru
                 Throw.ArgNull(ExceptionArgument.comparer);
 
             this.capacity = capacity;
+            this.comparer = comparer;
             int dictionaryCapacity = ConcurrentDictionarySize.Estimate(capacity);
             this.dictionary = new ConcurrentDictionary<K, LinkedListNode<LruItem>>(concurrencyLevel, dictionaryCapacity, comparer);
             this.policy = new CachePolicy(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
@@ -81,10 +83,8 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         public ICollection<K> Keys => this.dictionary.Keys;
 
-#if NET9_0_OR_GREATER
         /// <inheritdoc/>
-        public IEqualityComparer<K> Comparer => this.dictionary.Comparer;
-#endif
+        public IEqualityComparer<K> Comparer => this.comparer;
 
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
         /// <returns>An enumerator for the cache.</returns>

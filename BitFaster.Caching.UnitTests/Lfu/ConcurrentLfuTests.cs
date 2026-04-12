@@ -57,17 +57,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.Scheduler.Should().BeOfType<ThreadPoolScheduler>();
         }
 
-#if NET9_0_OR_GREATER
         [Fact]
         public void ComparerReturnsConfiguredComparer()
         {
             var comparer = StringComparer.OrdinalIgnoreCase;
             var cache = new ConcurrentLfu<string, int>(1, 3, new NullScheduler(), comparer);
 
-            ((ICache<string, int>)cache).Comparer.Should().BeSameAs(comparer);
-            ((IAsyncCache<string, int>)cache).Comparer.Should().BeSameAs(comparer);
+            cache.Comparer.Should().BeSameAs(comparer);
         }
-#endif
 
         [Fact]
         public void WhenKeyIsRequestedItIsCreatedAndCached()
