@@ -135,7 +135,7 @@ namespace BitFaster.Caching.Lru
         public ICollection<K> Keys => this.dictionary.Keys;
 
 #if NET9_0_OR_GREATER
-        ///<inheritdoc/>
+        /// <inheritdoc/>
         public IEqualityComparer<K> Comparer => this.dictionary.Comparer;
 #endif
 
