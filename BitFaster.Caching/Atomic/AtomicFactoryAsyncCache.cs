@@ -14,7 +14,7 @@ namespace BitFaster.Caching.Atomic
     /// <typeparam name="V">The type of values in the cache.</typeparam>
     [DebuggerTypeProxy(typeof(AtomicFactoryAsyncCache<,>.AsyncCacheDebugView))]
     [DebuggerDisplay("Count = {Count}")]
-    public sealed class AtomicFactoryAsyncCache<K, V> : IAsyncCache<K, V>, ICacheComparer<K>
+    public sealed class AtomicFactoryAsyncCache<K, V> : IAsyncCache<K, V>
         where K : notnull
     {
         private readonly ICache<K, AsyncAtomicFactory<K, V>> cache;
@@ -54,7 +54,7 @@ namespace BitFaster.Caching.Atomic
         public ICollection<K> Keys => AtomicEx.FilterKeys<K, AsyncAtomicFactory<K, V>>(this.cache, v => v.IsValueCreated);
 
         /// <inheritdoc/>
-        public IEqualityComparer<K> Comparer => (this.cache as ICacheComparer<K>)?.Comparer ?? throw new NotSupportedException("Comparer is not available because the underlying cache does not implement ICacheComparer<K>.");
+        public IEqualityComparer<K> Comparer => this.cache.GetComparer();
 
         ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;
