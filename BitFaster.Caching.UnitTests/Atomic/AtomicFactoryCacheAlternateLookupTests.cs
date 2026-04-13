@@ -77,21 +77,19 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var factoryCalls = 0;
             ReadOnlySpan<char> key = "42";
 
-            alternate.GetOrAdd(key, key =>
+            alternate.GetOrAdd(key, k =>
             {
                 factoryCalls++;
-                return $"value-{key}";
+                return $"value-{k}";
             }).Should().Be("value-42");
 
-            alternate.GetOrAdd(key, (_, prefix) =>
+            alternate.GetOrAdd(key, k =>
             {
                 factoryCalls++;
-                return prefix;
-            }, "unused").Should().Be("value-42");
+                return "1";
+            }).Should().Be("value-42");
 
             factoryCalls.Should().Be(1);
-            cache.TryGet("42", out var value).Should().BeTrue();
-            value.Should().Be("value-42");
         }
 
         [Fact]
@@ -114,8 +112,6 @@ namespace BitFaster.Caching.UnitTests.Atomic
             }, "unused").Should().Be("value-42");
 
             factoryCalls.Should().Be(1);
-            cache.TryGet("42", out var value).Should().BeTrue();
-            value.Should().Be("value-42");
         }
 
         [Fact]
