@@ -68,10 +68,11 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
             var tc = item.TickCount;
+            var createdAt = tc - TestExpiryCalculator<int, int>.DefaultTimeToExpire.raw;
 
             // Poll until the underlying tick source advances to avoid 1ms timer granularity issues on Windows CI.
             var timeout = DateTime.UtcNow.AddSeconds(1);
-            while (Duration.SinceEpoch().raw == tc && DateTime.UtcNow < timeout)
+            while (Duration.SinceEpoch().raw == createdAt && DateTime.UtcNow < timeout)
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(1));
             }
