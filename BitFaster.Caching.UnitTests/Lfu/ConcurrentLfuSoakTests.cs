@@ -484,7 +484,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
 
-            var scheduler = lfu.Scheduler as BackgroundThreadScheduler;
+            lfu.Scheduler.Should().BeOfType<BackgroundThreadScheduler>("soak tests require a BackgroundThreadScheduler to drain deterministically");
+            var scheduler = (BackgroundThreadScheduler)lfu.Scheduler;
             scheduler.Dispose();
             await scheduler.Completion;
 
@@ -495,7 +496,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
 
-            var scheduler = lfu.Scheduler as BackgroundThreadScheduler;
+            lfu.Scheduler.Should().BeOfType<BackgroundThreadScheduler>("soak tests require a BackgroundThreadScheduler to drain deterministically");
+            var scheduler = (BackgroundThreadScheduler)lfu.Scheduler;
             scheduler.Dispose();
             await scheduler.Completion;
 
