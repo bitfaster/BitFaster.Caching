@@ -226,47 +226,27 @@ namespace BitFaster.Caching.Atomic
 
             public ValueTask<V> GetOrAddAsync(TAlternateKey key, Func<K, Task<V>> valueFactory)
             {
-                if (inner.TryGet(key, out var existing) && existing.IsValueCreated)
-                {
-                    return new ValueTask<V>(existing.ValueIfCreated!);
-                }
-
-                return GetOrAddAsyncSlow(key, valueFactory);
-            }
-
-            private ValueTask<V> GetOrAddAsyncSlow(TAlternateKey key, Func<K, Task<V>> valueFactory)
-            {
-                K actualKey = comparer.Create(key);
-                var synchronized = inner.GetOrAdd(key, static _ => new AsyncAtomicFactory<K, V>());
+                var synchronized = inner.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
 
                 if (synchronized.IsValueCreated)
                 {
                     return new ValueTask<V>(synchronized.ValueIfCreated!);
                 }
 
+                K actualKey = comparer.Create(key);
                 return synchronized.GetValueAsync(actualKey, valueFactory);
             }
 
             public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
             {
-                if (inner.TryGet(key, out var existing) && existing.IsValueCreated)
-                {
-                    return new ValueTask<V>(existing.ValueIfCreated!);
-                }
-
-                return GetOrAddAsyncSlow(key, valueFactory, factoryArgument);
-            }
-
-            private ValueTask<V> GetOrAddAsyncSlow<TArg>(TAlternateKey key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
-            {
-                K actualKey = comparer.Create(key);
-                var synchronized = inner.GetOrAdd(key, static _ => new AsyncAtomicFactory<K, V>());
+                var synchronized = inner.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
 
                 if (synchronized.IsValueCreated)
                 {
                     return new ValueTask<V>(synchronized.ValueIfCreated!);
                 }
 
+                K actualKey = comparer.Create(key);
                 return synchronized.GetValueAsync(actualKey, valueFactory, factoryArgument);
             }
         }
