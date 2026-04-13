@@ -64,7 +64,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         }
 
         [RetryFact]
-        public async Task TouchUpdatesTicksCount()
+        public async Task Touch_WhenTickCountAdvances_UpdatesTicksCount()
         {
             var item = this.policy.CreateItem(1, 2);
             var tc = item.TickCount;
