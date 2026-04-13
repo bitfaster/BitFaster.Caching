@@ -13,8 +13,9 @@ BitFaster.Caching provides high performance, thread-safe in-memory caching primi
 
 # Unit Test Guidelines
 
+- Each class should have one file containing the unit tests for that class. For example, Foo.cs should have an associated FooTests.cs. Do not introduce additional test files. 
 - Each test should test only one unit of work. The name of the test must have a clear association with the assert.
-- Name tests using the pattern `UnitOfWorkStateUnderTestExpectedBehavior` (typically `MethodName_..._...`), so the name reads like a clear statement of what must be true.
+- Name tests using the pattern `UnitOfWorkStateUnderTestExpectedBehavior` (typically `MethodName_..._...`, but no underscores in test name), so the name reads like a clear statement of what must be true.
 - Define the “unit of work” as the in-memory use case starting at a public method and ending in one of: return/exception, system state change, or call to a third party (via mocks).
 - Include both the condition and the outcome in the name: the relevant input or state being exercised and the expected behavior, so readers don’t need to open the test to understand it.
 - Prefer readable, declarative names over short or numbered names; longer is fine if it improves intent and future maintenance.

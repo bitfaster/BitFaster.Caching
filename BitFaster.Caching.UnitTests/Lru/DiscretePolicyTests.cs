@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.UnitTests.Retry;
@@ -68,9 +69,15 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
             var tc = item.TickCount;
-            await Task.Delay(TimeSpan.FromMilliseconds(1));
 
-            this.policy.ShouldDiscard(item); // set the time in the policy
+            var createdAt = tc - TestExpiryCalculator<int, int>.DefaultTimeToExpire.raw;
+            var timeout = DateTime.UtcNow.AddSeconds(1);
+            while (Duration.SinceEpoch().raw == createdAt && DateTime.UtcNow < timeout)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(1));
+            }
+
+            this.policy.ShouldDiscard(item); // advance time
             this.policy.Touch(item);
 
             item.TickCount.Should().BeGreaterThan(tc);
@@ -82,7 +89,12 @@ namespace BitFaster.Caching.UnitTests.Lru
             var item = this.policy.CreateItem(1, 2);
             var tc = item.TickCount;
 
-            await Task.Delay(TimeSpan.FromMilliseconds(20));
+            var createdAt = item.TickCount - TestExpiryCalculator<int, int>.DefaultTimeToExpire.raw;
+            var timeout = DateTime.UtcNow.AddSeconds(1);
+            while (Duration.SinceEpoch().raw == createdAt && DateTime.UtcNow < timeout)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(20));
+            }
 
             this.policy.Update(item);
 
