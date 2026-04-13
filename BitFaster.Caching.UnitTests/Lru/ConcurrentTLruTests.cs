@@ -51,6 +51,17 @@ namespace BitFaster.Caching.UnitTests.Lru
             this.lru.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(timeToLive);
         }
 
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void ComparerReturnsConfiguredComparer()
+        {
+            var comparer = StringComparer.OrdinalIgnoreCase;
+            var cache = new ConcurrentTLru<string, int>(1, 3, comparer, TimeSpan.FromMinutes(1));
+
+            cache.Comparer.Should().BeSameAs(comparer);
+        }
+#endif
+
         [RetryFact]
         public void WhenItemIsNotExpiredItIsNotRemoved()
         {

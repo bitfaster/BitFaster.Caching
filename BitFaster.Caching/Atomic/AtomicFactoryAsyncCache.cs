@@ -53,6 +53,11 @@ namespace BitFaster.Caching.Atomic
         ///<inheritdoc/>
         public ICollection<K> Keys => AtomicEx.FilterKeys<K, AsyncAtomicFactory<K, V>>(this.cache, v => v.IsValueCreated);
 
+#if NET9_0_OR_GREATER
+        /// <inheritdoc/>
+        public IEqualityComparer<K> Comparer => this.cache.Comparer;
+#endif
+
         ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;
 
@@ -61,6 +66,7 @@ namespace BitFaster.Caching.Atomic
         {
             cache.AddOrUpdate(key, new AsyncAtomicFactory<K, V>(value));
         }
+
 
         ///<inheritdoc/>
         public void Clear()

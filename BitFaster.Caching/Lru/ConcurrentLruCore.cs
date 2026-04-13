@@ -134,6 +134,11 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         public ICollection<K> Keys => this.dictionary.Keys;
 
+#if NET9_0_OR_GREATER
+        /// <inheritdoc/>
+        public IEqualityComparer<K> Comparer => this.dictionary.Comparer;
+#endif
+
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
         /// <returns>An enumerator for the cache.</returns>
         /// <remarks>
