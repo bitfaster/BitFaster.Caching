@@ -121,6 +121,10 @@ namespace BitFaster.Caching.Lfu
 
         public ICollection<K> Keys => this.dictionary.Keys;
 
+#if NET9_0_OR_GREATER
+        public IEqualityComparer<K> Comparer => this.dictionary.Comparer;
+#endif
+
         public IScheduler Scheduler => scheduler;
 
         public void AddOrUpdate(K key, V value)
