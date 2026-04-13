@@ -159,7 +159,8 @@ namespace BitFaster.Caching.Atomic
             where TAlternateKey : notnull, allows ref struct
         {
             var inner = cache.GetAlternateLookup<TAlternateKey>();
-            return new AlternateLookup<TAlternateKey>(inner);
+            var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)cache.Comparer;
+            return new AlternateLookup<TAlternateKey>(inner, comparer);
         }
 
         ///<inheritdoc/>
@@ -168,7 +169,8 @@ namespace BitFaster.Caching.Atomic
         {
             if (cache.TryGetAlternateLookup<TAlternateKey>(out var inner))
             {
-                lookup = new AlternateLookup<TAlternateKey>(inner);
+                var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)cache.Comparer;
+                lookup = new AlternateLookup<TAlternateKey>(inner, comparer);
                 return true;
             }
 
@@ -180,10 +182,12 @@ namespace BitFaster.Caching.Atomic
             where TAlternateKey : notnull, allows ref struct
         {
             private readonly IAlternateLookup<TAlternateKey, K, AsyncAtomicFactory<K, V>> inner;
+            private readonly IAlternateEqualityComparer<TAlternateKey, K> comparer;
 
-            internal AlternateLookup(IAlternateLookup<TAlternateKey, K, AsyncAtomicFactory<K, V>> inner)
+            internal AlternateLookup(IAlternateLookup<TAlternateKey, K, AsyncAtomicFactory<K, V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
             {
                 this.inner = inner;
+                this.comparer = comparer;
             }
 
             public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
@@ -232,19 +236,15 @@ namespace BitFaster.Caching.Atomic
 
             private ValueTask<V> GetOrAddAsyncSlow(TAlternateKey key, Func<K, Task<V>> valueFactory)
             {
-                var box = new KeyBox<K>();
-                var synchronized = inner.GetOrAdd(key, static (k, state) =>
-                {
-                    state.box.Key = k;
-                    return new AsyncAtomicFactory<K, V>();
-                }, (box, valueFactory));
+                K actualKey = comparer.Create(key);
+                var synchronized = inner.GetOrAdd(key, static _ => new AsyncAtomicFactory<K, V>());
 
                 if (synchronized.IsValueCreated)
                 {
                     return new ValueTask<V>(synchronized.ValueIfCreated!);
                 }
 
-                return synchronized.GetValueAsync(box.Key, valueFactory);
+                return synchronized.GetValueAsync(actualKey, valueFactory);
             }
 
             public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
@@ -259,25 +259,16 @@ namespace BitFaster.Caching.Atomic
 
             private ValueTask<V> GetOrAddAsyncSlow<TArg>(TAlternateKey key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
             {
-                var box = new KeyBox<K>();
-                var synchronized = inner.GetOrAdd(key, static (k, state) =>
-                {
-                    state.box.Key = k;
-                    return new AsyncAtomicFactory<K, V>();
-                }, (box, valueFactory, factoryArgument));
+                K actualKey = comparer.Create(key);
+                var synchronized = inner.GetOrAdd(key, static _ => new AsyncAtomicFactory<K, V>());
 
                 if (synchronized.IsValueCreated)
                 {
                     return new ValueTask<V>(synchronized.ValueIfCreated!);
                 }
 
-                return synchronized.GetValueAsync(box.Key, valueFactory, factoryArgument);
+                return synchronized.GetValueAsync(actualKey, valueFactory, factoryArgument);
             }
-        }
-
-        private class KeyBox<TKey>
-        {
-            public TKey Key = default!;
         }
 #endif
 
