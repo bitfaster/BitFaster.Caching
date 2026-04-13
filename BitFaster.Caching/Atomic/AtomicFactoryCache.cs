@@ -52,8 +52,10 @@ namespace BitFaster.Caching.Atomic
         ///<inheritdoc/>
         public ICollection<K> Keys => AtomicEx.FilterKeys<K, AtomicFactory<K, V>>(this.cache, v => v.IsValueCreated);
 
+#if NET9_0_OR_GREATER
         /// <inheritdoc/>
-        public IEqualityComparer<K> Comparer => CacheComparerAccessor<K>.Get(this.cache);
+        public IEqualityComparer<K> Comparer => this.cache.Comparer;
+#endif
 
         ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;

@@ -69,6 +69,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             value.Should().Be(3);
         }
 
+#if NET9_0_OR_GREATER
         [Fact]
         public void ComparerReturnsConfiguredComparer()
         {
@@ -78,6 +79,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             cache.Comparer.Should().BeSameAs(comparer);
         }
+#endif
 
         [Fact]
         public void WhenNoInnerEventsNoOuterEvents()

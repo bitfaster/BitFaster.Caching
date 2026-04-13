@@ -67,6 +67,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             value.Should().Be(1);
         }
 
+#if NET9_0_OR_GREATER
         [Fact]
         public void ComparerReturnsConfiguredComparer()
         {
@@ -75,6 +76,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.Comparer.Should().BeSameAs(comparer);
         }
+#endif
 
         [Fact]
         public void MetricsHasValueIsTrue()

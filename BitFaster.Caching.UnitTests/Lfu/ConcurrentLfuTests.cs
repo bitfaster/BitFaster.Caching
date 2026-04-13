@@ -57,6 +57,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.Scheduler.Should().BeOfType<ThreadPoolScheduler>();
         }
 
+#if NET9_0_OR_GREATER
         [Fact]
         public void ComparerReturnsConfiguredComparer()
         {
@@ -65,6 +66,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             cache.Comparer.Should().BeSameAs(comparer);
         }
+#endif
 
         [Fact]
         public void WhenKeyIsRequestedItIsCreatedAndCached()

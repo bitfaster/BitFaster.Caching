@@ -121,7 +121,9 @@ namespace BitFaster.Caching.Lfu
 
         public ICollection<K> Keys => this.dictionary.Keys;
 
-        public IEqualityComparer<K> Comparer => ConcurrentDictionaryComparerAccessor<K, N>.Get(this.dictionary);
+#if NET9_0_OR_GREATER
+        public IEqualityComparer<K> Comparer => this.dictionary.Comparer;
+#endif
 
         public IScheduler Scheduler => scheduler;
 

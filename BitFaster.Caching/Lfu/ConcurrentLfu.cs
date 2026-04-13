@@ -87,8 +87,10 @@ namespace BitFaster.Caching.Lfu
         ///<inheritdoc/>
         public ICollection<K> Keys => core.Keys;
 
+#if NET9_0_OR_GREATER
         /// <inheritdoc/>
         public IEqualityComparer<K> Comparer => this.core.Comparer;
+#endif
 
         ///<inheritdoc/>
         public int Capacity => core.Capacity;
