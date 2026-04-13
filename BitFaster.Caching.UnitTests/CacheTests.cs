@@ -159,6 +159,28 @@ namespace BitFaster.Caching.UnitTests
 
             tryGetAlternateLookup.Should().Throw<NotSupportedException>();
         }
+
+        [Fact]
+        public void WhenCacheInterfaceDefaultComparerThrows()
+        {
+            var cache = new Mock<ICache<int, int>>();
+            cache.CallBase = true;
+
+            Action getComparer = () => _ = cache.Object.Comparer;
+
+            getComparer.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
+        public void WhenAsyncCacheInterfaceDefaultComparerThrows()
+        {
+            var cache = new Mock<IAsyncCache<int, int>>();
+            cache.CallBase = true;
+
+            Action getComparer = () => _ = cache.Object.Comparer;
+
+            getComparer.Should().Throw<NotSupportedException>();
+        }
 #endif
 #endif
     }
