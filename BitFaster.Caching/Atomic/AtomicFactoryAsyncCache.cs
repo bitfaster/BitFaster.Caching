@@ -54,7 +54,7 @@ namespace BitFaster.Caching.Atomic
         public ICollection<K> Keys => AtomicEx.FilterKeys<K, AsyncAtomicFactory<K, V>>(this.cache, v => v.IsValueCreated);
 
         /// <inheritdoc/>
-        public IEqualityComparer<K> Comparer => this.cache.GetComparer();
+        public IEqualityComparer<K> Comparer => CacheComparerAccessor<K>.Get(this.cache);
 
         ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;

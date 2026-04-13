@@ -135,7 +135,7 @@ namespace BitFaster.Caching.Lru
         public ICollection<K> Keys => this.dictionary.Keys;
 
         /// <inheritdoc/>
-        public IEqualityComparer<K> Comparer => this.dictionary.GetComparer();
+        public IEqualityComparer<K> Comparer => ConcurrentDictionaryComparerAccessor<K, I>.Get(this.dictionary);
 
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
         /// <returns>An enumerator for the cache.</returns>
