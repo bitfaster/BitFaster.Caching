@@ -24,7 +24,7 @@ namespace BitFaster.Caching
 
         private static readonly FieldInfo comparerField = tablesField.FieldType.GetField("_comparer", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? tablesField.FieldType.GetField("m_comparer", BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new MissingFieldException(tablesField.FieldType.FullName, "_comparer");
+            ?? throw new MissingFieldException(tablesField.FieldType.FullName, "_comparer or m_comparer");
 #endif
     }
 }

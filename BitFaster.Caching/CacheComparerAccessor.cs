@@ -27,7 +27,8 @@ namespace BitFaster.Caching
 
             if (property?.GetMethod == null || !typeof(IEqualityComparer<TKey>).IsAssignableFrom(property.PropertyType))
             {
-                return static _ => throw new NotSupportedException("Comparer is not available because the underlying cache does not expose a compatible Comparer property.");
+                string message = $"Comparer is not available because cache type '{type.FullName}' does not expose a compatible Comparer property.";
+                return _ => throw new NotSupportedException(message);
             }
 
             return cache => (IEqualityComparer<TKey>)property.GetValue(cache)!;
