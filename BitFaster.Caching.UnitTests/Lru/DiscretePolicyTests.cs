@@ -77,6 +77,8 @@ namespace BitFaster.Caching.UnitTests.Lru
                 await Task.Delay(TimeSpan.FromMilliseconds(1));
             }
 
+            Duration.SinceEpoch().raw.Should().BeGreaterThan(createdAt);
+
             this.policy.ShouldDiscard(item); // set the time in the policy
             this.policy.Touch(item);
 
