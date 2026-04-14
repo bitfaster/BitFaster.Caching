@@ -41,6 +41,17 @@ namespace BitFaster.Caching.UnitTests.Lru
             constructor.Should().Throw<ArgumentNullException>();
         }
 
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void ComparerReturnsConfiguredComparer()
+        {
+            var comparer = StringComparer.OrdinalIgnoreCase;
+            var cache = new ClassicLru<string, int>(1, 3, comparer);
+
+            cache.Comparer.Should().BeSameAs(comparer);
+        }
+#endif
+
         [Fact]
         public void ConstructAddAndRetrieveWithDefaultCtorReturnsValue()
         {

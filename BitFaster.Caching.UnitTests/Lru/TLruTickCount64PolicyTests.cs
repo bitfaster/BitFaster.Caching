@@ -77,7 +77,11 @@ namespace BitFaster.Caching.UnitTests.Lru
             var item = this.policy.CreateItem(1, 2);
             var tc = item.TickCount;
 
-            await Task.Delay(TimeSpan.FromMilliseconds(1));
+            var timeout = DateTime.UtcNow.AddSeconds(1);
+            while (Duration.SinceEpoch().raw == tc && DateTime.UtcNow < timeout)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(1));
+            }
 
             this.policy.Update(item);
 
