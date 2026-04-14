@@ -38,7 +38,7 @@ namespace BitFaster.Caching.Lfu
     /// </summary>
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    
+
     internal struct ConcurrentLfuCore<K, V, N, P> : IBoundedPolicy
         where K : notnull
         where N : LfuNode<K, V>
@@ -84,15 +84,15 @@ namespace BitFaster.Caching.Lfu
                 Throw.ArgOutOfRange(nameof(capacity));
 
             int dictionaryCapacity = ConcurrentDictionarySize.Estimate(capacity);
-            this.dictionary = new (concurrencyLevel, dictionaryCapacity, comparer);
+            this.dictionary = new(concurrencyLevel, dictionaryCapacity, comparer);
 
             // cap concurrency at proc count * 2
             int readStripes = Math.Min(BitOps.CeilingPowerOfTwo(concurrencyLevel), BitOps.CeilingPowerOfTwo(Environment.ProcessorCount * 2));
-            this.readBuffer = new (readStripes, DefaultBufferSize);
+            this.readBuffer = new(readStripes, DefaultBufferSize);
 
             // Cap the write buffer to the cache size, or 128. Whichever is smaller.
             int writeBufferSize = Math.Min(BitOps.CeilingPowerOfTwo(capacity), 128);
-            this.writeBuffer = new (writeBufferSize);
+            this.writeBuffer = new(writeBufferSize);
 
             this.cmSketch = new CmSketch<K>(capacity, comparer);
             this.windowLru = new LfuNodeList<K, V>();
@@ -120,6 +120,10 @@ namespace BitFaster.Caching.Lfu
         public CachePolicy Policy => new(new Optional<IBoundedPolicy>(this), Optional<ITimePolicy>.None());
 
         public ICollection<K> Keys => this.dictionary.Keys;
+
+#if NET9_0_OR_GREATER
+        public IEqualityComparer<K> Comparer => this.dictionary.Comparer;
+#endif
 
         public IScheduler Scheduler => scheduler;
 
@@ -162,7 +166,7 @@ namespace BitFaster.Caching.Lfu
 
                 int lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
                 itemCount = Math.Min(itemCount, lruCount);
-                candidates = new (itemCount);
+                candidates = new(itemCount);
 
                 // Note: this is LRU order eviction, Caffeine is based on frequency
                 // walk in lru order, get itemCount keys to evict
@@ -273,25 +277,33 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                if (!policy.IsExpired(node))
-                {
-                    bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
-
-                    if (this.drainStatus.ShouldDrain(delayable))
-                    {
-                        TryScheduleDrain();
-                    }
-                    this.policy.OnRead(node);
-                    value = node.Value;
-                    return true;
-                }
-                else
-                {
-                    // expired case, immediately remove from the dictionary
-                    TryRemove(node);
-                }
+                return GetOrDiscard(node, out value);
             }
 
+            this.metrics.requestMissCount.Increment();
+
+            value = default;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool GetOrDiscard(N node, [MaybeNullWhen(false)] out V value)
+        {
+            if (!policy.IsExpired(node))
+            {
+                bool delayable = this.readBuffer.TryAdd(node) != BufferStatus.Full;
+
+                if (this.drainStatus.ShouldDrain(delayable))
+                {
+                    TryScheduleDrain();
+                }
+                this.policy.OnRead(node);
+                value = node.Value;
+                return true;
+            }
+
+            // expired case, immediately remove from the dictionary
+            TryRemove(node);
             this.metrics.requestMissCount.Increment();
 
             value = default;
@@ -309,8 +321,8 @@ namespace BitFaster.Caching.Lfu
 #if NET6_0_OR_GREATER
                 if (this.dictionary.TryRemove(new KeyValuePair<K, N>(node.Key, node)))
 #else
-                // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
-                if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(new KeyValuePair<K, N>(node.Key, node)))
+            // https://devblogs.microsoft.com/pfxteam/little-known-gems-atomic-conditional-removals-from-concurrentdictionary/
+            if (((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(new KeyValuePair<K, N>(node.Key, node)))
 #endif
             {
                 node.WasRemoved = true;
@@ -323,7 +335,7 @@ namespace BitFaster.Caching.Lfu
             if (this.dictionary.TryGetValue(item.Key, out var node))
             {
                 lock (node)
-                { 
+                {
                     if (EqualityComparer<V>.Default.Equals(node.Value, item.Value))
                     {
                         var kvp = new KeyValuePair<K, N>(item.Key, node);
@@ -369,19 +381,27 @@ namespace BitFaster.Caching.Lfu
         {
             if (this.dictionary.TryGetValue(key, out var node))
             {
-                lock (node)
-                { 
-                    if (!node.WasRemoved)
-                    {
-                         node.Value = value;
+                return TryUpdateValue(node, value);
+            }
 
-                        // It's ok for this to be lossy, since the node is already tracked
-                        // and we will just lose ordering/hit count, but not orphan the node.
-                        this.writeBuffer.TryAdd(node);
-                        TryScheduleDrain();
-                        this.policy.OnWrite(node);
-                        return true;
-                    }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryUpdateValue(N node, V value)
+        {
+            lock (node)
+            {
+                if (!node.WasRemoved)
+                {
+                    node.Value = value;
+
+                    // It's ok for this to be lossy, since the node is already tracked
+                    // and we will just lose ordering/hit count, but not orphan the node.
+                    this.writeBuffer.TryAdd(node);
+                    TryScheduleDrain();
+                    this.policy.OnWrite(node);
+                    return true;
                 }
             }
 
@@ -409,8 +429,8 @@ namespace BitFaster.Caching.Lfu
             {
                 // LRUs can contain items that are already removed, skip those 
                 if (!curr.WasRemoved)
-                { 
-                    candidates.Add(curr); 
+                {
+                    candidates.Add(curr);
                 }
 
                 curr = curr.Next;
@@ -519,7 +539,7 @@ namespace BitFaster.Caching.Lfu
                 }
             }
         }
-        
+
         internal void DrainBuffers()
         {
             bool done = false;
@@ -612,10 +632,10 @@ namespace BitFaster.Caching.Lfu
             switch (node.Position)
             {
                 case Position.Window:
-                    this.windowLru.MoveToEnd(node); 
+                    this.windowLru.MoveToEnd(node);
                     break;
                 case Position.Probation:
-                    PromoteProbation(node); 
+                    PromoteProbation(node);
                     break;
                 case Position.Protected:
                     this.protectedLru.MoveToEnd(node);
@@ -884,7 +904,7 @@ namespace BitFaster.Caching.Lfu
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void VolatileWrite(int newStatus)
-            { 
+            {
                 Volatile.Write(ref this.drainStatus.Value, newStatus);
             }
 
@@ -896,7 +916,7 @@ namespace BitFaster.Caching.Lfu
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool Cas(int oldStatus, int newStatus)
-            { 
+            {
                 return Interlocked.CompareExchange(ref this.drainStatus.Value, newStatus, oldStatus) == oldStatus;
             }
 
@@ -951,6 +971,223 @@ namespace BitFaster.Caching.Lfu
 
             public long Evicted => evictedCount;
         }
+
+#if NET9_0_OR_GREATER
+        ///<inheritdoc/>
+        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (!this.dictionary.IsCompatibleKey<TAlternateKey, K, N>())
+            {
+                Throw.IncompatibleComparer();
+            }
+
+            return new AlternateLookup<TAlternateKey>(this);
+        }
+
+        ///<inheritdoc/>
+        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (this.dictionary.IsCompatibleKey<TAlternateKey, K, N>())
+            {
+                lookup = new AlternateLookup<TAlternateKey>(this);
+                return true;
+            }
+
+            lookup = default;
+            return false;
+        }
+
+        ///<inheritdoc/>
+        public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (!this.dictionary.IsCompatibleKey<TAlternateKey, K, N>())
+            {
+                Throw.IncompatibleComparer();
+            }
+
+            return new AlternateLookup<TAlternateKey>(this);
+        }
+
+        ///<inheritdoc/>
+        public bool TryGetAsyncAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAsyncAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (this.dictionary.IsCompatibleKey<TAlternateKey, K, N>())
+            {
+                lookup = new AlternateLookup<TAlternateKey>(this);
+                return true;
+            }
+
+            lookup = default;
+            return false;
+        }
+
+        internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>, IAsyncAlternateLookup<TAlternateKey, K, V>
+            where TAlternateKey : notnull, allows ref struct
+        {
+            internal AlternateLookup(ConcurrentLfuCore<K, V, N, P> lfu)
+            {
+                Debug.Assert(lfu.dictionary.IsCompatibleKey<TAlternateKey, K, N>());
+                this.Lfu = lfu;
+                this.Alternate = lfu.dictionary.GetAlternateLookup<TAlternateKey>();
+            }
+
+            internal ConcurrentLfuCore<K, V, N, P> Lfu { get; }
+
+            internal ConcurrentDictionary<K, N>.AlternateLookup<TAlternateKey> Alternate { get; }
+
+            public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
+            {
+                if (this.Alternate.TryGetValue(key, out var node))
+                {
+                    return this.Lfu.GetOrDiscard(node, out value);
+                }
+
+                this.Lfu.metrics.requestMissCount.Increment();
+
+                value = default;
+                return false;
+            }
+
+            public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey, [MaybeNullWhen(false)] out V value)
+            {
+                if (this.Alternate.TryRemove(key, out actualKey, out var node))
+                {
+                    node.WasRemoved = true;
+                    this.Lfu.AfterWrite(node);
+                    value = node.Value;
+                    return true;
+                }
+
+                actualKey = default;
+                value = default;
+                return false;
+            }
+
+            public bool TryUpdate(TAlternateKey key, V value)
+            {
+                if (this.Alternate.TryGetValue(key, out var node))
+                {
+                    return this.Lfu.TryUpdateValue(node, value);
+                }
+
+                return false;
+            }
+
+            public void AddOrUpdate(TAlternateKey key, V value)
+            {
+                K actualKey = default!;
+                bool hasActualKey = false;
+
+                while (true)
+                {
+                    if (this.TryUpdate(key, value))
+                    {
+                        return;
+                    }
+
+                    if (!hasActualKey)
+                    {
+                        actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                        hasActualKey = true;
+                    }
+
+                    if (this.Lfu.TryAdd(actualKey, value))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            public V GetOrAdd(TAlternateKey key, Func<K, V> valueFactory)
+            {
+                while (true)
+                {
+                    if (this.TryGet(key, out var value))
+                    {
+                        return value;
+                    }
+
+                    K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+
+                    value = valueFactory(actualKey);
+                    if (this.Lfu.TryAdd(actualKey, value))
+                    {
+                        return value;
+                    }
+                }
+            }
+
+            public V GetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+            {
+                while (true)
+                {
+                    if (this.TryGet(key, out var value))
+                    {
+                        return value;
+                    }
+
+                    K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+
+                    value = valueFactory(actualKey, factoryArgument);
+                    if (this.Lfu.TryAdd(actualKey, value))
+                    {
+                        return value;
+                    }
+                }
+            }
+
+            public ValueTask<V> GetOrAddAsync(TAlternateKey key, Func<K, Task<V>> valueFactory)
+            {
+                if (this.TryGet(key, out var value))
+                {
+                    return new ValueTask<V>(value);
+                }
+
+                K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                Task<V> task = valueFactory(actualKey);
+
+                return GetOrAddAsyncSlow(actualKey, task);
+            }
+
+            public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            {
+                if (this.TryGet(key, out var value))
+                {
+                    return new ValueTask<V>(value);
+                }
+
+                K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                Task<V> task = valueFactory(actualKey, factoryArgument);
+
+                return GetOrAddAsyncSlow(actualKey, task);
+            }
+
+            // Since TAlternateKey can be a ref struct, we can't use async/await in the public GetOrAddAsync methods,
+            // so we delegate to this private async method after the value factory is invoked.
+            private async ValueTask<V> GetOrAddAsyncSlow(K actualKey, Task<V> task)
+            {
+                V value = await task.ConfigureAwait(false);
+
+                while (true)
+                {
+                    if (this.Lfu.TryAdd(actualKey, value))
+                    {
+                        return value;
+                    }
+
+                    // Another thread added a value for this key first, retrieve it.
+                    if (this.Lfu.TryGet(actualKey, out V? existing))
+                    {
+                        return existing;
+                    }
+                }
+            }
+        }
+#endif
 
 #if DEBUG
         /// <summary>

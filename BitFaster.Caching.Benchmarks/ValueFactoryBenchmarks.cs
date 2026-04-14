@@ -7,9 +7,7 @@ namespace BitFaster.Caching.Benchmarks
 {
 #if Windows
     [DisassemblyDiagnoser(printSource: true, maxDepth: 3)]
-    [SimpleJob(RuntimeMoniker.Net48)]
 #endif
-    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
     public class ValueFactoryBenchmarks
@@ -66,7 +64,7 @@ namespace BitFaster.Caching.Benchmarks
         [Benchmark()]
         public int ValueFactory()
         {
-            var valueFactory = new ValueFactoryArg<int,int, int>((k, v) => k + v, 2);
+            var valueFactory = new ValueFactoryArg<int, int, int>((k, v) => k + v, 2);
             return Invoke<int, int, ValueFactoryArg<int, int, int>>(valueFactory, 1);
         }
 
@@ -107,7 +105,7 @@ namespace BitFaster.Caching.Benchmarks
         [Benchmark()]
         public int ValueFactory()
         {
-            var valueFactory = new ValueFactoryArg<int, ValueTuple<long, long, long>, int>((k, v) => k , (0, 1, 2));
+            var valueFactory = new ValueFactoryArg<int, ValueTuple<long, long, long>, int>((k, v) => k, (0, 1, 2));
             return Invoke<int, int, ValueFactoryArg<int, ValueTuple<long, long, long>, int>>(valueFactory, 1);
         }
 

@@ -6,7 +6,7 @@ namespace BitFaster.Caching
     /// Represents an optional value.
     /// </summary>
     [DebuggerDisplay("{Value}")]
-    public class Optional<T> 
+    public class Optional<T>
     {
         private readonly T? value;
         private readonly bool hasValue;

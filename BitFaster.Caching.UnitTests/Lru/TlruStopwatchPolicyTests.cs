@@ -1,14 +1,14 @@
-﻿using FluentAssertions;
-using BitFaster.Caching.Lru;
-using System;
-using System.Threading.Tasks;
-using Xunit;
+﻿using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
+using BitFaster.Caching.Lru;
 using BitFaster.Caching.UnitTests.Retry;
+using FluentAssertions;
+using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
-// backcompat: remove conditional compile
+    // backcompat: remove conditional compile
 #if !NET
     public class TlruStopwatchPolicyTests
     {

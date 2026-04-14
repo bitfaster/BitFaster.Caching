@@ -1,10 +1,10 @@
-﻿using FluentAssertions;
-using BitFaster.Caching.Lru;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Xunit;
 using System.Threading.Tasks;
+using BitFaster.Caching.Lru;
+using FluentAssertions;
+using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
@@ -20,6 +20,17 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.TryGet("FOO", out var value).Should().BeTrue();
             value.Should().Be(1);
         }
+
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void ComparerReturnsConfiguredComparer()
+        {
+            var comparer = StringComparer.OrdinalIgnoreCase;
+            var cache = new FastConcurrentTLru<string, int>(1, 3, comparer, TimeSpan.FromMinutes(1));
+
+            cache.Comparer.Should().BeSameAs(comparer);
+        }
+#endif
 
         [Fact]
         public void ConstructWithDefaultCtorReturnsCapacity()

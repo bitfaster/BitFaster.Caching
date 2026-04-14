@@ -176,7 +176,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             // Therefore, try many times and verify it was possible to provoke
             // at least once.
             while (count++ < 256)
-            { 
+            {
                 var enter1 = new ManualResetEvent(false);
                 var enter2 = new ManualResetEvent(false);
                 var factory = new ManualResetEvent(false);

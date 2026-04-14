@@ -67,16 +67,16 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
                     if (parsed != null)
                     {
                         if (Uri.TryCreate(parsed, UriKind.Relative, out var result))
-                        { 
-                            yield return result; 
+                        {
+                            yield return result;
                         }
                     }
                 }
             }
         }
 
-        private static readonly string[] containsFilters = 
-            { 
+        private static readonly string[] containsFilters =
+            {
                 "?search = ",
                 "User+talk",
                 "User_talk",
@@ -93,12 +93,12 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
 
         private static readonly string[] startswithFilters =
             {
-                "/wiki/Special:Search", 
-                "/w/query.php", 
-                "/wiki/Talk:", 
+                "/wiki/Special:Search",
+                "/w/query.php",
+                "/wiki/Talk:",
                 "/wiki/Special:AutoLogin",
-                "/Special:UserLogin", 
-                "/w/api.php", 
+                "/Special:UserLogin",
+                "/w/api.php",
                 "/error:"
             };
 
@@ -113,7 +113,7 @@ namespace BitFaster.Caching.HitRateAnalysis.Wikibench
                 return null;
             }
 
-            int start = line.IndexOf('/', 25+7);
+            int start = line.IndexOf('/', 25 + 7);
 
             if (start == -1)
             {

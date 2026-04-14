@@ -29,7 +29,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = new ConcurrentTLfu<int, string>(20, new ExpireAfterWrite<int, string>(TimeSpan.FromMilliseconds(10)));
 
-            await Threaded.RunAsync(threads, async () => {
+            await Threaded.RunAsync(threads, async () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     await lfu.GetOrAddAsync(i + 1, i => Task.FromResult(i.ToString()));

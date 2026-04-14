@@ -71,7 +71,7 @@ namespace BitFaster.Caching.Lfu
 
             return (info.TimeToExpireAfterWrite.HasValue, info.TimeToExpireAfterAccess.HasValue, expiry != null) switch
             {
-                (true, false, false) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterWrite<K,V>(info.TimeToExpireAfterWrite!.Value)),
+                (true, false, false) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterWrite<K, V>(info.TimeToExpireAfterWrite!.Value)),
                 (false, true, false) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterAccess<K, V>(info.TimeToExpireAfterAccess!.Value)),
                 (false, false, true) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, expiry!),
                 _ => new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer)

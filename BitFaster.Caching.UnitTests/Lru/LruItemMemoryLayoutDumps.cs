@@ -36,7 +36,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         //|=====================================|
         [Fact]
         public void DumpLruItem()
-        { 
+        {
             var layout = TypeLayout.GetLayout<LruItem<object, object>>(includePaddings: true);
             testOutputHelper.WriteLine(layout.ToString());
         }

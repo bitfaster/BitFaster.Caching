@@ -2,11 +2,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
+using BitFaster.Caching.Lru;
 using FluentAssertions;
-using Xunit;
 using Moq;
+using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Atomic
 {
@@ -67,6 +67,18 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.cache.TryGet(1, out var value).Should().BeTrue();
             value.Should().Be(3);
         }
+
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void ComparerReturnsConfiguredComparer()
+        {
+            var comparer = StringComparer.OrdinalIgnoreCase;
+            var inner = new ConcurrentLru<string, AtomicFactory<string, int>>(1, 3, comparer);
+            var cache = new AtomicFactoryCache<string, int>(inner);
+
+            cache.Comparer.Should().BeSameAs(comparer);
+        }
+#endif
 
         [Fact]
         public void WhenRemovedEventHandlerIsRegisteredItIsFired()

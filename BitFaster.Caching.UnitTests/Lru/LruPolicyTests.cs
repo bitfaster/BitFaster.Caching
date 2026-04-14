@@ -1,8 +1,8 @@
-﻿using FluentAssertions;
-using BitFaster.Caching.Lru;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using BitFaster.Caching.Lru;
+using FluentAssertions;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru

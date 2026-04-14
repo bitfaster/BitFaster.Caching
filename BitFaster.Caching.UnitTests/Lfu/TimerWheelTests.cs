@@ -308,7 +308,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             return schedule;
         }
     }
-    
+
     public class DisposeTracker : IDisposable
     {
         public bool Expired { get; set; }

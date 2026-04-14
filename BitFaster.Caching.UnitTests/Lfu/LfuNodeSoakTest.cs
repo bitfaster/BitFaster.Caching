@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
@@ -18,7 +18,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Theory]
         [Repeat(soakIterations)]
         public async Task DetectTornStruct(int _)
-        { 
+        {
             using var source = new CancellationTokenSource();
             var started = new TaskCompletionSource<bool>();
 
@@ -39,8 +39,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 item.SeqLockWrite(MassiveStruct.B);
 
                 if (cancelToken.IsCancellationRequested)
-                { 
-                    return; 
+                {
+                    return;
                 }
             }
         }
@@ -54,8 +54,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 var t = item.SeqLockRead();
 
                 if (t != MassiveStruct.A && t != MassiveStruct.B)
-                {    
-                    throw new Exception($"Value is torn after {count} iterations"); 
+                {
+                    throw new Exception($"Value is torn after {count} iterations");
                 }
             }
 

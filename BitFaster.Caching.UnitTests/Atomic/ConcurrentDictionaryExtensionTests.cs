@@ -34,7 +34,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         [Fact]
         public void WhenItemIsAddedWithArgItCanBeRetrieved()
         {
-            dictionary.GetOrAdd(1, (k,a) => k + a, 2);
+            dictionary.GetOrAdd(1, (k, a) => k + a, 2);
 
             dictionary.TryGetValue(1, out int value).Should().BeTrue();
             value.Should().Be(3);

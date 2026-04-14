@@ -99,8 +99,8 @@ namespace BitFaster.Caching.UnitTests.Buffers
                 }
             }
 
-            var array = new string[bufferSize+4];
-            buffer.DrainTo(array).Should().Be(bufferSize+4);
+            var array = new string[bufferSize + 4];
+            buffer.DrainTo(array).Should().Be(bufferSize + 4);
         }
 
         [Fact]

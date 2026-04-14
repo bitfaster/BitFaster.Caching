@@ -61,7 +61,7 @@ namespace BitFaster.Caching
         {
             itemUpdatedProxy += value;
 
-// backcompat: remove conditional compile
+            // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
             events.ItemUpdated += OnItemUpdated;
 #endif
@@ -71,7 +71,7 @@ namespace BitFaster.Caching
         {
             this.itemUpdatedProxy -= value;
 
-// backcompat: remove conditional compile
+            // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
             if (this.itemUpdatedProxy == null)
             {

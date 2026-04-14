@@ -1,16 +1,12 @@
-﻿using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 
 namespace BitFaster.Caching.Benchmarks
 {
-#if Windows
-    [SimpleJob(RuntimeMoniker.Net48)]
-#endif
-    [SimpleJob(RuntimeMoniker.Net60)]
     [MemoryDiagnoser(displayGenColumns: false)]
     public class DataStructureBenchmarks
     {

@@ -97,9 +97,9 @@ namespace BitFaster.Caching.ThroughputAnalysis
         {
             var scheduler = new BackgroundThreadScheduler();
             var cache = new ConcurrentLfu<long, int>(
-                concurrencyLevel: threadCount, 
-                capacity: capacity, 
-                scheduler: scheduler, 
+                concurrencyLevel: threadCount,
+                capacity: capacity,
+                scheduler: scheduler,
                 EqualityComparer<long>.Default);
 
             return (scheduler, cache);

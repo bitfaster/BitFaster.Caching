@@ -118,7 +118,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
             size = 0;
         }
 
-       // [MemberNotNull(nameof(table))]
+        // [MemberNotNull(nameof(table))]
         private void EnsureCapacity(long maximumSize)
         {
             int maximum = (int)Math.Min(maximumSize, int.MaxValue >> 1);

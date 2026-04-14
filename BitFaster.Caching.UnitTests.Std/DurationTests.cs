@@ -47,7 +47,7 @@ namespace BitFaster.Caching.UnitTests.Std
             {
                 // for Stopwatch.GetTimestamp() this is number of ticks
                 new Duration(1 * Stopwatch.Frequency).ToTimeSpan().Should().BeCloseTo(TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(10));
-            }  
+            }
         }
 
         [Fact]
@@ -63,7 +63,7 @@ namespace BitFaster.Caching.UnitTests.Std
             {
                 Duration.FromTimeSpan(TimeSpan.FromSeconds(1)).raw
                 .Should().Be(Stopwatch.Frequency);
-            } 
+            }
         }
 
         // This is for diagnostic purposes when tests run on different operating systems.

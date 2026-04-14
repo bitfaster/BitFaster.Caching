@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
+using BitFaster.Caching.Lru;
 using FluentAssertions;
-using Xunit;
 using Moq;
+using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Atomic
 {
@@ -68,6 +68,18 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.cache.TryGet(1, out var value).Should().BeTrue();
             value.Should().Be(3);
         }
+
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void ComparerReturnsConfiguredComparer()
+        {
+            var comparer = StringComparer.OrdinalIgnoreCase;
+            var inner = new ConcurrentLru<string, AsyncAtomicFactory<string, int>>(1, 3, comparer);
+            var cache = new AtomicFactoryAsyncCache<string, int>(inner);
+
+            cache.Comparer.Should().BeSameAs(comparer);
+        }
+#endif
 
         [Fact]
         public void WhenNoInnerEventsNoOuterEvents()
@@ -258,7 +270,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
             cache.Keys.Count().Should().Be(0);
         }
 
-       // backcompat: remove conditional compile
+        // backcompat: remove conditional compile
 #if NET
         [Fact]
         public void WhenRemovedValueIsReturned()

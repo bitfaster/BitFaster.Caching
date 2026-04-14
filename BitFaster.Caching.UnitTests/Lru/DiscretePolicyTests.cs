@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.UnitTests.Retry;
 using FluentAssertions;
 using Xunit;
 
@@ -11,7 +13,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         private readonly TestExpiryCalculator<int, int> expiryCalculator;
         private readonly DiscretePolicy<int, int> policy;
 
-        public DiscretePolicyTests() 
+        public DiscretePolicyTests()
         {
             expiryCalculator = new TestExpiryCalculator<int, int>();
             policy = new DiscretePolicy<int, int>(expiryCalculator);
@@ -36,13 +38,13 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var timeToExpire = Duration.FromMinutes(60);
 
-            expiryCalculator.ExpireAfterCreate = (k, v) => 
+            expiryCalculator.ExpireAfterCreate = (k, v) =>
             {
                 k.Should().Be(1);
                 v.Should().Be(2);
                 return timeToExpire;
             };
-            
+
             var item = this.policy.CreateItem(1, 2);
 
             item.Key.Should().Be(1);
@@ -62,26 +64,37 @@ namespace BitFaster.Caching.UnitTests.Lru
             item.WasAccessed.Should().BeTrue();
         }
 
-        [Fact]
+        [RetryFact]
         public async Task TouchUpdatesTicksCount()
         {
             var item = this.policy.CreateItem(1, 2);
             var tc = item.TickCount;
-            await Task.Delay(TimeSpan.FromMilliseconds(1));
 
-            this.policy.ShouldDiscard(item); // set the time in the policy
+            var createdAt = tc - TestExpiryCalculator<int, int>.DefaultTimeToExpire.raw;
+            var timeout = DateTime.UtcNow.AddSeconds(1);
+            while (Duration.SinceEpoch().raw == createdAt && DateTime.UtcNow < timeout)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(1));
+            }
+
+            this.policy.ShouldDiscard(item); // advance time
             this.policy.Touch(item);
 
             item.TickCount.Should().BeGreaterThan(tc);
         }
 
-        [Fact]
+        [RetryFact]
         public async Task UpdateUpdatesTickCount()
         {
             var item = this.policy.CreateItem(1, 2);
             var tc = item.TickCount;
 
-            await Task.Delay(TimeSpan.FromMilliseconds(20));
+            var createdAt = item.TickCount - TestExpiryCalculator<int, int>.DefaultTimeToExpire.raw;
+            var timeout = DateTime.UtcNow.AddSeconds(1);
+            while (Duration.SinceEpoch().raw == createdAt && DateTime.UtcNow < timeout)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(20));
+            }
 
             this.policy.Update(item);
 

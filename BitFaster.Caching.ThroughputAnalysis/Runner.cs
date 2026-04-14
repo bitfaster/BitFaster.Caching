@@ -21,7 +21,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
                 {
                     RunTest(value, cacheSize);
                 }
-            }           
+            }
         }
 
         private static void RunTest(Mode mode, int cacheSize)
@@ -48,7 +48,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
             Console.WriteLine($"Running {mode} with size {capacity} over {maxThreads} threads...");
             Console.WriteLine();
 
-            foreach (int tc in Enumerable.Range(minThreads, maxThreads - (minThreads -1)).ToArray())
+            foreach (int tc in Enumerable.Range(minThreads, maxThreads - (minThreads - 1)).ToArray())
             {
                 const int warmup = 3;
                 const int runs = 11;

@@ -17,14 +17,14 @@ namespace BitFaster.Caching.UnitTests
         [InlineData(typeof(long), true)] // this is only expected to pass on 64bit platforms
         [InlineData(typeof(Guid), false)]
         public void Test(Type argType, bool expected)
-        { 
+        {
             var isWriteAtomic = method.MakeGenericMethod(argType);
 
             isWriteAtomic.Invoke(null, null).Should().BeOfType<bool>().Which.Should().Be(expected);
         }
 
         private static bool IsWriteAtomic<T>()
-        { 
+        {
             return TypeProps<T>.IsWriteAtomic;
         }
     }

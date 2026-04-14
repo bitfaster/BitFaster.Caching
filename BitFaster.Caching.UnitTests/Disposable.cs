@@ -6,7 +6,7 @@ namespace BitFaster.Caching.UnitTests
     public class Disposable : IDisposable
     {
         public Disposable() { }
-        
+
         public Disposable(int state) { this.State = state; }
 
         public bool IsDisposed { get; set; }

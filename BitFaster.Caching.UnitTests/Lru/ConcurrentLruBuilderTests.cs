@@ -1,6 +1,6 @@
 ﻿using System;
-using BitFaster.Caching.Lru;
 using BitFaster.Caching.Atomic;
+using BitFaster.Caching.Lru;
 using FluentAssertions;
 using Xunit;
 
@@ -255,7 +255,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public void TestScopedWithExpireAfterThrows()
         {
-            var builder = new ConcurrentLruBuilder<string, Disposable>()               
+            var builder = new ConcurrentLruBuilder<string, Disposable>()
                 .WithExpireAfter(new TestExpiryCalculator<string, Disposable>((k, v) => Duration.FromMinutes(5)))
                 .AsScopedCache();
 
@@ -436,7 +436,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             IScopedAsyncCache<int, Disposable> lru = new ConcurrentLruBuilder<int, Disposable>()
                 .AsScopedCache()
-                .AsAsyncCache()           
+                .AsAsyncCache()
                 .WithCapacity(3)
                 .Build();
 

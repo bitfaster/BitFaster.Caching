@@ -8,7 +8,7 @@ namespace BitFaster.Caching.ThroughputAnalysis
         public static void WaitForEmpty()
         {
             int count = 0;
-            while (ThreadPool.PendingWorkItemCount > 0) 
+            while (ThreadPool.PendingWorkItemCount > 0)
             {
                 Thread.Yield();
                 Thread.Sleep(1);

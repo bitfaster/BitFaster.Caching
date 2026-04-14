@@ -46,6 +46,11 @@ namespace BitFaster.Caching.Lfu
         ///<inheritdoc/>
         public ICollection<K> Keys => core.Keys;
 
+#if NET9_0_OR_GREATER
+        /// <inheritdoc/>
+        public IEqualityComparer<K> Comparer => this.core.Comparer;
+#endif
+
         ///<inheritdoc/>
         public int Capacity => core.Capacity;
 
@@ -139,6 +144,36 @@ namespace BitFaster.Caching.Lfu
             return core.GetEnumerator();
         }
 
+#if NET9_0_OR_GREATER
+        ///<inheritdoc/>
+        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            return core.GetAlternateLookup<TAlternateKey>();
+        }
+
+        ///<inheritdoc/>
+        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            return core.TryGetAlternateLookup(out lookup);
+        }
+
+        ///<inheritdoc/>
+        public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            return core.GetAsyncAlternateLookup<TAlternateKey>();
+        }
+
+        ///<inheritdoc/>
+        public bool TryGetAsyncAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAsyncAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            return core.TryGetAsyncAlternateLookup(out lookup);
+        }
+#endif
+
         private CachePolicy CreatePolicy()
         {
             var afterWrite = Optional<ITimePolicy>.None();
@@ -158,7 +193,8 @@ namespace BitFaster.Caching.Lfu
                 default:
                     afterCustom = new Optional<IDiscreteTimePolicy>(this);
                     break;
-            };
+            }
+            ;
 
             return new CachePolicy(new Optional<IBoundedPolicy>(this), afterWrite, afterAccess, afterCustom);
         }

@@ -8,6 +8,7 @@ using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using FluentAssertions;
+using FluentAssertions.Equivalency;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -153,7 +154,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.Run(threads, () => {
+            await Threaded.Run(threads, () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     lfu.GetOrAdd(i + 1, i => i.ToString());
@@ -169,7 +171,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.RunAsync(threads, async () => {
+            await Threaded.RunAsync(threads, async () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     await lfu.GetOrAddAsync(i + 1, i => Task.FromResult(i.ToString()));
@@ -185,7 +188,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.Run(threads, () => {
+            await Threaded.Run(threads, () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     // use the arg overload
@@ -202,7 +206,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.RunAsync(threads, async () => {
+            await Threaded.RunAsync(threads, async () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     // use the arg overload
@@ -219,7 +224,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.Run(threads, () => {
+            await Threaded.Run(threads, () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     lfu.TryUpdate(i + 1, i.ToString());
@@ -236,7 +242,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.Run(threads, () => {
+            await Threaded.Run(threads, () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     lfu.TryRemove(i + 1);
@@ -253,7 +260,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var lfu = CreateWithBackgroundScheduler();
 
-            await Threaded.Run(threads, () => {
+            await Threaded.Run(threads, () =>
+            {
                 for (int i = 0; i < loopIterations; i++)
                 {
                     lfu.TryRemove(new KeyValuePair<int, string>(i + 1, (i + 1).ToString()));
@@ -263,6 +271,106 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             await RunIntegrityCheckAsync(lfu, iteration);
         }
+
+#if NET9_0_OR_GREATER
+        [Theory]
+        [Repeat(soakIterations)]
+        public async Task WhenConcurrentAlternateLookupGetCacheEndsInConsistentState(int iteration)
+        {
+            var lfu = CreateStringWithBackgroundScheduler();
+            var alternate = lfu.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            await Threaded.Run(threads, () =>
+            {
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    string key = (i + 1).ToString();
+                    alternate.GetOrAdd(key.AsSpan(), static keySpan => keySpan.ToString());
+                }
+            });
+
+            await RunIntegrityCheckAsync(lfu, iteration);
+        }
+
+        [Theory]
+        [Repeat(soakIterations)]
+        public async Task WhenConcurrentAlternateLookupGetWithArgCacheEndsInConsistentState(int iteration)
+        {
+            var lfu = CreateStringWithBackgroundScheduler();
+            var alternate = lfu.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            await Threaded.Run(threads, () =>
+            {
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    string key = (i + 1).ToString();
+                    alternate.GetOrAdd(key.AsSpan(), static (keySpan, prefix) => prefix + keySpan.ToString(), "prefix-");
+                }
+            });
+
+            await RunIntegrityCheckAsync(lfu, iteration);
+        }
+
+        [Theory]
+        [Repeat(soakIterations)]
+        public async Task WhenConcurrentAlternateLookupGetAndRemoveCacheEndsInConsistentState(int iteration)
+        {
+            var lfu = CreateStringWithBackgroundScheduler();
+            var alternate = lfu.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            await Threaded.Run(threads, () =>
+            {
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    string key = (i + 1).ToString();
+                    alternate.TryRemove(key.AsSpan(), out _, out _);
+                    alternate.AddOrUpdate(key.AsSpan(), key);
+                }
+            });
+
+            await RunIntegrityCheckAsync(lfu, iteration);
+        }
+
+        [Theory]
+        [Repeat(soakIterations)]
+        public async Task WhenConcurrentAsyncAlternateLookupGetOrAddAsyncCacheEndsInConsistentState(int iteration)
+        {
+            var lfu = CreateStringWithBackgroundScheduler();
+            var alternate = lfu.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            await Threaded.RunAsync(threads, async () =>
+            {
+                var key = new char[8];
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    (i + 1).TryFormat(key, out int written);
+                    await alternate.GetOrAddAsync(key.AsSpan().Slice(0, written), static keySpan => Task.FromResult(keySpan.ToString()));
+                }
+            });
+
+            await RunIntegrityCheckAsync(lfu, iteration);
+        }
+
+        [Theory]
+        [Repeat(soakIterations)]
+        public async Task WhenConcurrentAsyncAlternateLookupGetOrAddAsyncWithArgCacheEndsInConsistentState(int iteration)
+        {
+            var lfu = CreateStringWithBackgroundScheduler();
+            var alternate = lfu.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            await Threaded.RunAsync(threads, async () =>
+            {
+                var key = new char[8];
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    (i + 1).TryFormat(key, out int written);
+                    await alternate.GetOrAddAsync(key.AsSpan().Slice(0, written), static (keySpan, prefix) => Task.FromResult(prefix + keySpan.ToString()), "prefix-");
+                }
+            });
+
+            await RunIntegrityCheckAsync(lfu, iteration);
+        }
+#endif
 
         [Fact]
         public async Task ThreadedVerifyMisses()
@@ -295,7 +403,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public async Task WhenConcurrentUpdateAndRemoveKvp()
         {
             var cache = new ConcurrentLfu<int, string>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
-            TaskCompletionSource<int> tcs = new TaskCompletionSource<int> ();
+            TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
 
             var removal = Task.Run(() =>
             {
@@ -323,7 +431,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Theory]
         [Repeat(10)]
         public async Task WhenValueIsBigStructNoLiveLock(int _)
-        { 
+        {
             using var source = new CancellationTokenSource();
             var started = new TaskCompletionSource<bool>();
             var cache = new ConcurrentLfu<int, Guid>(1, 20, new BackgroundThreadScheduler(), EqualityComparer<int>.Default);
@@ -345,13 +453,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.AddOrUpdate(1, Guid.NewGuid());
 
                 if (cancelToken.IsCancellationRequested)
-                { 
-                    return; 
+                {
+                    return;
                 }
             }
         }
 
-        private void Checker(ICache<int, Guid> cache,CancellationTokenSource source)
+        private void Checker(ICache<int, Guid> cache, CancellationTokenSource source)
         {
             for (int count = 0; count < 100_000; ++count)
             {
@@ -367,6 +475,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
             return new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
         }
 
+        private ConcurrentLfu<string, string> CreateStringWithBackgroundScheduler()
+        {
+            var scheduler = new BackgroundThreadScheduler();
+            return new ConcurrentLfu<string, string>(1, 9, scheduler, StringComparer.Ordinal);
+        }
+
         private async Task RunIntegrityCheckAsync(ConcurrentLfu<int, string> lfu, int iteration)
         {
             this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
@@ -378,7 +492,20 @@ namespace BitFaster.Caching.UnitTests.Lfu
             RunIntegrityCheck(lfu, this.output);
         }
 
-        private static void RunIntegrityCheck<K,V>(ConcurrentLfu<K,V> cache, ITestOutputHelper output)
+        private async Task RunIntegrityCheckAsync(ConcurrentLfu<string, string> lfu, int iteration)
+        {
+            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
+
+            if (lfu.Scheduler is BackgroundThreadScheduler scheduler)
+            {
+                scheduler.Dispose();
+                await scheduler.Completion;
+            }
+
+            RunIntegrityCheck(lfu, this.output);
+        }
+
+        private static void RunIntegrityCheck<K, V>(ConcurrentLfu<K, V> cache, ITestOutputHelper output)
         {
             new ConcurrentLfuIntegrityChecker<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>(cache.Core).Validate(output);
         }
@@ -421,6 +548,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache.DoMaintenance();
 
+            if (cache.Scheduler.LastException.HasValue)
+            {
+                output.WriteLine($"Last scheduler exception {cache.Scheduler.LastException.Value}");
+                cache.Scheduler.LastException.Should().BeNull("scheduler should not have thrown");
+            }
+
             // buffers should be empty after maintenance
             this.readBuffer.Count.Should().Be(0);
             this.writeBuffer.Count.Should().Be(0);
@@ -442,10 +575,17 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var node = lfuNodes.First;
 
-            while (node != null) 
+            while (node != null)
             {
                 node.WasRemoved.Should().BeFalse();
                 node.WasDeleted.Should().BeFalse();
+
+                // additional diagnbostics
+                if (!cache.TryGet(node.Key, out _))
+                {
+                    output.WriteLine($"Orphaned node at {node.Position} with key {node.Key} and value {node.Value}.");
+                    output.WriteLine($"Read buffer {cache.readBuffer.Count} write buffer {cache.writeBuffer.Count}.");
+                }
 
                 cache.TryGet(node.Key, out _).Should().BeTrue($"Orphaned node with key {node.Key} detected.");
 

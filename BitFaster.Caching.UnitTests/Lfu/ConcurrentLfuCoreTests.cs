@@ -18,7 +18,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         private ICache<int, int> lfu;
 
-        public abstract ICache<K, V> Create<K,V>();
+        public abstract ICache<K, V> Create<K, V>();
         public abstract void DoMaintenance<K, V>(ICache<K, V> cache);
 
         public ConcurrentLfuCoreTests()
@@ -133,7 +133,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu.TryGet(1, out var value).Should().BeTrue();
         }
 #endif
- 
+
         [Fact]
         public void WhenClearedCacheIsEmpty()
         {
@@ -189,7 +189,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
     public class ConcurrentTLfuWrapperTests : ConcurrentLfuCoreTests
     {
-        public override ICache<K, V> Create<K,V>()
+        public override ICache<K, V> Create<K, V>()
         {
             return new ConcurrentTLfu<K, V>(capacity, new ExpireAfterWrite<K, V>(timeToLive));
         }
