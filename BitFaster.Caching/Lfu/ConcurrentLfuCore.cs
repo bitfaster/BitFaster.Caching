@@ -1033,11 +1033,14 @@ namespace BitFaster.Caching.Lfu
                 Debug.Assert(lfu.dictionary.IsCompatibleKey<TAlternateKey, K, N>());
                 this.Lfu = lfu;
                 this.Alternate = lfu.dictionary.GetAlternateLookup<TAlternateKey>();
+                this.Comparer = lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>();
             }
 
             internal ConcurrentLfuCore<K, V, N, P> Lfu { get; }
 
             internal ConcurrentDictionary<K, N>.AlternateLookup<TAlternateKey> Alternate { get; }
+
+            internal IAlternateEqualityComparer<TAlternateKey, K> Comparer { get; }
 
             public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
             {
@@ -1091,7 +1094,7 @@ namespace BitFaster.Caching.Lfu
 
                     if (!hasActualKey)
                     {
-                        actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                        actualKey = this.Comparer.Create(key);
                         hasActualKey = true;
                     }
 
@@ -1111,7 +1114,7 @@ namespace BitFaster.Caching.Lfu
                         return value;
                     }
 
-                    K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                    K actualKey = this.Comparer.Create(key);
 
                     value = valueFactory(actualKey);
                     if (this.Lfu.TryAdd(actualKey, value))
@@ -1130,7 +1133,7 @@ namespace BitFaster.Caching.Lfu
                         return value;
                     }
 
-                    K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                    K actualKey = this.Comparer.Create(key);
 
                     value = valueFactory(actualKey, factoryArgument);
                     if (this.Lfu.TryAdd(actualKey, value))
@@ -1147,7 +1150,7 @@ namespace BitFaster.Caching.Lfu
                     return new ValueTask<V>(value);
                 }
 
-                K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                K actualKey = this.Comparer.Create(key);
                 Task<V> task = valueFactory(actualKey);
 
                 return GetOrAddAsyncSlow(actualKey, task);
@@ -1160,7 +1163,7 @@ namespace BitFaster.Caching.Lfu
                     return new ValueTask<V>(value);
                 }
 
-                K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                K actualKey = this.Comparer.Create(key);
                 Task<V> task = valueFactory(actualKey, factoryArgument);
 
                 return GetOrAddAsyncSlow(actualKey, task);
