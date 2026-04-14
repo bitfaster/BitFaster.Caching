@@ -485,6 +485,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private async Task RunIntegrityCheckAsync(ConcurrentLfu<int, string> lfu, int iteration)
         {
             this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
+#if DEBUG
+            this.output.WriteLine(lfu.FormatLfuString());
+#endif
 
             if (lfu.Scheduler is BackgroundThreadScheduler scheduler)
             {
