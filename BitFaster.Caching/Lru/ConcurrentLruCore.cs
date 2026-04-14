@@ -134,6 +134,11 @@ namespace BitFaster.Caching.Lru
         /// </summary>
         public ICollection<K> Keys => this.dictionary.Keys;
 
+#if NET9_0_OR_GREATER
+        /// <inheritdoc/>
+        public IEqualityComparer<K> Comparer => this.dictionary.Comparer;
+#endif
+
         /// <summary>Returns an enumerator that iterates through the cache.</summary>
         /// <returns>An enumerator for the cache.</returns>
         /// <remarks>
@@ -927,12 +932,7 @@ namespace BitFaster.Caching.Lru
             return false;
         }
 
-        /// <summary>
-        /// Gets an async alternate lookup that can use an alternate key type with the configured comparer.
-        /// </summary>
-        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
-        /// <returns>An async alternate lookup.</returns>
-        /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
+        ///<inheritdoc/>
         public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
@@ -944,12 +944,7 @@ namespace BitFaster.Caching.Lru
             return new AlternateLookup<TAlternateKey>(this);
         }
 
-        /// <summary>
-        /// Attempts to get an async alternate lookup that can use an alternate key type with the configured comparer.
-        /// </summary>
-        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
-        /// <param name="lookup">The async alternate lookup when available.</param>
-        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
+        ///<inheritdoc/>
         public bool TryGetAsyncAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAsyncAlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
         {

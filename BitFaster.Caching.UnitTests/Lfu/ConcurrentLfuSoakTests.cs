@@ -8,6 +8,7 @@ using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using FluentAssertions;
+using FluentAssertions.Equivalency;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -495,9 +496,11 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
 
-            var scheduler = lfu.Scheduler as BackgroundThreadScheduler;
-            scheduler.Dispose();
-            await scheduler.Completion;
+            if (lfu.Scheduler is BackgroundThreadScheduler scheduler)
+            {
+                scheduler.Dispose();
+                await scheduler.Completion;
+            }
 
             RunIntegrityCheck(lfu, this.output);
         }
@@ -545,6 +548,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache.DoMaintenance();
 
+            if (cache.Scheduler.LastException.HasValue)
+            {
+                output.WriteLine($"Last scheduler exception {cache.Scheduler.LastException.Value}");
+                cache.Scheduler.LastException.Should().BeNull("scheduler should not have thrown");
+            }
+
             // buffers should be empty after maintenance
             this.readBuffer.Count.Should().Be(0);
             this.writeBuffer.Count.Should().Be(0);
@@ -570,6 +579,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
             {
                 node.WasRemoved.Should().BeFalse();
                 node.WasDeleted.Should().BeFalse();
+
+                // additional diagnbostics
+                if (!cache.TryGet(node.Key, out _))
+                {
+                    output.WriteLine($"Orphaned node at {node.Position} with key {node.Key} and value {node.Value}.");
+                    output.WriteLine($"Read buffer {cache.readBuffer.Count} write buffer {cache.writeBuffer.Count}.");
+                }
 
                 cache.TryGet(node.Key, out _).Should().BeTrue($"Orphaned node with key {node.Key} detected.");
 
