@@ -495,9 +495,11 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
 
-            var scheduler = lfu.Scheduler as BackgroundThreadScheduler;
-            scheduler.Dispose();
-            await scheduler.Completion;
+            if (lfu.Scheduler is BackgroundThreadScheduler scheduler)
+            {
+                scheduler.Dispose();
+                await scheduler.Completion;
+            }
 
             RunIntegrityCheck(lfu, this.output);
         }
@@ -570,6 +572,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
             {
                 node.WasRemoved.Should().BeFalse();
                 node.WasDeleted.Should().BeFalse();
+
+                // additional diagnbostics
+                if (!cache.TryGet(node.Key, out _))
+                {
+                    output.WriteLine($"Orphaned node at {node.Position} with key {node.Key} and value {node.Value}.");
+                    output.WriteLine($"Read buffer {cache.readBuffer.Count} write buffer {cache.writeBuffer.Count}.");
+                }
 
                 cache.TryGet(node.Key, out _).Should().BeTrue($"Orphaned node with key {node.Key} detected.");
 
