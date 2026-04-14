@@ -8,6 +8,7 @@ using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using FluentAssertions;
+using FluentAssertions.Equivalency;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -546,6 +547,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void Validate(ITestOutputHelper output)
         {
             cache.DoMaintenance();
+
+            if (cache.Scheduler.LastException.HasValue)
+            {
+                output.WriteLine($"Last scheduler exception {cache.Scheduler.LastException.Value}");
+                cache.Scheduler.LastException.Should().BeNull("scheduler should not have thrown");
+            }
 
             // buffers should be empty after maintenance
             this.readBuffer.Count.Should().Be(0);
