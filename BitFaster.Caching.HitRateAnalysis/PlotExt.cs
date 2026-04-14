@@ -31,7 +31,7 @@ namespace BitFaster.Caching.HitRateAnalysis
         {
             var font = new FSharpOption<Font>(Font.init(Size: new FSharpOption<double>(24)));
             FSharpOption<Title> t = Title.init(Text: title, X: 0.5, Font: font);
-            FSharpOption <Color> plotBGColor = new FSharpOption<Color>(Color.fromKeyword(ColorKeyword.WhiteSmoke));
+            FSharpOption<Color> plotBGColor = new FSharpOption<Color>(Color.fromKeyword(ColorKeyword.WhiteSmoke));
             Layout layout = Layout.init<IConvertible>(PaperBGColor: plotBGColor, PlotBGColor: plotBGColor, Title: t);
             return chart.WithLayout(layout);
         }

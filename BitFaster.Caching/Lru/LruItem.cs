@@ -39,29 +39,29 @@ namespace BitFaster.Caching.Lru
         /// <summary>
         /// Gets or sets the value.
         /// </summary>
-        public V Value 
-        { 
+        public V Value
+        {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
-            { 
+            {
                 if (TypeProps<V>.IsWriteAtomic)
-                { 
+                {
                     return data;
                 }
                 else
-                { 
+                {
                     return SeqLockRead();
-                } 
+                }
             }
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
-            { 
+            {
                 if (TypeProps<V>.IsWriteAtomic)
-                { 
+                {
                     data = value;
                 }
                 else
-                { 
+                {
                     SeqLockWrite(value);
                 }
             }
@@ -89,21 +89,21 @@ namespace BitFaster.Caching.Lru
         /// Marks the item as accessed, if it was not already accessed.
         /// </summary>
         public void MarkAccessed()
-        { 
+        {
             if (!this.wasAccessed)
-            { 
-                this.wasAccessed = true;    
+            {
+                this.wasAccessed = true;
             }
         }
 
         internal V SeqLockRead()
-        { 
+        {
             var spin = new SpinWait();
             while (true)
-            { 
+            {
                 var start = Volatile.Read(ref this.sequence);
 
-                if ((start & 1) == 1) 
+                if ((start & 1) == 1)
                 {
                     // A write is in progress, spin.
                     spin.SpinOnce();
@@ -114,15 +114,15 @@ namespace BitFaster.Caching.Lru
 
                 var end = Volatile.Read(ref this.sequence);
                 if (start == end)
-                { 
-                    return copy;    
+                {
+                    return copy;
                 }
             }
         }
 
         // Note: LruItem should be locked while invoking this method. Multiple writer threads are not supported.
         internal void SeqLockWrite(V value)
-        { 
+        {
             Interlocked.Increment(ref sequence);
 
             this.data = value;

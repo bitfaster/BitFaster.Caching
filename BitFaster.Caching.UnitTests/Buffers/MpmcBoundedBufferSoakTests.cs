@@ -26,7 +26,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
         public async Task WhenAddIsContendedBufferCanBeFilled(int iteration)
         {
             this.testOutputHelper.WriteLine($"Iteration {iteration}");
-            
+
             await Threaded.Run(4, () =>
             {
                 while (buffer.TryAdd("hello") != BufferStatus.Full)

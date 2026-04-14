@@ -1,7 +1,8 @@
-﻿using FluentAssertions;
-using BitFaster.Caching.Lru;
-using System;
+﻿using System;
 using System.Threading.Tasks;
+using BitFaster.Caching.Lru;
+using BitFaster.Caching.UnitTests.Retry;
+using FluentAssertions;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
@@ -72,7 +73,13 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             var item = this.policy.CreateItem(1, 2);
             var tc = item.TickCount;
-            await Task.Delay(TimeSpan.FromMilliseconds(1));
+
+            // Poll until the underlying tick source advances to avoid 1ms timer granularity issues on Windows CI.
+            var timeout = DateTime.UtcNow.AddSeconds(1);
+            while (Duration.SinceEpoch().raw == tc && DateTime.UtcNow < timeout)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(1));
+            }
 
             this.policy.ShouldDiscard(item); // set the time in the policy
             this.policy.Touch(item);
@@ -86,7 +93,12 @@ namespace BitFaster.Caching.UnitTests.Lru
             var item = this.policy.CreateItem(1, 2);
             var tc = item.TickCount;
 
-            await Task.Delay(TimeSpan.FromMilliseconds(1));
+            // Poll until the underlying tick source advances to avoid 1ms timer granularity issues on Windows CI.
+            var timeout = DateTime.UtcNow.AddSeconds(1);
+            while (Duration.SinceEpoch().raw == tc && DateTime.UtcNow < timeout)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(1));
+            }
 
             this.policy.Update(item);
 

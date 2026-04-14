@@ -26,6 +26,9 @@ namespace BitFaster.Caching
         [DoesNotReturn]
         public static void Disposed<T>() => throw CreateObjectDisposedException<T>();
 
+        [DoesNotReturn]
+        public static void IncompatibleComparer() => throw new InvalidOperationException("Incompatible comparer");
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static ArgumentNullException CreateArgumentNullException(ExceptionArgument arg) => new ArgumentNullException(GetArgumentString(arg));
 
@@ -41,7 +44,7 @@ namespace BitFaster.Caching
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static InvalidOperationException CreateScopedRetryFailure() => new InvalidOperationException(ScopedCacheDefaults.RetryFailureMessage);
-        
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static ObjectDisposedException CreateObjectDisposedException<T>() => new ObjectDisposedException(typeof(T).Name);
 

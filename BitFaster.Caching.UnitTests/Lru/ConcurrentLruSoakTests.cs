@@ -1,19 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
-using static BitFaster.Caching.UnitTests.Lru.LruItemSoakTests;
 
 namespace BitFaster.Caching.UnitTests.Lru
 {
     [Collection("Soak")]
     public class ConcurrentLruSoakTests
     {
+        private const int loopIterations = 100_000;
+        private const int bufferLen = 6;
+
         private readonly ITestOutputHelper testOutputHelper;
         private const int hotCap = 3;
         private const int warmCap = 3;
@@ -32,8 +33,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
-                    for (int i = 0; i < 100000; i++)
+                await Threaded.Run(4, () =>
+                {
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         lru.GetOrAdd(i + 1, i => i.ToString());
                     }
@@ -53,8 +55,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.RunAsync(4, async () => {
-                    for (int i = 0; i < 100000; i++)
+                await Threaded.RunAsync(4, async () =>
+                {
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         await lru.GetOrAddAsync(i + 1, i => Task.FromResult(i.ToString()));
                     }
@@ -74,8 +77,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
-                    for (int i = 0; i < 100000; i++)
+                await Threaded.Run(4, () =>
+                {
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         // use the arg overload
                         lru.GetOrAdd(i + 1, (i, s) => i.ToString(), "Foo");
@@ -91,13 +95,66 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
         }
 
+#if NET9_0_OR_GREATER
+        [Fact]
+        public async Task WhenSoakConcurrentAlternateLookupGetCacheEndsInConsistentState()
+        {
+            var alternateLru = new ConcurrentLru<string, string>(1, capacity, StringComparer.Ordinal);
+            var alternate = alternateLru.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () =>
+                {
+                    for (int i = 0; i < loopIterations; i++)
+                    {
+                        string key = (i + 1).ToString();
+                        alternate.GetOrAdd(key.AsSpan(), static key => key);
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{alternateLru.HotCount} {alternateLru.WarmCount} {alternateLru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", alternateLru.Keys));
+
+                alternateLru.Count.Should().BeInRange(7, 10);
+                new ConcurrentLruIntegrityChecker<string, string, LruItem<string, string>, LruPolicy<string, string>, TelemetryPolicy<string, string>>(alternateLru).Validate();
+            }
+        }
+
+        [Fact]
+        public async Task WhenSoakConcurrentAlternateLookupGetWithArgCacheEndsInConsistentState()
+        {
+            var alternateLru = new ConcurrentLru<string, string>(1, capacity, StringComparer.Ordinal);
+            var alternate = alternateLru.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () =>
+                {
+                    for (int i = 0; i < loopIterations; i++)
+                    {
+                        string key = (i + 1).ToString();
+                        alternate.GetOrAdd(key.AsSpan(), static (key, prefix) => prefix + key, "prefix-");
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{alternateLru.HotCount} {alternateLru.WarmCount} {alternateLru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", alternateLru.Keys));
+
+                alternateLru.Count.Should().BeInRange(7, 10);
+                new ConcurrentLruIntegrityChecker<string, string, LruItem<string, string>, LruPolicy<string, string>, TelemetryPolicy<string, string>>(alternateLru).Validate();
+            }
+        }
+#endif
+
         [Fact]
         public async Task WhenSoakConcurrentGetAsyncWithArgCacheEndsInConsistentState()
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.RunAsync(4, async () => {
-                    for (int i = 0; i < 100000; i++)
+                await Threaded.RunAsync(4, async () =>
+                {
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         // use the arg overload
                         await lru.GetOrAddAsync(i + 1, (i, s) => Task.FromResult(i.ToString()), "Foo");
@@ -118,8 +175,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
-                    for (int i = 0; i < 100000; i++)
+                await Threaded.Run(4, () =>
+                {
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         lru.TryRemove(i + 1);
                         lru.GetOrAdd(i + 1, i => i.ToString());
@@ -133,13 +191,95 @@ namespace BitFaster.Caching.UnitTests.Lru
             }
         }
 
+#if NET9_0_OR_GREATER
+        [Fact]
+        public async Task WhenSoakConcurrentAlternateLookupGetAndRemoveCacheEndsInConsistentState()
+        {
+            var alternateLru = new ConcurrentLru<string, string>(1, capacity, StringComparer.Ordinal);
+            var alternate = alternateLru.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, () =>
+                {
+                    Span<char> key = stackalloc char[bufferLen];
+                    for (int i = 0; i < loopIterations; i++)
+                    {
+                        (i + 1).TryFormat(key, out int written);
+                        var keySpan = key.Slice(0, written);
+                        alternate.TryRemove(keySpan, out _, out _);
+                        alternate.GetOrAdd(keySpan, static key => key);
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{alternateLru.HotCount} {alternateLru.WarmCount} {alternateLru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", alternateLru.Keys));
+
+                new ConcurrentLruIntegrityChecker<string, string, LruItem<string, string>, LruPolicy<string, string>, TelemetryPolicy<string, string>>(alternateLru).Validate();
+            }
+        }
+
+        [Fact]
+        public async Task WhenSoakConcurrentAsyncAlternateLookupGetAsyncCacheEndsInConsistentState()
+        {
+            var alternateLru = new ConcurrentLru<string, string>(1, capacity, StringComparer.Ordinal);
+            var alternate = alternateLru.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.RunAsync(4, async () =>
+                {
+                    var key = new char[bufferLen];
+                    for (int i = 0; i < loopIterations; i++)
+                    {
+                        (i + 1).TryFormat(key, out int written);
+                        await alternate.GetOrAddAsync(key.AsSpan().Slice(0, written), static key => Task.FromResult(key));
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{alternateLru.HotCount} {alternateLru.WarmCount} {alternateLru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", alternateLru.Keys));
+
+                alternateLru.Count.Should().BeInRange(7, 10);
+                new ConcurrentLruIntegrityChecker<string, string, LruItem<string, string>, LruPolicy<string, string>, TelemetryPolicy<string, string>>(alternateLru).Validate();
+            }
+        }
+
+        [Fact]
+        public async Task WhenSoakConcurrentAsyncAlternateLookupGetAsyncWithArgCacheEndsInConsistentState()
+        {
+            var alternateLru = new ConcurrentLru<string, string>(1, capacity, StringComparer.Ordinal);
+            var alternate = alternateLru.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.RunAsync(4, async () =>
+                {
+                    var key = new char[bufferLen];
+                    for (int i = 0; i < loopIterations; i++)
+                    {
+                        (i + 1).TryFormat(key, out int written);
+                        await alternate.GetOrAddAsync(key.AsSpan().Slice(0, written), static (key, prefix) => Task.FromResult(prefix + key), "prefix-");
+                    }
+                });
+
+                this.testOutputHelper.WriteLine($"{alternateLru.HotCount} {alternateLru.WarmCount} {alternateLru.ColdCount}");
+                this.testOutputHelper.WriteLine(string.Join(" ", alternateLru.Keys));
+
+                alternateLru.Count.Should().BeInRange(7, 10);
+                new ConcurrentLruIntegrityChecker<string, string, LruItem<string, string>, LruPolicy<string, string>, TelemetryPolicy<string, string>>(alternateLru).Validate();
+            }
+        }
+#endif
+
         [Fact]
         public async Task WhenSoakConcurrentGetAndRemoveKvpCacheEndsInConsistentState()
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
-                    for (int i = 0; i < 100000; i++)
+                await Threaded.Run(4, () =>
+                {
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         lru.TryRemove(new KeyValuePair<int, string>(i + 1, (i + 1).ToString()));
                         lru.GetOrAdd(i + 1, i => i.ToString());
@@ -158,8 +298,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
-                    for (int i = 0; i < 100000; i++)
+                await Threaded.Run(4, () =>
+                {
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         lru.TryUpdate(i + 1, i.ToString());
                         lru.GetOrAdd(i + 1, i => i.ToString());
@@ -178,8 +319,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         {
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
-                    for (int i = 0; i < 100000; i++)
+                await Threaded.Run(4, () =>
+                {
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         lru.AddOrUpdate(i + 1, i.ToString());
                         lru.GetOrAdd(i + 1, i => i.ToString());
@@ -200,9 +342,10 @@ namespace BitFaster.Caching.UnitTests.Lru
 
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, () => {
+                await Threaded.Run(4, () =>
+                {
                     var b = new byte[8];
-                    for (int i = 0; i < 100000; i++)
+                    for (int i = 0; i < loopIterations; i++)
                     {
                         lruVT.TryUpdate(i + 1, new Guid(i, 0, 0, b));
                         lruVT.GetOrAdd(i + 1, x => new Guid(x, 0, 0, b));
@@ -240,7 +383,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Fact]
         public async Task WhenConcurrentUpdateAndRemoveKvp()
         {
-            TaskCompletionSource<int> tcs = new TaskCompletionSource<int> ();
+            TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
 
             var removal = Task.Run(() =>
             {
@@ -266,8 +409,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Repeat(10)]
         public async Task WhenConcurrentGetAndClearCacheEndsInConsistentState(int iteration)
         {
-            await Threaded.Run(4, r => {
-                for (int i = 0; i < 100000; i++)
+            await Threaded.Run(4, r =>
+            {
+                for (int i = 0; i < loopIterations; i++)
                 {
                     // clear 6,250 times per 1_000_000 iters
                     if (r == 0 && (i & 15) == 15)
@@ -289,8 +433,9 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Repeat(10)]
         public async Task WhenConcurrentGetAndClearDuringWarmupCacheEndsInConsistentState(int iteration)
         {
-            await Threaded.Run(4, r => {
-                for (int i = 0; i < 100000; i++)
+            await Threaded.Run(4, r =>
+            {
+                for (int i = 0; i < loopIterations; i++)
                 {
                     // clear 25,000 times per 1_000_000 iters
                     // capacity is 9, so we will try to clear before warmup is done
@@ -315,7 +460,7 @@ namespace BitFaster.Caching.UnitTests.Lru
         [Theory]
         [Repeat(10)]
         public async Task WhenValueIsBigStructNoLiveLock(int _)
-        { 
+        {
             using var source = new CancellationTokenSource();
             var started = new TaskCompletionSource<bool>();
             var cache = new ConcurrentLru<int, Guid>(1, capacity, EqualityComparer<int>.Default);
@@ -337,13 +482,13 @@ namespace BitFaster.Caching.UnitTests.Lru
                 cache.AddOrUpdate(1, Guid.NewGuid());
 
                 if (cancelToken.IsCancellationRequested)
-                { 
-                    return; 
+                {
+                    return;
                 }
             }
         }
 
-        private void Checker(ICache<int, Guid> cache,CancellationTokenSource source)
+        private void Checker(ICache<int, Guid> cache, CancellationTokenSource source)
         {
             for (int count = 0; count < 100_000; ++count)
             {

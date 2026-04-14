@@ -22,11 +22,11 @@ namespace BitFaster.Caching.Lru
         /// <summary>
         /// Gets or sets the last time.
         /// </summary>
-        internal long Last 
+        internal long Last
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
-            { 
+            {
                 if (Is64Bit)
                 {
                     return time;

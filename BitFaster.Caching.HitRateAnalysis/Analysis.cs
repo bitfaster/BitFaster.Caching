@@ -48,7 +48,7 @@ namespace BitFaster.Caching.HitRateAnalysis
 
         public static void WriteToFile(string path, IEnumerable<Analysis<K>> results)
         {
-            using (var writer = new StreamWriter(path))                                     
+            using (var writer = new StreamWriter(path))
             using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
             {
                 csv.WriteRecords(results);

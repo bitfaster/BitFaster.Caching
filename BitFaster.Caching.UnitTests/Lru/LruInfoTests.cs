@@ -17,13 +17,13 @@ namespace BitFaster.Caching.UnitTests.Lru
 
         [Fact]
         public void WhenExpiryCalcValueTypeDoesNotMatchThrows()
-        { 
+        {
             var info = new LruInfo<int>();
 
             info.SetExpiry<int>(new TestExpiryCalculator<int, int>());
 
             Action act = () => info.GetExpiry<string>();
-            act.Should().Throw<InvalidOperationException>();           
+            act.Should().Throw<InvalidOperationException>();
         }
     }
 }

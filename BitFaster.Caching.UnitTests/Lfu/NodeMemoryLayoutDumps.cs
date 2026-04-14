@@ -44,7 +44,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         //|=====================================================|
         [Fact]
         public void DumpAccessOrderNode()
-        { 
+        {
             var layout = TypeLayout.GetLayout<AccessOrderNode<object, object>>(includePaddings: true);
             testOutputHelper.WriteLine(layout.ToString());
         }

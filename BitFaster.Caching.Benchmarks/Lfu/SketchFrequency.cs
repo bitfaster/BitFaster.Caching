@@ -49,7 +49,7 @@ namespace BitFaster.Caching.Benchmarks.Lfu
         {
             int count = 0;
             for (int i = 0; i < iterations; i++)
-                count += flatStd.EstimateFrequency(i) > flatStd.EstimateFrequency(i + 1) ? 1: 0;
+                count += flatStd.EstimateFrequency(i) > flatStd.EstimateFrequency(i + 1) ? 1 : 0;
 
             return count;
         }

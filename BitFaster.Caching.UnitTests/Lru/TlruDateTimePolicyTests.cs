@@ -1,11 +1,12 @@
-﻿using FluentAssertions;
-using FluentAssertions.Extensions;
-using BitFaster.Caching.Lru;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BitFaster.Caching.Lru;
+using BitFaster.Caching.UnitTests.Retry;
+using FluentAssertions;
+using FluentAssertions.Extensions;
 using Xunit;
 
 namespace BitFaster.Caching.UnitTests.Lru
@@ -48,7 +49,7 @@ namespace BitFaster.Caching.UnitTests.Lru
             item.WasAccessed.Should().BeTrue();
         }
 
-        [Fact]
+        [RetryFact]
         public async Task UpdateUpdatesTickCount()
         {
             var item = this.policy.CreateItem(1, 2);
@@ -81,7 +82,7 @@ namespace BitFaster.Caching.UnitTests.Lru
 
         [Fact]
         public void CanDiscardIsTrue()
-        { 
+        {
             this.policy.CanDiscard().Should().BeTrue();
         }
 

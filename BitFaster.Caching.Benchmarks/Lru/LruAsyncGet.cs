@@ -9,10 +9,6 @@ namespace BitFaster.Caching.Benchmarks.Lru
     /// <summary>
     /// Verify 0 allocs for GetOrAddAsync cache hits.
     /// </summary>
-#if Windows
-    [SimpleJob(RuntimeMoniker.Net48)]
-#endif
-    [SimpleJob(RuntimeMoniker.Net60)]
     // [DisassemblyDiagnoser(printSource: true, maxDepth: 5)] // Unstable
     [MemoryDiagnoser(displayGenColumns: false)]
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]

@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>net48;netcoreapp3.1;net6.0;net9.0</TargetFrameworks>
-    <LangVersion>10.0</LangVersion>  
+    <LangVersion Condition="'$(TargetFramework)' == 'net9.0'">13.0</LangVersion>
+    <LangVersion Condition="'$(TargetFramework)' != 'net9.0'">10.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,7 +20,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.5.61" />
   </ItemGroup>
     
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">

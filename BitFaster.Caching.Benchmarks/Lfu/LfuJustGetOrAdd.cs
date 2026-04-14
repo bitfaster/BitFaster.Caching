@@ -1,19 +1,15 @@
-﻿using BenchmarkDotNet.Attributes;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using Benchly;
+using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
-using Benchly;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace BitFaster.Caching.Benchmarks
 {
-#if Windows
-    [SimpleJob(RuntimeMoniker.Net48)]
-#endif
-    [SimpleJob(RuntimeMoniker.Net60)]
     //[DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
     [MemoryDiagnoser(displayGenColumns: false)]
     // [HardwareCounters(HardwareCounter.LlcMisses, HardwareCounter.CacheMisses)] // Requires Admin https://adamsitnik.com/Hardware-Counters-Diagnoser/
@@ -40,7 +36,7 @@ namespace BitFaster.Caching.Benchmarks
         [GlobalCleanup]
         public void GlobalCleanup()
         {
-           background.Dispose();
+            background.Dispose();
         }
 
         [Benchmark(Baseline = true)]

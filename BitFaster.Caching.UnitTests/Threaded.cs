@@ -21,7 +21,7 @@ namespace BitFaster.Caching.UnitTests
 
             for (int i = 0; i < threadCount; i++)
             {
-                int run = i; 
+                int run = i;
                 tasks[i] = Task.Run(() =>
                 {
                     mre.WaitOne();

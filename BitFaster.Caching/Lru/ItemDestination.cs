@@ -20,5 +20,5 @@ namespace BitFaster.Caching.Lru
         /// Remove the item.
         /// </summary>
         Remove
-    }	
+    }
 }
