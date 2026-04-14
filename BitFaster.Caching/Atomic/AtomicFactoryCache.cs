@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Atomic
 {
@@ -52,6 +53,11 @@ namespace BitFaster.Caching.Atomic
         ///<inheritdoc/>
         public ICollection<K> Keys => AtomicEx.FilterKeys<K, AtomicFactory<K, V>>(this.cache, v => v.IsValueCreated);
 
+#if NET9_0_OR_GREATER
+        /// <inheritdoc/>
+        public IEqualityComparer<K> Comparer => this.cache.Comparer;
+#endif
+
         ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;
 
@@ -60,6 +66,7 @@ namespace BitFaster.Caching.Atomic
         {
             this.cache.AddOrUpdate(key, new AtomicFactory<K, V>(value));
         }
+
 
         ///<inheritdoc/>
         public void Clear()
@@ -170,7 +177,8 @@ namespace BitFaster.Caching.Atomic
             where TAlternateKey : notnull, allows ref struct
         {
             var inner = cache.GetAlternateLookup<TAlternateKey>();
-            return new AlternateLookup<TAlternateKey>(inner);
+            var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)cache.Comparer;
+            return new AlternateLookup<TAlternateKey>(inner, comparer);
         }
 
         ///<inheritdoc/>
@@ -179,7 +187,8 @@ namespace BitFaster.Caching.Atomic
         {
             if (cache.TryGetAlternateLookup<TAlternateKey>(out var inner))
             {
-                lookup = new AlternateLookup<TAlternateKey>(inner);
+                var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)cache.Comparer;
+                lookup = new AlternateLookup<TAlternateKey>(inner, comparer);
                 return true;
             }
 
@@ -191,10 +200,12 @@ namespace BitFaster.Caching.Atomic
             where TAlternateKey : notnull, allows ref struct
         {
             private readonly IAlternateLookup<TAlternateKey, K, AtomicFactory<K, V>> inner;
+            private readonly IAlternateEqualityComparer<TAlternateKey, K> comparer;
 
-            internal AlternateLookup(IAlternateLookup<TAlternateKey, K, AtomicFactory<K, V>> inner)
+            internal AlternateLookup(IAlternateLookup<TAlternateKey, K, AtomicFactory<K, V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
             {
                 this.inner = inner;
+                this.comparer = comparer;
             }
 
             public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
@@ -233,18 +244,28 @@ namespace BitFaster.Caching.Atomic
 
             public V GetOrAdd(TAlternateKey key, Func<K, V> valueFactory)
             {
-                var atomicFactory = inner.GetOrAdd(key,
-                    static (k, factory) => new AtomicFactory<K, V>(factory(k)),
-                    valueFactory);
-                return atomicFactory.ValueIfCreated!;
+                var atomicFactory = inner.GetOrAdd(key, _ => new AtomicFactory<K, V>());
+
+                if (atomicFactory.IsValueCreated)
+                {
+                    return atomicFactory.ValueIfCreated!;
+                }
+
+                K actualKey = comparer.Create(key);
+                return atomicFactory.GetValue(actualKey, valueFactory);
             }
 
             public V GetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
             {
-                var atomicFactory = inner.GetOrAdd(key,
-                    static (k, args) => new AtomicFactory<K, V>(args.valueFactory(k, args.factoryArgument)),
-                    (valueFactory, factoryArgument));
-                return atomicFactory.ValueIfCreated!;
+                var atomicFactory = inner.GetOrAdd(key, _ => new AtomicFactory<K, V>());
+
+                if (atomicFactory.IsValueCreated)
+                {
+                    return atomicFactory.ValueIfCreated!;
+                }
+
+                K actualKey = comparer.Create(key);
+                return atomicFactory.GetValue(actualKey, valueFactory, factoryArgument);
             }
         }
 #endif

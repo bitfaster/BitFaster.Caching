@@ -121,6 +121,10 @@ namespace BitFaster.Caching.Lfu
 
         public ICollection<K> Keys => this.dictionary.Keys;
 
+#if NET9_0_OR_GREATER
+        public IEqualityComparer<K> Comparer => this.dictionary.Comparer;
+#endif
+
         public IScheduler Scheduler => scheduler;
 
         public void AddOrUpdate(K key, V value)
@@ -995,12 +999,7 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        /// <summary>
-        /// Gets an async alternate lookup that can use an alternate key type with the configured comparer.
-        /// </summary>
-        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
-        /// <returns>An async alternate lookup.</returns>
-        /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
+        ///<inheritdoc/>
         public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
@@ -1012,12 +1011,7 @@ namespace BitFaster.Caching.Lfu
             return new AlternateLookup<TAlternateKey>(this);
         }
 
-        /// <summary>
-        /// Attempts to get an async alternate lookup that can use an alternate key type with the configured comparer.
-        /// </summary>
-        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
-        /// <param name="lookup">The async alternate lookup when available.</param>
-        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
+        ///<inheritdoc/>
         public bool TryGetAsyncAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAsyncAlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
         {
