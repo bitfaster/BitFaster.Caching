@@ -24,6 +24,17 @@ namespace BitFaster.Caching.UnitTests
             constructor.Should().Throw<ArgumentNullException>();
         }
 
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void ComparerReturnsConfiguredComparer()
+        {
+            var comparer = StringComparer.OrdinalIgnoreCase;
+            var cache = new ScopedCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, comparer));
+
+            cache.Comparer.Should().BeSameAs(comparer);
+        }
+#endif
+
         [Fact]
         public void WhenScopeIsDisposedTryGetReturnsFalse()
         {
