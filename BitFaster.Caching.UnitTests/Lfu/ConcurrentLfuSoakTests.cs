@@ -484,31 +484,38 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         private async Task RunIntegrityCheckAsync(ConcurrentLfu<int, string> lfu, int iteration)
         {
-            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
-#if DEBUG
-            this.output.WriteLine(lfu.FormatLfuString());
-#endif
+            Log(lfu, iteration, "before");
 
             if (lfu.Scheduler is BackgroundThreadScheduler scheduler)
             {
                 scheduler.Dispose();
                 await scheduler.Completion;
             }
+
+            Log(lfu, iteration, "after");
 
             RunIntegrityCheck(lfu, this.output);
         }
 
         private async Task RunIntegrityCheckAsync(ConcurrentLfu<string, string> lfu, int iteration)
         {
-            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
-
+            Log(lfu, iteration, "before");
             if (lfu.Scheduler is BackgroundThreadScheduler scheduler)
             {
                 scheduler.Dispose();
                 await scheduler.Completion;
             }
+            Log(lfu, iteration, "after");
 
             RunIntegrityCheck(lfu, this.output);
+        }
+
+        private void Log<K>(ConcurrentLfu<K, string> lfu, int iteration, string stage)
+        {
+            this.output.WriteLine($"{stage} iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
+#if DEBUG
+            this.output.WriteLine(lfu.FormatLfuString());
+#endif
         }
 
         private static void RunIntegrityCheck<K, V>(ConcurrentLfu<K, V> cache, ITestOutputHelper output)
