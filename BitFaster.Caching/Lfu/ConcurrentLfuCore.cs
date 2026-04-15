@@ -717,7 +717,7 @@ namespace BitFaster.Caching.Lfu
             EvictFromMain(candidate);
         }
 
-        private LfuNode<K, V> EvictFromWindow()
+        private LfuNode<K, V>? EvictFromWindow()
         {
             LfuNode<K, V>? first = null;
 
@@ -732,17 +732,17 @@ namespace BitFaster.Caching.Lfu
                 node.Position = Position.Probation;
             }
 
-            return first!;
+            return first;
         }
 
         private ref struct EvictIterator
         {
             private readonly CmSketch<K> sketch;
-            public LfuNode<K, V> node;
+            public LfuNode<K, V>? node;
             public int freq;
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public EvictIterator(CmSketch<K> sketch, LfuNode<K, V> node)
+            public EvictIterator(CmSketch<K> sketch, LfuNode<K, V>? node)
             {
                 this.sketch = sketch;
                 this.node = node;
@@ -752,7 +752,7 @@ namespace BitFaster.Caching.Lfu
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Next()
             {
-                node = node.Next;
+                node = node!.Next;
 
                 if (node != null)
                 {
@@ -761,7 +761,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private void EvictFromMain(LfuNode<K, V> candidateNode)
+        private void EvictFromMain(LfuNode<K, V>? candidateNode)
         {
             var victim = new EvictIterator(this.cmSketch, this.probationLru.First); // victims are LRU position in probation
             var candidate = new EvictIterator(this.cmSketch, candidateNode);
@@ -1033,11 +1033,14 @@ namespace BitFaster.Caching.Lfu
                 Debug.Assert(lfu.dictionary.IsCompatibleKey<TAlternateKey, K, N>());
                 this.Lfu = lfu;
                 this.Alternate = lfu.dictionary.GetAlternateLookup<TAlternateKey>();
+                this.Comparer = lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>();
             }
 
             internal ConcurrentLfuCore<K, V, N, P> Lfu { get; }
 
             internal ConcurrentDictionary<K, N>.AlternateLookup<TAlternateKey> Alternate { get; }
+
+            internal IAlternateEqualityComparer<TAlternateKey, K> Comparer { get; }
 
             public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
             {
@@ -1091,7 +1094,7 @@ namespace BitFaster.Caching.Lfu
 
                     if (!hasActualKey)
                     {
-                        actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                        actualKey = this.Comparer.Create(key);
                         hasActualKey = true;
                     }
 
@@ -1111,7 +1114,7 @@ namespace BitFaster.Caching.Lfu
                         return value;
                     }
 
-                    K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                    K actualKey = this.Comparer.Create(key);
 
                     value = valueFactory(actualKey);
                     if (this.Lfu.TryAdd(actualKey, value))
@@ -1130,7 +1133,7 @@ namespace BitFaster.Caching.Lfu
                         return value;
                     }
 
-                    K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                    K actualKey = this.Comparer.Create(key);
 
                     value = valueFactory(actualKey, factoryArgument);
                     if (this.Lfu.TryAdd(actualKey, value))
@@ -1147,7 +1150,7 @@ namespace BitFaster.Caching.Lfu
                     return new ValueTask<V>(value);
                 }
 
-                K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                K actualKey = this.Comparer.Create(key);
                 Task<V> task = valueFactory(actualKey);
 
                 return GetOrAddAsyncSlow(actualKey, task);
@@ -1160,7 +1163,7 @@ namespace BitFaster.Caching.Lfu
                     return new ValueTask<V>(value);
                 }
 
-                K actualKey = this.Lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>().Create(key);
+                K actualKey = this.Comparer.Create(key);
                 Task<V> task = valueFactory(actualKey, factoryArgument);
 
                 return GetOrAddAsyncSlow(actualKey, task);
