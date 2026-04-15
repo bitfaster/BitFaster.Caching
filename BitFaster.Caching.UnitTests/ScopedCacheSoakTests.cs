@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using FluentAssertions;
 using Xunit;
@@ -28,5 +29,37 @@ namespace BitFaster.Caching.UnitTests
                 });
             }
         }
+
+#if NET9_0_OR_GREATER
+        [Fact]
+        public async Task AlternateScopedGetOrAddWhenConcurrentWithRemoveReturnedLifetimeIsAlive()
+        {
+            var cache = new ScopedCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, 1, StringComparer.Ordinal));
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                await Threaded.Run(4, r =>
+                {
+                    for (int j = 0; j < 100000; j++)
+                    {
+                        ReadOnlySpan<char> key = "42";
+
+                        if (r == 0 && (j & 1) == 0)
+                        {
+                            alternate.TryRemove(key, out _);
+                        }
+
+                        using var lifetime = (r & 1) == 0
+                            ? alternate.ScopedGetOrAdd(key, static k => new Scoped<Disposable>(new Disposable(int.Parse(k))))
+                            : alternate.ScopedGetOrAdd(key, static (k, offset) => new Scoped<Disposable>(new Disposable(int.Parse(k) + offset)), 0);
+
+                        lifetime.Value.IsDisposed.Should().BeFalse($"ref count {lifetime.ReferenceCount}");
+                        lifetime.Value.State.Should().Be(42);
+                    }
+                });
+            }
+        }
+#endif
     }
 }
