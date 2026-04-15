@@ -48,6 +48,11 @@ namespace BitFaster.Caching
         ///<inheritdoc/>
         public ICollection<K> Keys => this.cache.Keys;
 
+#if NET9_0_OR_GREATER
+        ///<inheritdoc/>
+        public IEqualityComparer<K> Comparer => this.cache.Comparer;
+#endif
+
 #pragma warning disable CA2000 // Dispose objects before losing scope
         ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)

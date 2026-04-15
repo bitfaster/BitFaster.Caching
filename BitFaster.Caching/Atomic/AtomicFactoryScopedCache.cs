@@ -57,6 +57,11 @@ namespace BitFaster.Caching.Atomic
         ///<inheritdoc/>
         public ICollection<K> Keys => AtomicEx.FilterKeys<K, ScopedAtomicFactory<K, V>>(this.cache, v => v.IsScopeCreated);
 
+#if NET9_0_OR_GREATER
+        ///<inheritdoc/>
+        public IEqualityComparer<K> Comparer => this.cache.Comparer;
+#endif
+
 #pragma warning disable CA2000 // Dispose objects before losing scope
         ///<inheritdoc/>
         public void AddOrUpdate(K key, V value)
