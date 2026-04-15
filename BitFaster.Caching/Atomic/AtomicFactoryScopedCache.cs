@@ -245,6 +245,7 @@ namespace BitFaster.Caching.Atomic
                 return ScopedGetOrAdd(key, new ValueFactoryArg<K, TArg, Scoped<V>>(valueFactory, factoryArgument));
             }
 
+#pragma warning disable CA2000 // Lifetime ownership is returned to the caller.
             private Lifetime<V> ScopedGetOrAdd<TFactory>(TAlternateKey key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
             {
                 int c = 0;
@@ -278,6 +279,7 @@ namespace BitFaster.Caching.Atomic
                         Throw.ScopedRetryFailure();
                 }
             }
+#pragma warning restore CA2000 // Lifetime ownership is returned to the caller.
         }
 #endif
 
