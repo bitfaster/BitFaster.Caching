@@ -907,7 +907,19 @@ namespace BitFaster.Caching.Lru
 
 #if NET9_0_OR_GREATER
         ///<inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (!this.dictionary.IsCompatibleKey<TAlternateKey, K, I>())
+            {
+                Throw.IncompatibleComparer();
+            }
+
+            return new AlternateLookup<TAlternateKey>(this);
+        }
+
+        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup2<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
             if (!this.dictionary.IsCompatibleKey<TAlternateKey, K, I>())
