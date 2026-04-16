@@ -38,18 +38,12 @@ namespace BitFaster.Caching.UnitTests
             const int threadCount = 4;
             var scopedCache = new ScopedCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternateLookup = scopedCache.GetAlternateLookup<ReadOnlySpan<char>>();
-            var keys = new char[threadCount][];
-
-            for (int i = 0; i < threadCount; i++)
-            {
-                keys[i] = new char[keyBufferLength];
-            }
 
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(threadCount, r =>
+                await Threaded.Run(threadCount, _ =>
                 {
-                    var key = keys[r];
+                    var key = new char[keyBufferLength];
                     for (int j = 0; j < 100000; j++)
                     {
                         j.TryFormat(key, out int written);
