@@ -34,7 +34,7 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public async Task ScopedGetOrAdd_ConcurrentWithRemove_ReturnedLifetimeIsAlive()
         {
-            var scopedCache = new ScopedCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, 1, StringComparer.Ordinal));
+            var scopedCache = new ScopedCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternateLookup = scopedCache.GetAlternateLookup<ReadOnlySpan<char>>();
 
             for (int i = 0; i < 10; i++)
