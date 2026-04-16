@@ -41,10 +41,11 @@ namespace BitFaster.Caching.UnitTests
             {
                 await Threaded.Run(4, () =>
                 {
+                    var key = new char[8];
                     for (int j = 0; j < 100000; j++)
                     {
-                        string key = j.ToString();
-                        using var lifetime = alternateLookup.ScopedGetOrAdd(key.AsSpan(), static k => new Scoped<Disposable>(new Disposable(int.Parse(k))));
+                        j.TryFormat(key, out int written);
+                        using var lifetime = alternateLookup.ScopedGetOrAdd(key.AsSpan(0, written), static k => new Scoped<Disposable>(new Disposable(int.Parse(k))));
 
                         lifetime.Value.IsDisposed.Should().BeFalse($"ref count {lifetime.ReferenceCount}");
                     }
