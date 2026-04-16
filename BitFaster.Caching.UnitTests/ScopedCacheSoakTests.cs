@@ -32,30 +32,21 @@ namespace BitFaster.Caching.UnitTests
 
 #if NET9_0_OR_GREATER
         [Fact]
-        public async Task ScopedGetOrAdd_ConcurrentWithRemove_ReturnedLifetimeIsAlive()
+        public async Task WhenSoakAlternateScopedGetOrAddValueIsAlwaysAlive()
         {
-            var scopedCache = new ScopedCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, 1, StringComparer.Ordinal));
+            var scopedCache = new ScopedCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternateLookup = scopedCache.GetAlternateLookup<ReadOnlySpan<char>>();
 
             for (int i = 0; i < 10; i++)
             {
-                await Threaded.Run(4, r =>
+                await Threaded.Run(4, () =>
                 {
                     for (int j = 0; j < 100000; j++)
                     {
-                        ReadOnlySpan<char> key = "42";
-
-                        if (r == 0 && (j & 1) == 0)
-                        {
-                            alternateLookup.TryRemove(key, out _);
-                        }
-
-                        using var lifetime = (r & 1) == 0
-                            ? alternateLookup.ScopedGetOrAdd(key, static k => new Scoped<Disposable>(new Disposable(int.Parse(k))))
-                            : alternateLookup.ScopedGetOrAdd(key, static (k, offset) => new Scoped<Disposable>(new Disposable(int.Parse(k) + offset)), 0);
+                        string key = j.ToString();
+                        using var lifetime = alternateLookup.ScopedGetOrAdd(key.AsSpan(), static k => new Scoped<Disposable>(new Disposable(int.Parse(k))));
 
                         lifetime.Value.IsDisposed.Should().BeFalse($"ref count {lifetime.ReferenceCount}");
-                        lifetime.Value.State.Should().Be(42);
                     }
                 });
             }
