@@ -34,6 +34,7 @@ namespace BitFaster.Caching.UnitTests
         [Fact]
         public async Task WhenSoakAlternateScopedGetOrAddValueIsAlwaysAlive()
         {
+            const int keyBufferLength = 5;
             var scopedCache = new ScopedCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternateLookup = scopedCache.GetAlternateLookup<ReadOnlySpan<char>>();
 
@@ -41,7 +42,7 @@ namespace BitFaster.Caching.UnitTests
             {
                 await Threaded.Run(4, () =>
                 {
-                    var key = new char[8];
+                    var key = new char[keyBufferLength];
                     for (int j = 0; j < 100000; j++)
                     {
                         j.TryFormat(key, out int written);
