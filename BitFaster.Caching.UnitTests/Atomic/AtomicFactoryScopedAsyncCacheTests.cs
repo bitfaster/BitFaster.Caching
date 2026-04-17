@@ -26,6 +26,17 @@ namespace BitFaster.Caching.UnitTests.Atomic
             constructor.Should().Throw<ArgumentNullException>();
         }
 
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void ComparerReturnsConfiguredComparer()
+        {
+            var comparer = StringComparer.OrdinalIgnoreCase;
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, comparer));
+
+            cache.Comparer.Should().BeSameAs(comparer);
+        }
+#endif
+
         [Fact]
         public async Task WhenScopeIsDisposedTryGetReturnsFalse()
         {

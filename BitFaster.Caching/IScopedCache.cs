@@ -40,6 +40,13 @@ namespace BitFaster.Caching
         /// </summary>
         ICollection<K> Keys { get; }
 
+#if NET9_0_OR_GREATER
+        /// <summary>
+        /// Gets the key comparer used by the cache.
+        /// </summary>
+        IEqualityComparer<K> Comparer => throw new NotSupportedException();
+#endif
+
         /// <summary>
         /// Attempts to create a lifetime for the value associated with the specified key from the cache
         /// </summary>

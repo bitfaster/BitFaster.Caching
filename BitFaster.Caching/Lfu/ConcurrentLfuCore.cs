@@ -632,12 +632,15 @@ namespace BitFaster.Caching.Lfu
             switch (node.Position)
             {
                 case Position.Window:
+                    Debug.Assert(node.list == this.windowLru);
                     this.windowLru.MoveToEnd(node);
                     break;
                 case Position.Probation:
+                    Debug.Assert(node.list == this.probationLru);
                     PromoteProbation(node);
                     break;
                 case Position.Protected:
+                    Debug.Assert(node.list == this.protectedLru);
                     this.protectedLru.MoveToEnd(node);
                     break;
             }
@@ -677,15 +680,18 @@ namespace BitFaster.Caching.Lfu
                     }
                     else
                     {
+                        Debug.Assert(node.list == this.windowLru);
                         this.windowLru.MoveToEnd(node);
                         this.metrics.updatedCount++;
                     }
                     break;
                 case Position.Probation:
+                    Debug.Assert(node.list == this.probationLru);
                     PromoteProbation(node);
                     this.metrics.updatedCount++;
                     break;
                 case Position.Protected:
+                    Debug.Assert(node.list == this.protectedLru);
                     this.protectedLru.MoveToEnd(node);
                     this.metrics.updatedCount++;
                     break;

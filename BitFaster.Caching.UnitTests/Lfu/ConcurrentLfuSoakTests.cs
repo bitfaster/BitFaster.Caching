@@ -484,31 +484,38 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         private async Task RunIntegrityCheckAsync(ConcurrentLfu<int, string> lfu, int iteration)
         {
-            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
-#if DEBUG
-            this.output.WriteLine(lfu.FormatLfuString());
-#endif
+            Log(lfu, iteration, "before");
 
             if (lfu.Scheduler is BackgroundThreadScheduler scheduler)
             {
                 scheduler.Dispose();
                 await scheduler.Completion;
             }
+
+            Log(lfu, iteration, "after");
 
             RunIntegrityCheck(lfu, this.output);
         }
 
         private async Task RunIntegrityCheckAsync(ConcurrentLfu<string, string> lfu, int iteration)
         {
-            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
-
+            Log(lfu, iteration, "before");
             if (lfu.Scheduler is BackgroundThreadScheduler scheduler)
             {
                 scheduler.Dispose();
                 await scheduler.Completion;
             }
+            Log(lfu, iteration, "after");
 
             RunIntegrityCheck(lfu, this.output);
+        }
+
+        private void Log<K>(ConcurrentLfu<K, string> lfu, int iteration, string stage)
+        {
+            this.output.WriteLine($"{stage} iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
+#if DEBUG
+            this.output.WriteLine(lfu.FormatLfuString());
+#endif
         }
 
         private static void RunIntegrityCheck<K, V>(ConcurrentLfu<K, V> cache, ITestOutputHelper output)
@@ -524,6 +531,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private readonly ConcurrentLfuCore<K, V, N, P> cache;
 
         private readonly ConcurrentDictionary<K, N> dictionary;
+        private readonly object maintenanceLock;
 
         private readonly LfuNodeList<K, V> windowLru;
         private readonly LfuNodeList<K, V> probationLru;
@@ -533,6 +541,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private readonly MpscBoundedBuffer<N> writeBuffer;
 
         private static FieldInfo dictionaryField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("dictionary", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo lockField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("maintenanceLock", BindingFlags.NonPublic | BindingFlags.Instance);
 
         private static FieldInfo windowLruField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("windowLru", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo probationLruField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("probationLru", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -546,6 +555,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.cache = cache;
 
             this.dictionary = (ConcurrentDictionary<K, N>)dictionaryField.GetValue(cache);
+            this.maintenanceLock = lockField.GetValue(cache);
 
             // get lrus via reflection
             this.windowLru = (LfuNodeList<K, V>)windowLruField.GetValue(cache);
@@ -566,18 +576,26 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.Scheduler.LastException.Should().BeNull("scheduler should not have thrown");
             }
 
-            // buffers should be empty after maintenance
-            this.readBuffer.Count.Should().Be(0);
-            this.writeBuffer.Count.Should().Be(0);
+            lock (this.maintenanceLock)
+            {
+#if DEBUG
+                output.WriteLine("LRUs under lock:");
+                output.WriteLine(cache.FormatLfuString());
+#endif
 
-            // all the items in the LRUs must exist in the dictionary.
-            // no items should be marked as removed after maintenance has run
-            VerifyLruInDictionary(this.windowLru, output);
-            VerifyLruInDictionary(this.probationLru, output);
-            VerifyLruInDictionary(this.protectedLru, output);
+                // buffers should be empty after maintenance
+                this.readBuffer.Count.Should().Be(0);
+                this.writeBuffer.Count.Should().Be(0);
 
-            // all the items in the dictionary must exist in the node list
-            VerifyDictionaryInLrus();
+                // all the items in the LRUs must exist in the dictionary.
+                // no items should be marked as removed after maintenance has run
+                VerifyLruInDictionary(this.windowLru, output);
+                VerifyLruInDictionary(this.probationLru, output);
+                VerifyLruInDictionary(this.protectedLru, output);
+
+                // all the items in the dictionary must exist in the node list
+                VerifyDictionaryInLrus();
+            }
 
             // cache must be within capacity
             cache.Count.Should().BeLessThanOrEqualTo(cache.Capacity, "capacity out of valid range");
