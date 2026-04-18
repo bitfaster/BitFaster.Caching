@@ -1,4 +1,4 @@
-#if NET9_0_OR_GREATER
+﻿#if NET9_0_OR_GREATER
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
