@@ -137,7 +137,7 @@ namespace BitFaster.Caching
         /// Attempts to get an alternate lookup that can use an alternate key type with the configured comparer.
         /// </summary>
         /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
-        /// <param name="lookup">The alternate lookup when available.</param>
+        /// <param name="lookup">The alternate lookup when available; otherwise, the default value.</param>
         /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
         bool TryGetAlternateLookup<TAlternateKey>(out AlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
