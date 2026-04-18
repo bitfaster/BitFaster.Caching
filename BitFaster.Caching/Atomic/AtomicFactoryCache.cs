@@ -173,22 +173,22 @@ namespace BitFaster.Caching.Atomic
 
 #if NET9_0_OR_GREATER
         ///<inheritdoc/>
-        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+        public BitFaster.Caching.AlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
             var inner = cache.GetAlternateLookup<TAlternateKey>();
             var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)cache.Comparer;
-            return new AlternateLookup<TAlternateKey>(inner, comparer);
+            return BitFaster.Caching.AlternateLookup<TAlternateKey, K, V>.Create(new AlternateLookup<TAlternateKey>(inner, comparer));
         }
 
         ///<inheritdoc/>
-        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+        public bool TryGetAlternateLookup<TAlternateKey>(out BitFaster.Caching.AlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
         {
             if (cache.TryGetAlternateLookup<TAlternateKey>(out var inner))
             {
                 var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)cache.Comparer;
-                lookup = new AlternateLookup<TAlternateKey>(inner, comparer);
+                lookup = BitFaster.Caching.AlternateLookup<TAlternateKey, K, V>.Create(new AlternateLookup<TAlternateKey>(inner, comparer));
                 return true;
             }
 
@@ -199,10 +199,10 @@ namespace BitFaster.Caching.Atomic
         internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>
             where TAlternateKey : notnull, allows ref struct
         {
-            private readonly IAlternateLookup<TAlternateKey, K, AtomicFactory<K, V>> inner;
+            private readonly BitFaster.Caching.AlternateLookup<TAlternateKey, K, AtomicFactory<K, V>> inner;
             private readonly IAlternateEqualityComparer<TAlternateKey, K> comparer;
 
-            internal AlternateLookup(IAlternateLookup<TAlternateKey, K, AtomicFactory<K, V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
+            internal AlternateLookup(BitFaster.Caching.AlternateLookup<TAlternateKey, K, AtomicFactory<K, V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
             {
                 this.inner = inner;
                 this.comparer = comparer;

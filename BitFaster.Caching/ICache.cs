@@ -129,7 +129,7 @@ namespace BitFaster.Caching
         /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
         /// <returns>An alternate lookup.</returns>
         /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
-        IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+        AlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
             => throw new NotSupportedException();
 
@@ -139,7 +139,7 @@ namespace BitFaster.Caching
         /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
         /// <param name="lookup">The alternate lookup when available.</param>
         /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
-        bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+        bool TryGetAlternateLookup<TAlternateKey>(out AlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
             => throw new NotSupportedException();
 #pragma warning restore CS8714

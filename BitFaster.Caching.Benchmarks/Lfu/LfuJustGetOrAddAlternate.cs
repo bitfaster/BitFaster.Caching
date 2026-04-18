@@ -30,7 +30,7 @@ namespace BitFaster.Caching.Benchmarks
         }
 
 #if NET9_0_OR_GREATER
-        private static readonly IAlternateLookup<ReadOnlySpan<char>, string, int> alternate = concurrentLfu.GetAlternateLookup<ReadOnlySpan<char>>();
+        private static readonly AlternateLookup<ReadOnlySpan<char>, string, int> alternate = concurrentLfu.GetAlternateLookup<ReadOnlySpan<char>>();
 
         [Benchmark()]
         public int ConcurrentLfuAlternate()

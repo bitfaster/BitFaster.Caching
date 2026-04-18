@@ -264,7 +264,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
 
             cache.TryGetAlternateLookup<int>(out var alternate).Should().BeFalse();
-            alternate.Should().BeNull();
+            alternate.Should().Be(default(AlternateLookup<int, string, string>));
         }
 
         [Fact]

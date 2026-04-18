@@ -35,7 +35,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
             act.Should().Throw<InvalidOperationException>().WithMessage("Incompatible comparer");
             cache.TryGetAlternateLookup<int>(out var alternate).Should().BeFalse();
-            alternate.Should().BeNull();
+            alternate.Should().Be(default(AlternateLookup<int, string, string>));
         }
 
         [Fact]

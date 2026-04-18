@@ -476,7 +476,7 @@ namespace BitFaster.Caching.Lru
 
 #if NET9_0_OR_GREATER
         ///<inheritdoc/>
-        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+        public BitFaster.Caching.AlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
             if (!this.dictionary.IsCompatibleKey<TAlternateKey, K, LinkedListNode<LruItem>>())
@@ -484,16 +484,16 @@ namespace BitFaster.Caching.Lru
                 Throw.IncompatibleComparer();
             }
 
-            return new AlternateLookup<TAlternateKey>(this);
+            return BitFaster.Caching.AlternateLookup<TAlternateKey, K, V>.Create(new AlternateLookup<TAlternateKey>(this));
         }
 
         ///<inheritdoc/>
-        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+        public bool TryGetAlternateLookup<TAlternateKey>(out BitFaster.Caching.AlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
         {
             if (this.dictionary.IsCompatibleKey<TAlternateKey, K, LinkedListNode<LruItem>>())
             {
-                lookup = new AlternateLookup<TAlternateKey>(this);
+                lookup = BitFaster.Caching.AlternateLookup<TAlternateKey, K, V>.Create(new AlternateLookup<TAlternateKey>(this));
                 return true;
             }
 

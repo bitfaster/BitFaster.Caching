@@ -206,14 +206,14 @@ namespace BitFaster.Caching.Lfu
 
 #if NET9_0_OR_GREATER
         ///<inheritdoc/>
-        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+        public BitFaster.Caching.AlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
             return core.GetAlternateLookup<TAlternateKey>();
         }
 
         ///<inheritdoc/>
-        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+        public bool TryGetAlternateLookup<TAlternateKey>(out BitFaster.Caching.AlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
         {
             return core.TryGetAlternateLookup(out lookup);

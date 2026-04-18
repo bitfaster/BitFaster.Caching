@@ -181,10 +181,10 @@ namespace BitFaster.Caching.Atomic
         internal readonly struct AlternateLookup<TAlternateKey> : IAsyncAlternateLookup<TAlternateKey, K, V>
             where TAlternateKey : notnull, allows ref struct
         {
-            private readonly IAlternateLookup<TAlternateKey, K, AsyncAtomicFactory<K, V>> inner;
+            private readonly BitFaster.Caching.AlternateLookup<TAlternateKey, K, AsyncAtomicFactory<K, V>> inner;
             private readonly IAlternateEqualityComparer<TAlternateKey, K> comparer;
 
-            internal AlternateLookup(IAlternateLookup<TAlternateKey, K, AsyncAtomicFactory<K, V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
+            internal AlternateLookup(BitFaster.Caching.AlternateLookup<TAlternateKey, K, AsyncAtomicFactory<K, V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
             {
                 this.inner = inner;
                 this.comparer = comparer;
