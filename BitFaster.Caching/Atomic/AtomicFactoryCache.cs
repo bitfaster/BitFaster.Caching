@@ -176,19 +176,22 @@ namespace BitFaster.Caching.Atomic
         public BitFaster.Caching.AlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
-            var inner = cache.GetAlternateLookup<TAlternateKey>();
-            var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)cache.Comparer;
-            return BitFaster.Caching.AlternateLookup<TAlternateKey, K, V>.Create(new AlternateLookup<TAlternateKey>(inner, comparer));
+            if (this.cache.Comparer is not IAlternateEqualityComparer<TAlternateKey, K>)
+            {
+                Throw.IncompatibleComparer();
+            }
+
+            var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)this.cache.Comparer;
+            return BitFaster.Caching.AlternateLookup<TAlternateKey, K, V>.Create(new AlternateLookup<TAlternateKey>(this.cache, comparer));
         }
 
         ///<inheritdoc/>
         public bool TryGetAlternateLookup<TAlternateKey>(out BitFaster.Caching.AlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
         {
-            if (cache.TryGetAlternateLookup<TAlternateKey>(out var inner))
+            if (this.cache.TryGetAlternateLookup<TAlternateKey>(out _) && this.cache.Comparer is IAlternateEqualityComparer<TAlternateKey, K> comparer)
             {
-                var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)cache.Comparer;
-                lookup = BitFaster.Caching.AlternateLookup<TAlternateKey, K, V>.Create(new AlternateLookup<TAlternateKey>(inner, comparer));
+                lookup = BitFaster.Caching.AlternateLookup<TAlternateKey, K, V>.Create(new AlternateLookup<TAlternateKey>(this.cache, comparer));
                 return true;
             }
 
@@ -199,18 +202,18 @@ namespace BitFaster.Caching.Atomic
         internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>
             where TAlternateKey : notnull, allows ref struct
         {
-            private readonly BitFaster.Caching.AlternateLookup<TAlternateKey, K, AtomicFactory<K, V>> inner;
+            private readonly ICache<K, AtomicFactory<K, V>> cache;
             private readonly IAlternateEqualityComparer<TAlternateKey, K> comparer;
 
-            internal AlternateLookup(BitFaster.Caching.AlternateLookup<TAlternateKey, K, AtomicFactory<K, V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
+            internal AlternateLookup(ICache<K, AtomicFactory<K, V>> cache, IAlternateEqualityComparer<TAlternateKey, K> comparer)
             {
-                this.inner = inner;
+                this.cache = cache;
                 this.comparer = comparer;
             }
 
             public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
             {
-                if (inner.TryGet(key, out var atomic) && atomic.IsValueCreated)
+                if (this.cache.GetAlternateLookup<TAlternateKey>().TryGet(key, out var atomic) && atomic.IsValueCreated)
                 {
                     value = atomic.ValueIfCreated!;
                     return true;
@@ -222,7 +225,7 @@ namespace BitFaster.Caching.Atomic
 
             public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey, [MaybeNullWhen(false)] out V value)
             {
-                if (inner.TryRemove(key, out actualKey, out var atomic))
+                if (this.cache.GetAlternateLookup<TAlternateKey>().TryRemove(key, out actualKey, out var atomic))
                 {
                     value = atomic.ValueIfCreated!;
                     return true;
@@ -234,17 +237,17 @@ namespace BitFaster.Caching.Atomic
 
             public bool TryUpdate(TAlternateKey key, V value)
             {
-                return inner.TryUpdate(key, new AtomicFactory<K, V>(value));
+                return this.cache.GetAlternateLookup<TAlternateKey>().TryUpdate(key, new AtomicFactory<K, V>(value));
             }
 
             public void AddOrUpdate(TAlternateKey key, V value)
             {
-                inner.AddOrUpdate(key, new AtomicFactory<K, V>(value));
+                this.cache.GetAlternateLookup<TAlternateKey>().AddOrUpdate(key, new AtomicFactory<K, V>(value));
             }
 
             public V GetOrAdd(TAlternateKey key, Func<K, V> valueFactory)
             {
-                var atomicFactory = inner.GetOrAdd(key, _ => new AtomicFactory<K, V>());
+                var atomicFactory = this.cache.GetAlternateLookup<TAlternateKey>().GetOrAdd(key, _ => new AtomicFactory<K, V>());
 
                 if (atomicFactory.IsValueCreated)
                 {
@@ -257,7 +260,7 @@ namespace BitFaster.Caching.Atomic
 
             public V GetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
             {
-                var atomicFactory = inner.GetOrAdd(key, _ => new AtomicFactory<K, V>());
+                var atomicFactory = this.cache.GetAlternateLookup<TAlternateKey>().GetOrAdd(key, _ => new AtomicFactory<K, V>());
 
                 if (atomicFactory.IsValueCreated)
                 {
