@@ -11,7 +11,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
     [Collection("Soak")]
     public class MpscBoundedBufferSoakTests
     {
-        private const int soakIterations = 10;
+        private const int SoakIterations = 10;
         private readonly ITestOutputHelper testOutputHelper;
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
@@ -23,7 +23,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
         }
 
         [Theory]
-        [Repeat(soakIterations)]
+        [Repeat(SoakIterations)]
         public async Task WhenAddIsContendedBufferCanBeFilled(int iteration)
         {
             this.testOutputHelper.WriteLine($"Iteration {iteration}");
@@ -39,7 +39,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
         }
 
         [Theory]
-        [Repeat(soakIterations)]
+        [Repeat(SoakIterations)]
         public async Task WhileBufferIsFilledItemsCanBeTaken(int iteration)
         {
             this.testOutputHelper.WriteLine($"Iteration {iteration}");
