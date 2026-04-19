@@ -161,6 +161,28 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
+        public void WhenScopedCacheInterfaceDefaultGetAlternateLookupThrows()
+        {
+            var cache = new Mock<IScopedCache<int, Disposable>>();
+            cache.CallBase = true;
+
+            Action getAlternateLookup = () => { cache.Object.GetAlternateLookup<string>(); };
+
+            getAlternateLookup.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
+        public void WhenScopedCacheInterfaceDefaultTryGetAlternateLookupThrows()
+        {
+            var cache = new Mock<IScopedCache<int, Disposable>>();
+            cache.CallBase = true;
+
+            Action tryGetAlternateLookup = () => { cache.Object.TryGetAlternateLookup<string>(out var lookup); };
+
+            tryGetAlternateLookup.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
         public void WhenCacheInterfaceDefaultComparerThrows()
         {
             var cache = new Mock<ICache<int, int>>();

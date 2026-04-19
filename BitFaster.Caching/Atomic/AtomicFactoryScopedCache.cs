@@ -164,6 +164,127 @@ namespace BitFaster.Caching.Atomic
             return ((AtomicFactoryScopedCache<K, V>)this).GetEnumerator();
         }
 
+#if NET9_0_OR_GREATER
+        ///<inheritdoc/>
+        public IScopedAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            var inner = this.cache.GetAlternateLookup<TAlternateKey>();
+            var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)this.cache.Comparer;
+            return new AlternateLookup<TAlternateKey>(inner, comparer);
+        }
+
+        ///<inheritdoc/>
+        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IScopedAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (this.cache.TryGetAlternateLookup<TAlternateKey>(out var inner))
+            {
+                var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)this.cache.Comparer;
+                lookup = new AlternateLookup<TAlternateKey>(inner, comparer);
+                return true;
+            }
+
+            lookup = default;
+            return false;
+        }
+
+        internal readonly struct AlternateLookup<TAlternateKey> : IScopedAlternateLookup<TAlternateKey, K, V>
+            where TAlternateKey : notnull, allows ref struct
+        {
+            private readonly IAlternateLookup<TAlternateKey, K, ScopedAtomicFactory<K, V>> inner;
+            private readonly IAlternateEqualityComparer<TAlternateKey, K> comparer;
+
+            internal AlternateLookup(IAlternateLookup<TAlternateKey, K, ScopedAtomicFactory<K, V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
+            {
+                this.inner = inner;
+                this.comparer = comparer;
+            }
+
+            public bool ScopedTryGet(TAlternateKey key, [MaybeNullWhen(false)] out Lifetime<V> lifetime)
+            {
+                if (this.inner.TryGet(key, out var scope) && scope.TryCreateLifetime(out lifetime))
+                {
+                    return true;
+                }
+
+                lifetime = default;
+                return false;
+            }
+
+            public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey)
+            {
+                if (this.inner.TryRemove(key, out actualKey, out _))
+                {
+                    return true;
+                }
+
+                actualKey = default;
+                return false;
+            }
+
+#pragma warning disable CA2000 // Dispose objects before losing scope
+            public bool TryUpdate(TAlternateKey key, V value)
+            {
+                return this.inner.TryUpdate(key, new ScopedAtomicFactory<K, V>(value));
+            }
+
+            public void AddOrUpdate(TAlternateKey key, V value)
+            {
+                this.inner.AddOrUpdate(key, new ScopedAtomicFactory<K, V>(value));
+            }
+
+            public Lifetime<V> ScopedGetOrAdd(TAlternateKey key, Func<K, Scoped<V>> valueFactory)
+            {
+                var scope = this.inner.GetOrAdd(key, static _ => new ScopedAtomicFactory<K, V>());
+
+                // fast path: create the lifetime without materializing the key
+                if (scope.TryCreateLifetime(out var lifetime))
+                {
+                    return lifetime;
+                }
+
+                return ScopedGetOrAdd(key, new ValueFactory<K, Scoped<V>>(valueFactory));
+            }
+
+            public Lifetime<V> ScopedGetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, Scoped<V>> valueFactory, TArg factoryArgument)
+            {
+                var scope = this.inner.GetOrAdd(key, static _ => new ScopedAtomicFactory<K, V>());
+
+                // fast path: create the lifetime without materializing the key
+                if (scope.TryCreateLifetime(out var lifetime))
+                {
+                    return lifetime;
+                }
+
+                return ScopedGetOrAdd(key, new ValueFactoryArg<K, TArg, Scoped<V>>(valueFactory, factoryArgument));
+            }
+
+            private Lifetime<V> ScopedGetOrAdd<TFactory>(TAlternateKey key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
+            {
+                int c = 0;
+                var spinwait = new SpinWait();
+                K actualKey = this.comparer.Create(key);
+
+                while (true)
+                {
+                    var scope = this.inner.GetOrAdd(key, static _ => new ScopedAtomicFactory<K, V>());
+
+                    if (scope.TryCreateLifetime(actualKey, valueFactory, out var lifetime))
+                    {
+                        return lifetime;
+                    }
+
+                    spinwait.SpinOnce();
+
+                    if (c++ > ScopedCacheDefaults.MaxRetry)
+                        Throw.ScopedRetryFailure();
+                }
+            }
+#pragma warning restore CA2000 //  Dispose objects before losing scope
+        }
+#endif
+
         private class EventProxy : CacheEventProxyBase<K, ScopedAtomicFactory<K, V>, Scoped<V>>
         {
             public EventProxy(ICacheEvents<K, ScopedAtomicFactory<K, V>> inner)
