@@ -175,7 +175,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public void AcquireDoesNotCaptureLambdaState()
+        public void Acquire_WhenCalled_DoesNotGenerateDisplayClass()
         {
             typeof(SingletonCache<string, object>)
                 .GetNestedTypes(BindingFlags.NonPublic)

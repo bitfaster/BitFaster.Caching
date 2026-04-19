@@ -68,7 +68,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public void ScopedGetOrAddDoesNotCaptureLambdaState()
+        public void GetOrAdd_WhenCalled_DoesNotGenerateDisplayClass()
         {
             typeof(ScopedCache<int, Disposable>)
                 .GetNestedTypes(BindingFlags.NonPublic)
