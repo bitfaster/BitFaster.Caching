@@ -40,7 +40,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
 
         [Theory]
         [Repeat(SoakIterations)]
-        public async Task WhileBufferIsFilledItemsCanBeTaken(int iteration)
+        public async Task TryTake_WhileBufferIsConcurrentlyFilled_AllItemsAreTaken(int iteration)
         {
             this.testOutputHelper.WriteLine($"Iteration {iteration}");
             this.testOutputHelper.WriteLine($"ProcessorCount={Environment.ProcessorCount}.");
