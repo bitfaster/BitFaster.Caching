@@ -18,7 +18,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
         [Theory]
         [Repeat(soakIterations)]
-        public async Task ScopedGetOrAddWhenAccessIsConcurrentLifetimeIsAlwaysAlive(int _)
+        public async Task ScopedGetOrAddLifetimeIsAlwaysAlive(int _)
         {
             var cache = new AtomicFactoryScopedCache<int, Disposable>(new ConcurrentLru<int, ScopedAtomicFactory<int, Disposable>>(1, capacity, EqualityComparer<int>.Default));
 
