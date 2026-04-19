@@ -117,7 +117,7 @@ jobs:
 
       - name: Publish coverage report to coveralls.io
         if: ${{ matrix.coverage && matrix.flag != '' }}
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.${{ matrix.framework }}.info
@@ -137,7 +137,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
