@@ -325,14 +325,11 @@ namespace BitFaster.Caching.Lfu
                 Vector256<long> lower = Avx.LoadVector256(tablePtr + block);
                 Vector256<long> upper = Avx.LoadVector256(tablePtr + block + 4);
 
-                ref long lowerRef = ref Unsafe.As<Vector256<long>, long>(ref lower);
-                ref long upperRef = ref Unsafe.As<Vector256<long>, long>(ref upper);
-
                 Vector256<ulong> countVector = Vector256.Create(
-                    (ulong)Unsafe.Add(ref lowerRef, lane0),
-                    (ulong)Unsafe.Add(ref lowerRef, lane1),
-                    (ulong)Unsafe.Add(ref upperRef, lane2),
-                    (ulong)Unsafe.Add(ref upperRef, lane3));
+                    (ulong)lower.GetElement(lane0),
+                    (ulong)lower.GetElement(lane1),
+                    (ulong)upper.GetElement(lane2),
+                    (ulong)upper.GetElement(lane3));
 
                 Vector128<ushort> count = Avx2.PermuteVar8x32(Avx2.And(Avx2.ShiftRightLogicalVariable(countVector, index), Vector256.Create(0xfUL)).AsInt32(), Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7))
                     .GetLower()
@@ -383,14 +380,21 @@ namespace BitFaster.Caching.Lfu
                 Vector256<long> lower = Avx.LoadVector256(tablePtr + block);
                 Vector256<long> upper = Avx.LoadVector256(tablePtr + block + 4);
 
-                ref long lowerRef = ref Unsafe.As<Vector256<long>, long>(ref lower);
-                ref long upperRef = ref Unsafe.As<Vector256<long>, long>(ref upper);
+                long lower0 = lower.GetElement(0);
+                long lower1 = lower.GetElement(1);
+                long lower2 = lower.GetElement(2);
+                long lower3 = lower.GetElement(3);
+
+                long upper0 = upper.GetElement(0);
+                long upper1 = upper.GetElement(1);
+                long upper2 = upper.GetElement(2);
+                long upper3 = upper.GetElement(3);
 
                 Vector256<long> count = Vector256.Create(
-                    Unsafe.Add(ref lowerRef, lane0),
-                    Unsafe.Add(ref lowerRef, lane1),
-                    Unsafe.Add(ref upperRef, lane2),
-                    Unsafe.Add(ref upperRef, lane3));
+                    lane0 == 0 ? lower0 : lower1,
+                    lane1 == 2 ? lower2 : lower3,
+                    lane2 == 0 ? upper0 : upper1,
+                    lane3 == 2 ? upper2 : upper3);
 
                 // Note masked is 'equal' - therefore use AndNot below
                 Vector256<long> masked = Avx2.CompareEqual(Avx2.And(count, mask), mask);
@@ -400,10 +404,18 @@ namespace BitFaster.Caching.Lfu
 
                 bool wasInc = Avx2.MoveMask(Avx2.CompareEqual(masked.AsByte(), Vector256<byte>.Zero).AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
 
-                Unsafe.Add(ref lowerRef, lane0) = count.GetElement(0) + inc.GetElement(0);
-                Unsafe.Add(ref lowerRef, lane1) = count.GetElement(1) + inc.GetElement(1);
-                Unsafe.Add(ref upperRef, lane2) = count.GetElement(2) + inc.GetElement(2);
-                Unsafe.Add(ref upperRef, lane3) = count.GetElement(3) + inc.GetElement(3);
+                long nextLower0 = lane0 == 0 ? count.GetElement(0) + inc.GetElement(0) : lower0;
+                long nextLower1 = lane0 == 1 ? count.GetElement(0) + inc.GetElement(0) : lower1;
+                long nextLower2 = lane1 == 2 ? count.GetElement(1) + inc.GetElement(1) : lower2;
+                long nextLower3 = lane1 == 3 ? count.GetElement(1) + inc.GetElement(1) : lower3;
+
+                long nextUpper0 = lane2 == 0 ? count.GetElement(2) + inc.GetElement(2) : upper0;
+                long nextUpper1 = lane2 == 1 ? count.GetElement(2) + inc.GetElement(2) : upper1;
+                long nextUpper2 = lane3 == 2 ? count.GetElement(3) + inc.GetElement(3) : upper2;
+                long nextUpper3 = lane3 == 3 ? count.GetElement(3) + inc.GetElement(3) : upper3;
+
+                lower = Vector256.Create(nextLower0, nextLower1, nextLower2, nextLower3);
+                upper = Vector256.Create(nextUpper0, nextUpper1, nextUpper2, nextUpper3);
 
                 Avx.Store(tablePtr + block, lower);
                 Avx.Store(tablePtr + block + 4, upper);
