@@ -88,7 +88,7 @@ namespace BitFaster.Caching
                 {
                     if (newReferenceCount == 0 && (oldState & DisposedFlag) != 0)
                     {
-                        this.value.Dispose();
+                        this.value?.Dispose();
                     }
 
                     return;
@@ -119,7 +119,7 @@ namespace BitFaster.Caching
                 {
                     if (newReferenceCount == 0)
                     {
-                        this.value.Dispose();
+                        this.value?.Dispose();
                     }
 
                     return;
