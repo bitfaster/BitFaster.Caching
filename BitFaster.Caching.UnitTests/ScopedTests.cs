@@ -8,6 +8,10 @@ namespace BitFaster.Caching.UnitTests
 {
     public class ScopedTests
     {
+#if NETCOREAPP3_1_OR_GREATER
+        private const long MaxExpectedBytesPerLifetime = 80L;
+#endif
+
         [Fact]
         public void WhenScopeIsCreatedThenScopeDisposedValueIsDisposed()
         {
@@ -106,7 +110,7 @@ namespace BitFaster.Caching.UnitTests
 
             long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
-            allocated.Should().BeLessThan(256 * 80L);
+            allocated.Should().BeLessThan(256 * MaxExpectedBytesPerLifetime);
         }
 #endif
     }
