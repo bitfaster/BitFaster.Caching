@@ -67,7 +67,7 @@ namespace BitFaster.Caching.Atomic
         public ValueTask<V> GetValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
             where TArg : allows ref struct
 #else
-        public async ValueTask<V> GetValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+        public ValueTask<V> GetValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
 #endif
         {
             if (initializer == null)
@@ -78,7 +78,7 @@ namespace BitFaster.Caching.Atomic
 #if NET9_0_OR_GREATER
             return CreateValueAsync(key, new RefAsyncValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument));
 #else
-            return await CreateValueAsync(key, new AsyncValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument)).ConfigureAwait(false);
+            return CreateValueAsync(key, new AsyncValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument));
 #endif
         }
 
