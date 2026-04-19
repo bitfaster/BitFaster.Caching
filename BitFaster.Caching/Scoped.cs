@@ -13,10 +13,13 @@ namespace BitFaster.Caching
     /// <typeparam name="T">The type of scoped value.</typeparam>
     [DebuggerTypeProxy(typeof(Scoped<>.ScopedDebugView))]
     [DebuggerDisplay("{FormatDebug(),nq}")]
-    public sealed class Scoped<T> : IScoped<T>, IDisposable where T : IDisposable
+    public sealed class Scoped<T> : IScoped<T>, IDisposable, ILifetimeReleaser where T : IDisposable
     {
-        private ReferenceCount<T> refCount;
-        private int disposed = 0;
+        private const int DisposedFlag = unchecked((int)0x80000000);
+        private const int ReferenceCountMask = int.MaxValue;
+
+        private readonly T value;
+        private int state = 1;
 
         /// <summary>
         /// Initializes a new Scoped value.
@@ -24,13 +27,13 @@ namespace BitFaster.Caching
         /// <param name="value">The value to scope.</param>
         public Scoped(T value)
         {
-            this.refCount = new ReferenceCount<T>(value);
+            this.value = value;
         }
 
         /// <summary>
         /// Gets a value indicating whether the scope is disposed.
         /// </summary>
-        public bool IsDisposed => Volatile.Read(ref this.disposed) == 1;
+        public bool IsDisposed => Volatile.Read(ref this.state) < 0;
 
         /// <summary>
         /// Attempts to create a lifetime for the scoped value. The lifetime guarantees the value is alive until 
@@ -42,19 +45,17 @@ namespace BitFaster.Caching
         {
             while (true)
             {
-                var oldRefCount = this.refCount;
+                int oldState = Volatile.Read(ref this.state);
 
-                // If old ref count is 0, the scoped object has been disposed and there was a race.
-                if (IsDisposed || oldRefCount.Count == 0)
+                if (oldState < 0)
                 {
                     lifetime = default;
                     return false;
                 }
 
-                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.IncrementCopy(), oldRefCount))
+                if (Interlocked.CompareExchange(ref this.state, oldState + 1, oldState) == oldState)
                 {
-                    // When Lifetime is disposed, it calls DecrementReferenceCount
-                    lifetime = new Lifetime<T>(oldRefCount, this.DecrementReferenceCount);
+                    lifetime = new Lifetime<T>(this.value, oldState & ReferenceCountMask, this);
                     return true;
                 }
             }
@@ -74,22 +75,23 @@ namespace BitFaster.Caching
             return lifetime;
         }
 
-        private void DecrementReferenceCount()
+        void ILifetimeReleaser.ReleaseLifetime()
         {
             while (true)
             {
-                var oldRefCount = this.refCount;
+                int oldState = Volatile.Read(ref this.state);
+                int oldReferenceCount = oldState & ReferenceCountMask;
+                int newReferenceCount = oldReferenceCount - 1;
+                int newState = (oldState & DisposedFlag) | newReferenceCount;
 
-                if (oldRefCount == Interlocked.CompareExchange(ref this.refCount, oldRefCount.DecrementCopy(), oldRefCount))
+                if (Interlocked.CompareExchange(ref this.state, newState, oldState) == oldState)
                 {
-                    // Note this.refCount may be stale.
-                    // Old count == 1, thus new ref count is 0, dispose the value.
-                    if (oldRefCount.Count == 1)
+                    if (newReferenceCount == 0 && (oldState & DisposedFlag) != 0)
                     {
-                        oldRefCount.Value?.Dispose();
+                        this.value.Dispose();
                     }
 
-                    break;
+                    return;
                 }
             }
         }
@@ -100,10 +102,28 @@ namespace BitFaster.Caching
         /// </summary>
         public void Dispose()
         {
-            // Dispose exactly once, decrement via dispose exactly once
-            if (Interlocked.CompareExchange(ref this.disposed, 1, 0) == 0)
+            while (true)
             {
-                DecrementReferenceCount();
+                int oldState = Volatile.Read(ref this.state);
+
+                if ((oldState & DisposedFlag) != 0)
+                {
+                    return;
+                }
+
+                int oldReferenceCount = oldState & ReferenceCountMask;
+                int newReferenceCount = oldReferenceCount - 1;
+                int newState = DisposedFlag | newReferenceCount;
+
+                if (Interlocked.CompareExchange(ref this.state, newState, oldState) == oldState)
+                {
+                    if (newReferenceCount == 0)
+                    {
+                        this.value.Dispose();
+                    }
+
+                    return;
+                }
             }
         }
 
@@ -115,7 +135,7 @@ namespace BitFaster.Caching
                 return "[Disposed Scope]";
             }
 
-            return this.refCount.Value?.ToString() ?? "[null]";
+            return this.value?.ToString() ?? "[null]";
         }
 
         [ExcludeFromCodeCoverage]
@@ -133,7 +153,7 @@ namespace BitFaster.Caching
 
             public bool IsDisposed => this.scoped.IsDisposed;
 
-            public T Value => this.scoped.refCount.Value;
+            public T Value => this.scoped.value;
         }
     }
 }

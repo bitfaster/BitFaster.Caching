@@ -86,5 +86,28 @@ namespace BitFaster.Caching.UnitTests
 
             valueFactory.Disposable.IsDisposed.Should().BeTrue();
         }
+
+#if NETCOREAPP3_1_OR_GREATER
+        [Fact]
+        public void WhenLifetimeIsCreatedInternalReferenceCountingDoesNotAllocateOnHeap()
+        {
+            var scope = new Scoped<Disposable>(new Disposable());
+
+            using (scope.CreateLifetime())
+            {
+            }
+
+            long before = GC.GetAllocatedBytesForCurrentThread();
+
+            for (int i = 0; i < 256; i++)
+            {
+                using var lifetime = scope.CreateLifetime();
+            }
+
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            allocated.Should().BeLessThan(256 * 80L);
+        }
+#endif
     }
 }
