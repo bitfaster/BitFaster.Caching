@@ -93,7 +93,7 @@ namespace BitFaster.Caching.UnitTests
 
 #if NETCOREAPP3_1_OR_GREATER
         [Fact]
-        public void WhenLifetimeIsCreatedInternalReferenceCountingDoesNotAllocateOnHeap()
+        public void CreateLifetime_WhenCalledRepeatedly_DoesNotAllocateForReferenceCounting()
         {
             var scope = new Scoped<Disposable>(new Disposable());
 
