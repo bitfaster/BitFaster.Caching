@@ -233,42 +233,44 @@ namespace BitFaster.Caching.Atomic
             {
                 this.inner.AddOrUpdate(key, new ScopedAtomicFactory<K, V>(value));
             }
-#pragma warning restore CA2000 // Dispose objects before losing scope
 
             public Lifetime<V> ScopedGetOrAdd(TAlternateKey key, Func<K, Scoped<V>> valueFactory)
             {
+                var scope = this.inner.GetOrAdd(key, static _ => new ScopedAtomicFactory<K, V>());
+
+                // fast path: create the lifetime without materializing the key
+                if (scope.TryCreateLifetime(out var lifetime))
+                {
+                    return lifetime;
+                }
+
                 return ScopedGetOrAdd(key, new ValueFactory<K, Scoped<V>>(valueFactory));
             }
 
             public Lifetime<V> ScopedGetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, Scoped<V>> valueFactory, TArg factoryArgument)
             {
+                var scope = this.inner.GetOrAdd(key, static _ => new ScopedAtomicFactory<K, V>());
+
+                // fast path: create the lifetime without materializing the key
+                if (scope.TryCreateLifetime(out var lifetime))
+                {
+                    return lifetime;
+                }
+
                 return ScopedGetOrAdd(key, new ValueFactoryArg<K, TArg, Scoped<V>>(valueFactory, factoryArgument));
             }
 
-#pragma warning disable CA2000 // Lifetime ownership is returned to the caller.
             private Lifetime<V> ScopedGetOrAdd<TFactory>(TAlternateKey key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
             {
                 int c = 0;
                 var spinwait = new SpinWait();
-                K actualKey = default!;
-                bool hasActualKey = false;
+                K actualKey = this.comparer.Create(key);
 
                 while (true)
                 {
                     var scope = this.inner.GetOrAdd(key, static _ => new ScopedAtomicFactory<K, V>());
 
-                    if (scope.TryCreateLifetime(out var lifetime))
-                    {
-                        return lifetime;
-                    }
-
-                    if (!hasActualKey)
-                    {
-                        actualKey = this.comparer.Create(key);
-                        hasActualKey = true;
-                    }
-
-                    if (scope.TryCreateLifetime(actualKey, valueFactory, out lifetime))
+                    if (scope.TryCreateLifetime(actualKey, valueFactory, out var lifetime))
                     {
                         return lifetime;
                     }
@@ -279,7 +281,7 @@ namespace BitFaster.Caching.Atomic
                         Throw.ScopedRetryFailure();
                 }
             }
-#pragma warning restore CA2000 // Lifetime ownership is returned to the caller.
+#pragma warning restore CA2000 //  Dispose objects before losing scope
         }
 #endif
 
