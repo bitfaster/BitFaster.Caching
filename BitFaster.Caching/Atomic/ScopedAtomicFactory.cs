@@ -150,7 +150,7 @@ namespace BitFaster.Caching.Atomic
         /// </summary>
         public void Dispose()
         {
-            var init = initializer;
+            var init = Volatile.Read(ref initializer);
 
             if (init != null)
             {
