@@ -247,7 +247,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         private const int iterations = 10;
 
         [Fact]
-        public async Task AlternateLookupScopedGetOrAddWhenInitializationIsContendedLifetimeIsAlwaysAlive()
+        public async Task ScopedGetOrAddWhenAlternateInitializationIsContendedLifetimeIsAlwaysAlive()
         {
             var cache = new AtomicFactoryScopedCache<string, Disposable>(new ConcurrentLru<string, ScopedAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
@@ -285,7 +285,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public async Task AlternateLookupScopedGetOrAddWithArgWhenInitializationIsContendedLifetimeIsAlwaysAlive()
+        public async Task ScopedGetOrAddWithArgWhenAlternateInitializationIsContendedLifetimeIsAlwaysAlive()
         {
             var cache = new AtomicFactoryScopedCache<string, Disposable>(new ConcurrentLru<string, ScopedAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
