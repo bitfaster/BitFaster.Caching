@@ -73,7 +73,12 @@ namespace BitFaster.Caching
         /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
         /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
         /// <remarks>The default implementation given here is the fallback that provides backwards compatibility for classes that implement ICache on prior versions</remarks>
+#if NET9_0_OR_GREATER
+        ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            where TArg : allows ref struct;
+#else
         ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument) => this.GetOrAddAsync(key, k => valueFactory(k, factoryArgument));
+#endif
 
         /// <summary>
         /// Attempts to remove and return the value that has the specified key.

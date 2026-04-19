@@ -236,7 +236,12 @@ namespace BitFaster.Caching.Lru
         /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
         /// in the cache, or the new value if the key was not in the cache.</returns>
+#if NET9_0_OR_GREATER
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+            where TArg : allows ref struct
+#else
+        public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#endif
         {
             while (true)
             {
@@ -285,8 +290,21 @@ namespace BitFaster.Caching.Lru
         /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
         /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
         /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
+#if NET9_0_OR_GREATER
+        public ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            where TArg : allows ref struct
+#else
         public async ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+#endif
         {
+#if NET9_0_OR_GREATER
+            if (this.TryGet(key, out var value))
+            {
+                return new ValueTask<V>(value);
+            }
+
+            return GetOrAddAsyncCore(key, valueFactory(key, factoryArgument));
+#else
             while (true)
             {
                 if (this.TryGet(key, out var value))
@@ -302,7 +320,28 @@ namespace BitFaster.Caching.Lru
                     return value;
                 }
             }
+#endif
         }
+
+#if NET9_0_OR_GREATER
+        private async ValueTask<V> GetOrAddAsyncCore(K key, Task<V> valueTask)
+        {
+            var value = await valueTask.ConfigureAwait(false);
+
+            while (true)
+            {
+                if (TryAdd(key, value))
+                {
+                    return value;
+                }
+
+                if (this.TryGet(key, out var existing))
+                {
+                    return existing;
+                }
+            }
+        }
+#endif
 
         /// <summary>
         /// Attempts to remove the specified key value pair.
@@ -1057,6 +1096,7 @@ namespace BitFaster.Caching.Lru
             }
 
             public V GetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+                where TArg : allows ref struct
             {
                 while (true)
                 {
@@ -1089,6 +1129,7 @@ namespace BitFaster.Caching.Lru
             }
 
             public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+                where TArg : allows ref struct
             {
                 if (this.TryGet(key, out var value))
                 {

@@ -88,6 +88,16 @@ namespace BitFaster.Caching.UnitTests.Lfu
             result1.Should().Be(result2);
         }
 
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void GetOrAddWithRefStructArgWhenValueMissingReturnsCreatedValue()
+        {
+            var result = cache.GetOrAdd(1, static (key, argument) => key + argument.Length, "xx".AsSpan());
+
+            result.Should().Be(3);
+        }
+#endif
+
         [Fact]
         public async Task WhenKeyIsRequesteItIsCreatedAndCachedAsync()
         {
@@ -107,6 +117,16 @@ namespace BitFaster.Caching.UnitTests.Lfu
             valueFactory.timesCalled.Should().Be(1);
             result1.Should().Be(result2);
         }
+
+#if NET9_0_OR_GREATER
+        [Fact]
+        public async Task GetOrAddAsyncWithRefStructArgWhenValueMissingReturnsCreatedValue()
+        {
+            var result = await cache.GetOrAddAsync(1, static (key, argument) => Task.FromResult(key + argument.Length), "xx".AsSpan());
+
+            result.Should().Be(3);
+        }
+#endif
 
         [Fact]
         public void WhenItemsAddedExceedsCapacityItemsAreDiscarded()

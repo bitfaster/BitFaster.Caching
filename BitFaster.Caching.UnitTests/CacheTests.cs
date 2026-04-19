@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using BitFaster.Caching.Lru;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -12,7 +13,7 @@ namespace BitFaster.Caching.UnitTests
     public class CacheTests
     {
         // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER && !NET9_0_OR_GREATER
         [Fact]
         public void WhenCacheInterfaceDefaultGetOrAddFallback()
         {
@@ -66,6 +67,9 @@ namespace BitFaster.Caching.UnitTests
             
             r.Should().Be(3);
         }
+#endif
+
+#if NETCOREAPP3_0_OR_GREATER
 
         [Fact]
         public void WhenAsyncCacheInterfaceDefaultTryRemoveKeyThrows()
@@ -138,6 +142,26 @@ namespace BitFaster.Caching.UnitTests
         }
 
 #if NET9_0_OR_GREATER
+        [Fact]
+        public void GetOrAddWithRefStructArgViaCacheInterfaceWhenValueMissingReturnsCreatedValue()
+        {
+            ICache<int, int> cache = new ClassicLru<int, int>(3);
+
+            var value = cache.GetOrAdd(1, static (key, argument) => key + argument.Length, "xx".AsSpan());
+
+            value.Should().Be(3);
+        }
+
+        [Fact]
+        public async Task GetOrAddAsyncWithRefStructArgViaAsyncCacheInterfaceWhenValueMissingReturnsCreatedValue()
+        {
+            IAsyncCache<int, int> cache = new ClassicLru<int, int>(3);
+
+            var value = await cache.GetOrAddAsync(1, static (key, argument) => Task.FromResult(key + argument.Length), "xx".AsSpan());
+
+            value.Should().Be(3);
+        }
+
         [Fact]
         public void WhenCacheInterfaceDefaultGetAlternateLookupThrows()
         {

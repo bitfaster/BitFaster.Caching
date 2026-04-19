@@ -90,7 +90,12 @@ namespace BitFaster.Caching.Atomic
         /// <param name="valueFactory">The factory function used to asynchronously generate a value for the key.</param>
         /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
         /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
+#if NET9_0_OR_GREATER
         public ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            where TArg : allows ref struct
+#else
+        public ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+#endif
         {
             var synchronized = cache.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
             return synchronized.GetValueAsync(key, valueFactory, factoryArgument);
@@ -238,6 +243,7 @@ namespace BitFaster.Caching.Atomic
             }
 
             public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+                where TArg : allows ref struct
             {
                 var synchronized = inner.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
 
