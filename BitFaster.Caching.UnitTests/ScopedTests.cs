@@ -8,6 +8,10 @@ namespace BitFaster.Caching.UnitTests
 {
     public class ScopedTests
     {
+#if NETCOREAPP3_1_OR_GREATER
+        private const long MaxExpectedBytesPerLifetime = 80L;
+#endif
+
         [Fact]
         public void WhenScopeIsCreatedThenScopeDisposedValueIsDisposed()
         {
@@ -86,5 +90,28 @@ namespace BitFaster.Caching.UnitTests
 
             valueFactory.Disposable.IsDisposed.Should().BeTrue();
         }
+
+#if NETCOREAPP3_1_OR_GREATER
+        [Fact]
+        public void CreateLifetime_WhenCalledRepeatedly_DoesNotAllocateForReferenceCounting()
+        {
+            var scope = new Scoped<Disposable>(new Disposable());
+
+            using (scope.CreateLifetime())
+            {
+            }
+
+            long before = GC.GetAllocatedBytesForCurrentThread();
+
+            for (int i = 0; i < 256; i++)
+            {
+                using var lifetime = scope.CreateLifetime();
+            }
+
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            allocated.Should().BeLessThan(256 * MaxExpectedBytesPerLifetime);
+        }
+#endif
     }
 }
