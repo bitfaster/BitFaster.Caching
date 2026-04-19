@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Atomic;
 using BitFaster.Caching.Lru;
@@ -236,4 +237,90 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 #endif
     }
+
+#if NET9_0_OR_GREATER
+    [Collection("Soak")]
+    public class AtomicFactoryScopedCacheSoakTests
+    {
+        private const int capacity = 6;
+        private const int threadCount = 4;
+        private const int iterations = 10;
+
+        [Fact]
+        public async Task AlternateLookupScopedGetOrAddWhenInitializationIsContendedLifetimeIsAlwaysAlive()
+        {
+            var cache = new AtomicFactoryScopedCache<string, Disposable>(new ConcurrentLru<string, ScopedAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            for (int i = 0; i < iterations; i++)
+            {
+                using var enteredFactory = new ManualResetEventSlim();
+                using var releaseFactory = new ManualResetEventSlim();
+                var expected = i;
+                var keyText = expected.ToString();
+                var factoryCalls = 0;
+
+                var run = Threaded.Run(threadCount, _ =>
+                {
+                    ReadOnlySpan<char> key = keyText.AsSpan();
+                    using var lifetime = alternate.ScopedGetOrAdd(key, k =>
+                    {
+                        Interlocked.Increment(ref factoryCalls);
+                        enteredFactory.Set();
+                        releaseFactory.Wait();
+                        return new Scoped<Disposable>(new Disposable(int.Parse(k)));
+                    });
+
+                    lifetime.Value.IsDisposed.Should().BeFalse($"ref count {lifetime.ReferenceCount}");
+                    lifetime.Value.State.Should().Be(expected);
+                });
+
+                var factoryEntered = enteredFactory.Wait(TimeSpan.FromSeconds(5));
+                releaseFactory.Set();
+
+                factoryEntered.Should().BeTrue();
+                await run;
+                factoryCalls.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public async Task AlternateLookupScopedGetOrAddWithArgWhenInitializationIsContendedLifetimeIsAlwaysAlive()
+        {
+            var cache = new AtomicFactoryScopedCache<string, Disposable>(new ConcurrentLru<string, ScopedAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            for (int i = 0; i < iterations; i++)
+            {
+                using var enteredFactory = new ManualResetEventSlim();
+                using var releaseFactory = new ManualResetEventSlim();
+                var expected = i + 1;
+                var keyText = i.ToString();
+                var factoryCalls = 0;
+
+                var run = Threaded.Run(threadCount, _ =>
+                {
+                    ReadOnlySpan<char> key = keyText.AsSpan();
+                    using var lifetime = alternate.ScopedGetOrAdd(key, (k, offset) =>
+                    {
+                        Interlocked.Increment(ref factoryCalls);
+                        enteredFactory.Set();
+                        releaseFactory.Wait();
+                        return new Scoped<Disposable>(new Disposable(int.Parse(k) + offset));
+                    }, 1);
+
+                    lifetime.Value.IsDisposed.Should().BeFalse($"ref count {lifetime.ReferenceCount}");
+                    lifetime.Value.State.Should().Be(expected);
+                });
+
+                var factoryEntered = enteredFactory.Wait(TimeSpan.FromSeconds(5));
+                releaseFactory.Set();
+
+                factoryEntered.Should().BeTrue();
+                await run;
+                factoryCalls.Should().Be(1);
+            }
+        }
+    }
+#endif
 }
