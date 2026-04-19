@@ -46,11 +46,18 @@ namespace BitFaster.Caching
         /// <returns>A value lifetime</returns>
         public Lifetime<TValue> Acquire(TKey key, Func<TKey, TValue> valueFactory)
         {
+#if NETCOREAPP3_0_OR_GREATER
             var refCount = this.cache.AddOrUpdate(key,
-                    (k) => new ReferenceCount<TValue>(valueFactory(k)),
-                    (_, existingRefCount) => existingRefCount.IncrementCopy());
+                    static (k, factory) => new ReferenceCount<TValue>(factory(k)),
+                    static (_, existingRefCount, _) => existingRefCount.IncrementCopy(),
+                    valueFactory);
+#else
+            var refCount = this.cache.AddOrUpdate(key,
+                    new AddFactory(valueFactory).Create,
+                    static (_, existingRefCount) => existingRefCount.IncrementCopy());
+#endif
 
-            return new Lifetime<TValue>(refCount, () => this.Release(key));
+            return new Lifetime<TValue>(refCount, new ReleaseAction(this, key).Invoke);
         }
 
         private void Release(TKey key)
@@ -82,6 +89,38 @@ namespace BitFaster.Caching
                     // replaced with decremented copy, exit
                     break;
                 }
+            }
+        }
+
+        private readonly struct AddFactory
+        {
+            private readonly Func<TKey, TValue> valueFactory;
+
+            public AddFactory(Func<TKey, TValue> valueFactory)
+            {
+                this.valueFactory = valueFactory;
+            }
+
+            public ReferenceCount<TValue> Create(TKey key)
+            {
+                return new ReferenceCount<TValue>(this.valueFactory(key));
+            }
+        }
+
+        private readonly struct ReleaseAction
+        {
+            private readonly SingletonCache<TKey, TValue> owner;
+            private readonly TKey key;
+
+            public ReleaseAction(SingletonCache<TKey, TValue> owner, TKey key)
+            {
+                this.owner = owner;
+                this.key = key;
+            }
+
+            public void Invoke()
+            {
+                this.owner.Release(this.key);
             }
         }
     }

@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
@@ -64,6 +65,16 @@ namespace BitFaster.Caching.UnitTests
             Action getOrAdd = () => { this.cache.ScopedGetOrAdd(1, k => scope); };
 
             getOrAdd.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void ScopedGetOrAddDoesNotCaptureLambdaState()
+        {
+            typeof(ScopedCache<int, Disposable>)
+                .GetNestedTypes(BindingFlags.NonPublic)
+                .Select(x => x.Name)
+                .Should()
+                .NotContain(name => name.Contains("DisplayClass", StringComparison.Ordinal));
         }
     }
 }

@@ -95,7 +95,7 @@ namespace BitFaster.Caching
             var spinwait = new SpinWait();
             while (true)
             {
-                var scope = cache.GetOrAdd(key, k => valueFactory.Create(k));
+                var scope = this.cache.GetOrAdd(key, valueFactory.Create);
 
                 if (scope.TryCreateLifetime(out var lifetime))
                 {

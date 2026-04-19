@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -171,6 +172,16 @@ namespace BitFaster.Caching.UnitTests
             }));
 
             await Task.WhenAll(tasks);
+        }
+
+        [Fact]
+        public void AcquireDoesNotCaptureLambdaState()
+        {
+            typeof(SingletonCache<string, object>)
+                .GetNestedTypes(BindingFlags.NonPublic)
+                .Select(x => x.Name)
+                .Should()
+                .NotContain(name => name.Contains("DisplayClass", StringComparison.Ordinal));
         }
 
         public class DisposeTest : IDisposable
