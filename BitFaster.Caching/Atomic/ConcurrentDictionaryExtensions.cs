@@ -35,6 +35,9 @@ namespace BitFaster.Caching.Atomic
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already in the dictionary, or the new value if the key was not in the dictionary.</returns>
         public static V GetOrAdd<K, V, TArg>(this ConcurrentDictionary<K, AtomicFactory<K, V>> dictionary, K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
              where K : notnull
+#if NET9_0_OR_GREATER
+             where TArg : allows ref struct
+#endif
         {
             var atomicFactory = dictionary.GetOrAdd(key, _ => new AtomicFactory<K, V>());
             return atomicFactory.GetValue(key, valueFactory, factoryArgument);
@@ -64,6 +67,9 @@ namespace BitFaster.Caching.Atomic
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already in the dictionary, or the new value if the key was not in the dictionary.</returns>
         public static ValueTask<V> GetOrAddAsync<K, V, TArg>(this ConcurrentDictionary<K, AsyncAtomicFactory<K, V>> dictionary, K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
              where K : notnull
+#if NET9_0_OR_GREATER
+             where TArg : allows ref struct
+#endif
         {
             var asyncAtomicFactory = dictionary.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
             return asyncAtomicFactory.GetValueAsync(key, valueFactory, factoryArgument);

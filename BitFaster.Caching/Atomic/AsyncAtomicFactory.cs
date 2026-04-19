@@ -63,14 +63,23 @@ namespace BitFaster.Caching.Atomic
         /// <param name="valueFactory">The value factory to use to create the value when it is not initialized.</param>
         /// <param name="factoryArgument">The value factory argument.</param>
         /// <returns>The value.</returns>
+#if NET9_0_OR_GREATER
+        public ValueTask<V> GetValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            where TArg : allows ref struct
+#else
         public async ValueTask<V> GetValueAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+#endif
         {
             if (initializer == null)
             {
-                return value!;
+                return new ValueTask<V>(value!);
             }
 
+#if NET9_0_OR_GREATER
+            return CreateValueAsync(key, new RefAsyncValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument));
+#else
             return await CreateValueAsync(key, new AsyncValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument)).ConfigureAwait(false);
+#endif
         }
 
         /// <summary>
@@ -122,16 +131,37 @@ namespace BitFaster.Caching.Atomic
             return ValueIfCreated!.GetHashCode();
         }
 
-        private async ValueTask<V> CreateValueAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, V>
+        private ValueTask<V> CreateValueAsync<TFactory>(K key, TFactory valueFactory)
+#if NET9_0_OR_GREATER
+            where TFactory : struct, IAsyncValueFactory<K, V>, allows ref struct
+#else
+            where TFactory : struct, IAsyncValueFactory<K, V>
+#endif
         {
             var init = Volatile.Read(ref initializer);
 
             if (init != null)
             {
-                value = await init.CreateValueAsync(key, valueFactory).ConfigureAwait(false);
-                Volatile.Write(ref initializer, null);
+                var createdValue = init.CreateValueAsync(key, valueFactory);
+
+                if (createdValue.IsCompletedSuccessfully)
+                {
+                    value = createdValue.Result;
+                    Volatile.Write(ref initializer, null);
+                }
+                else
+                {
+                    return AwaitCreatedValueAsync(createdValue);
+                }
             }
 
+            return new ValueTask<V>(value!);
+        }
+
+        private async ValueTask<V> AwaitCreatedValueAsync(ValueTask<V> createdValue)
+        {
+            value = await createdValue.ConfigureAwait(false);
+            Volatile.Write(ref initializer, null);
             return value!;
         }
 
@@ -140,7 +170,12 @@ namespace BitFaster.Caching.Atomic
             private bool isInitialized;
             private Task<V>? valueTask;
 
-            public async ValueTask<V> CreateValueAsync<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, V>
+            public ValueTask<V> CreateValueAsync<TFactory>(K key, TFactory valueFactory)
+#if NET9_0_OR_GREATER
+                where TFactory : struct, IAsyncValueFactory<K, V>, allows ref struct
+#else
+                where TFactory : struct, IAsyncValueFactory<K, V>
+#endif
             {
                 var tcs = new TaskCompletionSource<V>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -148,25 +183,42 @@ namespace BitFaster.Caching.Atomic
 
                 if (ReferenceEquals(synchronizedTask, tcs.Task))
                 {
+                    Task<V> factoryTask;
+
                     try
                     {
-                        var value = await valueFactory.CreateAsync(key).ConfigureAwait(false);
-                        tcs.SetResult(value);
-
-                        return value;
+                        factoryTask = valueFactory.CreateAsync(key);
                     }
                     catch (Exception ex)
                     {
                         Volatile.Write(ref isInitialized, false);
                         tcs.SetException(ex);
-
-                        // always await the task to avoid unobserved task exceptions - normal case is that no other thread is waiting.
-                        // this will re-throw the exception.
-                        await tcs.Task.ConfigureAwait(false);
+                        return new ValueTask<V>(tcs.Task);
                     }
+
+                    return CompleteSynchronizedTaskAsync(factoryTask, tcs);
                 }
 
-                return await synchronizedTask.ConfigureAwait(false);
+                return new ValueTask<V>(synchronizedTask);
+            }
+
+            private async ValueTask<V> CompleteSynchronizedTaskAsync(Task<V> factoryTask, TaskCompletionSource<V> tcs)
+            {
+                try
+                {
+                    var createdValue = await factoryTask.ConfigureAwait(false);
+                    tcs.SetResult(createdValue);
+                    return createdValue;
+                }
+                catch (Exception ex)
+                {
+                    Volatile.Write(ref isInitialized, false);
+                    tcs.SetException(ex);
+
+                    // always await the task to avoid unobserved task exceptions - normal case is that no other thread is waiting.
+                    // this will re-throw the exception.
+                    return await tcs.Task.ConfigureAwait(false);
+                }
             }
 
 #pragma warning disable CA2002 // Do not lock on objects with weak identity

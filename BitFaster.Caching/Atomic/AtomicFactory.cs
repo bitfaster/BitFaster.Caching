@@ -63,14 +63,23 @@ namespace BitFaster.Caching.Atomic
         /// <param name="valueFactory">The value factory to use to create the value when it is not initialized.</param>
         /// <param name="factoryArgument">The value factory argument.</param>
         /// <returns>The value.</returns>
+#if NET9_0_OR_GREATER
         public V GetValue<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+            where TArg : allows ref struct
+#else
+        public V GetValue<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#endif
         {
             if (initializer == null)
             {
                 return value!;
             }
 
+#if NET9_0_OR_GREATER
+            return CreateValue(key, new RefValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument));
+#else
             return CreateValue(key, new ValueFactoryArg<K, TArg, V>(valueFactory, factoryArgument));
+#endif
         }
 
         /// <summary>
@@ -106,7 +115,12 @@ namespace BitFaster.Caching.Atomic
         /// This mitigates lock convoys where many queued threads will fail slowly one by one, introducing delays
         /// and multiplying the number of calls to the failing resource.
         /// </summary>
-        private V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
+        private V CreateValue<TFactory>(K key, TFactory valueFactory)
+#if NET9_0_OR_GREATER
+            where TFactory : struct, IValueFactory<K, V>, allows ref struct
+#else
+            where TFactory : struct, IValueFactory<K, V>
+#endif
         {
             var init = Volatile.Read(ref initializer);
 
@@ -163,7 +177,12 @@ namespace BitFaster.Caching.Atomic
             private V? value;
             private ExceptionDispatchInfo? exceptionDispatch;
 
-            public V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
+            public V CreateValue<TFactory>(K key, TFactory valueFactory)
+#if NET9_0_OR_GREATER
+                where TFactory : struct, IValueFactory<K, V>, allows ref struct
+#else
+                where TFactory : struct, IValueFactory<K, V>
+#endif
             {
                 lock (this)
                 {

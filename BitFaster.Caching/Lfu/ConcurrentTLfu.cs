@@ -81,7 +81,12 @@ namespace BitFaster.Caching.Lfu
         }
 
         ///<inheritdoc/>
+#if NET9_0_OR_GREATER
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+            where TArg : allows ref struct
+#else
+        public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#endif
         {
             return core.GetOrAdd(key, valueFactory, factoryArgument);
         }
@@ -93,7 +98,12 @@ namespace BitFaster.Caching.Lfu
         }
 
         ///<inheritdoc/>
+#if NET9_0_OR_GREATER
         public ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            where TArg : allows ref struct
+#else
+        public ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+#endif
         {
             return core.GetOrAddAsync(key, valueFactory, factoryArgument);
         }

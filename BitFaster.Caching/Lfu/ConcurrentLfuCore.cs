@@ -216,7 +216,12 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+#if NET9_0_OR_GREATER
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+            where TArg : allows ref struct
+#else
+        public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#endif
         {
             while (true)
             {
@@ -250,8 +255,21 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+#if NET9_0_OR_GREATER
+        public ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            where TArg : allows ref struct
+#else
         public async ValueTask<V> GetOrAddAsync<TArg>(K key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+#endif
         {
+#if NET9_0_OR_GREATER
+            if (this.TryGet(key, out V? value))
+            {
+                return new ValueTask<V>(value);
+            }
+
+            return GetOrAddAsyncCore(key, valueFactory(key, factoryArgument));
+#else
             while (true)
             {
                 if (this.TryGet(key, out V? value))
@@ -265,7 +283,28 @@ namespace BitFaster.Caching.Lfu
                     return value;
                 }
             }
+#endif
         }
+
+#if NET9_0_OR_GREATER
+        private async ValueTask<V> GetOrAddAsyncCore(K key, Task<V> valueTask)
+        {
+            var value = await valueTask.ConfigureAwait(false);
+
+            while (true)
+            {
+                if (this.TryAdd(key, value))
+                {
+                    return value;
+                }
+
+                if (this.TryGet(key, out V? existing))
+                {
+                    return existing;
+                }
+            }
+        }
+#endif
 
         public bool TryGet(K key, [MaybeNullWhen(false)] out V value)
         {
@@ -1131,6 +1170,7 @@ namespace BitFaster.Caching.Lfu
             }
 
             public V GetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+                where TArg : allows ref struct
             {
                 while (true)
                 {
@@ -1163,6 +1203,7 @@ namespace BitFaster.Caching.Lfu
             }
 
             public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+                where TArg : allows ref struct
             {
                 if (this.TryGet(key, out var value))
                 {

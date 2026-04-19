@@ -74,7 +74,12 @@ namespace BitFaster.Caching
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
         /// in the cache, or the new value if the key was not in the cache.</returns>
         /// <remarks>The default implementation given here is the fallback that provides backwards compatibility for classes that implement ICache on prior versions</remarks>
+#if NET9_0_OR_GREATER
+        V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+            where TArg : allows ref struct;
+#else
         V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument) => this.GetOrAdd(key, k => valueFactory(k, factoryArgument));
+#endif
 
         /// <summary>
         /// Attempts to remove and return the value that has the specified key.

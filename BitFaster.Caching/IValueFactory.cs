@@ -71,6 +71,26 @@ namespace BitFaster.Caching
         }
     }
 
+#if NET9_0_OR_GREATER
+    internal readonly ref struct RefValueFactoryArg<K, TArg, V> : IValueFactory<K, V>
+        where TArg : allows ref struct
+    {
+        private readonly Func<K, TArg, V> factory;
+        private readonly TArg arg;
+
+        public RefValueFactoryArg(Func<K, TArg, V> factory, TArg arg)
+        {
+            this.factory = factory;
+            this.arg = arg;
+        }
+
+        public V Create(K key)
+        {
+            return this.factory(key, this.arg);
+        }
+    }
+#endif
+
     /// <summary>
     /// Represents an async cache value factory.
     /// </summary>
@@ -137,4 +157,24 @@ namespace BitFaster.Caching
             return this.factory(key, arg);
         }
     }
+
+#if NET9_0_OR_GREATER
+    internal readonly ref struct RefAsyncValueFactoryArg<K, TArg, V> : IAsyncValueFactory<K, V>
+        where TArg : allows ref struct
+    {
+        private readonly Func<K, TArg, Task<V>> factory;
+        private readonly TArg arg;
+
+        public RefAsyncValueFactoryArg(Func<K, TArg, Task<V>> factory, TArg arg)
+        {
+            this.factory = factory;
+            this.arg = arg;
+        }
+
+        public Task<V> CreateAsync(K key)
+        {
+            return this.factory(key, this.arg);
+        }
+    }
+#endif
 }

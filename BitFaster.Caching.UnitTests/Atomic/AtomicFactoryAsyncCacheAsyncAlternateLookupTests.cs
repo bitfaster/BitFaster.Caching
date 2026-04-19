@@ -157,6 +157,25 @@ namespace BitFaster.Caching.UnitTests.Atomic
             cache.TryGet("42", out var value).Should().BeTrue();
             value.Should().Be("value-42");
         }
+
+        [Fact]
+        public async Task AsyncAlternateLookupGetOrAddAsyncWithRefStructArgUsesActualKeyOnMissAndHit()
+        {
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            var factoryCalls = 0;
+
+            var result = await alternate.GetOrAddAsync("42".AsSpan(), static (key, argument) => Task.FromResult($"{key}-{argument.Length}"), "xx".AsSpan());
+            result.Should().Be("42-2");
+
+            result = await alternate.GetOrAddAsync("42".AsSpan(), (key, argument) =>
+            {
+                factoryCalls++;
+                return Task.FromResult($"{key}-{argument.Length}");
+            }, "ignored".AsSpan());
+
+            result.Should().Be("42-2");
+            factoryCalls.Should().Be(0);
+        }
     }
 }
 #endif

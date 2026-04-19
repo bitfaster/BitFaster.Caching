@@ -71,6 +71,16 @@ namespace BitFaster.Caching.UnitTests.Atomic
 
 #if NET9_0_OR_GREATER
         [Fact]
+        public async Task GetOrAddAsyncWithRefStructArgWhenValueMissingReturnsCreatedValue()
+        {
+            var value = await this.cache.GetOrAddAsync(1, static (key, argument) => Task.FromResult(key + argument.Length), "xx".AsSpan());
+
+            value.Should().Be(3);
+        }
+#endif
+
+#if NET9_0_OR_GREATER
+        [Fact]
         public void ComparerReturnsConfiguredComparer()
         {
             var comparer = StringComparer.OrdinalIgnoreCase;

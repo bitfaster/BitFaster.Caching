@@ -115,6 +115,25 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public void AlternateLookupGetOrAddWithRefStructArgUsesActualKeyOnMissAndHit()
+        {
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+            var factoryCalls = 0;
+
+            var result = alternate.GetOrAdd("42".AsSpan(), static (key, argument) => $"{key}-{argument.Length}", "xx".AsSpan());
+            result.Should().Be("42-2");
+
+            result = alternate.GetOrAdd("42".AsSpan(), (key, argument) =>
+            {
+                factoryCalls++;
+                return $"{key}-{argument.Length}";
+            }, "ignored".AsSpan());
+
+            result.Should().Be("42-2");
+            factoryCalls.Should().Be(0);
+        }
+
+        [Fact]
         public void AlternateLookupTryUpdateReturnsFalseForMissingKeyAndUpdatesExistingValue()
         {
             var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();

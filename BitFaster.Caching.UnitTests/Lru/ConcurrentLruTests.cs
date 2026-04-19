@@ -148,6 +148,24 @@ namespace BitFaster.Caching.UnitTests.Lru
             lru.Count.Should().Be(1);
         }
 
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void GetOrAddWithRefStructArgWhenValueMissingReturnsCreatedValue()
+        {
+            var result = lru.GetOrAdd(1, static (key, argument) => $"{key}-{argument.Length}", "xx".AsSpan());
+
+            result.Should().Be("1-2");
+        }
+
+        [Fact]
+        public async Task GetOrAddAsyncWithRefStructArgWhenValueMissingReturnsCreatedValue()
+        {
+            var result = await lru.GetOrAddAsync(1, static (key, argument) => Task.FromResult($"{key}-{argument.Length}"), "xx".AsSpan());
+
+            result.Should().Be("1-2");
+        }
+#endif
+
         [Fact]
         public void WhenItemsAddedKeysContainsTheKeys()
         {

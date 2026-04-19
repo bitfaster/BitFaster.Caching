@@ -63,7 +63,8 @@ namespace BitFaster.Caching
         /// <param name="valueFactory">The factory function used to asynchronously generate a value, invoked with the actual cache key.</param>
         /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
         /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
-        ValueTask<TValue> GetOrAddAsync<TArg>(TAlternateKey key, Func<TKey, TArg, Task<TValue>> valueFactory, TArg factoryArgument);
+        ValueTask<TValue> GetOrAddAsync<TArg>(TAlternateKey key, Func<TKey, TArg, Task<TValue>> valueFactory, TArg factoryArgument)
+            where TArg : allows ref struct;
     }
 }
 #endif

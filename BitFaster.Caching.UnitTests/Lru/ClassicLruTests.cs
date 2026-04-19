@@ -203,6 +203,16 @@ namespace BitFaster.Caching.UnitTests.Lru
             result1.Should().Be(result2);
         }
 
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void GetOrAddWithRefStructArgWhenValueMissingReturnsCreatedValue()
+        {
+            var result = lru.GetOrAdd(1, static (key, argument) => $"{key}-{argument.Length}", "xx".AsSpan());
+
+            result.Should().Be("1-2");
+        }
+#endif
+
         [Fact]
         public async Task WhenKeyIsRequesteItIsCreatedAndCachedAsync()
         {
@@ -222,6 +232,16 @@ namespace BitFaster.Caching.UnitTests.Lru
             valueFactory.timesCalled.Should().Be(1);
             result1.Should().Be(result2);
         }
+
+#if NET9_0_OR_GREATER
+        [Fact]
+        public async Task GetOrAddAsyncWithRefStructArgWhenValueMissingReturnsCreatedValue()
+        {
+            var result = await lru.GetOrAddAsync(1, static (key, argument) => Task.FromResult($"{key}-{argument.Length}"), "xx".AsSpan());
+
+            result.Should().Be("1-2");
+        }
+#endif
 
         [Fact]
         public void WhenDifferentKeysAreRequestedValueIsCreatedForEach()
