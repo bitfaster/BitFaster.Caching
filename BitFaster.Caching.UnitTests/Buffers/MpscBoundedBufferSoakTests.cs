@@ -90,7 +90,7 @@ namespace BitFaster.Caching.UnitTests.Buffers
 
         [Theory]
         [Repeat(SoakIterations)]
-        public async Task Count_ConcurrentlyFilledBuffer_IsMonotonic(int iteration)
+        public async Task Count_WhileBufferIsConcurrentlyFilled_IsMonotonic(int iteration)
         {
             this.testOutputHelper.WriteLine($"Iteration {iteration}");
             this.testOutputHelper.WriteLine($"ProcessorCount={Environment.ProcessorCount}.");
