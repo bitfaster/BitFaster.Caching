@@ -37,6 +37,7 @@ namespace BitFaster.Caching.Lfu
     {
         private const long ResetMask = 0x7777777777777777L;
         private const long OneMask = 0x1111111111111111L;
+        private const nuint CacheLineAlignmentMask = 63;
 
         private long[] table;
 #if NET6_0_OR_GREATER
@@ -152,7 +153,7 @@ namespace BitFaster.Caching.Lfu
                 table = GC.AllocateArray<long>(Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8) + pad, pinned);
 
                 tableAddr = (long*)Unsafe.AsPointer(ref table[0]);
-                tableAddr = (long*)(((nuint)tableAddr + 63u) & ~(nuint)63);
+                tableAddr = (long*)(((nuint)tableAddr + CacheLineAlignmentMask) & ~CacheLineAlignmentMask);
 
                 blockMask = (int)((uint)(table.Length - pad) >> 3) - 1;
             }
