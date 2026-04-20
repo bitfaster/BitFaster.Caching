@@ -224,6 +224,20 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public void GetOrAddAltDisposedScopeThrows()
+        {
+            var cache = new AtomicFactoryScopedCache<string, Disposable>(new ConcurrentLru<string, ScopedAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            var scope = new Scoped<Disposable>(new Disposable());
+            scope.Dispose();
+
+            Action getOrAdd = () => { alternate.ScopedGetOrAdd("a", k => scope); };
+
+            getOrAdd.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
         public void AlternateLookupTryUpdateReturnsFalseForMissingKeyAndUpdatesExistingValue()
         {
             var cache = new AtomicFactoryScopedCache<string, Disposable>(new ConcurrentLru<string, ScopedAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
