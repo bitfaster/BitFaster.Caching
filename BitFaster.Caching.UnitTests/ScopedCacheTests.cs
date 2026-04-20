@@ -132,6 +132,31 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
+        public void WhenScopeIsDisposedTryGetAltReturnsFalse()
+        {
+            var cache = new ScopedCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+            var scope = new Scoped<Disposable>(new Disposable());
+
+            cache.ScopedGetOrAdd("a", k => scope);
+
+            scope.Dispose();
+
+            alternate.ScopedTryGet("a", out var lifetime).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenKeyExistsTryRemoveAltReturnsTrue()
+        {
+            var cache = new ScopedCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            cache.AddOrUpdate("a", new Disposable());
+            alternate.TryRemove("a", out var key).Should().BeTrue();
+            key.Should().Be("a");
+        }
+
+        [Fact]
         public void AlternateLookupTryUpdateReturnsFalseForMissingKeyAndUpdatesExistingValue()
         {
             var cache = new ScopedCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
