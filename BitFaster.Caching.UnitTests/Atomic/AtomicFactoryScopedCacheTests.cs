@@ -224,6 +224,22 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
+        public void WhenItemDoesNotExistTryGetAltReturnsFalse()
+        {
+            var cache = new AtomicFactoryScopedCache<string, Disposable>(new ConcurrentLru<string, ScopedAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+            alternate.ScopedTryGet("a", out var lifetime).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenKeyDoesNotExistTryRemoveAltReturnsFalse()
+        {
+            var cache = new AtomicFactoryScopedCache<string, Disposable>(new ConcurrentLru<string, ScopedAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+            alternate.TryRemove("a", out _).Should().BeFalse();
+        }
+
+        [Fact]
         public void GetOrAddAltDisposedScopeThrows()
         {
             var cache = new AtomicFactoryScopedCache<string, Disposable>(new ConcurrentLru<string, ScopedAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
