@@ -374,8 +374,29 @@ namespace BitFaster.Caching.Lfu
             int lane2 = h2 & 1;
             int lane3 = (h3 & 1) + 2;
 
-            Vector256<ulong> index = Vector256.Create((ulong)index0, (ulong)index1, (ulong)index2, (ulong)index3);
-            Vector256<long> mask = Avx2.ShiftLeftLogicalVariable(Vector256.Create(0xfL), index);
+            Vector256<ulong> lowerIndex = Vector256.Create(
+                lane0 == 0 ? (ulong)index0 : 0UL,
+                lane0 == 1 ? (ulong)index0 : 0UL,
+                lane1 == 2 ? (ulong)index1 : 0UL,
+                lane1 == 3 ? (ulong)index1 : 0UL);
+
+            Vector256<ulong> upperIndex = Vector256.Create(
+                lane2 == 0 ? (ulong)index2 : 0UL,
+                lane2 == 1 ? (ulong)index2 : 0UL,
+                lane3 == 2 ? (ulong)index3 : 0UL,
+                lane3 == 3 ? (ulong)index3 : 0UL);
+
+            Vector256<long> lowerLaneMask = Vector256.Create(
+                lane0 == 0 ? -1L : 0L,
+                lane0 == 1 ? -1L : 0L,
+                lane1 == 2 ? -1L : 0L,
+                lane1 == 3 ? -1L : 0L);
+
+            Vector256<long> upperLaneMask = Vector256.Create(
+                lane2 == 0 ? -1L : 0L,
+                lane2 == 1 ? -1L : 0L,
+                lane3 == 2 ? -1L : 0L,
+                lane3 == 3 ? -1L : 0L);
 
 #if NET6_0_OR_GREATER
             long* tablePtr = tableAddr;
@@ -391,42 +412,21 @@ namespace BitFaster.Caching.Lfu
                 Vector256<long> upper = Avx.LoadVector256(tablePtr + block + 4);
 #endif
 
-                long lower0 = lower.GetElement(0);
-                long lower1 = lower.GetElement(1);
-                long lower2 = lower.GetElement(2);
-                long lower3 = lower.GetElement(3);
-
-                long upper0 = upper.GetElement(0);
-                long upper1 = upper.GetElement(1);
-                long upper2 = upper.GetElement(2);
-                long upper3 = upper.GetElement(3);
-
-                Vector256<long> count = Vector256.Create(
-                    lane0 == 0 ? lower0 : lower1,
-                    lane1 == 2 ? lower2 : lower3,
-                    lane2 == 0 ? upper0 : upper1,
-                    lane3 == 2 ? upper2 : upper3);
+                Vector256<long> lowerMask = Avx2.And(Avx2.ShiftLeftLogicalVariable(Vector256.Create(0xfL), lowerIndex), lowerLaneMask);
+                Vector256<long> upperMask = Avx2.And(Avx2.ShiftLeftLogicalVariable(Vector256.Create(0xfL), upperIndex), upperLaneMask);
 
                 // Note masked is 'equal' - therefore use AndNot below
-                Vector256<long> masked = Avx2.CompareEqual(Avx2.And(count, mask), mask);
+                Vector256<long> lowerMasked = Avx2.CompareEqual(Avx2.And(lower, lowerMask), lowerMask);
+                Vector256<long> upperMasked = Avx2.CompareEqual(Avx2.And(upper, upperMask), upperMask);
 
                 // Mask to zero out non matches (add zero below) - first operand is NOT then AND result (order matters)
-                Vector256<long> inc = Avx2.AndNot(masked, Avx2.ShiftLeftLogicalVariable(Vector256.Create(1L), index));
+                Vector256<long> lowerInc = Avx2.And(Avx2.AndNot(lowerMasked, Avx2.ShiftLeftLogicalVariable(Vector256.Create(1L), lowerIndex)), lowerLaneMask);
+                Vector256<long> upperInc = Avx2.And(Avx2.AndNot(upperMasked, Avx2.ShiftLeftLogicalVariable(Vector256.Create(1L), upperIndex)), upperLaneMask);
 
-                bool wasInc = Avx2.MoveMask(Avx2.CompareEqual(masked.AsByte(), Vector256<byte>.Zero).AsByte()) == unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
+                bool wasInc = Avx2.MoveMask(Avx2.CompareEqual(Avx2.Or(lowerInc, upperInc).AsByte(), Vector256<byte>.Zero).AsByte()) != unchecked((int)(0b1111_1111_1111_1111_1111_1111_1111_1111));
 
-                long nextLower0 = lane0 == 0 ? count.GetElement(0) + inc.GetElement(0) : lower0;
-                long nextLower1 = lane0 == 1 ? count.GetElement(0) + inc.GetElement(0) : lower1;
-                long nextLower2 = lane1 == 2 ? count.GetElement(1) + inc.GetElement(1) : lower2;
-                long nextLower3 = lane1 == 3 ? count.GetElement(1) + inc.GetElement(1) : lower3;
-
-                long nextUpper0 = lane2 == 0 ? count.GetElement(2) + inc.GetElement(2) : upper0;
-                long nextUpper1 = lane2 == 1 ? count.GetElement(2) + inc.GetElement(2) : upper1;
-                long nextUpper2 = lane3 == 2 ? count.GetElement(3) + inc.GetElement(3) : upper2;
-                long nextUpper3 = lane3 == 3 ? count.GetElement(3) + inc.GetElement(3) : upper3;
-
-                lower = Vector256.Create(nextLower0, nextLower1, nextLower2, nextLower3);
-                upper = Vector256.Create(nextUpper0, nextUpper1, nextUpper2, nextUpper3);
+                lower = Avx2.Add(lower, lowerInc);
+                upper = Avx2.Add(upper, upperInc);
 
 #if NET6_0_OR_GREATER
                 Avx.StoreAligned(tablePtr + block, lower);
