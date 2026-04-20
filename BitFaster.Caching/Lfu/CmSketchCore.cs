@@ -152,7 +152,7 @@ namespace BitFaster.Caching.Lfu
                 table = GC.AllocateArray<long>(Math.Max(BitOps.CeilingPowerOfTwo(maximum), 8) + pad, pinned);
 
                 tableAddr = (long*)Unsafe.AsPointer(ref table[0]);
-                tableAddr = (long*)((long)tableAddr + (long)tableAddr % 64);
+                tableAddr = (long*)(((nuint)tableAddr + 63u) & ~(nuint)63);
 
                 blockMask = (int)((uint)(table.Length - pad) >> 3) - 1;
             }
@@ -322,8 +322,13 @@ namespace BitFaster.Caching.Lfu
             fixed (long* tablePtr = table)
 #endif
             {
+#if NET6_0_OR_GREATER
+                Vector256<long> lower = Avx.LoadAlignedVector256(tablePtr + block);
+                Vector256<long> upper = Avx.LoadAlignedVector256(tablePtr + block + 4);
+#else
                 Vector256<long> lower = Avx.LoadVector256(tablePtr + block);
                 Vector256<long> upper = Avx.LoadVector256(tablePtr + block + 4);
+#endif
 
                 Vector256<ulong> countVector = Vector256.Create(
                     (ulong)lower.GetElement(lane0),
@@ -377,8 +382,13 @@ namespace BitFaster.Caching.Lfu
             fixed (long* tablePtr = table)
 #endif
             {
+#if NET6_0_OR_GREATER
+                Vector256<long> lower = Avx.LoadAlignedVector256(tablePtr + block);
+                Vector256<long> upper = Avx.LoadAlignedVector256(tablePtr + block + 4);
+#else
                 Vector256<long> lower = Avx.LoadVector256(tablePtr + block);
                 Vector256<long> upper = Avx.LoadVector256(tablePtr + block + 4);
+#endif
 
                 long lower0 = lower.GetElement(0);
                 long lower1 = lower.GetElement(1);
@@ -417,8 +427,13 @@ namespace BitFaster.Caching.Lfu
                 lower = Vector256.Create(nextLower0, nextLower1, nextLower2, nextLower3);
                 upper = Vector256.Create(nextUpper0, nextUpper1, nextUpper2, nextUpper3);
 
+#if NET6_0_OR_GREATER
+                Avx.StoreAligned(tablePtr + block, lower);
+                Avx.StoreAligned(tablePtr + block + 4, upper);
+#else
                 Avx.Store(tablePtr + block, lower);
                 Avx.Store(tablePtr + block + 4, upper);
+#endif
 
                 if (wasInc && (++size == sampleSize))
                 {
