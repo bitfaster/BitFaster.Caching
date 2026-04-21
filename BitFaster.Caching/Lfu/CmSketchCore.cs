@@ -374,29 +374,17 @@ namespace BitFaster.Caching.Lfu
             int lane2 = h2 & 1;
             int lane3 = (h3 & 1) + 2;
 
-            Vector256<ulong> lowerIndex = Vector256.Create(
-                lane0 == 0 ? (ulong)index0 : 0UL,
-                lane0 == 1 ? (ulong)index0 : 0UL,
-                lane1 == 2 ? (ulong)index1 : 0UL,
-                lane1 == 3 ? (ulong)index1 : 0UL);
+            Vector256<long> laneOffsets = Vector256.Create(0L, 1L, 2L, 3L);
+            Vector256<ulong> lowerIndex = Vector256.Create((ulong)index0, (ulong)index0, (ulong)index1, (ulong)index1);
+            Vector256<ulong> upperIndex = Vector256.Create((ulong)index2, (ulong)index2, (ulong)index3, (ulong)index3);
 
-            Vector256<ulong> upperIndex = Vector256.Create(
-                lane2 == 0 ? (ulong)index2 : 0UL,
-                lane2 == 1 ? (ulong)index2 : 0UL,
-                lane3 == 2 ? (ulong)index3 : 0UL,
-                lane3 == 3 ? (ulong)index3 : 0UL);
+            Vector256<long> lowerLaneMask = Avx2.CompareEqual(
+                laneOffsets,
+                Vector256.Create((long)lane0, (long)lane0, (long)lane1, (long)lane1));
 
-            Vector256<long> lowerLaneMask = Vector256.Create(
-                lane0 == 0 ? -1L : 0L,
-                lane0 == 1 ? -1L : 0L,
-                lane1 == 2 ? -1L : 0L,
-                lane1 == 3 ? -1L : 0L);
-
-            Vector256<long> upperLaneMask = Vector256.Create(
-                lane2 == 0 ? -1L : 0L,
-                lane2 == 1 ? -1L : 0L,
-                lane3 == 2 ? -1L : 0L,
-                lane3 == 3 ? -1L : 0L);
+            Vector256<long> upperLaneMask = Avx2.CompareEqual(
+                laneOffsets,
+                Vector256.Create((long)lane2, (long)lane2, (long)lane3, (long)lane3));
 
 #if NET6_0_OR_GREATER
             long* tablePtr = tableAddr;
