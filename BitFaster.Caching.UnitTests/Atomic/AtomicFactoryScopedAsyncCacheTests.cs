@@ -81,15 +81,15 @@ namespace BitFaster.Caching.UnitTests.Atomic
             var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
             var factoryCalls = 0;
-            ReadOnlySpan<char> key = "42";
+            var key = "42";
 
-            using var lifetime = await alternate.ScopedGetOrAddAsync(key, k =>
+            using var lifetime = await alternate.ScopedGetOrAddAsync(key.AsSpan(), k =>
             {
                 factoryCalls++;
                 return Task.FromResult(new Scoped<Disposable>(new Disposable(int.Parse(k))));
             });
 
-            using var sameLifetime = await alternate.ScopedGetOrAddAsync(key, (k, offset) =>
+            using var sameLifetime = await alternate.ScopedGetOrAddAsync(key.AsSpan(), (k, offset) =>
             {
                 factoryCalls++;
                 return Task.FromResult(new Scoped<Disposable>(new Disposable(int.Parse(k) + offset)));
@@ -220,17 +220,17 @@ namespace BitFaster.Caching.UnitTests.Atomic
         {
             var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
-            ReadOnlySpan<char> key = "42";
+            var key = "42";
 
-            alternate.TryUpdate(key, new Disposable(42)).Should().BeFalse();
+            alternate.TryUpdate(key.AsSpan(), new Disposable(42)).Should().BeFalse();
             cache.ScopedTryGet("42", out _).Should().BeFalse();
 
             using var lifetime = await cache.ScopedGetOrAddAsync("42", _ => Task.FromResult(new Scoped<Disposable>(new Disposable(1))));
             lifetime.Dispose();
 
-            alternate.TryUpdate(key, new Disposable(2)).Should().BeTrue();
+            alternate.TryUpdate(key.AsSpan(), new Disposable(2)).Should().BeTrue();
 
-            alternate.ScopedTryGet(key, out var updatedLifetime).Should().BeTrue();
+            alternate.ScopedTryGet(key.AsSpan(), out var updatedLifetime).Should().BeTrue();
             updatedLifetime.Value.State.Should().Be(2);
             updatedLifetime.Dispose();
         }

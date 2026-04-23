@@ -154,7 +154,7 @@ namespace BitFaster.Caching.Atomic
         {
             var inner = this.cache.GetAlternateLookup<TAlternateKey>();
             var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)this.cache.Comparer;
-            return new AlternateLookup<TAlternateKey>(inner, comparer);
+            return new AlternateLookup<TAlternateKey>(this.cache, inner, comparer);
         }
 
         ///<inheritdoc/>
@@ -164,7 +164,7 @@ namespace BitFaster.Caching.Atomic
             if (this.cache.TryGetAlternateLookup<TAlternateKey>(out var inner))
             {
                 var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)this.cache.Comparer;
-                lookup = new AlternateLookup<TAlternateKey>(inner, comparer);
+                lookup = new AlternateLookup<TAlternateKey>(this.cache, inner, comparer);
                 return true;
             }
 
@@ -175,11 +175,13 @@ namespace BitFaster.Caching.Atomic
         internal readonly struct AlternateLookup<TAlternateKey> : IScopedAsyncAlternateLookup<TAlternateKey, K, V>
             where TAlternateKey : notnull, allows ref struct
         {
+            private readonly ICache<K, ScopedAsyncAtomicFactory<K, V>> cache;
             private readonly IAlternateLookup<TAlternateKey, K, ScopedAsyncAtomicFactory<K, V>> inner;
             private readonly IAlternateEqualityComparer<TAlternateKey, K> comparer;
 
-            internal AlternateLookup(IAlternateLookup<TAlternateKey, K, ScopedAsyncAtomicFactory<K, V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
+            internal AlternateLookup(ICache<K, ScopedAsyncAtomicFactory<K, V>> cache, IAlternateLookup<TAlternateKey, K, ScopedAsyncAtomicFactory<K, V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
             {
+                this.cache = cache;
                 this.inner = inner;
                 this.comparer = comparer;
             }
@@ -218,6 +220,7 @@ namespace BitFaster.Caching.Atomic
             }
 #pragma warning restore CA2000 // Dispose objects before losing scope
 
+#pragma warning disable CA2000 // Dispose objects before losing scope
             public ValueTask<Lifetime<V>> ScopedGetOrAddAsync(TAlternateKey key, Func<K, Task<Scoped<V>>> valueFactory)
             {
                 var scope = this.inner.GetOrAdd(key, static _ => new ScopedAsyncAtomicFactory<K, V>());
@@ -241,28 +244,34 @@ namespace BitFaster.Caching.Atomic
 
                 return ScopedGetOrAddAsync(key, new AsyncValueFactoryArg<K, TArg, Scoped<V>>(valueFactory, factoryArgument));
             }
+#pragma warning restore CA2000 // Dispose objects before losing scope
 
-            private async ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TFactory>(TAlternateKey key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
+            private ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TFactory>(TAlternateKey key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
             {
-                int c = 0;
-                var spinwait = new SpinWait();
                 K actualKey = this.comparer.Create(key);
+                return CompleteAsync(this.cache, actualKey, valueFactory);
 
-                while (true)
+                static async ValueTask<Lifetime<V>> CompleteAsync(ICache<K, ScopedAsyncAtomicFactory<K, V>> cache, K actualKey, TFactory valueFactory)
                 {
-                    var scope = this.inner.GetOrAdd(key, static _ => new ScopedAsyncAtomicFactory<K, V>());
+                    int c = 0;
+                    var spinwait = new SpinWait();
 
-                    var (success, lifetime) = await scope.TryCreateLifetimeAsync(actualKey, valueFactory).ConfigureAwait(false);
-
-                    if (success)
+                    while (true)
                     {
-                        return lifetime!;
+                        var scope = cache.GetOrAdd(actualKey, static _ => new ScopedAsyncAtomicFactory<K, V>());
+
+                        var (success, lifetime) = await scope.TryCreateLifetimeAsync(actualKey, valueFactory).ConfigureAwait(false);
+
+                        if (success)
+                        {
+                            return lifetime!;
+                        }
+
+                        spinwait.SpinOnce();
+
+                        if (c++ > ScopedCacheDefaults.MaxRetry)
+                            Throw.ScopedRetryFailure();
                     }
-
-                    spinwait.SpinOnce();
-
-                    if (c++ > ScopedCacheDefaults.MaxRetry)
-                        Throw.ScopedRetryFailure();
                 }
             }
         }

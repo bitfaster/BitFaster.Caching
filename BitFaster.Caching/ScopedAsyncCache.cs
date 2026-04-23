@@ -157,7 +157,9 @@ namespace BitFaster.Caching
         public IScopedAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
-            return new AlternateLookup<TAlternateKey>(this.cache.GetAsyncAlternateLookup<TAlternateKey>());
+            var inner = this.cache.GetAsyncAlternateLookup<TAlternateKey>();
+            var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)this.cache.Comparer;
+            return new AlternateLookup<TAlternateKey>(this.cache, inner, comparer);
         }
 
         ///<inheritdoc/>
@@ -166,7 +168,8 @@ namespace BitFaster.Caching
         {
             if (this.cache.TryGetAsyncAlternateLookup<TAlternateKey>(out var inner))
             {
-                lookup = new AlternateLookup<TAlternateKey>(inner);
+                var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)this.cache.Comparer;
+                lookup = new AlternateLookup<TAlternateKey>(this.cache, inner, comparer);
                 return true;
             }
 
@@ -177,11 +180,15 @@ namespace BitFaster.Caching
         internal readonly struct AlternateLookup<TAlternateKey> : IScopedAsyncAlternateLookup<TAlternateKey, K, V>
             where TAlternateKey : notnull, allows ref struct
         {
+            private readonly IAsyncCache<K, Scoped<V>> cache;
             private readonly IAsyncAlternateLookup<TAlternateKey, K, Scoped<V>> inner;
+            private readonly IAlternateEqualityComparer<TAlternateKey, K> comparer;
 
-            internal AlternateLookup(IAsyncAlternateLookup<TAlternateKey, K, Scoped<V>> inner)
+            internal AlternateLookup(IAsyncCache<K, Scoped<V>> cache, IAsyncAlternateLookup<TAlternateKey, K, Scoped<V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
             {
+                this.cache = cache;
                 this.inner = inner;
+                this.comparer = comparer;
             }
 
             public bool ScopedTryGet(TAlternateKey key, [MaybeNullWhen(false)] out Lifetime<V> lifetime)
@@ -228,23 +235,29 @@ namespace BitFaster.Caching
                 return ScopedGetOrAddAsync(key, new AsyncValueFactoryArg<K, TArg, Scoped<V>>(valueFactory, factoryArgument));
             }
 
-            private async ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TFactory>(TAlternateKey key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
+            private ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TFactory>(TAlternateKey key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
             {
-                int c = 0;
-                var spinwait = new SpinWait();
-                while (true)
+                K actualKey = this.comparer.Create(key);
+                return CompleteAsync(this.cache, actualKey, valueFactory);
+
+                static async ValueTask<Lifetime<V>> CompleteAsync(IAsyncCache<K, Scoped<V>> cache, K actualKey, TFactory valueFactory)
                 {
-                    var scope = await this.inner.GetOrAddAsync(key, static (k, factory) => factory.CreateAsync(k), valueFactory).ConfigureAwait(false);
-
-                    if (scope.TryCreateLifetime(out var lifetime))
+                    int c = 0;
+                    var spinwait = new SpinWait();
+                    while (true)
                     {
-                        return lifetime;
+                        var scope = await cache.GetOrAddAsync(actualKey, static (k, factory) => factory.CreateAsync(k), valueFactory).ConfigureAwait(false);
+
+                        if (scope.TryCreateLifetime(out var lifetime))
+                        {
+                            return lifetime;
+                        }
+
+                        spinwait.SpinOnce();
+
+                        if (c++ > ScopedCacheDefaults.MaxRetry)
+                            Throw.ScopedRetryFailure();
                     }
-
-                    spinwait.SpinOnce();
-
-                    if (c++ > ScopedCacheDefaults.MaxRetry)
-                        Throw.ScopedRetryFailure();
                 }
             }
         }
