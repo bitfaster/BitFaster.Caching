@@ -152,6 +152,104 @@ namespace BitFaster.Caching
         }
 #pragma warning restore CA2000 // Dispose objects before losing scope
 
+#if NET9_0_OR_GREATER
+        ///<inheritdoc/>
+        public IScopedAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            return new AlternateLookup<TAlternateKey>(this.cache.GetAsyncAlternateLookup<TAlternateKey>());
+        }
+
+        ///<inheritdoc/>
+        public bool TryGetAsyncAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IScopedAsyncAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (this.cache.TryGetAsyncAlternateLookup<TAlternateKey>(out var inner))
+            {
+                lookup = new AlternateLookup<TAlternateKey>(inner);
+                return true;
+            }
+
+            lookup = default;
+            return false;
+        }
+
+        internal readonly struct AlternateLookup<TAlternateKey> : IScopedAsyncAlternateLookup<TAlternateKey, K, V>
+            where TAlternateKey : notnull, allows ref struct
+        {
+            private readonly IAsyncAlternateLookup<TAlternateKey, K, Scoped<V>> inner;
+
+            internal AlternateLookup(IAsyncAlternateLookup<TAlternateKey, K, Scoped<V>> inner)
+            {
+                this.inner = inner;
+            }
+
+            public bool ScopedTryGet(TAlternateKey key, [MaybeNullWhen(false)] out Lifetime<V> lifetime)
+            {
+                if (this.inner.TryGet(key, out var scope) && scope.TryCreateLifetime(out lifetime))
+                {
+                    return true;
+                }
+
+                lifetime = default;
+                return false;
+            }
+
+            public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey)
+            {
+                if (this.inner.TryRemove(key, out actualKey, out _))
+                {
+                    return true;
+                }
+
+                actualKey = default;
+                return false;
+            }
+
+#pragma warning disable CA2000 // Dispose objects before losing scope
+            public bool TryUpdate(TAlternateKey key, V value)
+            {
+                return this.inner.TryUpdate(key, new Scoped<V>(value));
+            }
+
+            public void AddOrUpdate(TAlternateKey key, V value)
+            {
+                this.inner.AddOrUpdate(key, new Scoped<V>(value));
+            }
+#pragma warning restore CA2000 // Dispose objects before losing scope
+
+            public ValueTask<Lifetime<V>> ScopedGetOrAddAsync(TAlternateKey key, Func<K, Task<Scoped<V>>> valueFactory)
+            {
+                return ScopedGetOrAddAsync(key, new AsyncValueFactory<K, Scoped<V>>(valueFactory));
+            }
+
+            public ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TArg>(TAlternateKey key, Func<K, TArg, Task<Scoped<V>>> valueFactory, TArg factoryArgument)
+            {
+                return ScopedGetOrAddAsync(key, new AsyncValueFactoryArg<K, TArg, Scoped<V>>(valueFactory, factoryArgument));
+            }
+
+            private async ValueTask<Lifetime<V>> ScopedGetOrAddAsync<TFactory>(TAlternateKey key, TFactory valueFactory) where TFactory : struct, IAsyncValueFactory<K, Scoped<V>>
+            {
+                int c = 0;
+                var spinwait = new SpinWait();
+                while (true)
+                {
+                    var scope = await this.inner.GetOrAddAsync(key, static (k, factory) => factory.CreateAsync(k), valueFactory).ConfigureAwait(false);
+
+                    if (scope.TryCreateLifetime(out var lifetime))
+                    {
+                        return lifetime;
+                    }
+
+                    spinwait.SpinOnce();
+
+                    if (c++ > ScopedCacheDefaults.MaxRetry)
+                        Throw.ScopedRetryFailure();
+                }
+            }
+        }
+#endif
+
         ///<inheritdoc/>
         public IEnumerator<KeyValuePair<K, Scoped<V>>> GetEnumerator()
         {
