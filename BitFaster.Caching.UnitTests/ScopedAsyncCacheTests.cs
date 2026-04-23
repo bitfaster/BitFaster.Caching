@@ -32,7 +32,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public async Task TryGetAsyncAlternateLookupReturnsLookupForCompatibleComparer()
+        public async Task TryGetAsyncAlternateLookupCompatibleComparerReturnsLookup()
         {
             var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             using var lifetime = await cache.ScopedGetOrAddAsync("42", _ => Task.FromResult(new Scoped<Disposable>(new Disposable(42))));
@@ -45,7 +45,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public void GetAsyncAlternateLookupThrowsForIncompatibleComparer()
+        public void GetAsyncAlternateLookupIncompatibleComparerThrowsInvalidOperationException()
         {
             var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
 
@@ -57,7 +57,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public async Task AsyncAlternateLookupTryRemoveReturnsActualKey()
+        public async Task TryRemoveExistingKeyReturnsActualKey()
         {
             var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             using var lifetime = await cache.ScopedGetOrAddAsync("42", _ => Task.FromResult(new Scoped<Disposable>(new Disposable(42))));
@@ -71,7 +71,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public async Task AsyncAlternateLookupScopedGetOrAddAsyncUsesActualKeyOnMissAndHit()
+        public async Task ScopedGetOrAddAsyncMissAndHitUsesActualKey()
         {
             var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -96,7 +96,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public async Task WhenScopeIsDisposedTryGetAsyncAltReturnsFalse()
+        public async Task ScopedTryGetDisposedScopeReturnsFalse()
         {
             var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -110,7 +110,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public void WhenKeyExistsTryRemoveAsyncAltReturnsTrue()
+        public void TryRemoveExistingKeyReturnsTrue()
         {
             var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -121,7 +121,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public void WhenItemDoesNotExistTryGetAsyncAltReturnsFalse()
+        public void ScopedTryGetNonExistentKeyReturnsFalse()
         {
             var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -129,7 +129,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public void WhenKeyDoesNotExistTryRemoveAsyncAltReturnsFalse()
+        public void TryRemoveNonExistentKeyReturnsFalse()
         {
             var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -137,7 +137,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public async Task GetOrAddAsyncAltDisposedScopeThrows()
+        public async Task ScopedGetOrAddAsyncDisposedScopeThrowsInvalidOperationException()
         {
             var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -151,7 +151,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public async Task AsyncAlternateLookupTryUpdateReturnsFalseForMissingKeyAndUpdatesExistingValue()
+        public void TryUpdateMissingKeyReturnsFalse()
         {
             var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -159,6 +159,14 @@ namespace BitFaster.Caching.UnitTests
 
             alternate.TryUpdate(key.AsSpan(), new Disposable(42)).Should().BeFalse();
             cache.ScopedTryGet("42", out _).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task TryUpdateExistingKeyUpdatesValue()
+        {
+            var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            var key = "42";
 
             using var lifetime = await cache.ScopedGetOrAddAsync("42", _ => Task.FromResult(new Scoped<Disposable>(new Disposable(1))));
             lifetime.Dispose();
@@ -171,7 +179,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public void AsyncAlternateLookupAddOrUpdateAddsMissingValueAndUpdatesExistingValue()
+        public void AddOrUpdateMissingKeyAddsValue()
         {
             var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -181,7 +189,16 @@ namespace BitFaster.Caching.UnitTests
             alternate.ScopedTryGet(key, out var lifetime).Should().BeTrue();
             lifetime.Value.State.Should().Be(42);
             lifetime.Dispose();
+        }
 
+        [Fact]
+        public void AddOrUpdateExistingKeyUpdatesValue()
+        {
+            var cache = new ScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, Scoped<Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            ReadOnlySpan<char> key = "42";
+
+            alternate.AddOrUpdate(key, new Disposable(42));
             alternate.AddOrUpdate(key, new Disposable(43));
             alternate.ScopedTryGet(key, out var updatedLifetime).Should().BeTrue();
             updatedLifetime.Value.State.Should().Be(43);
