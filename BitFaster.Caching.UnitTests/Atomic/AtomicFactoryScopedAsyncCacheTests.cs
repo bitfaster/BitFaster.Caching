@@ -99,6 +99,61 @@ namespace BitFaster.Caching.UnitTests.Atomic
             sameLifetime.Value.State.Should().Be(42);
             factoryCalls.Should().Be(1);
         }
+
+        [Fact]
+        public async Task AltScopedTryGetDisposedScopeReturnsFalse()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            var scope = new Scoped<Disposable>(new Disposable());
+
+            await cache.ScopedGetOrAddAsync("a", _ => Task.FromResult(scope));
+
+            scope.Dispose();
+
+            alternate.ScopedTryGet("a", out var lifetime).Should().BeFalse();
+        }
+
+        [Fact]
+        public void AltTryRemoveExistingKeyReturnsTrue()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            cache.AddOrUpdate("a", new Disposable());
+            alternate.TryRemove("a", out var key).Should().BeTrue();
+            key.Should().Be("a");
+        }
+
+        [Fact]
+        public void WhenItemDoesNotExistTryGetAltReturnsFalse()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            alternate.ScopedTryGet("a", out _).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenKeyDoesNotExistTryRemoveAltReturnsFalse()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            alternate.TryRemove("a", out _).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task GetOrAddAltDisposedScopeThrows()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            var scope = new Scoped<Disposable>(new Disposable());
+            scope.Dispose();
+
+            Func<Task> getOrAdd = async () => { await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(scope)); };
+
+            await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
+        }
 #endif
 
         [Fact]
