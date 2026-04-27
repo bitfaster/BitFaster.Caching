@@ -218,9 +218,7 @@ namespace BitFaster.Caching.Atomic
             {
                 this.inner.AddOrUpdate(key, new ScopedAsyncAtomicFactory<K, V>(value));
             }
-#pragma warning restore CA2000 // Dispose objects before losing scope
 
-#pragma warning disable CA2000 // Dispose objects before losing scope
             public ValueTask<Lifetime<V>> ScopedGetOrAddAsync(TAlternateKey key, Func<K, Task<Scoped<V>>> valueFactory)
             {
                 var scope = this.inner.GetOrAdd(key, static _ => new ScopedAsyncAtomicFactory<K, V>());

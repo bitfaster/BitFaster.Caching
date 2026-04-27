@@ -76,27 +76,52 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public async Task ScopedGetOrAddAsyncMissAndHitUsesActualKey()
+        public async Task AltScopedGetOrAddAsyncRetrievesCachedValue()
         {
             var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
             var factoryCalls = 0;
             var key = "42";
 
-            using var lifetime = await alternate.ScopedGetOrAddAsync(key.AsSpan(), k =>
+            using var lifetime1 = await alternate.ScopedGetOrAddAsync(key.AsSpan(), k =>
             {
                 factoryCalls++;
                 return Task.FromResult(new Scoped<Disposable>(new Disposable(int.Parse(k))));
             });
 
-            using var sameLifetime = await alternate.ScopedGetOrAddAsync(key.AsSpan(), (k, offset) =>
+            using var lifetime2 = await alternate.ScopedGetOrAddAsync(key.AsSpan(), k =>
+            {
+                factoryCalls++;
+                return Task.FromResult(new Scoped<Disposable>(new Disposable(123)));
+            });
+
+            lifetime1.Value.State.Should().Be(42);
+            lifetime2.Value.State.Should().Be(42);
+            factoryCalls.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task AltScopedGetOrAddArgAsyncRetrievesCachedValue()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            var factoryCalls = 0;
+            var key = "42";
+
+            using var lifetime1 = await alternate.ScopedGetOrAddAsync(key.AsSpan(), (k, offset) =>
             {
                 factoryCalls++;
                 return Task.FromResult(new Scoped<Disposable>(new Disposable(int.Parse(k) + offset)));
             }, 1);
 
-            lifetime.Value.State.Should().Be(42);
-            sameLifetime.Value.State.Should().Be(42);
+            using var lifetime2 = await alternate.ScopedGetOrAddAsync(key.AsSpan(), (k, offset) =>
+            {
+                factoryCalls++;
+                return Task.FromResult(new Scoped<Disposable>(new Disposable(int.Parse(k) + offset)));
+            }, 2);
+
+            lifetime1.Value.State.Should().Be(43);
+            lifetime2.Value.State.Should().Be(43);
             factoryCalls.Should().Be(1);
         }
 
