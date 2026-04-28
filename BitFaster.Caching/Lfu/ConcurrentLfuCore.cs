@@ -496,6 +496,7 @@ namespace BitFaster.Caching.Lfu
                     case DrainStatus.ProcessingToIdle:
                         if (this.drainStatus.Cas(DrainStatus.ProcessingToIdle, DrainStatus.ProcessingToRequired))
                         {
+                            TryScheduleDrain();
                             return;
                         }
                         status = this.drainStatus.VolatileRead();
@@ -518,7 +519,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     case DrainStatus.Idle:
                     case DrainStatus.Required:
-                        if (activeDrains != 0 || !this.drainStatus.Cas(status, DrainStatus.ProcessingToIdle))
+                        if (activeDrains >= 2 || !this.drainStatus.Cas(status, DrainStatus.ProcessingToIdle))
                         {
                             return;
                         }
@@ -545,16 +546,9 @@ namespace BitFaster.Caching.Lfu
         {
             try
             {
-                bool done = false;
-
-                while (!done)
-                {
-                    int index = ClaimSecondaryBufferIndex();
-                    DrainPrimaryBuffersToSecondary(this.secondaryBuffers[index]);
-                    Maintenance(this.secondaryBuffers[index]);
-
-                    done = !scheduler.IsBackground || !HasPendingWork();
-                }
+                int index = ClaimSecondaryBufferIndex();
+                DrainPrimaryBuffersToSecondary(this.secondaryBuffers[index]);
+                Maintenance(this.secondaryBuffers[index]);
             }
             finally
             {
@@ -579,24 +573,31 @@ namespace BitFaster.Caching.Lfu
         {
             lock (maintenanceLock)
             {
-                int readCount = DrainSecondaryReadBuffer(secondaryBuffer);
-                int writeCount = DrainSecondaryWriteBuffer(secondaryBuffer);
-
-                for (int i = 0; i < readCount; i++)
+                lock (secondaryBuffer.ReadLock)
                 {
-                    this.cmSketch.Increment(secondaryBuffer.ReadBuffer[i].Key);
+                    for (int i = 0; i < secondaryBuffer.ReadCount; i++)
+                    {
+                        this.cmSketch.Increment(secondaryBuffer.ReadBuffer[i].Key);
+                    }
+
+                    for (int i = 0; i < secondaryBuffer.ReadCount; i++)
+                    {
+                        OnAccess(secondaryBuffer.ReadBuffer[i]);
+                        secondaryBuffer.ReadBuffer[i] = null!;
+                    }
+
+                    secondaryBuffer.ReadCount = 0;
                 }
 
-                for (int i = 0; i < readCount; i++)
+                lock (secondaryBuffer.WriteLock)
                 {
-                    OnAccess(secondaryBuffer.ReadBuffer[i]);
-                    secondaryBuffer.ReadBuffer[i] = null!;
-                }
+                    for (int i = 0; i < secondaryBuffer.WriteCount; i++)
+                    {
+                        OnWrite(secondaryBuffer.WriteBuffer[i]);
+                        secondaryBuffer.WriteBuffer[i] = null!;
+                    }
 
-                for (int i = 0; i < writeCount; i++)
-                {
-                    OnWrite(secondaryBuffer.WriteBuffer[i]);
-                    secondaryBuffer.WriteBuffer[i] = null!;
+                    secondaryBuffer.WriteCount = 0;
                 }
 
                 if (droppedWrite != null)
@@ -665,8 +666,12 @@ namespace BitFaster.Caching.Lfu
             {
                 lock (secondaryBuffer.ReadLock)
                 {
-                    var available = secondaryBuffer.ReadBuffer.AsSpanOrArray().Slice(secondaryBuffer.ReadCount, secondaryBuffer.ReadBuffer.Length - secondaryBuffer.ReadCount);
-                    secondaryBuffer.ReadCount += this.readBuffer.DrainTo(available);
+                    int availableCount = secondaryBuffer.ReadBuffer.Length - secondaryBuffer.ReadCount;
+                    if (availableCount != 0)
+                    {
+                        var available = secondaryBuffer.ReadBuffer.AsSpanOrArray().Slice(secondaryBuffer.ReadCount, availableCount);
+                        secondaryBuffer.ReadCount += this.readBuffer.DrainTo(available);
+                    }
                 }
             }
 
@@ -674,29 +679,13 @@ namespace BitFaster.Caching.Lfu
             {
                 lock (secondaryBuffer.WriteLock)
                 {
-                    var available = secondaryBuffer.WriteBuffer.AsSpanOrArray().Slice(secondaryBuffer.WriteCount, secondaryBuffer.WriteBuffer.Length - secondaryBuffer.WriteCount);
-                    secondaryBuffer.WriteCount += this.writeBuffer.DrainTo(available);
+                    int availableCount = secondaryBuffer.WriteBuffer.Length - secondaryBuffer.WriteCount;
+                    if (availableCount != 0)
+                    {
+                        var available = secondaryBuffer.WriteBuffer.AsSpanOrArray().Slice(secondaryBuffer.WriteCount, availableCount);
+                        secondaryBuffer.WriteCount += this.writeBuffer.DrainTo(available);
+                    }
                 }
-            }
-        }
-
-        private static int DrainSecondaryReadBuffer(SecondaryBufferSet secondaryBuffer)
-        {
-            lock (secondaryBuffer.ReadLock)
-            {
-                int count = secondaryBuffer.ReadCount;
-                secondaryBuffer.ReadCount = 0;
-                return count;
-            }
-        }
-
-        private static int DrainSecondaryWriteBuffer(SecondaryBufferSet secondaryBuffer)
-        {
-            lock (secondaryBuffer.WriteLock)
-            {
-                int count = secondaryBuffer.WriteCount;
-                secondaryBuffer.WriteCount = 0;
-                return count;
             }
         }
 
