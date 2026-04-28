@@ -140,7 +140,15 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public void AltTryRemoveExistingKeyReturnsTrue()
+        public void WhenItemDoesNotExistTryGetAltReturnsFalse()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            alternate.ScopedTryGet("a", out _).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenKeyExistsTryRemoveAltReturnsTrue()
         {
             var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -148,14 +156,6 @@ namespace BitFaster.Caching.UnitTests.Atomic
             cache.AddOrUpdate("a", new Disposable());
             alternate.TryRemove("a", out var key).Should().BeTrue();
             key.Should().Be("a");
-        }
-
-        [Fact]
-        public void WhenItemDoesNotExistTryGetAltReturnsFalse()
-        {
-            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
-            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
-            alternate.ScopedTryGet("a", out _).Should().BeFalse();
         }
 
         [Fact]
@@ -240,46 +240,6 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
 #if NET9_0_OR_GREATER
-        [Fact]
-        public async Task ScopedTryGetDisposedScopeReturnsFalse()
-        {
-            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
-            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
-            var scope = new Scoped<Disposable>(new Disposable());
-
-            await cache.ScopedGetOrAddAsync("a", _ => Task.FromResult(scope));
-
-            scope.Dispose();
-
-            alternate.ScopedTryGet("a", out var lifetime).Should().BeFalse();
-        }
-
-        [Fact]
-        public void TryRemoveExistingKeyReturnsTrue()
-        {
-            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
-            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
-
-            cache.AddOrUpdate("a", new Disposable());
-            alternate.TryRemove("a", out var key).Should().BeTrue();
-            key.Should().Be("a");
-        }
-
-        [Fact]
-        public void ScopedTryGetNonExistentKeyReturnsFalse()
-        {
-            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
-            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
-            alternate.ScopedTryGet("a", out _).Should().BeFalse();
-        }
-
-        [Fact]
-        public void TryRemoveNonExistentKeyReturnsFalse()
-        {
-            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
-            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
-            alternate.TryRemove("a", out _).Should().BeFalse();
-        }
 
         [Fact]
         public async Task ScopedGetOrAddAsyncDisposedScopeThrowsInvalidOperationException()
@@ -296,7 +256,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public void TryUpdateMissingKeyReturnsFalse()
+        public void AltTryUpdateMissingKeyReturnsFalse()
         {
             var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -307,7 +267,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public async Task TryUpdateExistingKeyUpdatesValue()
+        public async Task AltTryUpdateExistingKeyUpdatesValue()
         {
             var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -324,7 +284,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public void AddOrUpdateMissingKeyAddsValue()
+        public void AltAddOrUpdateMissingKeyAddsValue()
         {
             var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
@@ -337,7 +297,7 @@ namespace BitFaster.Caching.UnitTests.Atomic
         }
 
         [Fact]
-        public void AddOrUpdateExistingKeyUpdatesValue()
+        public void AltAddOrUpdateExistingKeyUpdatesValue()
         {
             var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
             var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
