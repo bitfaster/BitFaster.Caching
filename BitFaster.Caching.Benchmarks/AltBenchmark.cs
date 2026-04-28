@@ -12,8 +12,11 @@ using BitFaster.Caching.Scheduler;
 
 namespace BitFaster.Caching.Benchmarks
 {
+    // The get alternate lookup family of methods return an interface, while under the hood they return a struct.
+    // This benchmark verifies whether the JIT can devirtualize the return type to avoid boxing the struct.
+    // It is not currently possible to avoid allocs for TryGet.
     [MemoryDiagnoser]
-    [HideColumns("Job", "Median", "RatioSD")]
+    [HideColumns("Job", "Median", "RatioSD", "Error", "StdDev")]
     public class AltBenchmark
     {
         private static readonly ConcurrentLru<string, int> concurrentLru = new ConcurrentLru<string, int>(8, 9, EqualityComparer<string>.Default);
@@ -28,9 +31,8 @@ namespace BitFaster.Caching.Benchmarks
         }
 
 #if NET9_0_OR_GREATER
-
         [Benchmark]
-        public int LruGetAlternateInline()
+        public int LruGetAlternate()
         {
             var alt = concurrentLru.GetAlternateLookup<ReadOnlySpan<char>>();
             alt.TryGet("1", out int value);
@@ -38,10 +40,26 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         [Benchmark]
-        public int LfuGetAlternateInline()
+        public int LruTryGetAlternate()
+        {
+            concurrentLru.TryGetAlternateLookup<ReadOnlySpan<char>>(out var alt);
+            alt.TryGet("1", out int value);
+            return value;
+        }
+
+        [Benchmark]
+        public int LfuGetAlternate()
         {
             var alt = concurrentLfu.GetAlternateLookup<ReadOnlySpan<char>>();
             alt.TryGet("2", out int value);
+            return value;
+        }
+
+        [Benchmark]
+        public int LfuTryGetAlternate()
+        {
+            concurrentLfu.TryGetAlternateLookup<ReadOnlySpan<char>>(out var alt);
+            alt.TryGet("1", out int value);
             return value;
         }
 #endif
