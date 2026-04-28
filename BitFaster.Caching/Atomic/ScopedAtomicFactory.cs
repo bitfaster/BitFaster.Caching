@@ -134,7 +134,7 @@ namespace BitFaster.Caching.Atomic
 
         private void InitializeScope<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
         {
-            var init = initializer;
+            var init = Volatile.Read(ref initializer);
 
             if (init != null)
             {
@@ -149,7 +149,7 @@ namespace BitFaster.Caching.Atomic
         /// </summary>
         public void Dispose()
         {
-            var init = initializer;
+            var init = Volatile.Read(ref initializer);
 
             if (init != null)
             {
