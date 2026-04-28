@@ -90,12 +90,16 @@ namespace BitFaster.Caching
         }
 
         private Lifetime<V> ScopedGetOrAdd<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
         {
             int c = 0;
             var spinwait = new SpinWait();
             while (true)
             {
-                var scope = cache.GetOrAdd(key, k => valueFactory.Create(k));
+                //var scope = cache.GetOrAdd(key, k => valueFactory.Create(k));
+                var scope = cache.GetOrAdd(key, static (k, f) => f.Create(k), valueFactory);
 
                 if (scope.TryCreateLifetime(out var lifetime))
                 {
@@ -229,6 +233,9 @@ namespace BitFaster.Caching
             }
 
             private Lifetime<V> ScopedGetOrAdd<TFactory>(TAlternateKey key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
             {
                 int c = 0;
                 var spinwait = new SpinWait();

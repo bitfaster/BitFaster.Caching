@@ -83,6 +83,9 @@ namespace BitFaster.Caching.Lfu
 
         ///<inheritdoc/>
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#if NET9_0_OR_GREATER
+            where TArg : allows ref struct
+#endif
         {
             return core.GetOrAdd(key, valueFactory, factoryArgument);
         }

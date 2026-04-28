@@ -217,6 +217,9 @@ namespace BitFaster.Caching.Lfu
         }
 
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#if NET9_0_OR_GREATER
+            where TArg : allows ref struct
+#endif
         {
             while (true)
             {
@@ -1133,6 +1136,7 @@ namespace BitFaster.Caching.Lfu
             }
 
             public V GetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+                where TArg : allows ref struct
             {
                 while (true)
                 {
