@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
@@ -156,6 +157,7 @@ namespace BitFaster.Caching.Lfu
 
 #if NET9_0_OR_GREATER
         ///<inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
@@ -170,6 +172,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         ///<inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
