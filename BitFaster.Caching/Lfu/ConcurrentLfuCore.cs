@@ -586,7 +586,7 @@ namespace BitFaster.Caching.Lfu
                         secondaryBuffer.ReadBuffer[i] = null!;
                     }
 
-                    secondaryBuffer.ReadCount = 0;
+                    Volatile.Write(ref secondaryBuffer.ReadCount, 0);
                 }
 
                 lock (secondaryBuffer.WriteLock)
@@ -597,7 +597,7 @@ namespace BitFaster.Caching.Lfu
                         secondaryBuffer.WriteBuffer[i] = null!;
                     }
 
-                    secondaryBuffer.WriteCount = 0;
+                    Volatile.Write(ref secondaryBuffer.WriteCount, 0);
                 }
 
                 if (droppedWrite != null)
@@ -670,7 +670,8 @@ namespace BitFaster.Caching.Lfu
                     if (availableCount != 0)
                     {
                         var available = secondaryBuffer.ReadBuffer.AsSpanOrArray().Slice(secondaryBuffer.ReadCount, availableCount);
-                        secondaryBuffer.ReadCount += this.readBuffer.DrainTo(available);
+                        int drainCount = this.readBuffer.DrainTo(available);
+                        Volatile.Write(ref secondaryBuffer.ReadCount, secondaryBuffer.ReadCount + drainCount);
                     }
                 }
             }
@@ -683,7 +684,8 @@ namespace BitFaster.Caching.Lfu
                     if (availableCount != 0)
                     {
                         var available = secondaryBuffer.WriteBuffer.AsSpanOrArray().Slice(secondaryBuffer.WriteCount, availableCount);
-                        secondaryBuffer.WriteCount += this.writeBuffer.DrainTo(available);
+                        int drainCount = this.writeBuffer.DrainTo(available);
+                        Volatile.Write(ref secondaryBuffer.WriteCount, secondaryBuffer.WriteCount + drainCount);
                     }
                 }
             }
@@ -700,13 +702,13 @@ namespace BitFaster.Caching.Lfu
             lock (secondaryBuffer.ReadLock)
             {
                 Array.Clear(secondaryBuffer.ReadBuffer, 0, secondaryBuffer.ReadCount);
-                secondaryBuffer.ReadCount = 0;
+                Volatile.Write(ref secondaryBuffer.ReadCount, 0);
             }
 
             lock (secondaryBuffer.WriteLock)
             {
                 Array.Clear(secondaryBuffer.WriteBuffer, 0, secondaryBuffer.WriteCount);
-                secondaryBuffer.WriteCount = 0;
+                Volatile.Write(ref secondaryBuffer.WriteCount, 0);
             }
         }
 
