@@ -13,7 +13,6 @@ namespace BitFaster.Caching
     /// <typeparam name="TValue">The cache value type.</typeparam>
     public interface IAsyncAlternateLookup<TAlternateKey, TKey, TValue>
         where TAlternateKey : notnull, allows ref struct
-        where TKey : notnull
     {
         /// <summary>
         /// Attempts to get a value using an alternate key.

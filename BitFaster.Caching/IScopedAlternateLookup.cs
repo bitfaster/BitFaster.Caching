@@ -12,7 +12,6 @@ namespace BitFaster.Caching
     /// <typeparam name="TValue">The cache value type.</typeparam>
     public interface IScopedAlternateLookup<TAlternateKey, TKey, TValue>
         where TAlternateKey : notnull, allows ref struct
-        where TKey : notnull
         where TValue : IDisposable
     {
         /// <summary>
