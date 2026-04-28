@@ -919,17 +919,6 @@ namespace BitFaster.Caching.Lru
             return new AlternateLookup<TAlternateKey>(this);
         }
 
-        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup2<TAlternateKey>()
-            where TAlternateKey : notnull, allows ref struct
-        {
-            if (!this.dictionary.IsCompatibleKey<TAlternateKey, K, I>())
-            {
-                Throw.IncompatibleComparer();
-            }
-
-            return new AlternateLookup<TAlternateKey>(this);
-        }
-
         ///<inheritdoc/>
         public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
             where TAlternateKey : notnull, allows ref struct
@@ -945,6 +934,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
