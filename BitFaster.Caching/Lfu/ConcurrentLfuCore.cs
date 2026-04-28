@@ -65,16 +65,23 @@ namespace BitFaster.Caching.Lfu
 
         internal readonly DrainStatus drainStatus = new();
 
+        private readonly SecondaryBufferSet[] secondaryBuffers;
+
+        private int secondaryBufferIndex;
+        private int activeDrainCount;
+
 #if NET9_0_OR_GREATER
         private readonly Lock maintenanceLock = new();
+        private readonly Lock primaryReadBufferLock = new();
+        private readonly Lock primaryWriteBufferLock = new();
 #else
         private readonly object maintenanceLock = new();
+        private readonly object primaryReadBufferLock = new();
+        private readonly object primaryWriteBufferLock = new();
 #endif
 
         private readonly IScheduler scheduler;
         private readonly Action drainBuffers;
-
-        private readonly N[] drainBuffer;
 
         internal P policy;
 
@@ -103,7 +110,11 @@ namespace BitFaster.Caching.Lfu
 
             this.scheduler = scheduler;
 
-            this.drainBuffer = new N[this.readBuffer.Capacity];
+            this.secondaryBuffers =
+            [
+                new(this.readBuffer.Capacity, this.writeBuffer.Capacity),
+                new(this.readBuffer.Capacity, this.writeBuffer.Capacity),
+            ];
 
             this.drainBuffers = drainBuffers;
 
@@ -151,19 +162,31 @@ namespace BitFaster.Caching.Lfu
 
             lock (maintenanceLock)
             {
-                this.readBuffer.Clear();
-                this.writeBuffer.Clear();
+                lock (this.primaryReadBufferLock)
+                {
+                    this.readBuffer.Clear();
+                }
+
+                lock (this.primaryWriteBufferLock)
+                {
+                    this.writeBuffer.Clear();
+                }
+
+                ClearSecondaryBuffers();
                 this.cmSketch.Clear();
+                Volatile.Write(ref this.secondaryBufferIndex, 0);
+                Volatile.Write(ref this.activeDrainCount, 0);
+                this.drainStatus.NonVolatileWrite(DrainStatus.Idle);
             }
         }
 
         public void Trim(int itemCount)
         {
+            DoMaintenance();
+
             List<LfuNode<K, V>> candidates;
             lock (maintenanceLock)
             {
-                Maintenance();
-
                 int lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
                 itemCount = Math.Min(itemCount, lruCount);
                 candidates = new(itemCount);
@@ -410,7 +433,7 @@ namespace BitFaster.Caching.Lfu
 
         public void DoMaintenance()
         {
-            DrainBuffers();
+            DrainBuffersSync();
         }
 
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
@@ -450,24 +473,9 @@ namespace BitFaster.Caching.Lfu
                 TryScheduleDrain();
             }
 
-            lock (this.maintenanceLock)
-            {
-                // aggressively try to exit the lock early before doing full maintenance
-                var status = BufferStatus.Contended;
-                while (status != BufferStatus.Full)
-                {
-                    status = writeBuffer.TryAdd(node);
-
-                    if (status == BufferStatus.Success)
-                    {
-                        ScheduleAfterWrite();
-                        return;
-                    }
-                }
-
-                // if the write was dropped from the buffer, explicitly pass it to maintenance
-                Maintenance(node);
-            }
+            int index = ClaimSecondaryBufferIndex();
+            DrainPrimaryBuffersToSecondary(this.secondaryBuffers[index]);
+            Maintenance(this.secondaryBuffers[index], node);
         }
 
         private void ScheduleAfterWrite()
@@ -501,121 +509,216 @@ namespace BitFaster.Caching.Lfu
 
         private void TryScheduleDrain()
         {
-            if (this.drainStatus.VolatileRead() >= DrainStatus.ProcessingToIdle)
+            while (true)
             {
-                return;
-            }
+                int status = this.drainStatus.VolatileRead();
+                int activeDrains = Volatile.Read(ref this.activeDrainCount);
 
-#if NET9_0_OR_GREATER
-            if (maintenanceLock.TryEnter())
-#else
-            bool lockTaken = false;
-            Monitor.TryEnter(maintenanceLock, ref lockTaken);
-            if (lockTaken)
-#endif
-            {
-                try
+                switch (status)
                 {
-                    int status = this.drainStatus.NonVolatileRead();
-
-                    if (status >= DrainStatus.ProcessingToIdle)
-                    {
+                    case DrainStatus.Idle:
+                    case DrainStatus.Required:
+                        if (activeDrains != 0 || !this.drainStatus.Cas(status, DrainStatus.ProcessingToIdle))
+                        {
+                            return;
+                        }
+                        break;
+                    case DrainStatus.ProcessingToRequired:
+                        if (activeDrains >= 2)
+                        {
+                            return;
+                        }
+                        break;
+                    default:
                         return;
-                    }
-
-                    this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
-                    scheduler.Run(this.drainBuffers);
                 }
-                finally
+
+                if (Interlocked.CompareExchange(ref this.activeDrainCount, activeDrains + 1, activeDrains) == activeDrains)
                 {
-#if NET9_0_OR_GREATER
-                    maintenanceLock.Exit();
-#else
-                    if (lockTaken)
-                    {
-                        Monitor.Exit(maintenanceLock);
-                    }
-#endif
+                    scheduler.Run(this.drainBuffers);
+                    return;
                 }
             }
         }
 
         internal void DrainBuffers()
         {
-            bool done = false;
-
-            while (!done)
+            try
             {
-                lock (maintenanceLock)
-                {
-                    done = Maintenance();
-                }
+                bool done = false;
 
-                // don't run continuous foreground maintenance
-                if (!scheduler.IsBackground)
+                while (!done)
                 {
-                    done = true;
+                    int index = ClaimSecondaryBufferIndex();
+                    DrainPrimaryBuffersToSecondary(this.secondaryBuffers[index]);
+                    Maintenance(this.secondaryBuffers[index]);
+
+                    done = !scheduler.IsBackground || !HasPendingWork();
                 }
             }
+            finally
+            {
+                CompleteDrain();
+            }
+        }
 
-            if (this.drainStatus.VolatileRead() == DrainStatus.Required)
+        private void DrainBuffersSync()
+        {
+            do
+            {
+                int index = ClaimSecondaryBufferIndex();
+                DrainPrimaryBuffersToSecondary(this.secondaryBuffers[index]);
+                Maintenance(this.secondaryBuffers[index]);
+            }
+            while (HasPendingWork());
+
+            this.drainStatus.NonVolatileWrite(DrainStatus.Idle);
+        }
+
+        private void Maintenance(SecondaryBufferSet secondaryBuffer, N? droppedWrite = null)
+        {
+            lock (maintenanceLock)
+            {
+                int readCount = DrainSecondaryReadBuffer(secondaryBuffer);
+                int writeCount = DrainSecondaryWriteBuffer(secondaryBuffer);
+
+                for (int i = 0; i < readCount; i++)
+                {
+                    this.cmSketch.Increment(secondaryBuffer.ReadBuffer[i].Key);
+                }
+
+                for (int i = 0; i < readCount; i++)
+                {
+                    OnAccess(secondaryBuffer.ReadBuffer[i]);
+                    secondaryBuffer.ReadBuffer[i] = null!;
+                }
+
+                for (int i = 0; i < writeCount; i++)
+                {
+                    OnWrite(secondaryBuffer.WriteBuffer[i]);
+                    secondaryBuffer.WriteBuffer[i] = null!;
+                }
+
+                if (droppedWrite != null)
+                {
+                    OnWrite(droppedWrite);
+                }
+
+                policy.ExpireEntries(ref this);
+                EvictEntries();
+                this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
+                ReFitProtected();
+            }
+        }
+
+        private void CompleteDrain()
+        {
+            int remainingDrains = Interlocked.Decrement(ref this.activeDrainCount);
+            bool pendingWork = HasPendingWork();
+
+            if (remainingDrains == 0)
+            {
+                this.drainStatus.NonVolatileWrite(pendingWork ? DrainStatus.Required : DrainStatus.Idle);
+            }
+            else
+            {
+                this.drainStatus.NonVolatileWrite(pendingWork ? DrainStatus.ProcessingToRequired : DrainStatus.ProcessingToIdle);
+            }
+
+            if (pendingWork)
             {
                 TryScheduleDrain();
             }
         }
 
-        private bool Maintenance(N? droppedWrite = null)
+        private bool HasPendingWork()
         {
-            this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
+            return this.readBuffer.Count != 0 ||
+                   this.writeBuffer.Count != 0 ||
+                   Volatile.Read(ref this.secondaryBuffers[0].ReadCount) != 0 ||
+                   Volatile.Read(ref this.secondaryBuffers[0].WriteCount) != 0 ||
+                   Volatile.Read(ref this.secondaryBuffers[1].ReadCount) != 0 ||
+                   Volatile.Read(ref this.secondaryBuffers[1].WriteCount) != 0;
+        }
 
-            // Note: this is only Span on .NET Core 3.1+, else this is no-op and it is still an array
-            var buffer = this.drainBuffer.AsSpanOrArray();
+        private int ClaimSecondaryBufferIndex()
+        {
+            var spinner = new SpinWait();
 
-            // extract to a buffer before doing book keeping work, ~2x faster
-            int readCount = readBuffer.DrainTo(buffer);
-
-            for (int i = 0; i < readCount; i++)
+            while (true)
             {
-                this.cmSketch.Increment(buffer[i].Key);
+                int current = Volatile.Read(ref this.secondaryBufferIndex);
+                int next = current ^ 1;
+
+                if (Interlocked.CompareExchange(ref this.secondaryBufferIndex, next, current) == current)
+                {
+                    return current;
+                }
+
+                spinner.SpinOnce();
+            }
+        }
+
+        private void DrainPrimaryBuffersToSecondary(SecondaryBufferSet secondaryBuffer)
+        {
+            lock (this.primaryReadBufferLock)
+            {
+                lock (secondaryBuffer.ReadLock)
+                {
+                    var available = secondaryBuffer.ReadBuffer.AsSpanOrArray().Slice(secondaryBuffer.ReadCount, secondaryBuffer.ReadBuffer.Length - secondaryBuffer.ReadCount);
+                    secondaryBuffer.ReadCount += this.readBuffer.DrainTo(available);
+                }
             }
 
-            for (int i = 0; i < readCount; i++)
+            lock (this.primaryWriteBufferLock)
             {
-                OnAccess(buffer[i]);
+                lock (secondaryBuffer.WriteLock)
+                {
+                    var available = secondaryBuffer.WriteBuffer.AsSpanOrArray().Slice(secondaryBuffer.WriteCount, secondaryBuffer.WriteBuffer.Length - secondaryBuffer.WriteCount);
+                    secondaryBuffer.WriteCount += this.writeBuffer.DrainTo(available);
+                }
+            }
+        }
+
+        private static int DrainSecondaryReadBuffer(SecondaryBufferSet secondaryBuffer)
+        {
+            lock (secondaryBuffer.ReadLock)
+            {
+                int count = secondaryBuffer.ReadCount;
+                secondaryBuffer.ReadCount = 0;
+                return count;
+            }
+        }
+
+        private static int DrainSecondaryWriteBuffer(SecondaryBufferSet secondaryBuffer)
+        {
+            lock (secondaryBuffer.WriteLock)
+            {
+                int count = secondaryBuffer.WriteCount;
+                secondaryBuffer.WriteCount = 0;
+                return count;
+            }
+        }
+
+        private void ClearSecondaryBuffers()
+        {
+            ClearSecondaryBuffer(this.secondaryBuffers[0]);
+            ClearSecondaryBuffer(this.secondaryBuffers[1]);
+        }
+
+        private static void ClearSecondaryBuffer(SecondaryBufferSet secondaryBuffer)
+        {
+            lock (secondaryBuffer.ReadLock)
+            {
+                Array.Clear(secondaryBuffer.ReadBuffer, 0, secondaryBuffer.ReadCount);
+                secondaryBuffer.ReadCount = 0;
             }
 
-            int writeCount = this.writeBuffer.DrainTo(buffer.AsSpanOrSegment());
-
-            for (int i = 0; i < writeCount; i++)
+            lock (secondaryBuffer.WriteLock)
             {
-                OnWrite(buffer[i]);
+                Array.Clear(secondaryBuffer.WriteBuffer, 0, secondaryBuffer.WriteCount);
+                secondaryBuffer.WriteCount = 0;
             }
-
-            // we are done only when both buffers are empty
-            var done = readCount == 0 & writeCount == 0;
-
-            if (droppedWrite != null)
-            {
-                OnWrite(droppedWrite);
-                done = true;
-            }
-
-            policy.ExpireEntries(ref this);
-            EvictEntries();
-            this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
-            ReFitProtected();
-
-            // Reset to idle if either
-            // 1. We drained both input buffers (all work done)
-            // 2. or scheduler is foreground (since don't run continuously on the foreground)
-            if ((done || !scheduler.IsBackground) &&
-                (this.drainStatus.NonVolatileRead() != DrainStatus.ProcessingToIdle ||
-                !this.drainStatus.Cas(DrainStatus.ProcessingToIdle, DrainStatus.Idle)))
-            {
-                this.drainStatus.NonVolatileWrite(DrainStatus.Required);
-            }
-
-            return done;
         }
 
         private void OnAccess(N node)
@@ -883,6 +986,35 @@ namespace BitFaster.Caching.Lfu
                 demoted.Position = Position.Probation;
                 this.probationLru.AddLast(demoted);
             }
+        }
+
+        private sealed class SecondaryBufferSet
+        {
+            public SecondaryBufferSet(int readBufferCapacity, int writeBufferCapacity)
+            {
+                this.ReadBuffer = new N[readBufferCapacity];
+                this.WriteBuffer = new N[writeBufferCapacity];
+            }
+
+            public N[] ReadBuffer { get; }
+
+            public int ReadCount;
+
+#if NET9_0_OR_GREATER
+            public Lock ReadLock { get; } = new();
+#else
+            public object ReadLock { get; } = new();
+#endif
+
+            public N[] WriteBuffer { get; }
+
+            public int WriteCount;
+
+#if NET9_0_OR_GREATER
+            public Lock WriteLock { get; } = new();
+#else
+            public object WriteLock { get; } = new();
+#endif
         }
 
         [DebuggerDisplay("{Format(),nq}")]
