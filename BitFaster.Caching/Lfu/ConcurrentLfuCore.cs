@@ -586,7 +586,7 @@ namespace BitFaster.Caching.Lfu
                         secondaryBuffer.ReadBuffer[i] = null!;
                     }
 
-                    Volatile.Write(ref secondaryBuffer.ReadCount, 0);
+                    secondaryBuffer.ReadCount = 0;
                 }
 
                 lock (secondaryBuffer.WriteLock)
@@ -597,7 +597,7 @@ namespace BitFaster.Caching.Lfu
                         secondaryBuffer.WriteBuffer[i] = null!;
                     }
 
-                    Volatile.Write(ref secondaryBuffer.WriteCount, 0);
+                    secondaryBuffer.WriteCount = 0;
                 }
 
                 if (droppedWrite != null)
@@ -636,10 +636,8 @@ namespace BitFaster.Caching.Lfu
         {
             return this.readBuffer.Count != 0 ||
                    this.writeBuffer.Count != 0 ||
-                   Volatile.Read(ref this.secondaryBuffers[0].ReadCount) != 0 ||
-                   Volatile.Read(ref this.secondaryBuffers[0].WriteCount) != 0 ||
-                   Volatile.Read(ref this.secondaryBuffers[1].ReadCount) != 0 ||
-                   Volatile.Read(ref this.secondaryBuffers[1].WriteCount) != 0;
+                   HasPendingWork(this.secondaryBuffers[0]) ||
+                   HasPendingWork(this.secondaryBuffers[1]);
         }
 
         private int ClaimSecondaryBufferIndex()
@@ -670,8 +668,7 @@ namespace BitFaster.Caching.Lfu
                     if (availableCount != 0)
                     {
                         var available = secondaryBuffer.ReadBuffer.AsSpanOrArray().Slice(secondaryBuffer.ReadCount, availableCount);
-                        int drainCount = this.readBuffer.DrainTo(available);
-                        Volatile.Write(ref secondaryBuffer.ReadCount, secondaryBuffer.ReadCount + drainCount);
+                        secondaryBuffer.ReadCount += this.readBuffer.DrainTo(available);
                     }
                 }
             }
@@ -684,10 +681,25 @@ namespace BitFaster.Caching.Lfu
                     if (availableCount != 0)
                     {
                         var available = secondaryBuffer.WriteBuffer.AsSpanOrArray().Slice(secondaryBuffer.WriteCount, availableCount);
-                        int drainCount = this.writeBuffer.DrainTo(available);
-                        Volatile.Write(ref secondaryBuffer.WriteCount, secondaryBuffer.WriteCount + drainCount);
+                        secondaryBuffer.WriteCount += this.writeBuffer.DrainTo(available);
                     }
                 }
+            }
+        }
+
+        private static bool HasPendingWork(SecondaryBufferSet secondaryBuffer)
+        {
+            lock (secondaryBuffer.ReadLock)
+            {
+                if (secondaryBuffer.ReadCount != 0)
+                {
+                    return true;
+                }
+            }
+
+            lock (secondaryBuffer.WriteLock)
+            {
+                return secondaryBuffer.WriteCount != 0;
             }
         }
 
@@ -702,13 +714,13 @@ namespace BitFaster.Caching.Lfu
             lock (secondaryBuffer.ReadLock)
             {
                 Array.Clear(secondaryBuffer.ReadBuffer, 0, secondaryBuffer.ReadCount);
-                Volatile.Write(ref secondaryBuffer.ReadCount, 0);
+                secondaryBuffer.ReadCount = 0;
             }
 
             lock (secondaryBuffer.WriteLock)
             {
                 Array.Clear(secondaryBuffer.WriteBuffer, 0, secondaryBuffer.WriteCount);
-                Volatile.Write(ref secondaryBuffer.WriteCount, 0);
+                secondaryBuffer.WriteCount = 0;
             }
         }
 
