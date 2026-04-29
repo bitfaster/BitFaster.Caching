@@ -444,10 +444,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private readonly StripedMpscBuffer<N> readBuffer;
         private readonly MpscBoundedBuffer<N> writeBuffer;
 
-	    private static FieldInfo dictionaryField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("dictionary", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo dictionaryField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("dictionary", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo lockField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("maintenanceLock", BindingFlags.NonPublic | BindingFlags.Instance);
 
-	    private static FieldInfo windowLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("windowLru", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo windowLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("windowLru", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo probationLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("probationLru", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo protectedLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("protectedLru", BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -463,7 +463,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 #if NET9_0_OR_GREATER
             this.maintenanceLock = (Lock)lockField.GetValue(cache);
 #else
-         this.maintenanceLock = lockField.GetValue(cache);
+            this.maintenanceLock = lockField.GetValue(cache);
 #endif
 
             // get lrus via reflection
