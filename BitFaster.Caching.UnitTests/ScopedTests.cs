@@ -54,7 +54,7 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
-        public void CreateLifetime_WhenCalled_ReferenceCountIncludesCreatedLifetime()
+        public void CreateLifetime_AfterIncrement_ReturnsIncrementedReferenceCount()
         {
             var scope = new Scoped<Disposable>(new Disposable());
 

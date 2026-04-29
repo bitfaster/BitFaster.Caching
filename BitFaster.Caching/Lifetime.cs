@@ -16,7 +16,8 @@ namespace BitFaster.Caching
     /// <typeparam name="T">The type of value</typeparam>
     public sealed class Lifetime<T> : IDisposable
     {
-        private readonly object releaser;
+        private readonly Action? releaseAction;
+        private readonly ILifetimeReleaser? releaser;
         private readonly T value = default!;
         private readonly int referenceCount;
         private bool isDisposed;
@@ -30,7 +31,7 @@ namespace BitFaster.Caching
         {
             this.value = value.Value;
             this.referenceCount = value.Count;
-            this.releaser = onDisposeAction;
+            this.releaseAction = onDisposeAction;
         }
 
         internal Lifetime(T value, int referenceCount, ILifetimeReleaser releaser)
@@ -61,13 +62,9 @@ namespace BitFaster.Caching
                 {
                     lifetimeReleaser.ReleaseLifetime();
                 }
-                else if (this.releaser is Action onDisposeAction)
-                {
-                    onDisposeAction();
-                }
                 else
                 {
-                    Throw.InvalidOp("Unsupported lifetime releaser.");
+                    this.releaseAction!();
                 }
 
                 this.isDisposed = true;
