@@ -93,6 +93,11 @@ namespace BitFaster.Caching.HitRateAnalysis
             throw new NotImplementedException();
         }
 
+        public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument) where TArg : allows ref struct
+        {
+            throw new NotImplementedException();
+        }
+
         private class BoundedPolicy : IBoundedPolicy
         {
             private int capacity;
