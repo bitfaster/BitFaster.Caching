@@ -51,7 +51,7 @@ jobs:
             results: results10.trx
             artifact: test-results-win10
             std: true
-            flag: win9
+            flag: win10
             publish_nuget: false
 
           # macOS
@@ -91,7 +91,7 @@ jobs:
             std: true
             flag: linux10
             publish_nuget: false
-            
+
     steps:
       - uses: actions/checkout@v4
 
