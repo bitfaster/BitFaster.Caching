@@ -411,29 +411,29 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryUpdateValue(N node, V value)
         {
-                lock (node)
+            lock (node)
+            {
+                if (!node.WasRemoved)
                 {
-                    if (!node.WasRemoved)
-                    {
-                        // backcompat: remove conditional compile
+                    // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
-                        V oldValue = node.Value;
+                    V oldValue = node.Value;
 #endif
-                        node.Value = value;
+                    node.Value = value;
 
-                        // It's ok for this to be lossy, since the node is already tracked
-                        // and we will just lose ordering/hit count, but not orphan the node.
-                        this.writeBuffer.TryAdd(node);
-                        TryScheduleDrain();
-                        this.policy.OnWrite(node);
+                    // It's ok for this to be lossy, since the node is already tracked
+                    // and we will just lose ordering/hit count, but not orphan the node.
+                    this.writeBuffer.TryAdd(node);
+                    TryScheduleDrain();
+                    this.policy.OnWrite(node);
 
-                        // backcompat: remove conditional compile
+                    // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
-                        this.eventPolicy.OnItemUpdated(key, oldValue, value);
+                    this.eventPolicy.OnItemUpdated(node.Key, oldValue, value);
 #endif
-                        return true;
-                    }
+                    return true;
                 }
+            }
 
             return false;
         }
@@ -1084,7 +1084,7 @@ namespace BitFaster.Caching.Lfu
         internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>, IAsyncAlternateLookup<TAlternateKey, K, V>
             where TAlternateKey : notnull, allows ref struct
         {
-            internal AlternateLookup(ConcurrentLfuCore<K, V, N, P> lfu)
+            internal AlternateLookup(ConcurrentLfuCore<K, V, N, P, E> lfu)
             {
                 Debug.Assert(lfu.dictionary.IsCompatibleKey<TAlternateKey, K, N>());
                 this.Lfu = lfu;
@@ -1092,7 +1092,7 @@ namespace BitFaster.Caching.Lfu
                 this.Comparer = lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>();
             }
 
-            internal ConcurrentLfuCore<K, V, N, P> Lfu { get; }
+            internal ConcurrentLfuCore<K, V, N, P, E> Lfu { get; }
 
             internal ConcurrentDictionary<K, N>.AlternateLookup<TAlternateKey> Alternate { get; }
 

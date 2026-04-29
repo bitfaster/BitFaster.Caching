@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
@@ -418,7 +419,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         private static void RunIntegrityCheck<K, V>(ConcurrentLfu<K, V> cache, ITestOutputHelper output)
         {
-            new ConcurrentLfuIntegrityChecker<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>(cache.Core).Validate(output);
+            new ConcurrentLfuIntegrityChecker<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V, EventPolicy<K, V>>, EventPolicy<K, V>>(cache.Core).Validate(output);
         }
     }
 
@@ -428,6 +429,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
         where E : struct, IEventPolicy<K, V>
     {
         private readonly ConcurrentLfuCore<K, V, N, P, E> cache;
+        private readonly ConcurrentDictionary<K, N> dictionary;
+
+#if NET9_0_OR_GREATER
+        private readonly Lock maintenanceLock;
+#else
+        private readonly object maintenanceLock;
+#endif
 
         private readonly LfuNodeList<K, V> windowLru;
         private readonly LfuNodeList<K, V> probationLru;
@@ -436,10 +444,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private readonly StripedMpscBuffer<N> readBuffer;
         private readonly MpscBoundedBuffer<N> writeBuffer;
 
-	private static FieldInfo dictionaryField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("dictionary", BindingFlags.NonPublic | BindingFlags.Instance);
+	    private static FieldInfo dictionaryField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("dictionary", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo lockField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("maintenanceLock", BindingFlags.NonPublic | BindingFlags.Instance);
 
-	private static FieldInfo windowLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("windowLru", BindingFlags.NonPublic | BindingFlags.Instance);
+	    private static FieldInfo windowLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("windowLru", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo probationLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("probationLru", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo protectedLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("protectedLru", BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -451,7 +459,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.cache = cache;
 
             this.dictionary = (ConcurrentDictionary<K, N>)dictionaryField.GetValue(cache);
-            this.maintenanceLock = lockField.GetValue(cache);
+
+#if NET9_0_OR_GREATER
+            this.maintenanceLock = (Lock)lockField.GetValue(cache);
+#else
+         this.maintenanceLock = lockField.GetValue(cache);
+#endif
 
             // get lrus via reflection
             this.windowLru = (LfuNodeList<K, V>)windowLruField.GetValue(cache);
