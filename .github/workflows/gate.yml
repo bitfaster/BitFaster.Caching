@@ -46,10 +46,10 @@ jobs:
             publish_nuget: false
 
           - os: windows-latest
-            framework: net9.0
+            framework: net10.0
             coverage: true
-            results: results9.trx
-            artifact: test-results-win9
+            results: results10.trx
+            artifact: test-results-win10
             std: true
             flag: win9
             publish_nuget: false
@@ -59,9 +59,18 @@ jobs:
             framework: net6.0
             coverage: true
             results: results.trx
-            artifact: test-results-mac
+            artifact: test-results-mac6
             std: true
-            flag: mac
+            flag: mac6
+            publish_nuget: false
+
+          - os: macos-latest
+            framework: net10.0
+            coverage: true
+            results: results.trx
+            artifact: test-results-mac10
+            std: true
+            flag: mac10
             publish_nuget: false
 
           # Linux
@@ -69,11 +78,20 @@ jobs:
             framework: net6.0
             coverage: true
             results: results.trx
-            artifact: test-results-linux
+            artifact: test-results-linux6
             std: true
-            flag: linux
+            flag: linux6
             publish_nuget: false
 
+          - os: ubuntu-latest
+            framework: net10.0
+            coverage: true
+            results: results.trx
+            artifact: test-results-linux10
+            std: true
+            flag: linux10
+            publish_nuget: false
+            
     steps:
       - uses: actions/checkout@v4
 
@@ -83,8 +101,7 @@ jobs:
           dotnet-version: |
             3.1.x
             6.0.x
-            8.0.x
-            9.0.x
+            10.0.x
 
       - name: Install dependencies
         run: dotnet restore
