@@ -13,8 +13,7 @@ namespace BitFaster.Caching.UnitTests
     {
         // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
-        // On NET9+, ICache.GetOrAdd<TArg> has no default fallback because ref struct TArg cannot be captured in a closure.
-        // Concrete implementations must provide this method.
+        // On NET9+, ICache.GetOrAdd<TArg> has no default fallback.
 #if !NET9_0_OR_GREATER
         [Fact]
         public void WhenCacheInterfaceDefaultGetOrAddFallback()

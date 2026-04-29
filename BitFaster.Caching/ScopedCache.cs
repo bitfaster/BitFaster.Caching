@@ -98,8 +98,7 @@ namespace BitFaster.Caching
             var spinwait = new SpinWait();
             while (true)
             {
-#if NETCOREAPP3_0_OR_GREATER
-                // Use static lambda with explicit arg to avoid closure allocation.
+#if NET
                 var scope = cache.GetOrAdd(key, static (k, f) => f.Create(k), valueFactory);
 #else
                 var scope = cache.GetOrAdd(key, k => valueFactory.Create(k));
