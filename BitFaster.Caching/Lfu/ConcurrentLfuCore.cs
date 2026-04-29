@@ -1250,6 +1250,8 @@ namespace BitFaster.Caching.Lfu
 #endif
 
 #if DEBUG
+        private const int maxDebugLruDisplay = 99;
+
         /// <summary>
         /// Format the LFU as a string by converting all the keys to strings.
         /// </summary>
@@ -1259,11 +1261,11 @@ namespace BitFaster.Caching.Lfu
             var sb = new StringBuilder();
 
             sb.Append("W [");
-            sb.Append(string.Join(",", this.windowLru.Select(n => n.Key.ToString())));
+            sb.Append(string.Join(",", this.windowLru.Select(n => n.Key.ToString()).Take(maxDebugLruDisplay)));
             sb.Append("] Protected [");
-            sb.Append(string.Join(",", this.protectedLru.Select(n => n.Key.ToString())));
+            sb.Append(string.Join(",", this.protectedLru.Select(n => n.Key.ToString()).Take(maxDebugLruDisplay)));
             sb.Append("] Probation [");
-            sb.Append(string.Join(",", this.probationLru.Select(n => n.Key.ToString())));
+            sb.Append(string.Join(",", this.probationLru.Select(n => n.Key.ToString()).Take(maxDebugLruDisplay)));
             sb.Append(']');
 
             return sb.ToString();
