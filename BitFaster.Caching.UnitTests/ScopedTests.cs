@@ -54,6 +54,16 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Fact]
+        public void CreateLifetime_WhenCalled_ReferenceCountIncludesCreatedLifetime()
+        {
+            var scope = new Scoped<Disposable>(new Disposable());
+
+            using var lifetime = scope.CreateLifetime();
+
+            lifetime.ReferenceCount.Should().Be(2);
+        }
+
+        [Fact]
         public void WhenScopeIsDisposedCreateScopeThrows()
         {
             var disposable = new Disposable();

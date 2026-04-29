@@ -55,7 +55,7 @@ namespace BitFaster.Caching
 
                 if (Interlocked.CompareExchange(ref this.state, oldState + 1, oldState) == oldState)
                 {
-                    lifetime = new Lifetime<T>(this.value, oldState & ReferenceCountMask, this);
+                    lifetime = new Lifetime<T>(this.value, (oldState & ReferenceCountMask) + 1, this);
                     return true;
                 }
             }

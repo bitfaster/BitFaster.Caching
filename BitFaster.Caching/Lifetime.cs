@@ -16,9 +16,7 @@ namespace BitFaster.Caching
     /// <typeparam name="T">The type of value</typeparam>
     public sealed class Lifetime<T> : IDisposable
     {
-        private readonly Action? onDisposeAction;
-        private readonly ReferenceCount<T>? refCount;
-        private readonly ILifetimeReleaser? releaser;
+        private readonly object releaser = default!;
         private readonly T value = default!;
         private readonly int referenceCount;
         private bool isDisposed;
@@ -30,8 +28,9 @@ namespace BitFaster.Caching
         /// <param name="onDisposeAction">The action to perform when the lifetime is terminated.</param>
         public Lifetime(ReferenceCount<T> value, Action onDisposeAction)
         {
-            this.refCount = value;
-            this.onDisposeAction = onDisposeAction;
+            this.value = value.Value;
+            this.referenceCount = value.Count;
+            this.releaser = onDisposeAction;
         }
 
         internal Lifetime(T value, int referenceCount, ILifetimeReleaser releaser)
@@ -44,12 +43,12 @@ namespace BitFaster.Caching
         /// <summary>
         /// Gets the value.
         /// </summary>
-        public T Value => this.refCount is null ? this.value : this.refCount.Value;
+        public T Value => this.value;
 
         /// <summary>
         /// Gets the count of Lifetime instances referencing the same value.
         /// </summary>
-        public int ReferenceCount => this.refCount is null ? this.referenceCount : this.refCount.Count;
+        public int ReferenceCount => this.referenceCount;
 
         /// <summary>
         /// Terminates the lifetime and performs any cleanup required to release the value.
@@ -58,13 +57,13 @@ namespace BitFaster.Caching
         {
             if (!this.isDisposed)
             {
-                if (this.onDisposeAction is null)
+                if (this.releaser is ILifetimeReleaser lifetimeReleaser)
                 {
-                    this.releaser!.ReleaseLifetime();
+                    lifetimeReleaser.ReleaseLifetime();
                 }
                 else
                 {
-                    this.onDisposeAction();
+                    ((Action)this.releaser)();
                 }
 
                 this.isDisposed = true;
