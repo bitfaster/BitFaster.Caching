@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 
 namespace BitFaster.Caching.Atomic
 {
@@ -52,6 +53,11 @@ namespace BitFaster.Caching.Atomic
         ///<inheritdoc/>
         public ICollection<K> Keys => AtomicEx.FilterKeys<K, AtomicFactory<K, V>>(this.cache, v => v.IsValueCreated);
 
+#if NET9_0_OR_GREATER
+        /// <inheritdoc/>
+        public IEqualityComparer<K> Comparer => this.cache.Comparer;
+#endif
+
         ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;
 
@@ -60,6 +66,7 @@ namespace BitFaster.Caching.Atomic
         {
             this.cache.AddOrUpdate(key, new AtomicFactory<K, V>(value));
         }
+
 
         ///<inheritdoc/>
         public void Clear()
@@ -85,6 +92,9 @@ namespace BitFaster.Caching.Atomic
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
         /// in the cache, or the new value if the key was not in the cache.</returns>
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#if NET9_0_OR_GREATER
+            where TArg : allows ref struct
+#endif
         {
             var atomicFactory = cache.GetOrAdd(key, _ => new AtomicFactory<K, V>());
             return atomicFactory.GetValue(key, valueFactory, factoryArgument);
@@ -163,6 +173,106 @@ namespace BitFaster.Caching.Atomic
         {
             return ((AtomicFactoryCache<K, V>)this).GetEnumerator();
         }
+
+#if NET9_0_OR_GREATER
+        ///<inheritdoc/>
+        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            var inner = cache.GetAlternateLookup<TAlternateKey>();
+            var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)cache.Comparer;
+            return new AlternateLookup<TAlternateKey>(inner, comparer);
+        }
+
+        ///<inheritdoc/>
+        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (cache.TryGetAlternateLookup<TAlternateKey>(out var inner))
+            {
+                var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)cache.Comparer;
+                lookup = new AlternateLookup<TAlternateKey>(inner, comparer);
+                return true;
+            }
+
+            lookup = default;
+            return false;
+        }
+
+        internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>
+            where TAlternateKey : notnull, allows ref struct
+        {
+            private readonly IAlternateLookup<TAlternateKey, K, AtomicFactory<K, V>> inner;
+            private readonly IAlternateEqualityComparer<TAlternateKey, K> comparer;
+
+            internal AlternateLookup(IAlternateLookup<TAlternateKey, K, AtomicFactory<K, V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
+            {
+                this.inner = inner;
+                this.comparer = comparer;
+            }
+
+            public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
+            {
+                if (inner.TryGet(key, out var atomic) && atomic.IsValueCreated)
+                {
+                    value = atomic.ValueIfCreated!;
+                    return true;
+                }
+
+                value = default;
+                return false;
+            }
+
+            public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey, [MaybeNullWhen(false)] out V value)
+            {
+                if (inner.TryRemove(key, out actualKey, out var atomic))
+                {
+                    value = atomic.ValueIfCreated!;
+                    return true;
+                }
+
+                value = default;
+                return false;
+            }
+
+            public bool TryUpdate(TAlternateKey key, V value)
+            {
+                return inner.TryUpdate(key, new AtomicFactory<K, V>(value));
+            }
+
+            public void AddOrUpdate(TAlternateKey key, V value)
+            {
+                inner.AddOrUpdate(key, new AtomicFactory<K, V>(value));
+            }
+
+            public V GetOrAdd(TAlternateKey key, Func<K, V> valueFactory)
+            {
+                var atomicFactory = inner.GetOrAdd(key, _ => new AtomicFactory<K, V>());
+
+                if (atomicFactory.IsValueCreated)
+                {
+                    return atomicFactory.ValueIfCreated!;
+                }
+
+                K actualKey = comparer.Create(key);
+                return atomicFactory.GetValue(actualKey, valueFactory);
+            }
+
+            public V GetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+                 where TArg : allows ref struct
+            {
+                var atomicFactory = inner.GetOrAdd(key, _ => new AtomicFactory<K, V>());
+
+                if (atomicFactory.IsValueCreated)
+                {
+                    return atomicFactory.ValueIfCreated!;
+                }
+
+                K actualKey = comparer.Create(key);
+                return atomicFactory.GetValue(actualKey, valueFactory, factoryArgument);
+            }
+        }
+#endif
 
         private class EventProxy : CacheEventProxyBase<K, AtomicFactory<K, V>, V>
         {

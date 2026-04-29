@@ -41,6 +41,33 @@ namespace BitFaster.Caching
         /// </summary>
         ICollection<K> Keys { get; }
 
+#if NET9_0_OR_GREATER
+        /// <summary>
+        /// Gets the key comparer used by the cache.
+        /// </summary>
+        IEqualityComparer<K> Comparer => throw new NotSupportedException();
+
+        /// <summary>
+        /// Gets an async alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <returns>An async alternate lookup.</returns>
+        /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
+        IScopedAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+            => throw new NotSupportedException();
+
+        /// <summary>
+        /// Attempts to get an async alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <param name="lookup">The async alternate lookup when available.</param>
+        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
+        bool TryGetAsyncAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IScopedAsyncAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+            => throw new NotSupportedException();
+#endif
+
         /// <summary>
         /// Attempts to create a lifetime for the value associated with the specified key from the cache
         /// </summary>

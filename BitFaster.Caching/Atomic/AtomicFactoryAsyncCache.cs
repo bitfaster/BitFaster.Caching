@@ -53,6 +53,11 @@ namespace BitFaster.Caching.Atomic
         ///<inheritdoc/>
         public ICollection<K> Keys => AtomicEx.FilterKeys<K, AsyncAtomicFactory<K, V>>(this.cache, v => v.IsValueCreated);
 
+#if NET9_0_OR_GREATER
+        /// <inheritdoc/>
+        public IEqualityComparer<K> Comparer => this.cache.Comparer;
+#endif
+
         ///<inheritdoc/>
         public CachePolicy Policy => this.cache.Policy;
 
@@ -61,6 +66,7 @@ namespace BitFaster.Caching.Atomic
         {
             cache.AddOrUpdate(key, new AsyncAtomicFactory<K, V>(value));
         }
+
 
         ///<inheritdoc/>
         public void Clear()
@@ -146,6 +152,105 @@ namespace BitFaster.Caching.Atomic
         {
             return cache.TryUpdate(key, new AsyncAtomicFactory<K, V>(value));
         }
+
+#if NET9_0_OR_GREATER
+        ///<inheritdoc/>
+        public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            var inner = cache.GetAlternateLookup<TAlternateKey>();
+            var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)cache.Comparer;
+            return new AlternateLookup<TAlternateKey>(inner, comparer);
+        }
+
+        ///<inheritdoc/>
+        public bool TryGetAsyncAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAsyncAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            if (cache.TryGetAlternateLookup<TAlternateKey>(out var inner))
+            {
+                var comparer = (IAlternateEqualityComparer<TAlternateKey, K>)cache.Comparer;
+                lookup = new AlternateLookup<TAlternateKey>(inner, comparer);
+                return true;
+            }
+
+            lookup = default;
+            return false;
+        }
+
+        internal readonly struct AlternateLookup<TAlternateKey> : IAsyncAlternateLookup<TAlternateKey, K, V>
+            where TAlternateKey : notnull, allows ref struct
+        {
+            private readonly IAlternateLookup<TAlternateKey, K, AsyncAtomicFactory<K, V>> inner;
+            private readonly IAlternateEqualityComparer<TAlternateKey, K> comparer;
+
+            internal AlternateLookup(IAlternateLookup<TAlternateKey, K, AsyncAtomicFactory<K, V>> inner, IAlternateEqualityComparer<TAlternateKey, K> comparer)
+            {
+                this.inner = inner;
+                this.comparer = comparer;
+            }
+
+            public bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out V value)
+            {
+                if (inner.TryGet(key, out var atomic) && atomic.IsValueCreated)
+                {
+                    value = atomic.ValueIfCreated!;
+                    return true;
+                }
+
+                value = default;
+                return false;
+            }
+
+            public bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out K actualKey, [MaybeNullWhen(false)] out V value)
+            {
+                if (inner.TryRemove(key, out actualKey, out var atomic))
+                {
+                    value = atomic.ValueIfCreated!;
+                    return true;
+                }
+
+                value = default;
+                return false;
+            }
+
+            public bool TryUpdate(TAlternateKey key, V value)
+            {
+                return inner.TryUpdate(key, new AsyncAtomicFactory<K, V>(value));
+            }
+
+            public void AddOrUpdate(TAlternateKey key, V value)
+            {
+                inner.AddOrUpdate(key, new AsyncAtomicFactory<K, V>(value));
+            }
+
+            public ValueTask<V> GetOrAddAsync(TAlternateKey key, Func<K, Task<V>> valueFactory)
+            {
+                var synchronized = inner.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
+
+                if (synchronized.IsValueCreated)
+                {
+                    return new ValueTask<V>(synchronized.ValueIfCreated!);
+                }
+
+                K actualKey = comparer.Create(key);
+                return synchronized.GetValueAsync(actualKey, valueFactory);
+            }
+
+            public ValueTask<V> GetOrAddAsync<TArg>(TAlternateKey key, Func<K, TArg, Task<V>> valueFactory, TArg factoryArgument)
+            {
+                var synchronized = inner.GetOrAdd(key, _ => new AsyncAtomicFactory<K, V>());
+
+                if (synchronized.IsValueCreated)
+                {
+                    return new ValueTask<V>(synchronized.ValueIfCreated!);
+                }
+
+                K actualKey = comparer.Create(key);
+                return synchronized.GetValueAsync(actualKey, valueFactory, factoryArgument);
+            }
+        }
+#endif
 
         ///<inheritdoc/>
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()

@@ -26,6 +26,161 @@ namespace BitFaster.Caching.UnitTests.Atomic
             constructor.Should().Throw<ArgumentNullException>();
         }
 
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void ComparerReturnsConfiguredComparer()
+        {
+            var comparer = StringComparer.OrdinalIgnoreCase;
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, comparer));
+
+            cache.Comparer.Should().BeSameAs(comparer);
+        }
+
+        [Fact]
+        public async Task TryGetAsyncAlternateLookupCompatibleComparerReturnsLookup()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            using var lifetime = await cache.ScopedGetOrAddAsync("42", _ => Task.FromResult(new Scoped<Disposable>(new Disposable(42))));
+            ReadOnlySpan<char> key = "42";
+
+            cache.TryGetAsyncAlternateLookup<ReadOnlySpan<char>>(out var alternate).Should().BeTrue();
+            alternate.ScopedTryGet(key, out var alternateLifetime).Should().BeTrue();
+            alternateLifetime.Value.State.Should().Be(42);
+            alternateLifetime.Dispose();
+        }
+
+        [Fact]
+        public void GetAsyncAlternateLookupIncompatibleComparerThrowsInvalidOperationException()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+
+            Action act = () => cache.GetAsyncAlternateLookup<int>();
+
+            act.Should().Throw<InvalidOperationException>().WithMessage("Incompatible comparer");
+            cache.TryGetAsyncAlternateLookup<int>(out var alternate).Should().BeFalse();
+            alternate.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task TryRemoveExistingKeyReturnsActualKey()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            using var lifetime = await cache.ScopedGetOrAddAsync("42", _ => Task.FromResult(new Scoped<Disposable>(new Disposable(42))));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            ReadOnlySpan<char> key = "42";
+
+            alternate.TryRemove(key, out var actualKey).Should().BeTrue();
+
+            actualKey.Should().Be("42");
+            cache.ScopedTryGet("42", out _).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task AltScopedGetOrAddAsyncRetrievesCachedValue()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            var factoryCalls = 0;
+            var key = "42";
+
+            using var lifetime1 = await alternate.ScopedGetOrAddAsync(key.AsSpan(), k =>
+            {
+                factoryCalls++;
+                return Task.FromResult(new Scoped<Disposable>(new Disposable(int.Parse(k))));
+            });
+
+            using var lifetime2 = await alternate.ScopedGetOrAddAsync(key.AsSpan(), k =>
+            {
+                factoryCalls++;
+                return Task.FromResult(new Scoped<Disposable>(new Disposable(123)));
+            });
+
+            lifetime1.Value.State.Should().Be(42);
+            lifetime2.Value.State.Should().Be(42);
+            factoryCalls.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task AltScopedGetOrAddArgAsyncRetrievesCachedValue()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            var factoryCalls = 0;
+            var key = "42";
+
+            using var lifetime1 = await alternate.ScopedGetOrAddAsync(key.AsSpan(), (k, offset) =>
+            {
+                factoryCalls++;
+                return Task.FromResult(new Scoped<Disposable>(new Disposable(int.Parse(k) + offset)));
+            }, 1);
+
+            using var lifetime2 = await alternate.ScopedGetOrAddAsync(key.AsSpan(), (k, offset) =>
+            {
+                factoryCalls++;
+                return Task.FromResult(new Scoped<Disposable>(new Disposable(int.Parse(k) + offset)));
+            }, 2);
+
+            lifetime1.Value.State.Should().Be(43);
+            lifetime2.Value.State.Should().Be(43);
+            factoryCalls.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task AltScopedTryGetDisposedScopeReturnsFalse()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            var scope = new Scoped<Disposable>(new Disposable());
+
+            await cache.ScopedGetOrAddAsync("a", _ => Task.FromResult(scope));
+
+            scope.Dispose();
+
+            alternate.ScopedTryGet("a", out var lifetime).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenItemDoesNotExistTryGetAltReturnsFalse()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            alternate.ScopedTryGet("a", out _).Should().BeFalse();
+        }
+
+        [Fact]
+        public void WhenKeyExistsTryRemoveAltReturnsTrue()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            cache.AddOrUpdate("a", new Disposable());
+            alternate.TryRemove("a", out var key).Should().BeTrue();
+            key.Should().Be("a");
+        }
+
+        [Fact]
+        public void WhenKeyDoesNotExistTryRemoveAltReturnsFalse()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            alternate.TryRemove("a", out _).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task GetOrAddAltDisposedScopeThrows()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(capacity));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            var scope = new Scoped<Disposable>(new Disposable());
+            scope.Dispose();
+
+            Func<Task> getOrAdd = async () => { await this.cache.ScopedGetOrAddAsync(1, k => Task.FromResult(scope)); };
+
+            await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
+        }
+#endif
+
         [Fact]
         public async Task WhenScopeIsDisposedTryGetReturnsFalse()
         {
@@ -83,5 +238,77 @@ namespace BitFaster.Caching.UnitTests.Atomic
             this.cache.TryUpdate(1, new Disposable()).Should().BeTrue();
             disposable2.IsDisposed.Should().BeTrue();
         }
+
+#if NET9_0_OR_GREATER
+
+        [Fact]
+        public async Task ScopedGetOrAddAsyncDisposedScopeThrowsInvalidOperationException()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            var scope = new Scoped<Disposable>(new Disposable());
+            scope.Dispose();
+
+            Func<Task> getOrAdd = async () => { await alternate.ScopedGetOrAddAsync("a", _ => Task.FromResult(scope)); };
+
+            await getOrAdd.Should().ThrowAsync<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void AltTryUpdateMissingKeyReturnsFalse()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            var key = "42";
+
+            alternate.TryUpdate(key.AsSpan(), new Disposable(42)).Should().BeFalse();
+            cache.ScopedTryGet("42", out _).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task AltTryUpdateExistingKeyUpdatesValue()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            var key = "42";
+
+            using var lifetime = await cache.ScopedGetOrAddAsync("42", _ => Task.FromResult(new Scoped<Disposable>(new Disposable(1))));
+            lifetime.Dispose();
+
+            alternate.TryUpdate(key.AsSpan(), new Disposable(2)).Should().BeTrue();
+
+            alternate.ScopedTryGet(key.AsSpan(), out var updatedLifetime).Should().BeTrue();
+            updatedLifetime.Value.State.Should().Be(2);
+            updatedLifetime.Dispose();
+        }
+
+        [Fact]
+        public void AltAddOrUpdateMissingKeyAddsValue()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            ReadOnlySpan<char> key = "42";
+
+            alternate.AddOrUpdate(key, new Disposable(42));
+            alternate.ScopedTryGet(key, out var lifetime).Should().BeTrue();
+            lifetime.Value.State.Should().Be(42);
+            lifetime.Dispose();
+        }
+
+        [Fact]
+        public void AltAddOrUpdateExistingKeyUpdatesValue()
+        {
+            var cache = new AtomicFactoryScopedAsyncCache<string, Disposable>(new ConcurrentLru<string, ScopedAsyncAtomicFactory<string, Disposable>>(1, capacity, StringComparer.Ordinal));
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            ReadOnlySpan<char> key = "42";
+
+            alternate.AddOrUpdate(key, new Disposable(42));
+            alternate.AddOrUpdate(key, new Disposable(43));
+            alternate.ScopedTryGet(key, out var updatedLifetime).Should().BeTrue();
+            updatedLifetime.Value.State.Should().Be(43);
+            updatedLifetime.Dispose();
+        }
+#endif
     }
 }

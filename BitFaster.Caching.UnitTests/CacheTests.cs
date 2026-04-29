@@ -13,6 +13,8 @@ namespace BitFaster.Caching.UnitTests
     {
         // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
+        // On NET9+, ICache.GetOrAdd<TArg> has no default fallback.
+#if !NET9_0_OR_GREATER
         [Fact]
         public void WhenCacheInterfaceDefaultGetOrAddFallback()
         {
@@ -27,6 +29,7 @@ namespace BitFaster.Caching.UnitTests
                 (k, a) => k + a, 
                 2).Should().Be(3);
         }
+#endif
 
         [Fact]
         public void WhenCacheInterfaceDefaultTryRemoveKeyThrows()
@@ -136,6 +139,74 @@ namespace BitFaster.Caching.UnitTests
 
             lifetime.Value.State.Should().Be(3);
         }
+
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void WhenCacheInterfaceDefaultGetAlternateLookupThrows()
+        {
+            var cache = new Mock<ICache<int, int>>();
+            cache.CallBase = true;
+
+            Action getAlternateLookup = () => { cache.Object.GetAlternateLookup<string>(); };
+
+            getAlternateLookup.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
+        public void WhenCacheInterfaceDefaultTryGetAlternateLookupThrows()
+        {
+            var cache = new Mock<ICache<int, int>>();
+            cache.CallBase = true;
+
+            Action tryGetAlternateLookup = () => { cache.Object.TryGetAlternateLookup<string>(out var lookup); };
+
+            tryGetAlternateLookup.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
+        public void WhenScopedCacheInterfaceDefaultGetAlternateLookupThrows()
+        {
+            var cache = new Mock<IScopedCache<int, Disposable>>();
+            cache.CallBase = true;
+
+            Action getAlternateLookup = () => { cache.Object.GetAlternateLookup<string>(); };
+
+            getAlternateLookup.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
+        public void WhenScopedCacheInterfaceDefaultTryGetAlternateLookupThrows()
+        {
+            var cache = new Mock<IScopedCache<int, Disposable>>();
+            cache.CallBase = true;
+
+            Action tryGetAlternateLookup = () => { cache.Object.TryGetAlternateLookup<string>(out var lookup); };
+
+            tryGetAlternateLookup.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
+        public void WhenCacheInterfaceDefaultComparerThrows()
+        {
+            var cache = new Mock<ICache<int, int>>();
+            cache.CallBase = true;
+
+            Action getComparer = () => _ = cache.Object.Comparer;
+
+            getComparer.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
+        public void WhenAsyncCacheInterfaceDefaultComparerThrows()
+        {
+            var cache = new Mock<IAsyncCache<int, int>>();
+            cache.CallBase = true;
+
+            Action getComparer = () => _ = cache.Object.Comparer;
+
+            getComparer.Should().Throw<NotSupportedException>();
+        }
+#endif
 #endif
     }
 }

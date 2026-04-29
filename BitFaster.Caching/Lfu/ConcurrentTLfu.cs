@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
@@ -52,6 +53,11 @@ namespace BitFaster.Caching.Lfu
         ///<inheritdoc/>
         public ICollection<K> Keys => core.Keys;
 
+#if NET9_0_OR_GREATER
+        /// <inheritdoc/>
+        public IEqualityComparer<K> Comparer => this.core.Comparer;
+#endif
+
         ///<inheritdoc/>
         public int Capacity => core.Capacity;
 
@@ -84,6 +90,9 @@ namespace BitFaster.Caching.Lfu
 
         ///<inheritdoc/>
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#if NET9_0_OR_GREATER
+            where TArg : allows ref struct
+#endif
         {
             return core.GetOrAdd(key, valueFactory, factoryArgument);
         }
@@ -146,6 +155,38 @@ namespace BitFaster.Caching.Lfu
         {
             return core.GetEnumerator();
         }
+
+#if NET9_0_OR_GREATER
+        ///<inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            return core.GetAlternateLookup<TAlternateKey>();
+        }
+
+        ///<inheritdoc/>
+        public bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            return core.TryGetAlternateLookup(out lookup);
+        }
+
+        ///<inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            return core.GetAsyncAlternateLookup<TAlternateKey>();
+        }
+
+        ///<inheritdoc/>
+        public bool TryGetAsyncAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IAsyncAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            return core.TryGetAsyncAlternateLookup(out lookup);
+        }
+#endif
 
         private CachePolicy CreatePolicy()
         {

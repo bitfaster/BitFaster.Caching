@@ -374,20 +374,51 @@ namespace BitFaster.Caching.UnitTests.Lfu
             return new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
         }
 
+        private ConcurrentLfu<string, string> CreateStringWithBackgroundScheduler()
+        {
+            var scheduler = new BackgroundThreadScheduler();
+            return new ConcurrentLfu<string, string>(1, 9, scheduler, StringComparer.Ordinal);
+        }
+
         private async Task RunIntegrityCheckAsync(ConcurrentLfu<int, string> lfu, int iteration)
         {
-            this.output.WriteLine($"iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
+            Log(lfu, iteration, "before");
 
-            var scheduler = lfu.Scheduler as BackgroundThreadScheduler;
-            scheduler.Dispose();
-            await scheduler.Completion;
+            if (lfu.Scheduler is BackgroundThreadScheduler scheduler)
+            {
+                scheduler.Dispose();
+                await scheduler.Completion;
+            }
+
+            Log(lfu, iteration, "after");
 
             RunIntegrityCheck(lfu, this.output);
         }
 
+        private async Task RunIntegrityCheckAsync(ConcurrentLfu<string, string> lfu, int iteration)
+        {
+            Log(lfu, iteration, "before");
+            if (lfu.Scheduler is BackgroundThreadScheduler scheduler)
+            {
+                scheduler.Dispose();
+                await scheduler.Completion;
+            }
+            Log(lfu, iteration, "after");
+
+            RunIntegrityCheck(lfu, this.output);
+        }
+
+        private void Log<K>(ConcurrentLfu<K, string> lfu, int iteration, string stage)
+        {
+            this.output.WriteLine($"{stage} iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
+#if DEBUG
+            this.output.WriteLine(lfu.FormatLfuString());
+#endif
+        }
+
         private static void RunIntegrityCheck<K, V>(ConcurrentLfu<K, V> cache, ITestOutputHelper output)
         {
-            new ConcurrentLfuIntegrityChecker<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V, EventPolicy<K, V>>, EventPolicy<K, V>>(cache.Core).Validate(output);
+            new ConcurrentLfuIntegrityChecker<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>(cache.Core).Validate(output);
         }
     }
 
@@ -405,7 +436,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private readonly StripedMpscBuffer<N> readBuffer;
         private readonly MpscBoundedBuffer<N> writeBuffer;
 
-        private static FieldInfo windowLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("windowLru", BindingFlags.NonPublic | BindingFlags.Instance);
+	private static FieldInfo dictionaryField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("dictionary", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo lockField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("maintenanceLock", BindingFlags.NonPublic | BindingFlags.Instance);
+
+	private static FieldInfo windowLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("windowLru", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo probationLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("probationLru", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo protectedLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("protectedLru", BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -415,6 +449,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public ConcurrentLfuIntegrityChecker(ConcurrentLfuCore<K, V, N, P, E> cache)
         {
             this.cache = cache;
+
+            this.dictionary = (ConcurrentDictionary<K, N>)dictionaryField.GetValue(cache);
+            this.maintenanceLock = lockField.GetValue(cache);
 
             // get lrus via reflection
             this.windowLru = (LfuNodeList<K, V>)windowLruField.GetValue(cache);
@@ -455,6 +492,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 node.WasRemoved.Should().BeFalse();
                 node.WasDeleted.Should().BeFalse();
 
+                // additional diagnbostics
+                if (!cache.TryGet(node.Key, out _))
+                {
+                    output.WriteLine($"Orphaned node at {node.Position} with key {node.Key} and value {node.Value}.");
+                    output.WriteLine($"Read buffer {cache.readBuffer.Count} write buffer {cache.writeBuffer.Count}.");
+                }
+
                 cache.TryGet(node.Key, out _).Should().BeTrue($"Orphaned node with key {node.Key} detected.");
 
                 node = node.Next;
@@ -463,14 +507,14 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         private void VerifyDictionaryInLrus()
         {
-            foreach (var kvp in this.cache)
+            foreach (var kvp in this.dictionary)
             {
                 var exists = Exists(kvp, this.windowLru) || Exists(kvp, this.probationLru) || Exists(kvp, this.protectedLru);
-                exists.Should().BeTrue($"key {kvp.Key} must exist in LRU lists");
+                exists.Should().BeTrue($"key {kvp.Key} in {kvp.Value.Position} removed: {kvp.Value.WasRemoved} deleted {kvp.Value.WasDeleted} must exist in LRU lists");
             }
         }
 
-        private static bool Exists(KeyValuePair<K, V> kvp, LfuNodeList<K, V> lfuNodes)
+        private static bool Exists(KeyValuePair<K, N> kvp, LfuNodeList<K, V> lfuNodes)
         {
             var node = lfuNodes.First;
 

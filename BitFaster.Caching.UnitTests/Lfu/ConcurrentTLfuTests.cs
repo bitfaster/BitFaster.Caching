@@ -82,6 +82,17 @@ namespace BitFaster.Caching.UnitTests.Lfu
             value.Should().Be(1);
         }
 
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void ComparerReturnsConfiguredComparer()
+        {
+            var comparer = StringComparer.OrdinalIgnoreCase;
+            var cache = new ConcurrentTLfu<string, int>(1, 3, new NullScheduler(), comparer, new ExpireAfterWrite<string, int>(timeToLive));
+
+            cache.Comparer.Should().BeSameAs(comparer);
+        }
+#endif
+
         [Fact]
         public void MetricsHasValueIsTrue()
         {
@@ -227,6 +238,92 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             );
         }
+
+#if NET9_0_OR_GREATER
+        [Fact]
+        public void GetAlternateLookupReturnsLookupForCompatibleComparer()
+        {
+            var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
+            cache.GetOrAdd("42", _ => "value");
+
+            var alternate = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+
+            alternate.TryGet("42".AsSpan(), out var value).Should().BeTrue();
+            value.Should().Be("value");
+        }
+
+        [Fact]
+        public void TryGetAlternateLookupReturnsTrueForCompatibleComparer()
+        {
+            var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
+            cache.GetOrAdd("42", _ => "value");
+
+            cache.TryGetAlternateLookup<ReadOnlySpan<char>>(out var alternate).Should().BeTrue();
+            alternate.TryGet("42".AsSpan(), out var value).Should().BeTrue();
+            value.Should().Be("value");
+        }
+
+        [Fact]
+        public void GetAlternateLookupThrowsForIncompatibleComparer()
+        {
+            var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
+
+            Action act = () => cache.GetAlternateLookup<int>();
+
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TryGetAlternateLookupReturnsFalseForIncompatibleComparer()
+        {
+            var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
+
+            cache.TryGetAlternateLookup<int>(out var alternate).Should().BeFalse();
+            alternate.Should().BeNull();
+        }
+
+        [Fact]
+        public void GetAsyncAlternateLookupReturnsLookupForCompatibleComparer()
+        {
+            var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
+            cache.GetOrAdd("42", _ => "value");
+
+            var alternate = cache.GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+
+            alternate.TryGet("42".AsSpan(), out var value).Should().BeTrue();
+            value.Should().Be("value");
+        }
+
+        [Fact]
+        public void TryGetAsyncAlternateLookupReturnsTrueForCompatibleComparer()
+        {
+            var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
+            cache.GetOrAdd("42", _ => "value");
+
+            cache.TryGetAsyncAlternateLookup<ReadOnlySpan<char>>(out var alternate).Should().BeTrue();
+            alternate.TryGet("42".AsSpan(), out var value).Should().BeTrue();
+            value.Should().Be("value");
+        }
+
+        [Fact]
+        public void GetAsyncAlternateLookupThrowsForIncompatibleComparer()
+        {
+            var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
+
+            Action act = () => cache.GetAsyncAlternateLookup<int>();
+
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void TryGetAsyncAlternateLookupReturnsFalseForIncompatibleComparer()
+        {
+            var cache = new ConcurrentTLfu<string, string>(9, 9, new NullScheduler(), StringComparer.Ordinal, new ExpireAfterWrite<string, string>(timeToLive));
+
+            cache.TryGetAsyncAlternateLookup<int>(out var alternate).Should().BeFalse();
+            alternate.Should().BeNull();
+        }
+#endif
 
         [Fact]
         public void WhenItemIsRemovedRemovedEventIsFired()

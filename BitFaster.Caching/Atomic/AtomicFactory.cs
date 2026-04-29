@@ -64,6 +64,9 @@ namespace BitFaster.Caching.Atomic
         /// <param name="factoryArgument">The value factory argument.</param>
         /// <returns>The value.</returns>
         public V GetValue<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#if NET9_0_OR_GREATER
+            where TArg : allows ref struct
+#endif
         {
             if (initializer == null)
             {
@@ -107,6 +110,9 @@ namespace BitFaster.Caching.Atomic
         /// and multiplying the number of calls to the failing resource.
         /// </summary>
         private V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
         {
             var init = Volatile.Read(ref initializer);
 
@@ -164,6 +170,9 @@ namespace BitFaster.Caching.Atomic
             private ExceptionDispatchInfo? exceptionDispatch;
 
             public V CreateValue<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, V>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
             {
                 lock (this)
                 {
