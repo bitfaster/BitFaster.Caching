@@ -690,7 +690,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     // if a write is in the buffer and is then removed in the buffer, it will enter OnWrite twice.
                     // we mark as deleted to avoid double counting/disposing it
-                    EventInliner.OnRemovedEvent(this, node);
+                    EventInliner.OnRemovedEvent(this, node, ItemRemovedReason.Evicted);
                     this.metrics.evictedCount++;
                     Disposer<V>.Dispose(node.Value);
                     node.WasDeleted = true;
@@ -1010,20 +1010,10 @@ namespace BitFaster.Caching.Lfu
             public long Evicted => evictedCount;
         }
 
+        // enable JIT to elide unused code.
         private static class EventInliner
         {
             private static readonly bool IsEnabled = typeof(E) == typeof(EventPolicy<K, V>);
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void OnRemovedEvent(ConcurrentLfuCore<K, V, N, P, E> cache, N node)
-            {
-                if (IsEnabled)
-                {
-                    // WasRemoved flag is set via TryRemove, else item is evicted via policy
-                    ItemRemovedReason reason = node.WasRemoved ? ItemRemovedReason.Removed : ItemRemovedReason.Evicted;
-                    cache.eventPolicy.OnItemRemoved(node.Key, node.Value, reason);
-                }
-            }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static void OnRemovedEvent(ConcurrentLfuCore<K, V, N, P, E> cache, LfuNode<K, V> node, ItemRemovedReason reason)

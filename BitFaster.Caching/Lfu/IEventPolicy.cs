@@ -25,7 +25,7 @@ namespace BitFaster.Caching.Lfu
         /// <param name="key">The key.</param>
         /// <param name="oldValue">The old value.</param>
         /// <param name="value">The new value.</param>
-        void OnItemUpdated(K key, V oldValue, V value) {}
+        void OnItemUpdated(K key, V oldValue, V value);
 #endif
 
         /// <summary>
