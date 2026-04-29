@@ -429,7 +429,7 @@ namespace BitFaster.Caching.Lfu
 
                     // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
-                    this.eventPolicy.OnItemUpdated(node.Key, oldValue, value);
+                    EventInliner.OnUpdatedEvent(this, node.Key, oldValue, value);
 #endif
                     return true;
                 }
@@ -678,22 +678,6 @@ namespace BitFaster.Caching.Lfu
             policy.AfterRead(node);
         }
 
-        private static class RemoveEventInliner
-        {
-            private static readonly bool IsEnabled = typeof(E) == typeof(EventPolicy<K, V>);
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void OnRemovedEvent(ConcurrentLfuCore<K, V, N, P, E> cache, N node)
-            {
-                if (IsEnabled)
-                {
-                    // WasRemoved flag is set via TryRemove, else item is evicted via policy
-                    ItemRemovedReason reason = node.WasRemoved ? ItemRemovedReason.Removed : ItemRemovedReason.Evicted;
-                    cache.eventPolicy.OnItemRemoved(node.Key, node.Value, reason);
-                }
-            }
-        }
-
         private void OnWrite(N node)
         {
             // Nodes can be removed while they are in the write buffer, in which case they should
@@ -706,7 +690,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     // if a write is in the buffer and is then removed in the buffer, it will enter OnWrite twice.
                     // we mark as deleted to avoid double counting/disposing it
-                    RemoveEventInliner.OnRemovedEvent(this, node);
+                    EventInliner.OnRemovedEvent(this, node);
                     this.metrics.evictedCount++;
                     Disposer<V>.Dispose(node.Value);
                     node.WasDeleted = true;
@@ -912,7 +896,7 @@ namespace BitFaster.Caching.Lfu
             ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
 #endif
             evictee.list?.Remove(evictee);
-            this.eventPolicy.OnItemRemoved(evictee.Key, evictee.Value, reason);
+            EventInliner.OnRemovedEvent(this, evictee, reason);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
 
@@ -1024,6 +1008,41 @@ namespace BitFaster.Caching.Lfu
             public long Updated => updatedCount;
 
             public long Evicted => evictedCount;
+        }
+
+        private static class EventInliner
+        {
+            private static readonly bool IsEnabled = typeof(E) == typeof(EventPolicy<K, V>);
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static void OnRemovedEvent(ConcurrentLfuCore<K, V, N, P, E> cache, N node)
+            {
+                if (IsEnabled)
+                {
+                    // WasRemoved flag is set via TryRemove, else item is evicted via policy
+                    ItemRemovedReason reason = node.WasRemoved ? ItemRemovedReason.Removed : ItemRemovedReason.Evicted;
+                    cache.eventPolicy.OnItemRemoved(node.Key, node.Value, reason);
+                }
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static void OnRemovedEvent(ConcurrentLfuCore<K, V, N, P, E> cache, LfuNode<K, V> node, ItemRemovedReason reason)
+            {
+                if (IsEnabled)
+                {
+                    cache.eventPolicy.OnItemRemoved(node.Key, node.Value, reason);
+                }
+            }
+#if NETCOREAPP3_0_OR_GREATER
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static void OnUpdatedEvent(ConcurrentLfuCore<K, V, N, P, E> cache, K key, V oldValue, V newValue)
+            {
+                if (IsEnabled)
+                {
+                    cache.eventPolicy.OnItemUpdated(key, oldValue, newValue);
+                }
+            }
+#endif
         }
 
 #if NET9_0_OR_GREATER
