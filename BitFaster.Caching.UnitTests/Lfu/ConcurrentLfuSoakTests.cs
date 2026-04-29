@@ -579,18 +579,32 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             cache.DoMaintenance();
 
-            // buffers should be empty after maintenance
-            this.readBuffer.Count.Should().Be(0);
-            this.writeBuffer.Count.Should().Be(0);
+            if (cache.Scheduler.LastException.HasValue)
+            {
+                output.WriteLine($"Last scheduler exception {cache.Scheduler.LastException.Value}");
+                cache.Scheduler.LastException.Should().BeNull("scheduler should not have thrown");
+            }
 
-            // all the items in the LRUs must exist in the dictionary.
-            // no items should be marked as removed after maintenance has run
-            VerifyLruInDictionary(this.windowLru, output);
-            VerifyLruInDictionary(this.probationLru, output);
-            VerifyLruInDictionary(this.protectedLru, output);
+            lock (this.maintenanceLock)
+            {
+#if DEBUG
+                output.WriteLine("LRUs under lock:");
+                output.WriteLine(cache.FormatLfuString());
+#endif
 
-            // all the items in the dictionary must exist in the node list
-            VerifyDictionaryInLrus();
+                // buffers should be empty after maintenance
+                this.readBuffer.Count.Should().Be(0);
+                this.writeBuffer.Count.Should().Be(0);
+
+                // all the items in the LRUs must exist in the dictionary.
+                // no items should be marked as removed after maintenance has run
+                VerifyLruInDictionary(this.windowLru, output);
+                VerifyLruInDictionary(this.probationLru, output);
+                VerifyLruInDictionary(this.protectedLru, output);
+
+                // all the items in the dictionary must exist in the node list
+                VerifyDictionaryInLrus();
+            }
 
             // cache must be within capacity
             cache.Count.Should().BeLessThanOrEqualTo(cache.Capacity, "capacity out of valid range");
