@@ -48,7 +48,7 @@ namespace BitFaster.Caching
     /// <typeparam name="K">The type of the cache key.</typeparam>
     /// <typeparam name="TArg">The type of the factory argument</typeparam>
     /// <typeparam name="V">The type of the cache value</typeparam>
-    
+
 #if NET9_0_OR_GREATER
     public readonly ref struct ValueFactoryArg<K, TArg, V> : IValueFactory<K, V>
         where TArg : allows ref struct
