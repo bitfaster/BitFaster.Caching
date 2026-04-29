@@ -13,6 +13,8 @@ namespace BitFaster.Caching.UnitTests
     {
         // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
+        // On NET9+, ICache.GetOrAdd<TArg> has no default fallback.
+#if !NET9_0_OR_GREATER
         [Fact]
         public void WhenCacheInterfaceDefaultGetOrAddFallback()
         {
@@ -27,6 +29,7 @@ namespace BitFaster.Caching.UnitTests
                 (k, a) => k + a, 
                 2).Should().Be(3);
         }
+#endif
 
         [Fact]
         public void WhenCacheInterfaceDefaultTryRemoveKeyThrows()

@@ -76,11 +76,17 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         private V Invoke<K, V, TFactory>(TFactory factory, K key) where TFactory : struct, IValueFactory<K, V>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
         {
             return factory.Create(key);
         }
 
         private V InvokeRef<K, V, TFactory>(ref TFactory factory, K key) where TFactory : struct, IValueFactory<K, V>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
         {
             return factory.Create(key);
         }
@@ -117,11 +123,17 @@ namespace BitFaster.Caching.Benchmarks
         }
 
         private V Invoke<K, V, TFactory>(TFactory factory, K key) where TFactory : struct, IValueFactory<K, V>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
         {
             return factory.Create(key);
         }
 
         private V InvokeRef<K, V, TFactory>(ref TFactory factory, K key) where TFactory : struct, IValueFactory<K, V>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
         {
             return factory.Create(key);
         }

@@ -61,7 +61,8 @@ namespace BitFaster.Caching
         /// <param name="valueFactory">The value factory, invoked with the actual cache key when a value must be created.</param>
         /// <param name="factoryArgument">The factory argument.</param>
         /// <returns>The cached value.</returns>
-        TValue GetOrAdd<TArg>(TAlternateKey key, Func<TKey, TArg, TValue> valueFactory, TArg factoryArgument);
+        TValue GetOrAdd<TArg>(TAlternateKey key, Func<TKey, TArg, TValue> valueFactory, TArg factoryArgument)
+             where TArg : allows ref struct;
     }
 }
 #endif

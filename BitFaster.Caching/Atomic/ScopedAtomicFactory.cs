@@ -116,6 +116,9 @@ namespace BitFaster.Caching.Atomic
         /// <param name="lifetime">When this method returns, contains the Lifetime that was created, or the default value of the type if the operation failed.</param>
         /// <returns>true if the Lifetime was created; otherwise false.</returns>
         public bool TryCreateLifetime<TFactory>(K key, TFactory valueFactory, [MaybeNullWhen(false)] out Lifetime<V> lifetime) where TFactory : struct, IValueFactory<K, Scoped<V>>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
         {
             if (scope?.IsDisposed ?? false)
             {
@@ -133,6 +136,9 @@ namespace BitFaster.Caching.Atomic
         }
 
         private void InitializeScope<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
         {
             var init = Volatile.Read(ref initializer);
 
@@ -166,6 +172,9 @@ namespace BitFaster.Caching.Atomic
             private Scoped<V>? value;
 
             public Scoped<V> CreateScope<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
             {
                 lock (this)
                 {

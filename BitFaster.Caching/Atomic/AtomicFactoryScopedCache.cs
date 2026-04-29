@@ -99,6 +99,9 @@ namespace BitFaster.Caching.Atomic
         }
 
         private Lifetime<V> ScopedGetOrAdd<TFactory>(K key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
         {
             int c = 0;
             var spinwait = new SpinWait();
@@ -261,6 +264,9 @@ namespace BitFaster.Caching.Atomic
             }
 
             private Lifetime<V> ScopedGetOrAdd<TFactory>(TAlternateKey key, TFactory valueFactory) where TFactory : struct, IValueFactory<K, Scoped<V>>
+#if NET9_0_OR_GREATER
+            , allows ref struct
+#endif
             {
                 int c = 0;
                 var spinwait = new SpinWait();
