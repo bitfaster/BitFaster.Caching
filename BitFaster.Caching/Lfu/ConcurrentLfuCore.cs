@@ -690,7 +690,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     // if a write is in the buffer and is then removed in the buffer, it will enter OnWrite twice.
                     // we mark as deleted to avoid double counting/disposing it
-                    EventInliner.OnRemovedEvent(this, node, ItemRemovedReason.Evicted);
+                    EventInliner.OnRemovedEvent(this, node, ItemRemovedReason.Removed);
                     this.metrics.evictedCount++;
                     Disposer<V>.Dispose(node.Value);
                     node.WasDeleted = true;
