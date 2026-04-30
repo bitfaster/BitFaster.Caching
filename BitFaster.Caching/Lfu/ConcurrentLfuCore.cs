@@ -429,7 +429,7 @@ namespace BitFaster.Caching.Lfu
 
                     // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
-                    EventInliner.OnUpdatedEvent(this, node.Key, oldValue, value);
+                    EventPolicyDispatch.OnUpdatedEvent(this, node.Key, oldValue, value);
 #endif
                     return true;
                 }
@@ -690,7 +690,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     // if a write is in the buffer and is then removed in the buffer, it will enter OnWrite twice.
                     // we mark as deleted to avoid double counting/disposing it
-                    EventInliner.OnRemovedEvent(this, node, ItemRemovedReason.Removed);
+                    EventPolicyDispatch.OnRemovedEvent(this, node, ItemRemovedReason.Removed);
                     this.metrics.evictedCount++;
                     Disposer<V>.Dispose(node.Value);
                     node.WasDeleted = true;
@@ -896,7 +896,7 @@ namespace BitFaster.Caching.Lfu
             ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
 #endif
             evictee.list?.Remove(evictee);
-            EventInliner.OnRemovedEvent(this, evictee, reason);
+            EventPolicyDispatch.OnRemovedEvent(this, evictee, reason);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
 
@@ -1011,7 +1011,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         // enable JIT to elide unused code.
-        private static class EventInliner
+        private static class EventPolicyDispatch
         {
             private static readonly bool IsEnabled = typeof(E) == typeof(EventPolicy<K, V>);
 

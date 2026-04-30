@@ -128,7 +128,6 @@ namespace BitFaster.Caching.Lfu
         public void Clear()
         {
             core.Clear();
-            DoMaintenance();
         }
 
         ///<inheritdoc/>
@@ -162,7 +161,6 @@ namespace BitFaster.Caching.Lfu
         public void Trim(int itemCount)
         {
             core.Trim(itemCount);
-            DoMaintenance();
         }
 
         ///<inheritdoc/>
@@ -274,11 +272,13 @@ namespace BitFaster.Caching.Lfu
 
             public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
             {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 add
                 {
                     ref var policy = ref this.lfu.EventPolicyRef;
                     policy.ItemRemoved += value;
                 }
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 remove
                 {
                     ref var policy = ref this.lfu.EventPolicyRef;
@@ -290,11 +290,13 @@ namespace BitFaster.Caching.Lfu
 #if NETCOREAPP3_0_OR_GREATER
             public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
             {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 add
                 {
                     ref var policy = ref this.lfu.EventPolicyRef;
                     policy.ItemUpdated += value;
                 }
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 remove
                 {
                     ref var policy = ref this.lfu.EventPolicyRef;
