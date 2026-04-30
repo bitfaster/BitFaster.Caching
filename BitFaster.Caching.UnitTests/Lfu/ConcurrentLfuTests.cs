@@ -885,8 +885,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfuEvents.DoMaintenance();
 
             // At least one item should be evicted
-            removedItems.Count.Should().BeGreaterThan(0);
-            removedItems.Any(r => r.Reason == ItemRemovedReason.Evicted).Should().BeTrue();
+            removedItems.Count.Should().Be(1);
+            removedItems.All(r => r.Reason == ItemRemovedReason.Evicted).Should().BeTrue();
         }
 
         [Fact]
