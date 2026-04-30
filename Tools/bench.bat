@@ -23,4 +23,4 @@ shift
 goto parse_args
 
 :run
-dotnet run -c Release --project BitFaster.Caching.Benchmarks --framework net9.0 -- --runtimes %RUNTIMES% %EXTRA_ARGS%
+dotnet run -c Release --project BitFaster.Caching.Benchmarks --framework net10.0 -- --runtimes %RUNTIMES% %EXTRA_ARGS%
