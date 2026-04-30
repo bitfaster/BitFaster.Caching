@@ -138,9 +138,19 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(false, true, false, ItemDestination.Remove)]
         public void RouteHot(bool wasAccessed, bool wasRemoved, bool isExpired, ItemDestination expectedDestination)
         {
-            var item = CreateItem(wasAccessed, wasRemoved, isExpired);
+            var end = Duration.Zero;
+            ItemDestination d;
 
-            this.policy.RouteHot(item).Should().Be(expectedDestination);
+            do
+            {
+                end = Duration.SinceEpoch() + Duration.FromMilliseconds(10);
+                var item = CreateItem(wasAccessed, wasRemoved, isExpired);
+
+                d = this.policy.RouteHot(item);
+            }
+            while (Duration.SinceEpoch() > end);
+
+            d.Should().Be(expectedDestination);
         }
 
         [Theory]
@@ -154,9 +164,19 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(false, true, false, ItemDestination.Remove)]
         public void RouteWarm(bool wasAccessed, bool wasRemoved, bool isExpired, ItemDestination expectedDestination)
         {
-            var item = CreateItem(wasAccessed, wasRemoved, isExpired);
+            var end = Duration.Zero;
+            ItemDestination d;
 
-            this.policy.RouteWarm(item).Should().Be(expectedDestination);
+            do
+            {
+                end = Duration.SinceEpoch() + Duration.FromMilliseconds(10);
+                var item = CreateItem(wasAccessed, wasRemoved, isExpired);
+
+                d = this.policy.RouteWarm(item);
+            }
+            while (Duration.SinceEpoch() > end);
+
+            d.Should().Be(expectedDestination);
         }
 
         [Theory]
@@ -170,9 +190,20 @@ namespace BitFaster.Caching.UnitTests.Lru
         [InlineData(false, true, false, ItemDestination.Remove)]
         public void RouteCold(bool wasAccessed, bool wasRemoved, bool isExpired, ItemDestination expectedDestination)
         {
-            var item = CreateItem(wasAccessed, wasRemoved, isExpired);
+            var end = Duration.Zero;
+            ItemDestination d;
 
-            this.policy.RouteCold(item).Should().Be(expectedDestination);
+            do
+            {
+                end = Duration.SinceEpoch() + Duration.FromMilliseconds(10);
+                var item = CreateItem(wasAccessed, wasRemoved, isExpired);
+
+                d = this.policy.RouteCold(item);
+            }
+            while (Duration.SinceEpoch() > end);
+
+
+            d.Should().Be(expectedDestination);
         }
 
         private LongTickCountLruItem<int, int> CreateItem(bool wasAccessed, bool wasRemoved, bool isExpired)
