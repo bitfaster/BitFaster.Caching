@@ -13,7 +13,7 @@
     <PackageReference Include="FluentAssertions" Version="7.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
     <PackageReference Include="Moq" Version="4.20.72" />
-    <PackageReference Include="ObjectLayoutInspector" Version="0.1.4" />
+    <PackageReference Include="ObjectLayoutInspector" Version="0.1.4" Condition="'$(TargetFramework)' != 'net48'" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
       <PrivateAssets>all</PrivateAssets>
@@ -24,6 +24,11 @@
     
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Compile Remove="Lru\LruItemMemoryLayoutDumps.cs" />
+    <Compile Remove="Lfu\NodeMemoryLayoutDumps.cs" />
   </ItemGroup>
 
   <ItemGroup>
