@@ -596,9 +596,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 this.readBuffer.Count.Should().Be(0);
                 this.writeBuffer.Count.Should().Be(0);
 
-                VerifyLruCountMatchesEnumeration(this.windowLru, "window");
-                VerifyLruCountMatchesEnumeration(this.protectedLru, "protected");
-                VerifyLruCountMatchesEnumeration(this.probationLru, "probation");
+                AssertLruCountMatchesEnumeration(this.windowLru, "window");
+                AssertLruCountMatchesEnumeration(this.protectedLru, "protected");
+                AssertLruCountMatchesEnumeration(this.probationLru, "probation");
 
                 // all the items in the LRUs must exist in the dictionary.
                 // no items should be marked as removed after maintenance has run
@@ -614,15 +614,15 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.Count.Should().BeLessThanOrEqualTo(cache.Capacity, "capacity out of valid range");
         }
 
-        private void VerifyLruCountMatchesEnumeration(LfuNodeList<K, V> lfuNodes, string lruName)
+        private void AssertLruCountMatchesEnumeration(LfuNodeList<K, V> lfuNodes, string lruName)
         {
             int enumeratedCount = 0;
-            int maxEnumeratedCount = Math.Max(this.cache.Capacity, this.dictionary.Count) + 1;
+            int enumerationGuardLimit = Math.Max(this.cache.Capacity, this.dictionary.Count) + 1;
 
             foreach (var _ in lfuNodes)
             {
                 enumeratedCount++;
-                enumeratedCount.Should().BeLessThanOrEqualTo(maxEnumeratedCount, $"{lruName} LRU enumeration exceeded the guard limit");
+                enumeratedCount.Should().BeLessThanOrEqualTo(enumerationGuardLimit, $"{lruName} LRU enumeration exceeded the guard limit");
             }
 
             enumeratedCount.Should().Be(lfuNodes.Count, $"{lruName} LRU has a corrupted count");
