@@ -35,10 +35,11 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             ICache<int, int> lfu = new ConcurrentLfuBuilder<int, int>()
                 .WithScheduler(new NullScheduler())
+                .WithEvents()
                 .Build();
 
             var clfu = lfu as ConcurrentLfu<int, int>;
-            clfu.Scheduler.Should().BeOfType<NullScheduler>();
+            clfu!.Scheduler.Should().BeOfType<NullScheduler>();
         }
 
         [Fact]

@@ -33,10 +33,10 @@ namespace BitFaster.Caching.Lfu
     /// https://github.com/ben-manes/caffeine
     [DebuggerTypeProxy(typeof(FastConcurrentLfu<,,,>.LfuDebugView<,>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
-    internal sealed class FastConcurrentLfu<K, V, N, P> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IBoundedPolicy
+    internal sealed class FastConcurrentLfu<K, V, N, P> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IBoundedPolicy, ITimePolicy, IDiscreteTimePolicy
         where K : notnull
         where N : LfuNode<K, V>
-        where P : struct, INodePolicy<K, V, N, NoEventPolicy<K,V>>
+        where P : struct, INodePolicy<K, V, N, NoEventPolicy<K, V>>
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
         private ConcurrentLfuCore<K, V, N, P, NoEventPolicy<K, V>> core;
@@ -87,7 +87,74 @@ namespace BitFaster.Caching.Lfu
         internal ref NoEventPolicy<K, V> EventPolicyRef => ref this.core.eventPolicy;
 
         ///<inheritdoc/>
-        public CachePolicy Policy => core.Policy;
+        public CachePolicy Policy => CreatePolicy();
+
+        private static readonly bool IsExpireAfterPolicy = typeof(P) == typeof(ExpireAfterPolicy<K, V, NoEventPolicy<K, V>>);
+
+        private CachePolicy CreatePolicy()
+        {
+            if (IsExpireAfterPolicy)
+            {
+                var calc = Unsafe.As<P, ExpireAfterPolicy<K, V, NoEventPolicy<K, V>>>(ref core.policy).ExpiryCalculator;
+
+                var afterWrite = Optional<ITimePolicy>.None();
+                var afterAccess = Optional<ITimePolicy>.None();
+                var afterCustom = Optional<IDiscreteTimePolicy>.None();
+
+                switch (calc)
+                {
+                    case ExpireAfterAccess<K, V>:
+                        afterAccess = new Optional<ITimePolicy>(this);
+                        break;
+                    case ExpireAfterWrite<K, V>:
+                        afterWrite = new Optional<ITimePolicy>(this);
+                        break;
+                    default:
+                        afterCustom = new Optional<IDiscreteTimePolicy>(this);
+                        break;
+                }
+
+                return new CachePolicy(new Optional<IBoundedPolicy>(this), afterWrite, afterAccess, afterCustom);
+            }
+
+            return core.Policy;
+        }
+
+        TimeSpan ITimePolicy.TimeToLive
+        {
+            get
+            {
+                if (IsExpireAfterPolicy)
+                {
+                    return Unsafe.As<P, ExpireAfterPolicy<K, V, NoEventPolicy<K, V>>>(ref core.policy).ExpiryCalculator switch
+                    {
+                        ExpireAfterAccess<K, V> aa => aa.TimeToExpire,
+                        ExpireAfterWrite<K, V> aw => aw.TimeToExpire,
+                        _ => TimeSpan.Zero,
+                    };
+                }
+
+                return TimeSpan.Zero;
+            }
+        }
+
+        void ITimePolicy.TrimExpired() => DoMaintenance();
+
+        ///<inheritdoc/>
+        public bool TryGetTimeToExpire<K1>(K1 key, out TimeSpan timeToExpire)
+        {
+            if (IsExpireAfterPolicy && key is K k && core.TryGetNode(k, out N? node) && node is TimeOrderNode<K, V> timeNode)
+            {
+                var tte = new Duration(timeNode.GetTimestamp()) - Duration.SinceEpoch();
+                timeToExpire = tte.ToTimeSpan();
+                return true;
+            }
+
+            timeToExpire = default;
+            return false;
+        }
+
+        void IDiscreteTimePolicy.TrimExpired() => DoMaintenance();
 
         ///<inheritdoc/>
         public ICollection<K> Keys => core.Keys;

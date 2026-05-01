@@ -85,7 +85,7 @@ namespace BitFaster.Caching.Lfu
                 (false, false, false, false) => new FastConcurrentLfu<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V, NoEventPolicy<K, V>>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer),
 
                 // no time expiry, with events
-               _ => new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer)
+                _ => new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer)
             };
         }
     }
