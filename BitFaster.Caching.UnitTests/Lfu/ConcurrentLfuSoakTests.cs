@@ -9,7 +9,6 @@ using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using FluentAssertions;
-using FluentAssertions.Equivalency;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -520,18 +519,23 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         private static void RunIntegrityCheck<K, V>(ConcurrentLfu<K, V> cache, ITestOutputHelper output)
         {
-            new ConcurrentLfuIntegrityChecker<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V>>(cache.Core).Validate(output);
+            new ConcurrentLfuIntegrityChecker<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V, EventPolicy<K, V>>, EventPolicy<K, V>>(cache.Core).Validate(output);
         }
     }
 
-    internal class ConcurrentLfuIntegrityChecker<K, V, N, P>
+    internal class ConcurrentLfuIntegrityChecker<K, V, N, P, E>
         where N : LfuNode<K, V>
-        where P : struct, INodePolicy<K, V, N>
+        where P : struct, INodePolicy<K, V, N, E>
+        where E : struct, IEventPolicy<K, V>
     {
-        private readonly ConcurrentLfuCore<K, V, N, P> cache;
-
+        private readonly ConcurrentLfuCore<K, V, N, P, E> cache;
         private readonly ConcurrentDictionary<K, N> dictionary;
+
+#if NET9_0_OR_GREATER
+        private readonly Lock maintenanceLock;
+#else
         private readonly object maintenanceLock;
+#endif
 
         private readonly LfuNodeList<K, V> windowLru;
         private readonly LfuNodeList<K, V> probationLru;
@@ -540,22 +544,27 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private readonly StripedMpscBuffer<N> readBuffer;
         private readonly MpscBoundedBuffer<N> writeBuffer;
 
-        private static FieldInfo dictionaryField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("dictionary", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static FieldInfo lockField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("maintenanceLock", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo dictionaryField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("dictionary", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo lockField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("maintenanceLock", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        private static FieldInfo windowLruField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("windowLru", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static FieldInfo probationLruField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("probationLru", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static FieldInfo protectedLruField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("protectedLru", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo windowLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("windowLru", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo probationLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("probationLru", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo protectedLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("protectedLru", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        private static FieldInfo readBufferField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("readBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static FieldInfo writeBufferField = typeof(ConcurrentLfuCore<K, V, N, P>).GetField("writeBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo readBufferField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("readBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo writeBufferField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("writeBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        public ConcurrentLfuIntegrityChecker(ConcurrentLfuCore<K, V, N, P> cache)
+        public ConcurrentLfuIntegrityChecker(ConcurrentLfuCore<K, V, N, P, E> cache)
         {
             this.cache = cache;
 
             this.dictionary = (ConcurrentDictionary<K, N>)dictionaryField.GetValue(cache);
+
+#if NET9_0_OR_GREATER
+            this.maintenanceLock = (Lock)lockField.GetValue(cache);
+#else
             this.maintenanceLock = lockField.GetValue(cache);
+#endif
 
             // get lrus via reflection
             this.windowLru = (LfuNodeList<K, V>)windowLruField.GetValue(cache);
