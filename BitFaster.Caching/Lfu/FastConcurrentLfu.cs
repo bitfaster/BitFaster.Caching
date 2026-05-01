@@ -31,14 +31,15 @@ namespace BitFaster.Caching.Lfu
     /// </summary>
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    [DebuggerTypeProxy(typeof(FastConcurrentLfu<,,>.LfuDebugView<>))]
+    [DebuggerTypeProxy(typeof(FastConcurrentLfu<,,,>.LfuDebugView<,>))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
-    internal sealed class FastConcurrentLfu<K, V, E> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IBoundedPolicy
+    internal sealed class FastConcurrentLfu<K, V, N, P> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IBoundedPolicy
         where K : notnull
-        where E : struct, IEventPolicy<K, V>
+        where N : LfuNode<K, V>
+        where P : struct, INodePolicy<K, V, N, NoEventPolicy<K,V>>
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
-        private ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V, E>, E> core;
+        private ConcurrentLfuCore<K, V, N, P, NoEventPolicy<K, V>> core;
 
         /// <summary>
         /// The default buffer size.
@@ -54,12 +55,19 @@ namespace BitFaster.Caching.Lfu
         /// <param name="comparer">The equality comparer.</param>
         public FastConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer)
         {
-            E eventPolicy = default;
+            NoEventPolicy<K, V> eventPolicy = default;
             eventPolicy.SetEventSource(this);
             this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), default, eventPolicy);
         }
 
-        internal ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V, E>, E> Core => core;
+        public FastConcurrentLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, P nodePolicy)
+        {
+            NoEventPolicy<K, V> eventPolicy = default;
+            eventPolicy.SetEventSource(this);
+            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), nodePolicy, eventPolicy);
+        }
+
+        internal ConcurrentLfuCore<K, V, N, P, NoEventPolicy<K, V>> Core => core;
 
         // structs cannot declare self referencing lambda functions, therefore pass this in from the ctor
         private void DrainBuffers()
@@ -76,7 +84,7 @@ namespace BitFaster.Caching.Lfu
         ///<inheritdoc/>
         public Optional<ICacheEvents<K, V>> Events => new(new Proxy(this));
 
-        internal ref E EventPolicyRef => ref this.core.eventPolicy;
+        internal ref NoEventPolicy<K, V> EventPolicyRef => ref this.core.eventPolicy;
 
         ///<inheritdoc/>
         public CachePolicy Policy => core.Policy;
@@ -253,9 +261,9 @@ namespace BitFaster.Caching.Lfu
         // Hence it is returned by ref and mutated via Proxy.
         private class Proxy : ICacheEvents<K, V>
         {
-            private readonly FastConcurrentLfu<K, V, E> lfu;
+            private readonly FastConcurrentLfu<K, V, N, P> lfu;
 
-            public Proxy(FastConcurrentLfu<K, V, E> lfu)
+            public Proxy(FastConcurrentLfu<K, V, N, P> lfu)
             {
                 this.lfu = lfu;
             }
@@ -297,12 +305,13 @@ namespace BitFaster.Caching.Lfu
         }
 
         [ExcludeFromCodeCoverage]
-        internal class LfuDebugView<N>
+        internal class LfuDebugView<N, P>
              where N : LfuNode<K, V>
+             where P : struct, INodePolicy<K, V, N, NoEventPolicy<K, V>>
         {
-            private readonly FastConcurrentLfu<K, V, E> lfu;
+            private readonly FastConcurrentLfu<K, V, N, P> lfu;
 
-            public LfuDebugView(FastConcurrentLfu<K, V, E> lfu)
+            public LfuDebugView(FastConcurrentLfu<K, V, N, P> lfu)
             {
                 this.lfu = lfu;
             }
@@ -331,5 +340,4 @@ namespace BitFaster.Caching.Lfu
             }
         }
     }
-
 }

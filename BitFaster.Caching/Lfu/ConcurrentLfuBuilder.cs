@@ -77,12 +77,12 @@ namespace BitFaster.Caching.Lfu
                 (false, false, true, true) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, expiry!),
 
                 // time expiry, without events
-                (true, false, false, false) => new FastConcurrentTLfu<K, V, NoEventPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterWrite<K, V>(info.TimeToExpireAfterWrite!.Value)),
-                (false, true, false, false) => new FastConcurrentTLfu<K, V, NoEventPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterAccess<K, V>(info.TimeToExpireAfterAccess!.Value)),
-                (false, false, true, false) => new FastConcurrentTLfu<K, V, NoEventPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, expiry!),
+                (true, false, false, false) => new FastConcurrentLfu<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V, NoEventPolicy<K, V>>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterPolicy<K, V, NoEventPolicy<K, V>>(new ExpireAfterWrite<K, V>(info.TimeToExpireAfterWrite!.Value))),
+                (false, true, false, false) => new FastConcurrentLfu<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V, NoEventPolicy<K, V>>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterPolicy<K, V, NoEventPolicy<K, V>>(new ExpireAfterAccess<K, V>(info.TimeToExpireAfterAccess!.Value))),
+                (false, false, true, false) => new FastConcurrentLfu<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V, NoEventPolicy<K, V>>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterPolicy<K, V, NoEventPolicy<K, V>>(expiry!)),
 
                 // no time expiry, without events
-                (false, false, false, false) => new FastConcurrentLfu<K, V, NoEventPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer),
+                (false, false, false, false) => new FastConcurrentLfu<K, V, AccessOrderNode<K, V>, AccessOrderPolicy<K, V, NoEventPolicy<K, V>>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer),
 
                 // no time expiry, with events
                _ => new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer)

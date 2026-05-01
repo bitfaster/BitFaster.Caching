@@ -472,7 +472,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private ConcurrentLfu<int, string> CreateWithBackgroundScheduler()
         {
             var scheduler = new BackgroundThreadScheduler();
-            return new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).Build() as ConcurrentLfu<int, string>;
+            return new ConcurrentLfuBuilder<int, string>().WithCapacity(9).WithScheduler(scheduler).WithEvents().Build() as ConcurrentLfu<int, string>;
         }
 
         private ConcurrentLfu<string, string> CreateStringWithBackgroundScheduler()
