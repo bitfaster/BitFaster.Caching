@@ -25,6 +25,8 @@ namespace BitFaster.Caching.Lfu.Builder
 
         public void SetExpiry<V>(IExpiryCalculator<K, V> expiry) => this.expiry = expiry;
 
+        public bool WithEvents { get; set; } = false;
+
         public IExpiryCalculator<K, V>? GetExpiry<V>()
         {
             if (this.expiry == null)

@@ -89,6 +89,16 @@ namespace BitFaster.Caching.Lfu.Builder
         }
 
         /// <summary>
+        /// Enable events to be raised when entries are added or removed. Incurs a small performance penalty.
+        /// </summary>
+        /// <returns>A ConcurrentLfuBuilder</returns>
+        public TBuilder WithEvents()
+        {
+            this.info.WithEvents = true;
+            return (this as TBuilder)!;
+        }
+
+        /// <summary>
         /// Builds a cache configured via the method calls invoked on the builder instance.
         /// </summary>
         /// <returns>A cache.</returns>

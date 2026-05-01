@@ -69,12 +69,23 @@ namespace BitFaster.Caching.Lfu
             if (info.TimeToExpireAfterAccess.HasValue && expiry != null)
                 Throw.InvalidOp("Specifying both ExpireAfterAccess and ExpireAfter is not supported.");
 
-            return (info.TimeToExpireAfterWrite.HasValue, info.TimeToExpireAfterAccess.HasValue, expiry != null) switch
+            return (info.TimeToExpireAfterWrite.HasValue, info.TimeToExpireAfterAccess.HasValue, expiry != null, info.WithEvents) switch
             {
-                (true, false, false) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterWrite<K, V>(info.TimeToExpireAfterWrite!.Value)),
-                (false, true, false) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterAccess<K, V>(info.TimeToExpireAfterAccess!.Value)),
-                (false, false, true) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, expiry!),
-                _ => new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer)
+                // time expiry, with events
+                (true, false, false, true) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterWrite<K, V>(info.TimeToExpireAfterWrite!.Value)),
+                (false, true, false, true) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterAccess<K, V>(info.TimeToExpireAfterAccess!.Value)),
+                (false, false, true, true) => new ConcurrentTLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, expiry!),
+
+                // time expiry, without events
+                (true, false, false, false) => new FastConcurrentTLfu<K, V, NoEventPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterWrite<K, V>(info.TimeToExpireAfterWrite!.Value)),
+                (false, true, false, false) => new FastConcurrentTLfu<K, V, NoEventPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new ExpireAfterAccess<K, V>(info.TimeToExpireAfterAccess!.Value)),
+                (false, false, true, false) => new FastConcurrentTLfu<K, V, NoEventPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, expiry!),
+
+                // no time expiry, without events
+                (false, false, false, false) => new FastConcurrentLfu<K, V, NoEventPolicy<K, V>>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer),
+
+                // no time expiry, with events
+               _ => new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer)
             };
         }
     }
