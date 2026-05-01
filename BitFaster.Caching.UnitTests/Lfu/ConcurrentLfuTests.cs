@@ -831,6 +831,19 @@ namespace BitFaster.Caching.UnitTests.Lfu
 #endif
         }
 
+#if DEBUG
+        [Fact]
+        public void FormatLfuReturnsExpectedString()
+        {
+            cache.GetOrAdd(1, k => k);
+            cache.GetOrAdd(2, k => k);
+
+            cache.DoMaintenance();
+
+            cache.FormatLfuString().Should().Be("W [2] Protected [] Probation [1]");
+        }
+#endif
+
         [Fact]
         public void WhenItemIsRemovedRemovedEventIsFired()
         {
