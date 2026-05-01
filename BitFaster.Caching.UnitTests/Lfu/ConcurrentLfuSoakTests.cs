@@ -619,7 +619,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             int enumeratedCount = 0;
             int enumerationGuardLimit = Math.Max(this.cache.Capacity, this.dictionary.Count) + 1;
 
-            foreach (var _ in lfuNodes)
+            foreach (var node in lfuNodes)
             {
                 enumeratedCount++;
                 enumeratedCount.Should().BeLessThanOrEqualTo(enumerationGuardLimit, $"{lruName} LRU enumeration exceeded the guard limit");
