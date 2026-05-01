@@ -31,7 +31,7 @@ namespace BitFaster.Caching.Lfu
     /// </summary>
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
-    [DebuggerTypeProxy(typeof(FastConcurrentLfu<,,,>.LfuDebugView<,>))]
+    [DebuggerTypeProxy(typeof(FastConcurrentLfu<,,,>.LfuDebugView))]
     [DebuggerDisplay("Count = {Count}/{Capacity}")]
     internal sealed class FastConcurrentLfu<K, V, N, P> : ICacheExt<K, V>, IAsyncCacheExt<K, V>, IBoundedPolicy, ITimePolicy, IDiscreteTimePolicy
         where K : notnull
@@ -82,9 +82,7 @@ namespace BitFaster.Caching.Lfu
         public Optional<ICacheMetrics> Metrics => core.Metrics;
 
         ///<inheritdoc/>
-        public Optional<ICacheEvents<K, V>> Events => new(new Proxy(this));
-
-        internal ref NoEventPolicy<K, V> EventPolicyRef => ref this.core.eventPolicy;
+        public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
 
         ///<inheritdoc/>
         public CachePolicy Policy => CreatePolicy();
@@ -322,59 +320,8 @@ namespace BitFaster.Caching.Lfu
         }
 #endif
 
-        // To get JIT optimizations, policies must be structs.
-        // If the structs are returned directly via properties, they will be copied. Since
-        // eventPolicy is a mutable struct, copy is bad since changes are lost.
-        // Hence it is returned by ref and mutated via Proxy.
-        private class Proxy : ICacheEvents<K, V>
-        {
-            private readonly FastConcurrentLfu<K, V, N, P> lfu;
-
-            public Proxy(FastConcurrentLfu<K, V, N, P> lfu)
-            {
-                this.lfu = lfu;
-            }
-
-            public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
-            {
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                add
-                {
-                    ref var policy = ref this.lfu.EventPolicyRef;
-                    policy.ItemRemoved += value;
-                }
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                remove
-                {
-                    ref var policy = ref this.lfu.EventPolicyRef;
-                    policy.ItemRemoved -= value;
-                }
-            }
-
-            // backcompat: remove conditional compile
-#if NETCOREAPP3_0_OR_GREATER
-            public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
-            {
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                add
-                {
-                    ref var policy = ref this.lfu.EventPolicyRef;
-                    policy.ItemUpdated += value;
-                }
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                remove
-                {
-                    ref var policy = ref this.lfu.EventPolicyRef;
-                    policy.ItemUpdated -= value;
-                }
-            }
-#endif
-        }
-
         [ExcludeFromCodeCoverage]
-        internal class LfuDebugView<N, P>
-             where N : LfuNode<K, V>
-             where P : struct, INodePolicy<K, V, N, NoEventPolicy<K, V>>
+        internal class LfuDebugView
         {
             private readonly FastConcurrentLfu<K, V, N, P> lfu;
 
