@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
+using BitFaster.Caching.UnitTests.Retry;
 using FluentAssertions;
 using Xunit;
 
@@ -19,6 +20,11 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 .WithCapacity(expectedCapacity)
                 .WithKeyComparer(expectedComparer)
                 .Build();
+        }
+
+        protected override ICache<string, int> CreateWithExpiry(TimeSpan timeToExpire)
+        {
+            throw new NotImplementedException();
         }
 
         public FastConcurrentLfuTests()
@@ -38,6 +44,15 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 .Build();
         }
 
+        protected override ICache<string, int> CreateWithExpiry(TimeSpan timeToExpire)
+        {
+            return new ConcurrentLfuBuilder<string, int>()
+               .WithCapacity(expectedCapacity)
+               .WithExpireAfterAccess(timeToExpire)
+               .WithKeyComparer(expectedComparer)
+               .Build();
+        }
+
         public FastConcurrentLfuAfterAccessTests()
             : base(Create())
         {
@@ -55,6 +70,15 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 .Build();
         }
 
+        protected override ICache<string, int> CreateWithExpiry(TimeSpan timeToExpire)
+        {
+            return new ConcurrentLfuBuilder<string, int>()
+                .WithCapacity(expectedCapacity)
+                .WithExpireAfterWrite(timeToExpire)
+                .WithKeyComparer(expectedComparer)
+                .Build();
+        }
+
         public FastConcurrentLfuAfterWriteTests()
             : base(Create())
         {
@@ -67,6 +91,18 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             var calc = new TestExpiryCalculator<string, int>();
             calc.ExpireAfterCreate = (k, v) => Duration.FromMinutes(1);
+
+            return new ConcurrentLfuBuilder<string, int>()
+                .WithCapacity(expectedCapacity)
+                .WithExpireAfter(calc)
+                .WithKeyComparer(expectedComparer)
+                .Build();
+        }
+
+        protected override ICache<string, int> CreateWithExpiry(TimeSpan timeToExpire)
+        {
+            var calc = new TestExpiryCalculator<string, int>();
+            calc.ExpireAfterCreate = (k, v) => Duration.FromTimeSpan(timeToExpire);
 
             return new ConcurrentLfuBuilder<string, int>()
                 .WithCapacity(expectedCapacity)
@@ -299,6 +335,69 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.TryUpdate("1", 2).Should().BeFalse();
         }
 
+        [RetryFact]
+        public void WhenItemIsExpiredItIsRemoved2()
+        {
+            if (IsTimeOrder())
+            {
+                cache = CreateWithExpiry(TimeSpan.FromMilliseconds(200));
+
+                Timed.Execute(
+                    cache,
+                    cache =>
+                    {
+                        cache.GetOrAdd("1", k => 1);
+                        return cache;
+                    },
+                    TimeSpan.FromSeconds(2),
+                    cache =>
+                    {
+                        // This is a bit flaky below 2 secs pause - seems like it doesnt always
+                        // remove the item
+                        
+                        if (cache.Policy.ExpireAfterWrite.HasValue)
+                        {
+                            cache.Policy.ExpireAfterWrite.Value.TrimExpired();
+                        }
+
+                        if (cache.Policy.ExpireAfterAccess.HasValue)
+                        {
+                            cache.Policy.ExpireAfterAccess.Value.TrimExpired();
+                        }
+
+                        if (cache.Policy.ExpireAfter.HasValue)
+                        {
+                            cache.Policy.ExpireAfter.Value.TrimExpired();
+                        }
+
+                        cache.Count.Should().Be(0);
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public void WhenCacheIsTrimmedItemsAreRemoved()
+        {
+            for (int i = 0; i < expectedCapacity; i++)
+            {
+                cache.AddOrUpdate(i.ToString(), i);
+            }
+
+            cache.Count().Should().Be(expectedCapacity);
+
+            if (IsTimeOrder())
+            {
+                AsTimeOrder().Trim(10);
+            }
+            else
+            {
+                AsAccessOrder().Trim(10);
+            }
+
+            cache.Count().Should().Be(expectedCapacity - 10);
+        }
+
 #if DEBUG
         [Fact]
         public void FormatLfuReturnsExpectedString()
@@ -366,6 +465,8 @@ namespace BitFaster.Caching.UnitTests.Lfu
             value.Should().Be(123);
         }
 #endif
+
+        protected abstract ICache<string, int> CreateWithExpiry(TimeSpan timeToExpire);
 
         private bool IsTimeOrder()
         {

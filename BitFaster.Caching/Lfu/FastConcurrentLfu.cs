@@ -67,7 +67,7 @@ namespace BitFaster.Caching.Lfu
             this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), nodePolicy, eventPolicy);
         }
 
-        internal ConcurrentLfuCore<K, V, N, P, NoEventPolicy<K, V>> Core => core;
+        //internal ConcurrentLfuCore<K, V, N, P, NoEventPolicy<K, V>> Core => core;
 
         // structs cannot declare self referencing lambda functions, therefore pass this in from the ctor
         private void DrainBuffers()
