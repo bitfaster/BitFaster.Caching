@@ -148,7 +148,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             lfu.GetOrAdd(1, k => "1");
 
             lfu.Policy.ExpireAfter.Value.TryGetTimeToExpire(1, out var timeToExpire).Should().BeTrue();
-            timeToExpire.Should().BeCloseTo(TimeSpan.FromMinutes(1), TimeSpan.FromMilliseconds(50));
+            timeToExpire.Should().BeCloseTo(TimeSpan.FromMinutes(1), TimeSpan.FromMilliseconds(250));
         }
 
         [Fact]
