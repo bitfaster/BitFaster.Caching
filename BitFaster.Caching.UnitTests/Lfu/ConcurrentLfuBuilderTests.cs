@@ -35,10 +35,11 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             ICache<int, int> lfu = new ConcurrentLfuBuilder<int, int>()
                 .WithScheduler(new NullScheduler())
+                .WithEvents()
                 .Build();
 
             var clfu = lfu as ConcurrentLfu<int, int>;
-            clfu.Scheduler.Should().BeOfType<NullScheduler>();
+            clfu!.Scheduler.Should().BeOfType<NullScheduler>();
         }
 
         [Fact]
@@ -53,19 +54,91 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void TestWithEvents()
+        {
+            ICache<string, int> lfu = new ConcurrentLfuBuilder<string, int>()
+                .WithEvents()
+                .Build();
+
+            lfu.Should().BeAssignableTo<ConcurrentLfu<string, int>>();
+
+            lfu.Events.HasValue.Should().BeTrue();
+        }
+
+        [Fact]
         public void TestExpireAfterAccess()
         {
             ICache<string, int> expireAfterAccess = new ConcurrentLfuBuilder<string, int>()
                 .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
                 .Build();
 
+            expireAfterAccess.Should().BeAssignableTo<FastConcurrentLfu<string, int, TimeOrderNode<string, int>, ExpireAfterPolicy<string, int, NoEventPolicy<string, int>>>>();
+
             expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
             expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
             expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+            expireAfterAccess.Policy.ExpireAfter.HasValue.Should().BeFalse();
+
+            expireAfterAccess.Events.HasValue.Should().BeFalse();
         }
 
         [Fact]
-        public void TestExpireAfterReadAndExpireAfterWriteThrows()
+        public void TestExpireAfterAccessWithEvents()
+        {
+            ICache<string, int> expireAfterAccess = new ConcurrentLfuBuilder<string, int>()
+                .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
+                .WithEvents()
+                .Build();
+
+            expireAfterAccess.Should().BeAssignableTo<ConcurrentTLfu<string, int>>();
+
+            expireAfterAccess.Policy.ExpireAfterAccess.HasValue.Should().BeTrue();
+            expireAfterAccess.Policy.ExpireAfterAccess.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+            expireAfterAccess.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+            expireAfterAccess.Policy.ExpireAfter.HasValue.Should().BeFalse();
+
+            expireAfterAccess.Events.HasValue.Should().BeTrue();
+        }
+
+        [Fact]
+        public void TestExpireAfterWrite()
+        {
+            ICache<string, int> expireAfterWrite = new ConcurrentLfuBuilder<string, int>()
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .Build();
+
+            expireAfterWrite.Should().BeAssignableTo<FastConcurrentLfu<string, int, TimeOrderNode<string, int>, ExpireAfterPolicy<string, int, NoEventPolicy<string, int>>>>();
+
+            expireAfterWrite.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
+            expireAfterWrite.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+
+            expireAfterWrite.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+            expireAfterWrite.Policy.ExpireAfter.HasValue.Should().BeFalse();
+
+            expireAfterWrite.Events.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterWriteWithEvents()
+        {
+            ICache<string, int> expireAfterWrite = new ConcurrentLfuBuilder<string, int>()
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .WithEvents()
+                .Build();
+
+            expireAfterWrite.Should().BeAssignableTo<ConcurrentTLfu<string, int>>();
+
+            expireAfterWrite.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
+            expireAfterWrite.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+
+            expireAfterWrite.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+            expireAfterWrite.Policy.ExpireAfter.HasValue.Should().BeFalse();
+
+            expireAfterWrite.Events.HasValue.Should().BeTrue();
+        }
+
+        [Fact]
+        public void TestExpireAfterAccessAndExpireAfterWriteThrows()
         {
             var builder = new ConcurrentLfuBuilder<string, int>()
                 .WithExpireAfterAccess(TimeSpan.FromSeconds(1))
@@ -82,6 +155,24 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
                 .Build();
 
+            expireAfter.Should().BeAssignableTo<FastConcurrentLfu<string, int, TimeOrderNode<string, int>, ExpireAfterPolicy<string, int, NoEventPolicy<string, int>>>>();
+
+            expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
+
+            expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
+            expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestExpireAfterWithEvents()
+        {
+            ICache<string, int> expireAfter = new ConcurrentLfuBuilder<string, int>()
+                .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
+                .WithEvents()
+                .Build();
+
+            expireAfter.Should().BeAssignableTo<ConcurrentTLfu<string, int>>();
+
             expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
 
             expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
@@ -96,12 +187,13 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 .WithExpireAfter(new TestExpiryCalculator<string, int>((k, v) => Duration.FromMinutes(5)))
                 .Build();
 
+            expireAfter.Should().BeAssignableTo<FastConcurrentLfu<string, int, TimeOrderNode<string, int>, ExpireAfterPolicy<string, int, NoEventPolicy<string, int>>>>();
+
             expireAfter.Policy.ExpireAfter.HasValue.Should().BeTrue();
 
             expireAfter.Policy.ExpireAfterAccess.HasValue.Should().BeFalse();
             expireAfter.Policy.ExpireAfterWrite.HasValue.Should().BeFalse();
         }
-
 
         [Fact]
         public void TestExpireAfterWriteAndExpireAfterThrows()
