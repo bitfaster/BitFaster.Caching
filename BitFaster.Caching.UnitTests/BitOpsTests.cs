@@ -88,16 +88,29 @@ namespace BitFaster.Caching.UnitTests
             BitOps.BitCount(666).Should().Be(5);
         }
 
+        [Theory]
+        [InlineData(0U, 0)]
+        [InlineData(666U, 5)]
+        [InlineData(uint.MaxValue, 32)]
+        public void UIntBitCount(uint input, int count)
+        {
+            BitOps.BitCount(input).Should().Be(count);
+        }
+
         [Fact]
         public void LongtBitCount()
         {
             BitOps.BitCount(666L).Should().Be(5);
         }
 
-        [Fact]
-        public void ULongtBitCount()
+
+        [Theory]
+        [InlineData(0UL, 0)]
+        [InlineData(666UL, 5)]
+        [InlineData(ulong.MaxValue, 64)]
+        public void ULongtBitCount(ulong input, int count)
         {
-            BitOps.BitCount(666UL).Should().Be(5);
+            BitOps.BitCount(input).Should().Be(count);
         }
     }
 }
