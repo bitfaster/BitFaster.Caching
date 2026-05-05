@@ -114,8 +114,8 @@ jobs:
           dotnet test --no-restore --verbosity normal -f ${{ matrix.framework }} \
             -p:UseSharedCompilation=false \
             ${{ matrix.coverage && '--collect:"XPlat Code Coverage"' || '' }} \
-            ${{ matrix.coverage && '-- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov' || '' }} \
-            --logger "trx;LogFileName=${{ matrix.results }}"
+            --logger "trx;LogFileName=${{ matrix.results }}" \
+            ${{ matrix.coverage && '-- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov' || '' }}
         shell: bash
 
       - name: Upload test results
