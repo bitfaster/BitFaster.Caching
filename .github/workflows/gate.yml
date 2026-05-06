@@ -107,15 +107,15 @@ jobs:
         run: dotnet restore
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build --configuration Release --no-restore -p:UseSharedCompilation=false
 
       - name: Test
         run: |
           dotnet test --no-restore --verbosity normal -f ${{ matrix.framework }} \
-            ${{ matrix.coverage && '-p:CollectCoverage=true' || '' }} \
-            ${{ matrix.coverage && '-p:CoverletOutput=TestResults/' || '' }} \
-            ${{ matrix.coverage && '-p:CoverletOutputFormat=lcov' || '' }} \
-            --logger "trx;LogFileName=${{ matrix.results }}"
+            -p:UseSharedCompilation=false \
+            ${{ matrix.coverage && '--collect:"XPlat Code Coverage"' || '' }} \
+            --logger "trx;LogFileName=${{ matrix.results }}" \
+            ${{ matrix.coverage && '-- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov' || '' }}
         shell: bash
 
       - name: Upload test results
@@ -132,12 +132,21 @@ jobs:
           name: ${{ matrix.artifact }}-std
           path: BitFaster.Caching.UnitTests.Std/TestResults/${{ matrix.results }}
 
+      - name: Find lcov file
+        id: find-lcov
+        if: ${{ matrix.coverage && matrix.flag != '' }}
+        shell: bash
+        run: |
+          path=$(find BitFaster.Caching.UnitTests/TestResults -name 'coverage.info' | head -1)
+          [ -n "$path" ] || (echo 'Coverage file not found' && exit 1)
+          echo "path=$path" >> $GITHUB_OUTPUT
+
       - name: Publish coverage report to coveralls.io
         if: ${{ matrix.coverage && matrix.flag != '' }}
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: BitFaster.Caching.UnitTests/TestResults/coverage.${{ matrix.framework }}.info
+          path-to-lcov: ${{ steps.find-lcov.outputs.path }}
           flag-name: ${{ matrix.flag }}
           parallel: true
 
