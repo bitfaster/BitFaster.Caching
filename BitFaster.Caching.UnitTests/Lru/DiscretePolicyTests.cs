@@ -149,7 +149,7 @@ namespace BitFaster.Caching.UnitTests.Lru
                 d = this.policy.RouteHot(item);
             }
             while (Duration.SinceEpoch() > end);
- 
+
             d.Should().Be(expectedDestination);
         }
 

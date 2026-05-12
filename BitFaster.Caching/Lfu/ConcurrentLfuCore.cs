@@ -39,10 +39,11 @@ namespace BitFaster.Caching.Lfu
     /// Based on the Caffeine library by ben.manes@gmail.com (Ben Manes).
     /// https://github.com/ben-manes/caffeine
 
-    internal struct ConcurrentLfuCore<K, V, N, P> : IBoundedPolicy
+    internal struct ConcurrentLfuCore<K, V, N, P, E> : IBoundedPolicy
         where K : notnull
         where N : LfuNode<K, V>
-        where P : struct, INodePolicy<K, V, N>
+        where P : struct, INodePolicy<K, V, N, E>
+        where E : struct, IEventPolicy<K, V>
     {
         private const int MaxWriteBufferRetries = 64;
 
@@ -78,7 +79,16 @@ namespace BitFaster.Caching.Lfu
 
         internal P policy;
 
-        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers, P policy)
+        /// <summary>
+        /// The event policy.
+        /// </summary>
+        /// <remarks>
+        /// Since E is a struct, making it readonly will force the runtime to make defensive copies
+        /// if mutate methods are called. Therefore, field must be mutable to maintain count.
+        /// </remarks>
+        internal E eventPolicy;
+
+        public ConcurrentLfuCore(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, Action drainBuffers, P policy, E eventPolicy)
         {
             if (capacity < 3)
                 Throw.ArgOutOfRange(nameof(capacity));
@@ -108,6 +118,8 @@ namespace BitFaster.Caching.Lfu
             this.drainBuffers = drainBuffers;
 
             this.policy = policy;
+
+            this.eventPolicy = eventPolicy;
         }
 
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
@@ -147,7 +159,7 @@ namespace BitFaster.Caching.Lfu
 
         public void Clear()
         {
-            Trim(int.MaxValue);
+            Trim(int.MaxValue, ItemRemovedReason.Cleared);
 
             lock (maintenanceLock)
             {
@@ -159,14 +171,19 @@ namespace BitFaster.Caching.Lfu
 
         public void Trim(int itemCount)
         {
+            Trim(itemCount, ItemRemovedReason.Trimmed);
+        }
+
+        private void Trim(int itemCount, ItemRemovedReason reason)
+        {
             List<LfuNode<K, V>> candidates;
             lock (maintenanceLock)
             {
-                Maintenance();
+                Maintenance(reason: reason);
 
                 int lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
                 itemCount = Math.Min(itemCount, lruCount);
-                candidates = new(itemCount);
+                candidates = new List<LfuNode<K, V>>(itemCount);
 
                 // Note: this is LRU order eviction, Caffeine is based on frequency
                 // walk in lru order, get itemCount keys to evict
@@ -181,7 +198,7 @@ namespace BitFaster.Caching.Lfu
             foreach (var candidate in candidates)
 #endif
             {
-                this.TryRemove(candidate.Key);
+                Evict(candidate, reason);
             }
         }
 
@@ -217,6 +234,9 @@ namespace BitFaster.Caching.Lfu
         }
 
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#if NET9_0_OR_GREATER
+            where TArg : allows ref struct
+#endif
         {
             while (true)
             {
@@ -387,6 +407,7 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryUpdateValue(N node, V value)
         {
@@ -394,6 +415,10 @@ namespace BitFaster.Caching.Lfu
             {
                 if (!node.WasRemoved)
                 {
+                    // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+                    V oldValue = node.Value;
+#endif
                     node.Value = value;
 
                     // It's ok for this to be lossy, since the node is already tracked
@@ -401,6 +426,11 @@ namespace BitFaster.Caching.Lfu
                     this.writeBuffer.TryAdd(node);
                     TryScheduleDrain();
                     this.policy.OnWrite(node);
+
+                    // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+                    EventPolicyDispatch.OnUpdatedEvent(this, node.Key, oldValue, value);
+#endif
                     return true;
                 }
             }
@@ -564,7 +594,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private bool Maintenance(N? droppedWrite = null)
+        private bool Maintenance(N? droppedWrite = null, ItemRemovedReason reason = ItemRemovedReason.Evicted)
         {
             this.drainStatus.VolatileWrite(DrainStatus.ProcessingToIdle);
 
@@ -601,7 +631,7 @@ namespace BitFaster.Caching.Lfu
             }
 
             policy.ExpireEntries(ref this);
-            EvictEntries();
+            EvictEntries(reason);
             this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
             ReFitProtected();
 
@@ -660,6 +690,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     // if a write is in the buffer and is then removed in the buffer, it will enter OnWrite twice.
                     // we mark as deleted to avoid double counting/disposing it
+                    EventPolicyDispatch.OnRemovedEvent(this, node, ItemRemovedReason.Removed);
                     this.metrics.evictedCount++;
                     Disposer<V>.Dispose(node.Value);
                     node.WasDeleted = true;
@@ -717,10 +748,10 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private void EvictEntries()
+        private void EvictEntries(ItemRemovedReason reason)
         {
             var candidate = EvictFromWindow();
-            EvictFromMain(candidate);
+            EvictFromMain(candidate, reason);
         }
 
         private LfuNode<K, V>? EvictFromWindow()
@@ -767,7 +798,7 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        private void EvictFromMain(LfuNode<K, V>? candidateNode)
+        private void EvictFromMain(LfuNode<K, V>? candidateNode, ItemRemovedReason reason)
         {
             var victim = new EvictIterator(this.cmSketch, this.probationLru.First); // victims are LRU position in probation
             var candidate = new EvictIterator(this.cmSketch, candidateNode);
@@ -783,7 +814,7 @@ namespace BitFaster.Caching.Lfu
 
                 if (victim.node == candidate.node)
                 {
-                    Evict(candidate.node!);
+                    Evict(candidate.node!, reason);
                     break;
                 }
 
@@ -791,7 +822,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     var evictee = candidate.node;
                     candidate.Next();
-                    Evict(evictee);
+                    Evict(evictee, reason);
                     continue;
                 }
 
@@ -799,7 +830,7 @@ namespace BitFaster.Caching.Lfu
                 {
                     var evictee = victim.node;
                     victim.Next();
-                    Evict(evictee);
+                    Evict(evictee, reason);
                     continue;
                 }
 
@@ -812,7 +843,7 @@ namespace BitFaster.Caching.Lfu
                     victim.Next();
                     candidate.Next();
 
-                    Evict(evictee);
+                    Evict(evictee, reason);
                 }
                 else
                 {
@@ -821,7 +852,7 @@ namespace BitFaster.Caching.Lfu
                     // candidate is initialized to first cand, and iterates forwards
                     candidate.Next();
 
-                    Evict(evictee);
+                    Evict(evictee, reason);
                 }
             }
 
@@ -833,11 +864,11 @@ namespace BitFaster.Caching.Lfu
 
                 if (AdmitCandidate(victim1.Key, victim2.Key))
                 {
-                    Evict(victim2);
+                    Evict(victim2, reason);
                 }
                 else
                 {
-                    Evict(victim1);
+                    Evict(victim1, reason);
                 }
             }
         }
@@ -851,7 +882,7 @@ namespace BitFaster.Caching.Lfu
             return candidateFreq > victimFreq;
         }
 
-        internal void Evict(LfuNode<K, V> evictee)
+        internal void Evict(LfuNode<K, V> evictee, ItemRemovedReason reason)
         {
             evictee.WasRemoved = true;
             evictee.WasDeleted = true;
@@ -865,6 +896,7 @@ namespace BitFaster.Caching.Lfu
             ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
 #endif
             evictee.list?.Remove(evictee);
+            EventPolicyDispatch.OnRemovedEvent(this, evictee, reason);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
 
@@ -978,8 +1010,34 @@ namespace BitFaster.Caching.Lfu
             public long Evicted => evictedCount;
         }
 
+        // enable JIT to elide unused code.
+        private static class EventPolicyDispatch
+        {
+            private static readonly bool IsEnabled = typeof(E) == typeof(EventPolicy<K, V>);
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static void OnRemovedEvent(ConcurrentLfuCore<K, V, N, P, E> cache, LfuNode<K, V> node, ItemRemovedReason reason)
+            {
+                if (IsEnabled)
+                {
+                    cache.eventPolicy.OnItemRemoved(node.Key, node.Value, reason);
+                }
+            }
+#if NETCOREAPP3_0_OR_GREATER
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static void OnUpdatedEvent(ConcurrentLfuCore<K, V, N, P, E> cache, K key, V oldValue, V newValue)
+            {
+                if (IsEnabled)
+                {
+                    cache.eventPolicy.OnItemUpdated(key, oldValue, newValue);
+                }
+            }
+#endif
+        }
+
 #if NET9_0_OR_GREATER
         ///<inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
@@ -1006,6 +1064,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         ///<inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
@@ -1034,7 +1093,7 @@ namespace BitFaster.Caching.Lfu
         internal readonly struct AlternateLookup<TAlternateKey> : IAlternateLookup<TAlternateKey, K, V>, IAsyncAlternateLookup<TAlternateKey, K, V>
             where TAlternateKey : notnull, allows ref struct
         {
-            internal AlternateLookup(ConcurrentLfuCore<K, V, N, P> lfu)
+            internal AlternateLookup(ConcurrentLfuCore<K, V, N, P, E> lfu)
             {
                 Debug.Assert(lfu.dictionary.IsCompatibleKey<TAlternateKey, K, N>());
                 this.Lfu = lfu;
@@ -1042,7 +1101,7 @@ namespace BitFaster.Caching.Lfu
                 this.Comparer = lfu.dictionary.GetAlternateComparer<TAlternateKey, K, N>();
             }
 
-            internal ConcurrentLfuCore<K, V, N, P> Lfu { get; }
+            internal ConcurrentLfuCore<K, V, N, P, E> Lfu { get; }
 
             internal ConcurrentDictionary<K, N>.AlternateLookup<TAlternateKey> Alternate { get; }
 
@@ -1131,6 +1190,7 @@ namespace BitFaster.Caching.Lfu
             }
 
             public V GetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+                where TArg : allows ref struct
             {
                 while (true)
                 {
@@ -1199,6 +1259,8 @@ namespace BitFaster.Caching.Lfu
 #endif
 
 #if DEBUG
+        private const int maxDebugLruDisplay = 99;
+
         /// <summary>
         /// Format the LFU as a string by converting all the keys to strings.
         /// </summary>
@@ -1208,11 +1270,11 @@ namespace BitFaster.Caching.Lfu
             var sb = new StringBuilder();
 
             sb.Append("W [");
-            sb.Append(string.Join(",", this.windowLru.Select(n => n.Key.ToString())));
+            sb.Append(string.Join(",", this.windowLru.Select(n => n.Key.ToString()).Take(maxDebugLruDisplay)));
             sb.Append("] Protected [");
-            sb.Append(string.Join(",", this.protectedLru.Select(n => n.Key.ToString())));
+            sb.Append(string.Join(",", this.protectedLru.Select(n => n.Key.ToString()).Take(maxDebugLruDisplay)));
             sb.Append("] Probation [");
-            sb.Append(string.Join(",", this.probationLru.Select(n => n.Key.ToString())));
+            sb.Append(string.Join(",", this.probationLru.Select(n => n.Key.ToString()).Take(maxDebugLruDisplay)));
             sb.Append(']');
 
             return sb.ToString();

@@ -45,6 +45,26 @@ namespace BitFaster.Caching
         /// Gets the key comparer used by the cache.
         /// </summary>
         IEqualityComparer<K> Comparer => throw new NotSupportedException();
+
+        /// <summary>
+        /// Gets an alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <returns>An alternate lookup.</returns>
+        /// <exception cref="InvalidOperationException">The configured comparer does not support <typeparamref name="TAlternateKey" />.</exception>
+        IScopedAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+            => throw new NotSupportedException();
+
+        /// <summary>
+        /// Attempts to get an alternate lookup that can use an alternate key type with the configured comparer.
+        /// </summary>
+        /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
+        /// <param name="lookup">The alternate lookup when available.</param>
+        /// <returns><see langword="true" /> when the configured comparer supports <typeparamref name="TAlternateKey" />; otherwise, <see langword="false" />.</returns>
+        bool TryGetAlternateLookup<TAlternateKey>([MaybeNullWhen(false)] out IScopedAlternateLookup<TAlternateKey, K, V> lookup)
+            where TAlternateKey : notnull, allows ref struct
+            => throw new NotSupportedException();
 #endif
 
         /// <summary>
@@ -76,7 +96,7 @@ namespace BitFaster.Caching
         /// <typeparam name="TArg">The type of an argument to pass into valueFactory.</typeparam>
         /// <param name="key">The key of the element to add.</param>
         /// <param name="valueFactory">The factory function used to generate a scoped value for the key.</param>
-        /// <param name="factoryArgument"></param>
+        /// <param name="factoryArgument">An argument value to pass into <paramref name="valueFactory" />.</param>
         /// <returns>The lifetime for the value associated with the key. The lifetime will be either reference the 
         /// existing value for the key if the key is already in the cache, or the new value if the key was not in 
         /// the cache.</returns>

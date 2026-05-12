@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netcoreapp3.1;net6.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netcoreapp3.1;net6.0;net10.0;</TargetFrameworks>
     <LangVersion>13.0</LangVersion>
     <Authors>Alex Peck</Authors>
     <Company />
@@ -10,7 +10,7 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>ReadMe.md</PackageReadmeFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>2.5.4</Version>
+    <Version>2.6.0</Version>
     <Copyright>Copyright © Alex Peck $([System.DateTime]::Now.ToString(yyyy))</Copyright>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitfaster/BitFaster.Caching</RepositoryUrl>
@@ -22,15 +22,15 @@
     <IncludeSymbols>True</IncludeSymbols>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <AssemblyVersion>2.5.4.0</AssemblyVersion>
-    <FileVersion>2.5.4.0</FileVersion>
+    <AssemblyVersion>2.6.0.0</AssemblyVersion>
+    <FileVersion>2.6.0.0</FileVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <IsTrimmable>true</IsTrimmable>
     <Nullable>enable</Nullable>
     <!--Package Validation-->
     <EnablePackageValidation>true</EnablePackageValidation>
-    <PackageValidationBaselineVersion>2.5.4</PackageValidationBaselineVersion>    
+    <PackageValidationBaselineVersion>2.6.0</PackageValidationBaselineVersion>    
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
@@ -53,7 +53,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.201" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.203" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
@@ -62,6 +62,10 @@
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <NoWarn>$(NoWarn);nullable</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1' Or '$(TargetFramework)' == 'net6.0'">
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
   </PropertyGroup>
 
 </Project>

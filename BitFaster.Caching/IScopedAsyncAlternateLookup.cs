@@ -6,30 +6,30 @@ using System.Threading.Tasks;
 namespace BitFaster.Caching
 {
     /// <summary>
-    /// Provides an async alternate-key lookup over a cache.
+    /// Provides an async alternate-key lookup over a scoped cache.
     /// </summary>
     /// <typeparam name="TAlternateKey">The alternate key type.</typeparam>
     /// <typeparam name="TKey">The cache key type.</typeparam>
     /// <typeparam name="TValue">The cache value type.</typeparam>
-    public interface IAsyncAlternateLookup<TAlternateKey, TKey, TValue>
+    public interface IScopedAsyncAlternateLookup<TAlternateKey, TKey, TValue>
         where TAlternateKey : notnull, allows ref struct
+        where TValue : IDisposable
     {
         /// <summary>
-        /// Attempts to get a value using an alternate key.
+        /// Attempts to get a value lifetime using an alternate key.
         /// </summary>
         /// <param name="key">The alternate key.</param>
-        /// <param name="value">The cached value when found.</param>
+        /// <param name="lifetime">The value lifetime when found.</param>
         /// <returns><see langword="true" /> when the key is found; otherwise, <see langword="false" />.</returns>
-        bool TryGet(TAlternateKey key, [MaybeNullWhen(false)] out TValue value);
+        bool ScopedTryGet(TAlternateKey key, [MaybeNullWhen(false)] out Lifetime<TValue> lifetime);
 
         /// <summary>
         /// Attempts to remove a value using an alternate key.
         /// </summary>
         /// <param name="key">The alternate key.</param>
         /// <param name="actualKey">The removed cache key.</param>
-        /// <param name="value">The removed value.</param>
         /// <returns><see langword="true" /> when the key is found; otherwise, <see langword="false" />.</returns>
-        bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out TKey actualKey, [MaybeNullWhen(false)] out TValue value);
+        bool TryRemove(TAlternateKey key, [MaybeNullWhen(false)] out TKey actualKey);
 
         /// <summary>
         /// Attempts to update an existing value using an alternate key.
@@ -47,22 +47,22 @@ namespace BitFaster.Caching
         void AddOrUpdate(TAlternateKey key, TValue value);
 
         /// <summary>
-        /// Gets an existing value or adds a new value asynchronously using an alternate key.
+        /// Gets an existing value lifetime or adds a new value asynchronously using an alternate key.
         /// </summary>
         /// <param name="key">The alternate key.</param>
-        /// <param name="valueFactory">The factory function used to asynchronously generate a value, invoked with the actual cache key.</param>
-        /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
-        ValueTask<TValue> GetOrAddAsync(TAlternateKey key, Func<TKey, Task<TValue>> valueFactory);
+        /// <param name="valueFactory">The value factory, invoked with the actual cache key when a value must be created.</param>
+        /// <returns>A task that represents the asynchronous scoped GetOrAdd operation.</returns>
+        ValueTask<Lifetime<TValue>> ScopedGetOrAddAsync(TAlternateKey key, Func<TKey, Task<Scoped<TValue>>> valueFactory);
 
         /// <summary>
-        /// Gets an existing value or adds a new value asynchronously using an alternate key and factory argument.
+        /// Gets an existing value lifetime or adds a new value asynchronously using an alternate key and factory argument.
         /// </summary>
         /// <typeparam name="TArg">The factory argument type.</typeparam>
         /// <param name="key">The alternate key.</param>
-        /// <param name="valueFactory">The factory function used to asynchronously generate a value, invoked with the actual cache key.</param>
-        /// <param name="factoryArgument">An argument value to pass into valueFactory.</param>
-        /// <returns>A task that represents the asynchronous GetOrAdd operation.</returns>
-        ValueTask<TValue> GetOrAddAsync<TArg>(TAlternateKey key, Func<TKey, TArg, Task<TValue>> valueFactory, TArg factoryArgument);
+        /// <param name="valueFactory">The value factory, invoked with the actual cache key when a value must be created.</param>
+        /// <param name="factoryArgument">The factory argument.</param>
+        /// <returns>A task that represents the asynchronous scoped GetOrAdd operation.</returns>
+        ValueTask<Lifetime<TValue>> ScopedGetOrAddAsync<TArg>(TAlternateKey key, Func<TKey, TArg, Task<Scoped<TValue>>> valueFactory, TArg factoryArgument);
     }
 }
 #endif

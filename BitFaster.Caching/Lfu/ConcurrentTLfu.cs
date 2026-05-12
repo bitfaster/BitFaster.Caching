@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
@@ -13,16 +14,20 @@ namespace BitFaster.Caching.Lfu
         where K : notnull
     {
         // Note: for performance reasons this is a mutable struct, it cannot be readonly.
-        private ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V>> core;
+        private ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, ExpireAfterPolicy<K, V, EventPolicy<K, V>>, EventPolicy<K, V>> core;
 
         public ConcurrentTLfu(int capacity, IExpiryCalculator<K, V> expiryCalculator)
         {
-            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers(), new(expiryCalculator));
+            EventPolicy<K, V> eventPolicy = default;
+            eventPolicy.SetEventSource(this);
+            this.core = new(Defaults.ConcurrencyLevel, capacity, new ThreadPoolScheduler(), EqualityComparer<K>.Default, () => this.DrainBuffers(), new(expiryCalculator), eventPolicy);
         }
 
         public ConcurrentTLfu(int concurrencyLevel, int capacity, IScheduler scheduler, IEqualityComparer<K> comparer, IExpiryCalculator<K, V> expiryCalculator)
         {
-            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), new(expiryCalculator));
+            EventPolicy<K, V> eventPolicy = default;
+            eventPolicy.SetEventSource(this);
+            this.core = new(concurrencyLevel, capacity, scheduler, comparer, () => this.DrainBuffers(), new(expiryCalculator), eventPolicy);
         }
 
         // structs cannot declare self referencing lambda functions, therefore pass this in from the ctor
@@ -38,7 +43,9 @@ namespace BitFaster.Caching.Lfu
         public Optional<ICacheMetrics> Metrics => core.Metrics;
 
         ///<inheritdoc/>
-        public Optional<ICacheEvents<K, V>> Events => Optional<ICacheEvents<K, V>>.None();
+        public Optional<ICacheEvents<K, V>> Events => new(new Proxy(this));
+
+        internal ref EventPolicy<K, V> EventPolicyRef => ref this.core.eventPolicy;
 
         ///<inheritdoc/>
         public CachePolicy Policy => CreatePolicy();
@@ -82,6 +89,9 @@ namespace BitFaster.Caching.Lfu
 
         ///<inheritdoc/>
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#if NET9_0_OR_GREATER
+            where TArg : allows ref struct
+#endif
         {
             return core.GetOrAdd(key, valueFactory, factoryArgument);
         }
@@ -146,6 +156,7 @@ namespace BitFaster.Caching.Lfu
 
 #if NET9_0_OR_GREATER
         ///<inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
@@ -160,6 +171,7 @@ namespace BitFaster.Caching.Lfu
         }
 
         ///<inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
@@ -224,6 +236,55 @@ namespace BitFaster.Caching.Lfu
         public void TrimExpired()
         {
             DoMaintenance();
+        }
+
+        // To get JIT optimizations, policies must be structs.
+        // If the structs are returned directly via properties, they will be copied. Since
+        // eventPolicy is a mutable struct, copy is bad since changes are lost.
+        // Hence it is returned by ref and mutated via Proxy.
+        private class Proxy : ICacheEvents<K, V>
+        {
+            private readonly ConcurrentTLfu<K, V> lfu;
+
+            public Proxy(ConcurrentTLfu<K, V> lfu)
+            {
+                this.lfu = lfu;
+            }
+
+            public event EventHandler<ItemRemovedEventArgs<K, V>> ItemRemoved
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                add
+                {
+                    ref var policy = ref this.lfu.EventPolicyRef;
+                    policy.ItemRemoved += value;
+                }
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                remove
+                {
+                    ref var policy = ref this.lfu.EventPolicyRef;
+                    policy.ItemRemoved -= value;
+                }
+            }
+
+            // backcompat: remove conditional compile
+#if NETCOREAPP3_0_OR_GREATER
+            public event EventHandler<ItemUpdatedEventArgs<K, V>> ItemUpdated
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                add
+                {
+                    ref var policy = ref this.lfu.EventPolicyRef;
+                    policy.ItemUpdated += value;
+                }
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                remove
+                {
+                    ref var policy = ref this.lfu.EventPolicyRef;
+                    policy.ItemUpdated -= value;
+                }
+            }
+#endif
         }
     }
 }

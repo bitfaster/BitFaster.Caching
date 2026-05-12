@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <LangVersion>latest</LangVersion>
-    <TargetFrameworks>net48;net6.0;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net10.0;net48;net6.0;</TargetFrameworks>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <!-- https://stackoverflow.com/a/59916801/131345 -->
     <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows> 
@@ -11,6 +11,11 @@
     <IsMacOS Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsMacOS>
     <IsArm64 Condition="$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == Arm64">true</IsArm64>
     <IsX64 Condition="$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == X64">true</IsX64>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

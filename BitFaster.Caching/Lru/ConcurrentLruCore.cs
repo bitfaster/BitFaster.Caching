@@ -237,6 +237,9 @@ namespace BitFaster.Caching.Lru
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
         /// in the cache, or the new value if the key was not in the cache.</returns>
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#if NET9_0_OR_GREATER
+            where TArg : allows ref struct
+#endif
         {
             while (true)
             {
@@ -907,6 +910,7 @@ namespace BitFaster.Caching.Lru
 
 #if NET9_0_OR_GREATER
         ///<inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IAlternateLookup<TAlternateKey, K, V> GetAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
@@ -933,6 +937,7 @@ namespace BitFaster.Caching.Lru
         }
 
         ///<inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IAsyncAlternateLookup<TAlternateKey, K, V> GetAsyncAlternateLookup<TAlternateKey>()
             where TAlternateKey : notnull, allows ref struct
         {
@@ -1057,6 +1062,7 @@ namespace BitFaster.Caching.Lru
             }
 
             public V GetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+                where TArg : allows ref struct
             {
                 while (true)
                 {

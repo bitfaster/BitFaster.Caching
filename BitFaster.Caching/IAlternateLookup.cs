@@ -12,7 +12,6 @@ namespace BitFaster.Caching
     /// <typeparam name="TValue">The cache value type.</typeparam>
     public interface IAlternateLookup<TAlternateKey, TKey, TValue>
         where TAlternateKey : notnull, allows ref struct
-        where TKey : notnull
     {
         /// <summary>
         /// Attempts to get a value using an alternate key.
@@ -62,7 +61,8 @@ namespace BitFaster.Caching
         /// <param name="valueFactory">The value factory, invoked with the actual cache key when a value must be created.</param>
         /// <param name="factoryArgument">The factory argument.</param>
         /// <returns>The cached value.</returns>
-        TValue GetOrAdd<TArg>(TAlternateKey key, Func<TKey, TArg, TValue> valueFactory, TArg factoryArgument);
+        TValue GetOrAdd<TArg>(TAlternateKey key, Func<TKey, TArg, TValue> valueFactory, TArg factoryArgument)
+             where TArg : allows ref struct;
     }
 }
 #endif

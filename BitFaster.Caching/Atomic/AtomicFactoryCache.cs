@@ -92,6 +92,9 @@ namespace BitFaster.Caching.Atomic
         /// <returns>The value for the key. This will be either the existing value for the key if the key is already 
         /// in the cache, or the new value if the key was not in the cache.</returns>
         public V GetOrAdd<TArg>(K key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+#if NET9_0_OR_GREATER
+            where TArg : allows ref struct
+#endif
         {
             var atomicFactory = cache.GetOrAdd(key, _ => new AtomicFactory<K, V>());
             return atomicFactory.GetValue(key, valueFactory, factoryArgument);
@@ -256,6 +259,7 @@ namespace BitFaster.Caching.Atomic
             }
 
             public V GetOrAdd<TArg>(TAlternateKey key, Func<K, TArg, V> valueFactory, TArg factoryArgument)
+                 where TArg : allows ref struct
             {
                 var atomicFactory = inner.GetOrAdd(key, _ => new AtomicFactory<K, V>());
 
