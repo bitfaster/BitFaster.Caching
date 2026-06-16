@@ -11,6 +11,8 @@ namespace BitFaster.Caching.UnitTests
     public class BitOpsTests
     {
         [Theory]
+        [InlineData(-1, 0)]
+        [InlineData(0, 0)]
         [InlineData(3, 4)]
         [InlineData(7, 8)]
         [InlineData(15, 16)]
@@ -21,6 +23,8 @@ namespace BitFaster.Caching.UnitTests
         }
 
         [Theory]
+        [InlineData(-1, 0)]
+        [InlineData(0, 0)]
         [InlineData(3, 4)]
         [InlineData(7, 8)]
         [InlineData(15, 16)]

@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 namespace BitFaster.Caching
 {
@@ -34,7 +35,9 @@ namespace BitFaster.Caching
         /// <returns>Smallest power of two greater than or equal to x.</returns>
         public static uint CeilingPowerOfTwo(uint x)
         {
-#if NETSTANDARD2_0
+#if NET6_0_OR_GREATER
+            return BitOperations.RoundUpToPowerOf2(x);
+#else
             // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
             --x;
             x |= x >> 1;
@@ -43,10 +46,6 @@ namespace BitFaster.Caching
             x |= x >> 8;
             x |= x >> 16;
             return x + 1;
-#elif NET6_0_OR_GREATER
-            return BitOperations.RoundUpToPowerOf2(x);
-#else
-            return 1u << -BitOperations.LeadingZeroCount(x - 1);
 #endif
         }
 
@@ -57,7 +56,9 @@ namespace BitFaster.Caching
         /// <returns>Smallest power of two greater than or equal to x.</returns>
         internal static ulong CeilingPowerOfTwo(ulong x)
         {
-#if NETSTANDARD2_0
+#if NET6_0_OR_GREATER
+            return BitOperations.RoundUpToPowerOf2(x);
+#else
             // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
             --x;
             x |= x >> 1;
@@ -67,10 +68,6 @@ namespace BitFaster.Caching
             x |= x >> 16;
             x |= x >> 32;
             return x + 1;
-#elif NET6_0_OR_GREATER
-            return BitOperations.RoundUpToPowerOf2(x);
-#else
-            return 1ul << -BitOperations.LeadingZeroCount(x - 1);
 #endif
         }
 
