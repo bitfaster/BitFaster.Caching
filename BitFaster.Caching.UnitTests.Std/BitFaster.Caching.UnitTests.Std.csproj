@@ -5,8 +5,13 @@
     <LangVersion>13.0</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="coverlet.msbuild" Version="6.0.4">
+    <PackageReference Include="coverlet.msbuild" Version="10.0.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

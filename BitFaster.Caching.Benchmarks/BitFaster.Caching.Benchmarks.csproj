@@ -13,6 +13,11 @@
     <IsX64 Condition="$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == X64">true</IsX64>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <NoWarn>1701;1702;CS8002</NoWarn>
   </PropertyGroup>
