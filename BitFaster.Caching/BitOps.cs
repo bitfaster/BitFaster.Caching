@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 namespace BitFaster.Caching
 {
@@ -34,7 +35,9 @@ namespace BitFaster.Caching
         /// <returns>Smallest power of two greater than or equal to x.</returns>
         public static uint CeilingPowerOfTwo(uint x)
         {
-#if NETSTANDARD2_0
+#if NET6_0_OR_GREATER
+            return BitOperations.RoundUpToPowerOf2(x);
+#else
             // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
             --x;
             x |= x >> 1;
@@ -43,8 +46,6 @@ namespace BitFaster.Caching
             x |= x >> 8;
             x |= x >> 16;
             return x + 1;
-#else
-            return 1u << -BitOperations.LeadingZeroCount(x - 1);
 #endif
         }
 
@@ -55,7 +56,9 @@ namespace BitFaster.Caching
         /// <returns>Smallest power of two greater than or equal to x.</returns>
         internal static ulong CeilingPowerOfTwo(ulong x)
         {
-#if NETSTANDARD2_0
+#if NET6_0_OR_GREATER
+            return BitOperations.RoundUpToPowerOf2(x);
+#else
             // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
             --x;
             x |= x >> 1;
@@ -65,8 +68,6 @@ namespace BitFaster.Caching
             x |= x >> 16;
             x |= x >> 32;
             return x + 1;
-#else
-            return 1ul << -BitOperations.LeadingZeroCount(x - 1);
 #endif
         }
 
@@ -113,14 +114,11 @@ namespace BitFaster.Caching
         public static int BitCount(uint x)
         {
 #if NETSTANDARD2_0
-            var count = 0;
-            while (x != 0)
-            {
-                count++;
-                x &= x - 1; //walking through all the bits which are set to one
-            }
+            x -= (x >> 1) & 0x_55555555u;
+            x = (x & 0x_33333333u) + ((x >> 2) & 0x_33333333u);
+            x = (((x + (x >> 4)) & 0x_0F0F0F0Fu) * 0x_01010101u) >> 24;
 
-            return count;
+            return (int)x;
 #else
             return BitOperations.PopCount(x);
 #endif
@@ -141,20 +139,17 @@ namespace BitFaster.Caching
         /// </summary>
         /// <param name="x">The input parameter.</param>
         /// <returns>The number of 1 bits.</returns>
+        // https://stackoverflow.com/questions/2709430/count-number-of-bits-in-a-64-bit-long-big-integer
         public static int BitCount(ulong x)
         {
 #if NETSTANDARD2_0
-            var count = 0;
-            while (x != 0)
-            {
-                count++;
-                x &= x - 1; //walking through all the bits which are set to one
-            }
-
-            return count;
+            x = x - ((x >> 1) & 0x5555555555555555ul);
+            x = (x & 0x3333333333333333ul) + ((x >> 2) & 0x3333333333333333ul);
+            return (int)((((x + (x >> 4)) & 0xF0F0F0F0F0F0F0Ful) * 0x101010101010101ul) >> 56);
 #else
             return BitOperations.PopCount(x);
 #endif
+
         }
 
         /// <summary>
