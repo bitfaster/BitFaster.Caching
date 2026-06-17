@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Counters;
 using BitFaster.Caching.Scheduler;
+using BitFaster.Caching.Lru;
+
 
 #if DEBUG
 using System.Text;
@@ -95,6 +97,14 @@ namespace BitFaster.Caching.Lfu
 
             int dictionaryCapacity = ConcurrentDictionarySize.Estimate(capacity);
             this.dictionary = new(concurrencyLevel, dictionaryCapacity, comparer);
+
+            // On .NET 8+, -1 can be used for default conc level. concurrencyLevel is guarded by the dictionary ctor that will not throw in this case.
+#if NET8_0_OR_GREATER
+            if (concurrencyLevel == -1)
+            { 
+                concurrencyLevel = Defaults.ConcurrencyLevel;
+            }
+#endif
 
             // cap concurrency at proc count * 2
             int readStripes = Math.Min(BitOps.CeilingPowerOfTwo(concurrencyLevel), BitOps.CeilingPowerOfTwo(Environment.ProcessorCount * 2));

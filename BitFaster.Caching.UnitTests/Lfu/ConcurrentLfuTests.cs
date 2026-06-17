@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Lfu;
+using BitFaster.Caching.Lru;
 using BitFaster.Caching.Scheduler;
 using BitFaster.Caching.UnitTests.Lru;
 using FluentAssertions;
@@ -56,12 +57,22 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void WhenConcurrencyIsLessThan1CtorThrows()
+        public void WhenConcurrencyIsZeroCtorThrows()
         {
             Action constructor = () => { var x = new ConcurrentLfu<int, string>(0, 20, new ForegroundScheduler(), EqualityComparer<int>.Default); };
 
             constructor.Should().Throw<ArgumentOutOfRangeException>();
         }
+
+#if NET8_0_OR_GREATER
+        // -1 is default conc level on .NET 8+. This can cause invalid striped buffer size without explicit handling.
+        [Fact]
+        public void WhenConcurrencyIsNegativeOneReadBufferIsCorrectSize()
+        {
+            var x = new ConcurrentLfu<int, string>(-1, 20, new ForegroundScheduler(), EqualityComparer<int>.Default);
+            x.Core.readBuffer.Capacity.Should().Be(BitOps.CeilingPowerOfTwo(Defaults.ConcurrencyLevel) * 128);
+        }
+#endif
 
         [Fact]
         public void DefaultSchedulerIsThreadPool()
