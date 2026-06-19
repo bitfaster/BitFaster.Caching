@@ -560,5 +560,47 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
             lru.Should().BeAssignableTo<IScopedAsyncCache<int, Disposable>>();
         }
+
+        [Fact]
+        public void WithWeigherBuildsWeightedCache()
+        {
+            ICache<int, int> weighted = new ConcurrentLfuBuilder<int, int>()
+                .WithCapacity(100)
+                .WithWeigher(new IntValueWeigher())
+                .Build();
+
+            weighted.Should().BeAssignableTo<FastConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, NoEventPolicy<int, int>>>>();
+
+            weighted.GetOrAdd(1, k => 5);
+            weighted.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be(5);
+        }
+
+        [Fact]
+        public void WithWeigherAndEventsThrows()
+        {
+            var builder = new ConcurrentLfuBuilder<int, int>()
+                .WithWeigher(new IntValueWeigher())
+                .WithEvents();
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void WithWeigherAndExpireAfterWriteThrows()
+        {
+            var builder = new ConcurrentLfuBuilder<int, int>()
+                .WithWeigher(new IntValueWeigher())
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1));
+
+            Action act = () => builder.Build();
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        private sealed class IntValueWeigher : IWeigher<int, int>
+        {
+            public int Weigh(int key, int value) => value;
+        }
     }
 }

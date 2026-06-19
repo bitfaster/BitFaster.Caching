@@ -46,6 +46,19 @@ namespace BitFaster.Caching.Lfu
             return this;
         }
 
+        /// <summary>
+        /// Evict using a weighted size, where the weight of each item is calculated using the specified
+        /// IWeigher. The cache is bounded by the total weight of all items, and the capacity is interpreted
+        /// as the maximum total weight.
+        /// </summary>
+        /// <param name="weigher">The weigher that determines the weight of each item.</param>
+        /// <returns>A ConcurrentLfuBuilder</returns>
+        public ConcurrentLfuBuilder<K, V> WithWeigher(IWeigher<K, V> weigher)
+        {
+            this.info.SetWeigher(weigher);
+            return this;
+        }
+
         ///<inheritdoc/>
         public override ICache<K, V> Build()
         {
@@ -69,6 +82,13 @@ namespace BitFaster.Caching.Lfu
             if (info.TimeToExpireAfterAccess.HasValue && expiry != null)
                 Throw.InvalidOp("Specifying both ExpireAfterAccess and ExpireAfter is not supported.");
 
+            var weigher = info.GetWeigher<V>();
+
+            if (weigher != null)
+            {
+                return CreateWeighted<K, V>(info, weigher, expiry);
+            }
+
             return (info.TimeToExpireAfterWrite.HasValue, info.TimeToExpireAfterAccess.HasValue, expiry != null, info.WithEvents) switch
             {
                 // time expiry, with events
@@ -87,6 +107,18 @@ namespace BitFaster.Caching.Lfu
                 // no time expiry, with events
                 _ => new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer)
             };
+        }
+
+        private static ICache<K, V> CreateWeighted<K, V>(LfuInfo<K> info, IWeigher<K, V> weigher, IExpiryCalculator<K, V>? expiry)
+            where K : notnull
+        {
+            // Weighted eviction without expiry or events.
+            // Weighted eviction composed with expiry or events is wired up in a later phase.
+            if (info.TimeToExpireAfterWrite.HasValue || info.TimeToExpireAfterAccess.HasValue || expiry != null || info.WithEvents)
+                Throw.InvalidOp("Weighted eviction is not yet supported in combination with expiry or events.");
+
+            return new FastConcurrentLfu<K, V, WeightedAccessOrderNode<K, V>, WeightedAccessOrderPolicy<K, V, NoEventPolicy<K, V>>>(
+                info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new WeightedAccessOrderPolicy<K, V, NoEventPolicy<K, V>>(weigher));
         }
     }
 }
