@@ -4,6 +4,11 @@ using System.Text;
 
 namespace BitFaster.Caching
 {
+    internal interface ILifetimeReleaser
+    {
+        void ReleaseLifetime();
+    }
+
     /// <summary>
     /// Represents the lifetime of a value. The value is alive and valid for use until the 
     /// lifetime is disposed.
@@ -11,8 +16,10 @@ namespace BitFaster.Caching
     /// <typeparam name="T">The type of value</typeparam>
     public sealed class Lifetime<T> : IDisposable
     {
-        private readonly Action onDisposeAction;
-        private readonly ReferenceCount<T> refCount;
+        private readonly Action? releaseAction;
+        private readonly ILifetimeReleaser? releaser;
+        private readonly T value = default!;
+        private readonly int referenceCount;
         private bool isDisposed;
 
         /// <summary>
@@ -22,19 +29,27 @@ namespace BitFaster.Caching
         /// <param name="onDisposeAction">The action to perform when the lifetime is terminated.</param>
         public Lifetime(ReferenceCount<T> value, Action onDisposeAction)
         {
-            this.refCount = value;
-            this.onDisposeAction = onDisposeAction;
+            this.value = value.Value;
+            this.referenceCount = value.Count;
+            this.releaseAction = onDisposeAction;
+        }
+
+        internal Lifetime(T value, int referenceCount, ILifetimeReleaser releaser)
+        {
+            this.value = value;
+            this.referenceCount = referenceCount;
+            this.releaser = releaser;
         }
 
         /// <summary>
         /// Gets the value.
         /// </summary>
-        public T Value => this.refCount.Value;
+        public T Value => this.value;
 
         /// <summary>
         /// Gets the count of Lifetime instances referencing the same value.
         /// </summary>
-        public int ReferenceCount => this.refCount.Count;
+        public int ReferenceCount => this.referenceCount;
 
         /// <summary>
         /// Terminates the lifetime and performs any cleanup required to release the value.
@@ -43,7 +58,15 @@ namespace BitFaster.Caching
         {
             if (!this.isDisposed)
             {
-                this.onDisposeAction();
+                if (this.releaser is ILifetimeReleaser lifetimeReleaser)
+                {
+                    lifetimeReleaser.ReleaseLifetime();
+                }
+                else
+                {
+                    this.releaseAction!();
+                }
+
                 this.isDisposed = true;
             }
         }
