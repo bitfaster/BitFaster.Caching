@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
 using FluentAssertions;
@@ -164,6 +165,46 @@ namespace BitFaster.Caching.UnitTests.Lfu
             weighted.MainProtectedWeightedSize.Should().BeGreaterThanOrEqualTo(0);
             weighted.WindowMaximum.Should().BeGreaterThanOrEqualTo(1);
             weighted.MainProtectedMaximum.Should().BeGreaterThanOrEqualTo(0);
+        }
+
+        [Fact]
+        public void WhenWeightedItemEvictedRemovedEventFires()
+        {
+            var removed = new List<ItemRemovedEventArgs<int, int>>();
+            var cache = new ConcurrentLfuBuilder<int, int>()
+                .WithCapacity(100)
+                .WithConcurrencyLevel(1)
+                .WithWeigher(new ValueWeigher())
+                .WithEvents()
+                .Build();
+            cache.Events.Value.ItemRemoved += (s, e) => removed.Add(e);
+
+            // weight 30 each, total 300 exceeds the weight capacity of 100
+            for (int i = 0; i < 10; i++)
+            {
+                cache.GetOrAdd(i, k => 30);
+            }
+
+            var weighted = cache as WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>>;
+            weighted!.DoMaintenance();
+
+            removed.Should().NotBeEmpty();
+            removed.Should().OnlyContain(e => e.Reason == ItemRemovedReason.Evicted);
+        }
+
+        [Fact]
+        public void WhenWeightedWithExpiryTimeToExpireIsReturned()
+        {
+            var cache = new ConcurrentLfuBuilder<int, int>()
+                .WithCapacity(100)
+                .WithWeigher(new ValueWeigher())
+                .WithExpireAfterWrite(TimeSpan.FromMinutes(10))
+                .Build();
+
+            cache.GetOrAdd(1, k => 10);
+
+            cache.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
+            cache.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(TimeSpan.FromMinutes(10));
         }
 
         private sealed class ValueWeigher : IWeigher<int, int>

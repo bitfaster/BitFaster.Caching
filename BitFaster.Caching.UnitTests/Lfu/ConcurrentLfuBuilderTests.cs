@@ -577,25 +577,45 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void WithWeigherAndEventsThrows()
+        public void WithWeigherAndEventsBuildsWeightedCacheWithEvents()
         {
-            var builder = new ConcurrentLfuBuilder<int, int>()
+            ICache<int, int> weighted = new ConcurrentLfuBuilder<int, int>()
+                .WithCapacity(100)
                 .WithWeigher(new IntValueWeigher())
-                .WithEvents();
+                .WithEvents()
+                .Build();
 
-            Action act = () => builder.Build();
-            act.Should().Throw<InvalidOperationException>();
+            weighted.Should().BeAssignableTo<WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>>>();
+            weighted.Events.HasValue.Should().BeTrue();
         }
 
         [Fact]
-        public void WithWeigherAndExpireAfterWriteThrows()
+        public void WithWeigherAndExpireAfterWriteBuildsWeightedCacheWithExpiry()
         {
-            var builder = new ConcurrentLfuBuilder<int, int>()
+            ICache<int, int> weighted = new ConcurrentLfuBuilder<int, int>()
+                .WithCapacity(100)
                 .WithWeigher(new IntValueWeigher())
-                .WithExpireAfterWrite(TimeSpan.FromSeconds(1));
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .Build();
 
-            Action act = () => builder.Build();
-            act.Should().Throw<InvalidOperationException>();
+            weighted.Should().BeAssignableTo<FastConcurrentLfu<int, int, WeightedTimeOrderNode<int, int>, WeightedExpireAfterPolicy<int, int, NoEventPolicy<int, int>>>>();
+            weighted.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
+            weighted.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(TimeSpan.FromSeconds(1));
+        }
+
+        [Fact]
+        public void WithWeigherAndExpireAfterWriteAndEventsBuildsWeightedCache()
+        {
+            ICache<int, int> weighted = new ConcurrentLfuBuilder<int, int>()
+                .WithCapacity(100)
+                .WithWeigher(new IntValueWeigher())
+                .WithExpireAfterWrite(TimeSpan.FromSeconds(1))
+                .WithEvents()
+                .Build();
+
+            weighted.Should().BeAssignableTo<WeightedConcurrentLfu<int, int, WeightedTimeOrderNode<int, int>, WeightedExpireAfterPolicy<int, int, EventPolicy<int, int>>>>();
+            weighted.Policy.ExpireAfterWrite.HasValue.Should().BeTrue();
+            weighted.Events.HasValue.Should().BeTrue();
         }
 
         private sealed class IntValueWeigher : IWeigher<int, int>

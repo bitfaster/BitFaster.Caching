@@ -24,6 +24,10 @@ namespace BitFaster.Caching.Lfu
         int GetWeight(LfuNode<K, V> node);
         int GetPolicyWeight(LfuNode<K, V> node);
         void SetPolicyWeight(LfuNode<K, V> node, int weight);
+
+        // The expiry calculator for time-based policies, else null. Enables wrappers to expose the
+        // time policy without depending on the concrete policy type.
+        IExpiryCalculator<K, V>? ExpiryCalculator { get; }
     }
 
     internal struct AccessOrderPolicy<K, V, E> : INodePolicy<K, V, AccessOrderNode<K, V>, E>
@@ -84,6 +88,8 @@ namespace BitFaster.Caching.Lfu
         public void SetPolicyWeight(LfuNode<K, V> node, int weight)
         {
         }
+
+        public IExpiryCalculator<K, V>? ExpiryCalculator => null;
     }
 
     internal struct ExpireAfterPolicy<K, V, E> : INodePolicy<K, V, TimeOrderNode<K, V>, E>

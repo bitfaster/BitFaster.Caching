@@ -200,4 +200,28 @@ namespace BitFaster.Caching.UnitTests.Lfu
             tlfu?.DoMaintenance();
         }
     }
+
+    public class WeightedConcurrentLfuWrapperTests : ConcurrentLfuCoreTests
+    {
+        public override ICache<K, V> Create<K, V>()
+        {
+            return new ConcurrentLfuBuilder<K, V>()
+                .WithCapacity(capacity)
+                .WithConcurrencyLevel(1)
+                .WithWeigher(new UnitWeigher<K, V>())
+                .WithEvents()
+                .Build();
+        }
+
+        public override void DoMaintenance<K, V>(ICache<K, V> cache)
+        {
+            var weighted = cache as WeightedConcurrentLfu<K, V, WeightedAccessOrderNode<K, V>, WeightedAccessOrderPolicy<K, V, EventPolicy<K, V>>>;
+            weighted?.DoMaintenance();
+        }
+
+        private sealed class UnitWeigher<K, V> : IWeigher<K, V>
+        {
+            public int Weigh(K key, V value) => 1;
+        }
+    }
 }

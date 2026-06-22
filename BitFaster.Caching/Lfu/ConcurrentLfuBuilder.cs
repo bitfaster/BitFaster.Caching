@@ -112,13 +112,29 @@ namespace BitFaster.Caching.Lfu
         private static ICache<K, V> CreateWeighted<K, V>(LfuInfo<K> info, IWeigher<K, V> weigher, IExpiryCalculator<K, V>? expiry)
             where K : notnull
         {
-            // Weighted eviction without expiry or events.
-            // Weighted eviction composed with expiry or events is wired up in a later phase.
-            if (info.TimeToExpireAfterWrite.HasValue || info.TimeToExpireAfterAccess.HasValue || expiry != null || info.WithEvents)
-                Throw.InvalidOp("Weighted eviction is not yet supported in combination with expiry or events.");
+            IExpiryCalculator<K, V>? calculator =
+                info.TimeToExpireAfterWrite.HasValue ? new ExpireAfterWrite<K, V>(info.TimeToExpireAfterWrite.Value)
+                : info.TimeToExpireAfterAccess.HasValue ? new ExpireAfterAccess<K, V>(info.TimeToExpireAfterAccess.Value)
+                : expiry;
 
-            return new FastConcurrentLfu<K, V, WeightedAccessOrderNode<K, V>, WeightedAccessOrderPolicy<K, V, NoEventPolicy<K, V>>>(
-                info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new WeightedAccessOrderPolicy<K, V, NoEventPolicy<K, V>>(weigher));
+            return (calculator != null, info.WithEvents) switch
+            {
+                // weighted, no expiry, no events
+                (false, false) => new FastConcurrentLfu<K, V, WeightedAccessOrderNode<K, V>, WeightedAccessOrderPolicy<K, V, NoEventPolicy<K, V>>>(
+                    info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new WeightedAccessOrderPolicy<K, V, NoEventPolicy<K, V>>(weigher)),
+
+                // weighted, time expiry, no events
+                (true, false) => new FastConcurrentLfu<K, V, WeightedTimeOrderNode<K, V>, WeightedExpireAfterPolicy<K, V, NoEventPolicy<K, V>>>(
+                    info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new WeightedExpireAfterPolicy<K, V, NoEventPolicy<K, V>>(weigher, calculator!)),
+
+                // weighted, no expiry, with events
+                (false, true) => new WeightedConcurrentLfu<K, V, WeightedAccessOrderNode<K, V>, WeightedAccessOrderPolicy<K, V, EventPolicy<K, V>>>(
+                    info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new WeightedAccessOrderPolicy<K, V, EventPolicy<K, V>>(weigher)),
+
+                // weighted, time expiry, with events
+                (true, true) => new WeightedConcurrentLfu<K, V, WeightedTimeOrderNode<K, V>, WeightedExpireAfterPolicy<K, V, EventPolicy<K, V>>>(
+                    info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new WeightedExpireAfterPolicy<K, V, EventPolicy<K, V>>(weigher, calculator!)),
+            };
         }
     }
 }

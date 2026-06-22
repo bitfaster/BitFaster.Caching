@@ -72,6 +72,8 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetPolicyWeight(LfuNode<K, V> node, int weight) => ((WeightedAccessOrderNode<K, V>)node).PolicyWeight = weight;
 
+        public IExpiryCalculator<K, V>? ExpiryCalculator => null;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int Weigh(K key, V value)
         {
