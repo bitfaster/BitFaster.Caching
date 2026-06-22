@@ -17,6 +17,17 @@ namespace BitFaster.Caching.Lfu
         void AfterWrite(N node);
         void OnEvict(N node);
         void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, N, P, E> cache) where P : struct, INodePolicy<K, V, N, E>;
+
+        // Sizing seam. The count policies implement these trivially (constant/no-op) so the JIT elides
+        // the weighted code paths in the core; the weighted policies implement them substantively.
+        bool IsWeighted { get; }
+        int GetWeight(LfuNode<K, V> node);
+        int GetPolicyWeight(LfuNode<K, V> node);
+        void SetPolicyWeight(LfuNode<K, V> node, int weight);
+
+        // The expiry calculator for time-based policies, else null. Enables wrappers to expose the
+        // time policy without depending on the concrete policy type.
+        IExpiryCalculator<K, V>? ExpiryCalculator { get; }
     }
 
     internal struct AccessOrderPolicy<K, V, E> : INodePolicy<K, V, AccessOrderNode<K, V>, E>
@@ -64,6 +75,21 @@ namespace BitFaster.Caching.Lfu
         public void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, P, E> cache) where P : struct, INodePolicy<K, V, AccessOrderNode<K, V>, E>
         {
         }
+
+        public bool IsWeighted => false;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetWeight(LfuNode<K, V> node) => 1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetPolicyWeight(LfuNode<K, V> node) => 1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetPolicyWeight(LfuNode<K, V> node, int weight)
+        {
+        }
+
+        public IExpiryCalculator<K, V>? ExpiryCalculator => null;
     }
 
     internal struct ExpireAfterPolicy<K, V, E> : INodePolicy<K, V, TimeOrderNode<K, V>, E>
@@ -143,6 +169,19 @@ namespace BitFaster.Caching.Lfu
         public void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, P, E> cache) where P : struct, INodePolicy<K, V, TimeOrderNode<K, V>, E>
         {
             wheel.Advance<TimeOrderNode<K, V>, P, TimeOrderNode<K, V>, E>(ref cache, Duration.SinceEpoch());
+        }
+
+        public bool IsWeighted => false;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetWeight(LfuNode<K, V> node) => 1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetPolicyWeight(LfuNode<K, V> node) => 1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetPolicyWeight(LfuNode<K, V> node, int weight)
+        {
         }
     }
 }
