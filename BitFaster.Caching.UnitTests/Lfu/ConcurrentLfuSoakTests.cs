@@ -256,8 +256,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         [Theory]
         [Repeat(soakIterations)]
-        public async Task WhenConcurrentWeightedGetUpdateRemoveCacheEndsInConsistentState()
+        public async Task WhenConcurrentWeightedGetUpdateRemoveCacheEndsInConsistentState(int iteration)
         {
+            this.output.WriteLine($"Weighted soak iteration {iteration}.");
+
             var cache = new ConcurrentLfuBuilder<int, string>()
                 .WithConcurrencyLevel(threads)
                 .WithCapacity(9)
