@@ -48,12 +48,12 @@ namespace BitFaster.Caching.Lfu
 
         /// <summary>
         /// Evict using a weighted size, where the weight of each item is calculated using the specified
-        /// IWeigher. The cache is bounded by the total weight of all items, and the capacity is interpreted
+        /// IWeightCalculator. The cache is bounded by the total weight of all items, and the capacity is interpreted
         /// as the maximum total weight.
         /// </summary>
         /// <param name="weigher">The weigher that determines the weight of each item.</param>
         /// <returns>A ConcurrentLfuBuilder</returns>
-        public ConcurrentLfuBuilder<K, V> WithWeigher(IWeigher<K, V> weigher)
+        public ConcurrentLfuBuilder<K, V> WithWeigher(IWeightCalculator<K, V> weigher)
         {
             this.info.SetWeigher(weigher);
             return this;
@@ -109,7 +109,7 @@ namespace BitFaster.Caching.Lfu
             };
         }
 
-        private static ICache<K, V> CreateWeighted<K, V>(LfuInfo<K> info, IWeigher<K, V> weigher, IExpiryCalculator<K, V>? expiry)
+        private static ICache<K, V> CreateWeighted<K, V>(LfuInfo<K> info, IWeightCalculator<K, V> weigher, IExpiryCalculator<K, V>? expiry)
             where K : notnull
         {
             IExpiryCalculator<K, V>? calculator =

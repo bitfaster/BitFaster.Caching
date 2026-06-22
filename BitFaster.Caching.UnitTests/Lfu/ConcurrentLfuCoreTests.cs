@@ -219,9 +219,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
             weighted?.DoMaintenance();
         }
 
-        private sealed class UnitWeigher<K, V> : IWeigher<K, V>
+        private sealed class UnitWeigher<K, V> : IWeightCalculator<K, V>
         {
-            public int Weigh(K key, V value) => 1;
+            public int GetWeight(K key, V value) => 1;
         }
     }
 }

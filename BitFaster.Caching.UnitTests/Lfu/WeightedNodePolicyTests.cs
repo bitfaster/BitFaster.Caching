@@ -18,7 +18,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             core = CreateWeighted(Capacity, new ValueWeigher());
         }
 
-        private static ConcurrentLfuCore<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, NoEventPolicy<int, int>>, NoEventPolicy<int, int>> CreateWeighted(int capacity, IWeigher<int, int> weigher)
+        private static ConcurrentLfuCore<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, NoEventPolicy<int, int>>, NoEventPolicy<int, int>> CreateWeighted(int capacity, IWeightCalculator<int, int> weigher)
         {
             var policy = new WeightedAccessOrderPolicy<int, int, NoEventPolicy<int, int>>(weigher);
             return new(1, capacity, new NullScheduler(), EqualityComparer<int>.Default, () => { }, policy, default);
@@ -207,9 +207,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.Policy.ExpireAfterWrite.Value.TimeToLive.Should().Be(TimeSpan.FromMinutes(10));
         }
 
-        private sealed class ValueWeigher : IWeigher<int, int>
+        private sealed class ValueWeigher : IWeightCalculator<int, int>
         {
-            public int Weigh(int key, int value) => value;
+            public int GetWeight(int key, int value) => value;
         }
     }
 }

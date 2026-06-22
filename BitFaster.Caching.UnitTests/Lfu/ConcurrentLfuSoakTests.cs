@@ -291,9 +291,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
             weighted.Core.WeightedSize.Should().BeLessThanOrEqualTo(weighted.Capacity);
         }
 
-        private sealed class StringLengthWeigher : IWeigher<int, string>
+        private sealed class StringLengthWeigher : IWeightCalculator<int, string>
         {
-            public int Weigh(int key, string value) => value.Length;
+            public int GetWeight(int key, string value) => value.Length;
         }
 
         [Theory]

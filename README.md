@@ -60,9 +60,9 @@ var lfu = new ConcurrentLfuBuilder<string, byte[]>()
     .WithWeigher(new ByteArrayWeigher())
     .Build();
 
-class ByteArrayWeigher : IWeigher<string, byte[]>
+class ByteArrayWeigher : IWeightCalculator<string, byte[]>
 {
-    public int Weigh(string key, byte[] value) => value.Length;
+    public int GetWeight(string key, byte[] value) => value.Length;
 }
 ```
 

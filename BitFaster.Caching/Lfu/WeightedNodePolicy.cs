@@ -4,15 +4,15 @@ namespace BitFaster.Caching.Lfu
 {
     /// <summary>
     /// A weighted node policy for caches without expiry. Each entry is weighed using the supplied
-    /// <see cref="IWeigher{K, V}"/>, and the cache is bounded by total weight.
+    /// <see cref="IWeightCalculator{K, V}"/>, and the cache is bounded by total weight.
     /// </summary>
     internal struct WeightedAccessOrderPolicy<K, V, E> : INodePolicy<K, V, WeightedAccessOrderNode<K, V>, E>
         where K : notnull
         where E : struct, IEventPolicy<K, V>
     {
-        private readonly IWeigher<K, V> weigher;
+        private readonly IWeightCalculator<K, V> weigher;
 
-        public WeightedAccessOrderPolicy(IWeigher<K, V> weigher)
+        public WeightedAccessOrderPolicy(IWeightCalculator<K, V> weigher)
         {
             this.weigher = weigher;
         }
@@ -77,7 +77,7 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int Weigh(K key, V value)
         {
-            int weight = weigher.Weigh(key, value);
+            int weight = weigher.GetWeight(key, value);
 
             if (weight < 0)
                 Throw.ArgOutOfRange(nameof(weight), "Weigher must return a non-negative weight.");
@@ -88,18 +88,18 @@ namespace BitFaster.Caching.Lfu
 
     /// <summary>
     /// A weighted node policy for caches with expiry. Each entry is weighed using the supplied
-    /// <see cref="IWeigher{K, V}"/> and expires using the supplied <see cref="IExpiryCalculator{K, V}"/>.
+    /// <see cref="IWeightCalculator{K, V}"/> and expires using the supplied <see cref="IExpiryCalculator{K, V}"/>.
     /// </summary>
     internal struct WeightedExpireAfterPolicy<K, V, E> : INodePolicy<K, V, WeightedTimeOrderNode<K, V>, E>
         where K : notnull
         where E : struct, IEventPolicy<K, V>
     {
-        private readonly IWeigher<K, V> weigher;
+        private readonly IWeightCalculator<K, V> weigher;
         private readonly IExpiryCalculator<K, V> expiryCalculator;
         private readonly TimerWheel<K, V> wheel;
         private Duration current;
 
-        public WeightedExpireAfterPolicy(IWeigher<K, V> weigher, IExpiryCalculator<K, V> expiryCalculator)
+        public WeightedExpireAfterPolicy(IWeightCalculator<K, V> weigher, IExpiryCalculator<K, V> expiryCalculator)
         {
             this.wheel = new TimerWheel<K, V>();
             this.weigher = weigher;
@@ -185,7 +185,7 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int Weigh(K key, V value)
         {
-            int weight = weigher.Weigh(key, value);
+            int weight = weigher.GetWeight(key, value);
 
             if (weight < 0)
                 Throw.ArgOutOfRange(nameof(weight), "Weigher must return a non-negative weight.");

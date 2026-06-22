@@ -618,9 +618,9 @@ namespace BitFaster.Caching.UnitTests.Lfu
             weighted.Events.HasValue.Should().BeTrue();
         }
 
-        private sealed class IntValueWeigher : IWeigher<int, int>
+        private sealed class IntValueWeigher : IWeightCalculator<int, int>
         {
-            public int Weigh(int key, int value) => value;
+            public int GetWeight(int key, int value) => value;
         }
     }
 }

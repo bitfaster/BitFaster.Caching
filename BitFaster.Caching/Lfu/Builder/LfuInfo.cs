@@ -44,19 +44,19 @@ namespace BitFaster.Caching.Lfu.Builder
             return e;
         }
 
-        public void SetWeigher<V>(IWeigher<K, V> weigher) => this.weigher = weigher;
+        public void SetWeigher<V>(IWeightCalculator<K, V> weigher) => this.weigher = weigher;
 
-        public IWeigher<K, V>? GetWeigher<V>()
+        public IWeightCalculator<K, V>? GetWeigher<V>()
         {
             if (this.weigher == null)
             {
                 return null;
             }
 
-            var w = this.weigher as IWeigher<K, V>;
+            var w = this.weigher as IWeightCalculator<K, V>;
 
             if (w == null)
-                Throw.InvalidOp($"Incompatible IWeigher value generic type argument, expected {typeof(IWeigher<K, V>)} but found {this.weigher.GetType()}");
+                Throw.InvalidOp($"Incompatible IWeightCalculator value generic type argument, expected {typeof(IWeightCalculator<K, V>)} but found {this.weigher.GetType()}");
 
             return w;
         }
