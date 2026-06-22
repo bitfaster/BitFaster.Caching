@@ -49,3 +49,21 @@ var lfu = new ConcurrentLfu<string, SomeItem>(capacity);
 
 var value = lfu.GetOrAdd("key", (key) => new SomeItem(key));
 ```
+
+### Weighted eviction
+
+By default each entry counts as 1 towards the capacity. To bound the cache by a custom weight instead (for example total memory), configure a weigher using the builder. The capacity is then interpreted as the maximum total weight, and entries are evicted to keep the total weight within bounds. Weigher results must be non-negative; an entry with weight `0` does not count towards the bound, so `Count` may exceed `Capacity` when light entries are present.
+
+```csharp
+var lfu = new ConcurrentLfuBuilder<string, byte[]>()
+    .WithCapacity(1_000_000) // maximum total weight
+    .WithWeigher(new ByteArrayWeigher())
+    .Build();
+
+class ByteArrayWeigher : IWeigher<string, byte[]>
+{
+    public int Weigh(string key, byte[] value) => value.Length;
+}
+```
+
+`WithWeigher` composes with `WithExpireAfterWrite`/`WithExpireAfterAccess`/`WithExpireAfter` and `WithEvents`.

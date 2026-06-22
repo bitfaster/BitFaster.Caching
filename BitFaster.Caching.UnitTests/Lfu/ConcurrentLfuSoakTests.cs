@@ -256,6 +256,46 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         [Theory]
         [Repeat(soakIterations)]
+        public async Task WhenConcurrentWeightedGetUpdateRemoveCacheEndsInConsistentState()
+        {
+            var cache = new ConcurrentLfuBuilder<int, string>()
+                .WithConcurrencyLevel(threads)
+                .WithCapacity(9)
+                .WithScheduler(new BackgroundThreadScheduler())
+                .WithWeigher(new StringLengthWeigher())
+                .WithEvents()
+                .Build();
+
+            await Threaded.Run(threads, () =>
+            {
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    int k = i % 100;
+                    cache.GetOrAdd(k, x => x.ToString());
+                    cache.TryUpdate(k, "updated");
+
+                    if ((i & 7) == 0)
+                    {
+                        cache.TryRemove(k);
+                    }
+                }
+            });
+
+            var weighted = (WeightedConcurrentLfu<int, string, WeightedAccessOrderNode<int, string>, WeightedAccessOrderPolicy<int, string, EventPolicy<int, string>>>)cache;
+            new ConcurrentLfuIntegrityChecker<int, string, WeightedAccessOrderNode<int, string>, WeightedAccessOrderPolicy<int, string, EventPolicy<int, string>>, EventPolicy<int, string>>(weighted.Core).Validate(output);
+
+            // weighted invariant: total weight is non-negative and bounded by the weight capacity
+            weighted.Core.WeightedSize.Should().BeGreaterThanOrEqualTo(0);
+            weighted.Core.WeightedSize.Should().BeLessThanOrEqualTo(weighted.Capacity);
+        }
+
+        private sealed class StringLengthWeigher : IWeigher<int, string>
+        {
+            public int Weigh(int key, string value) => value.Length;
+        }
+
+        [Theory]
+        [Repeat(soakIterations)]
         public async Task WhenConcurrentGetAndRemoveKvpCacheEndsInConsistentState(int iteration)
         {
             var lfu = CreateWithBackgroundScheduler();

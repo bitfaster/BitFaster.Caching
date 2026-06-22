@@ -32,6 +32,8 @@ namespace BitFaster.Caching.Lfu
             this.core.DrainBuffers();
         }
 
+        internal ConcurrentLfuCore<K, V, N, P, EventPolicy<K, V>> Core => core;
+
         ///<inheritdoc/>
         public int Count => core.Count;
 
