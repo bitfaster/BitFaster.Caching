@@ -55,6 +55,12 @@ namespace BitFaster.Caching.Lfu
         private const double MainPercentage = 0.99d;
         private const double MainProtectedPercentage = 0.8d;
         private const int AdmitHashDosThreshold = 6;
+        private const double HillClimberStepPercent = 0.0625d;
+        private const double HillClimberStepDecay = 0.98d;
+        private const double HillClimberRestartThreshold = 0.05d;
+        private const double HillClimberMinStep = 2.0d;
+        private const long SmallCacheThreshold = 512;
+        private const int QueueTransferThreshold = 1000;
 
         private readonly ConcurrentDictionary<K, N> dictionary;
 
@@ -80,6 +86,10 @@ namespace BitFaster.Caching.Lfu
         private long maximum;
         private long windowMaximum;
         private long mainProtectedMaximum;
+        private double stepSize;
+        private double previousHitRate;
+        private long previousHitCount;
+        private long previousMissCount;
         private readonly Random? random;
 
         internal readonly DrainStatus drainStatus = new();
@@ -143,6 +153,9 @@ namespace BitFaster.Caching.Lfu
                 this.maximum = capacity;
                 this.windowMaximum = this.maximum - (long)(MainPercentage * this.maximum);
                 this.mainProtectedMaximum = (long)(MainProtectedPercentage * (this.maximum - this.windowMaximum));
+                this.previousHitRate = 1.0d;
+                double initialStep = Math.Max(HillClimberStepPercent * this.maximum, HillClimberMinStep);
+                this.stepSize = (this.maximum <= SmallCacheThreshold) ? initialStep : -initialStep;
                 this.random = new Random();
             }
 
@@ -166,6 +179,8 @@ namespace BitFaster.Caching.Lfu
         internal long WeightedSize => this.weightedSize;
         internal long WindowWeightedSize => this.windowWeightedSize;
         internal long MainProtectedWeightedSize => this.mainProtectedWeightedSize;
+        internal long WindowMaximum => this.windowMaximum;
+        internal long MainProtectedMaximum => this.mainProtectedMaximum;
 
         public Optional<ICacheMetrics> Metrics => new(this.metrics);
 
@@ -675,6 +690,7 @@ namespace BitFaster.Caching.Lfu
 
             if (IsWeighted)
             {
+                OptimizeWeightedPartitioning();
                 ReFitProtectedWeighted();
             }
             else
@@ -1183,6 +1199,152 @@ namespace BitFaster.Caching.Lfu
                 demoted.Position = Position.Probation;
                 this.probationLru.AddLast(demoted);
             }
+        }
+
+        // Adapt the window and main space sizes (in weight units) using a hill climbing algorithm to
+        // iteratively improve hit rate. A larger window favors recency, a larger main favors frequency.
+        private void OptimizeWeightedPartitioning()
+        {
+            long adjustment = DetermineWeightedAdjustment();
+
+            if (adjustment > 0)
+            {
+                IncreaseWindow(adjustment);
+            }
+            else if (adjustment < 0)
+            {
+                DecreaseWindow(-adjustment);
+            }
+        }
+
+        private long DetermineWeightedAdjustment()
+        {
+            long newHits = this.metrics.Hits;
+            long newMisses = this.metrics.Misses;
+
+            long sampleHits = newHits - this.previousHitCount;
+            long sampleMisses = newMisses - this.previousMissCount;
+            long requestCount = sampleHits + sampleMisses;
+
+            if (requestCount < this.cmSketch.ResetSampleSize)
+            {
+                return 0;
+            }
+
+            double hitRate = (double)sampleHits / requestCount;
+            double hitRateChange = hitRate - this.previousHitRate;
+            double amount = (hitRateChange >= 0) ? this.stepSize : -this.stepSize;
+            double nextStepSize = (Math.Abs(hitRateChange) >= HillClimberRestartThreshold)
+                ? CopySign(Math.Max(HillClimberStepPercent * this.maximum, HillClimberMinStep), amount)
+                : HillClimberStepDecay * amount;
+
+            this.previousHitRate = hitRate;
+            this.previousHitCount = newHits;
+            this.previousMissCount = newMisses;
+            this.stepSize = nextStepSize;
+
+            return (long)amount;
+        }
+
+        private void IncreaseWindow(long adjustment)
+        {
+            if (this.mainProtectedMaximum == 0)
+            {
+                return;
+            }
+
+            long quota = Math.Min(adjustment, this.mainProtectedMaximum);
+            this.mainProtectedMaximum -= quota;
+            this.windowMaximum += quota;
+
+            ReFitProtectedWeighted();
+
+            for (int i = 0; i < QueueTransferThreshold; i++)
+            {
+                var candidate = this.probationLru.First;
+                bool probation = true;
+
+                if (candidate == null || quota < this.policy.GetPolicyWeight(candidate))
+                {
+                    candidate = this.protectedLru.First;
+                    probation = false;
+                }
+
+                if (candidate == null)
+                {
+                    break;
+                }
+
+                int weight = this.policy.GetPolicyWeight(candidate);
+                if (quota < weight)
+                {
+                    break;
+                }
+
+                quota -= weight;
+
+                if (probation)
+                {
+                    this.probationLru.Remove(candidate);
+                }
+                else
+                {
+                    this.mainProtectedWeightedSize -= weight;
+                    this.protectedLru.Remove(candidate);
+                }
+
+                this.windowWeightedSize += weight;
+                this.windowLru.AddLast(candidate);
+                candidate.Position = Position.Window;
+            }
+
+            // return unused quota
+            this.mainProtectedMaximum += quota;
+            this.windowMaximum -= quota;
+        }
+
+        private void DecreaseWindow(long adjustment)
+        {
+            if (this.windowMaximum <= 1)
+            {
+                return;
+            }
+
+            long quota = Math.Min(adjustment, Math.Max(0, this.windowMaximum - 1));
+            this.mainProtectedMaximum += quota;
+            this.windowMaximum -= quota;
+
+            for (int i = 0; i < QueueTransferThreshold; i++)
+            {
+                var candidate = this.windowLru.First;
+                if (candidate == null)
+                {
+                    break;
+                }
+
+                int weight = this.policy.GetPolicyWeight(candidate);
+                if (quota < weight)
+                {
+                    break;
+                }
+
+                quota -= weight;
+
+                this.windowWeightedSize -= weight;
+                this.windowLru.Remove(candidate);
+                this.probationLru.AddLast(candidate);
+                candidate.Position = Position.Probation;
+            }
+
+            // return unused quota
+            this.mainProtectedMaximum -= quota;
+            this.windowMaximum += quota;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double CopySign(double magnitude, double sign)
+        {
+            return (sign < 0) ? -Math.Abs(magnitude) : Math.Abs(magnitude);
         }
 
         private LfuNode<K, V>? EvictFromWindow()

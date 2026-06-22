@@ -131,6 +131,41 @@ namespace BitFaster.Caching.UnitTests.Lfu
             core.MainProtectedWeightedSize.Should().Be(10);
         }
 
+        [Fact]
+        public void WhenRecencyWorkloadWindowMaximumIncreasesAndInvariantHolds()
+        {
+            var weighted = CreateWeighted(200, new ValueWeigher());
+
+            for (int i = 0; i < 10; i++)
+            {
+                weighted.AddOrUpdate(i, 10);
+            }
+            weighted.DoMaintenance();
+            long initialWindowMaximum = weighted.WindowMaximum;
+
+            // a steady stream of hits on resident items drives the hill climber to grow the window
+            for (int round = 0; round < 100; round++)
+            {
+                for (int r = 0; r < 15; r++)
+                {
+                    for (int i = 0; i < 10; i++)
+                    {
+                        weighted.TryGet(i, out _);
+                    }
+                }
+                weighted.DoMaintenance();
+            }
+
+            weighted.WindowMaximum.Should().BeGreaterThan(initialWindowMaximum);
+
+            // invariants must hold throughout adaptation
+            weighted.WeightedSize.Should().BeLessThanOrEqualTo(200);
+            weighted.WindowWeightedSize.Should().BeGreaterThanOrEqualTo(0);
+            weighted.MainProtectedWeightedSize.Should().BeGreaterThanOrEqualTo(0);
+            weighted.WindowMaximum.Should().BeGreaterThanOrEqualTo(1);
+            weighted.MainProtectedMaximum.Should().BeGreaterThanOrEqualTo(0);
+        }
+
         private sealed class ValueWeigher : IWeigher<int, int>
         {
             public int Weigh(int key, int value) => value;
