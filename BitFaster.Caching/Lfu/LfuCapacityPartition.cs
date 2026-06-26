@@ -7,7 +7,7 @@ namespace BitFaster.Caching.Lfu
     /// Represents the LFU capacity partition. Uses a hill climbing algorithm to optimze partition sizes over time.
     /// </summary>
     [DebuggerDisplay("{Capacity} ({Window}/{Protected}/{Probation})")]
-    public sealed class LfuCapacityPartition
+    public sealed class LfuCapacityPartition : ICapacityPartition
     {
         private readonly int max;
 
