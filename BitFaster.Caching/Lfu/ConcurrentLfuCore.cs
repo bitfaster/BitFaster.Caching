@@ -51,17 +51,6 @@ namespace BitFaster.Caching.Lfu
 
         private const int DefaultBufferSize = 128;
 
-        // Weighted eviction tuning, matching Caffeine.
-        private const double MainPercentage = 0.99d;
-        private const double MainProtectedPercentage = 0.8d;
-        private const int AdmitHashDosThreshold = 6;
-        private const double HillClimberStepPercent = 0.0625d;
-        private const double HillClimberStepDecay = 0.98d;
-        private const double HillClimberRestartThreshold = 0.05d;
-        private const double HillClimberMinStep = 2.0d;
-        private const long SmallCacheThreshold = 512;
-        private const int QueueTransferThreshold = 1000;
-
         private readonly ConcurrentDictionary<K, N> dictionary;
 
         internal readonly StripedMpscBuffer<N> readBuffer;
@@ -71,25 +60,20 @@ namespace BitFaster.Caching.Lfu
 
         private readonly CmSketch<K> cmSketch;
 
-        private readonly LfuNodeList<K, V> windowLru;
-        private readonly LfuNodeList<K, V> probationLru;
-        private readonly LfuNodeList<K, V> protectedLru;
+        internal readonly LfuNodeList<K, V> windowLru;
+        internal readonly LfuNodeList<K, V> probationLru;
+        internal readonly LfuNodeList<K, V> protectedLru;
 
-        private readonly LfuCapacityPartition capacity;
+        private readonly ICapacityPartition capacity;
 
         // Weighted eviction state. Used only when the node policy is weighted (IsWeighted == true);
         // the JIT elides the weighted branches in the count case since IsWeighted folds to a constant.
+        // The window/main weighted maximums and the hill climb live in WeightedLfuCapacityPartition;
+        // the sizes below are runtime accounting and stay in the core (the climb mutates them via ref).
         private static readonly bool IsWeighted = default(P).IsWeighted;
         private long weightedSize;
-        private long windowWeightedSize;
-        private long mainProtectedWeightedSize;
-        private long maximum;
-        private long windowMaximum;
-        private long mainProtectedMaximum;
-        private double stepSize;
-        private double previousHitRate;
-        private long previousHitCount;
-        private long previousMissCount;
+        internal long windowWeightedSize;
+        internal long mainProtectedWeightedSize;
         private readonly Random? random;
 
         internal readonly DrainStatus drainStatus = new();
@@ -145,18 +129,14 @@ namespace BitFaster.Caching.Lfu
             this.probationLru = new LfuNodeList<K, V>();
             this.protectedLru = new LfuNodeList<K, V>();
 
-            this.capacity = new LfuCapacityPartition(capacity);
-
             if (IsWeighted)
             {
-                // Mirror Caffeine's initial split: window ~1% of total weight, protected ~80% of main.
-                this.maximum = capacity;
-                this.windowMaximum = this.maximum - (long)(MainPercentage * this.maximum);
-                this.mainProtectedMaximum = (long)(MainProtectedPercentage * (this.maximum - this.windowMaximum));
-                this.previousHitRate = 1.0d;
-                double initialStep = Math.Max(HillClimberStepPercent * this.maximum, HillClimberMinStep);
-                this.stepSize = (this.maximum <= SmallCacheThreshold) ? initialStep : -initialStep;
+                this.capacity = new WeightedLfuCapacityPartition(capacity);
                 this.random = new Random();
+            }
+            else
+            {
+                this.capacity = new LfuCapacityPartition(capacity);
             }
 
             this.scheduler = scheduler;
@@ -179,8 +159,11 @@ namespace BitFaster.Caching.Lfu
         internal long WeightedSize => this.weightedSize;
         internal long WindowWeightedSize => this.windowWeightedSize;
         internal long MainProtectedWeightedSize => this.mainProtectedWeightedSize;
-        internal long WindowMaximum => this.windowMaximum;
-        internal long MainProtectedMaximum => this.mainProtectedMaximum;
+        internal long WindowMaximum => WeightedCapacity.WindowMaximum;
+        internal long MainProtectedMaximum => WeightedCapacity.MainProtectedMaximum;
+
+        private LfuCapacityPartition CountCapacity => (LfuCapacityPartition)this.capacity;
+        private WeightedLfuCapacityPartition WeightedCapacity => (WeightedLfuCapacityPartition)this.capacity;
 
         public Optional<ICacheMetrics> Metrics => new(this.metrics);
 
@@ -690,12 +673,12 @@ namespace BitFaster.Caching.Lfu
 
             if (IsWeighted)
             {
-                OptimizeWeightedPartitioning();
+                WeightedCapacity.OptimizePartitioning(ref this, this.metrics, this.cmSketch.ResetSampleSize);
                 ReFitProtectedWeighted();
             }
             else
             {
-                this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
+                CountCapacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
                 ReFitProtected();
             }
 
@@ -832,6 +815,8 @@ namespace BitFaster.Caching.Lfu
         private void OnWriteWeighted(N node)
         {
             int weight = this.policy.GetWeight(node);
+            long max = WeightedCapacity.Maximum;
+            long windowMax = WeightedCapacity.WindowMaximum;
 
             switch (node.Position)
             {
@@ -843,12 +828,12 @@ namespace BitFaster.Caching.Lfu
                         this.weightedSize += weight;
                         this.windowWeightedSize += weight;
 
-                        if (weight > this.maximum)
+                        if (weight > max)
                         {
                             this.windowLru.AddLast(node);
                             Evict(node, ItemRemovedReason.Evicted);
                         }
-                        else if (weight > this.windowMaximum)
+                        else if (weight > windowMax)
                         {
                             // too big for the window, place at the LRU position so it leaves next
                             this.windowLru.AddFirst(node);
@@ -864,11 +849,11 @@ namespace BitFaster.Caching.Lfu
                         ApplyWeightDelta(node, weight, Position.Window);
                         this.metrics.updatedCount++;
 
-                        if (weight > this.maximum)
+                        if (weight > max)
                         {
                             Evict(node, ItemRemovedReason.Evicted);
                         }
-                        else if (weight <= this.windowMaximum)
+                        else if (weight <= windowMax)
                         {
                             this.windowLru.MoveToEnd(node);
                         }
@@ -883,7 +868,7 @@ namespace BitFaster.Caching.Lfu
                     ApplyWeightDelta(node, weight, Position.Probation);
                     this.metrics.updatedCount++;
 
-                    if (weight <= this.maximum)
+                    if (weight <= max)
                     {
                         PromoteProbationWeighted(node);
                     }
@@ -897,7 +882,7 @@ namespace BitFaster.Caching.Lfu
                     ApplyWeightDelta(node, weight, Position.Protected);
                     this.metrics.updatedCount++;
 
-                    if (weight <= this.maximum)
+                    if (weight <= max)
                     {
                         this.protectedLru.MoveToEnd(node);
                     }
@@ -953,7 +938,7 @@ namespace BitFaster.Caching.Lfu
             node.Position = Position.Protected;
 
             // If the protected space exceeds its maximum, the LRU items are demoted to the probation space.
-            if (this.protectedLru.Count > this.capacity.Protected)
+            if (this.protectedLru.Count > CountCapacity.Protected)
             {
                 var demoted = this.protectedLru.First;
                 this.protectedLru.RemoveFirst();
@@ -966,9 +951,10 @@ namespace BitFaster.Caching.Lfu
         private void PromoteProbationWeighted(LfuNode<K, V> node)
         {
             int pw = this.policy.GetPolicyWeight(node);
+            long mainProtectedMax = WeightedCapacity.MainProtectedMaximum;
 
             // An entry that cannot fit in the protected space is kept in probation at the MRU position.
-            if (pw > this.mainProtectedMaximum)
+            if (pw > mainProtectedMax)
             {
                 this.probationLru.MoveToEnd(node);
                 return;
@@ -980,7 +966,7 @@ namespace BitFaster.Caching.Lfu
             this.mainProtectedWeightedSize += pw;
 
             // If the protected space exceeds its maximum weight, demote LRU items to probation.
-            while (this.mainProtectedWeightedSize > this.mainProtectedMaximum)
+            while (this.mainProtectedWeightedSize > mainProtectedMax)
             {
                 var demoted = this.protectedLru.First;
                 if (demoted == null)
@@ -1012,8 +998,9 @@ namespace BitFaster.Caching.Lfu
         {
             LfuNode<K, V>? first = null;
             var node = this.windowLru.First;
+            long windowMax = WeightedCapacity.WindowMaximum;
 
-            while (this.windowWeightedSize > this.windowMaximum)
+            while (this.windowWeightedSize > windowMax)
             {
                 if (node == null)
                 {
@@ -1053,8 +1040,9 @@ namespace BitFaster.Caching.Lfu
 
             var victim = this.probationLru.First; // victims are LRU position in probation
             var candidate = candidateNode;
+            long max = WeightedCapacity.Maximum;
 
-            while (this.weightedSize > this.maximum)
+            while (this.weightedSize > max)
             {
                 // [A] search the admission window for additional candidates
                 if (candidate == null && candidateQueue == ProbationQueue)
@@ -1137,7 +1125,7 @@ namespace BitFaster.Caching.Lfu
                 }
 
                 // [H] evict immediately if the candidate's weight exceeds the maximum
-                if (this.policy.GetPolicyWeight(candidate) > this.maximum)
+                if (this.policy.GetPolicyWeight(candidate) > max)
                 {
                     var evict = candidate;
                     candidate = candidate.Next;
@@ -1174,7 +1162,7 @@ namespace BitFaster.Caching.Lfu
 
             // The maximum frequency is 15 and halved to 7 on reset to age. A candidate with a moderate
             // frequency is given a small chance to be admitted to defend against hash flooding.
-            if (candidateFreq >= AdmitHashDosThreshold)
+            if (candidateFreq >= WeightedLfuCapacityPartition.AdmitHashDosThreshold)
             {
                 return (this.random!.Next() & 127) == 0;
             }
@@ -1182,10 +1170,12 @@ namespace BitFaster.Caching.Lfu
             return false;
         }
 
-        private void ReFitProtectedWeighted()
+        internal void ReFitProtectedWeighted()
         {
+            long mainProtectedMax = WeightedCapacity.MainProtectedMaximum;
+
             // If hill climbing decreased the protected maximum, demote overflow to probation.
-            while (this.mainProtectedWeightedSize > this.mainProtectedMaximum)
+            while (this.mainProtectedWeightedSize > mainProtectedMax)
             {
                 var demoted = this.protectedLru.First;
                 if (demoted == null)
@@ -1201,157 +1191,11 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
-        // Adapt the window and main space sizes (in weight units) using a hill climbing algorithm to
-        // iteratively improve hit rate. A larger window favors recency, a larger main favors frequency.
-        private void OptimizeWeightedPartitioning()
-        {
-            long adjustment = DetermineWeightedAdjustment();
-
-            if (adjustment > 0)
-            {
-                IncreaseWindow(adjustment);
-            }
-            else if (adjustment < 0)
-            {
-                DecreaseWindow(-adjustment);
-            }
-        }
-
-        private long DetermineWeightedAdjustment()
-        {
-            long newHits = this.metrics.Hits;
-            long newMisses = this.metrics.Misses;
-
-            long sampleHits = newHits - this.previousHitCount;
-            long sampleMisses = newMisses - this.previousMissCount;
-            long requestCount = sampleHits + sampleMisses;
-
-            if (requestCount < this.cmSketch.ResetSampleSize)
-            {
-                return 0;
-            }
-
-            double hitRate = (double)sampleHits / requestCount;
-            double hitRateChange = hitRate - this.previousHitRate;
-            double amount = (hitRateChange >= 0) ? this.stepSize : -this.stepSize;
-            double nextStepSize = (Math.Abs(hitRateChange) >= HillClimberRestartThreshold)
-                ? CopySign(Math.Max(HillClimberStepPercent * this.maximum, HillClimberMinStep), amount)
-                : HillClimberStepDecay * amount;
-
-            this.previousHitRate = hitRate;
-            this.previousHitCount = newHits;
-            this.previousMissCount = newMisses;
-            this.stepSize = nextStepSize;
-
-            return (long)amount;
-        }
-
-        private void IncreaseWindow(long adjustment)
-        {
-            if (this.mainProtectedMaximum == 0)
-            {
-                return;
-            }
-
-            long quota = Math.Min(adjustment, this.mainProtectedMaximum);
-            this.mainProtectedMaximum -= quota;
-            this.windowMaximum += quota;
-
-            ReFitProtectedWeighted();
-
-            for (int i = 0; i < QueueTransferThreshold; i++)
-            {
-                var candidate = this.probationLru.First;
-                bool probation = true;
-
-                if (candidate == null || quota < this.policy.GetPolicyWeight(candidate))
-                {
-                    candidate = this.protectedLru.First;
-                    probation = false;
-                }
-
-                if (candidate == null)
-                {
-                    break;
-                }
-
-                int weight = this.policy.GetPolicyWeight(candidate);
-                if (quota < weight)
-                {
-                    break;
-                }
-
-                quota -= weight;
-
-                if (probation)
-                {
-                    this.probationLru.Remove(candidate);
-                }
-                else
-                {
-                    this.mainProtectedWeightedSize -= weight;
-                    this.protectedLru.Remove(candidate);
-                }
-
-                this.windowWeightedSize += weight;
-                this.windowLru.AddLast(candidate);
-                candidate.Position = Position.Window;
-            }
-
-            // return unused quota
-            this.mainProtectedMaximum += quota;
-            this.windowMaximum -= quota;
-        }
-
-        private void DecreaseWindow(long adjustment)
-        {
-            if (this.windowMaximum <= 1)
-            {
-                return;
-            }
-
-            long quota = Math.Min(adjustment, Math.Max(0, this.windowMaximum - 1));
-            this.mainProtectedMaximum += quota;
-            this.windowMaximum -= quota;
-
-            for (int i = 0; i < QueueTransferThreshold; i++)
-            {
-                var candidate = this.windowLru.First;
-                if (candidate == null)
-                {
-                    break;
-                }
-
-                int weight = this.policy.GetPolicyWeight(candidate);
-                if (quota < weight)
-                {
-                    break;
-                }
-
-                quota -= weight;
-
-                this.windowWeightedSize -= weight;
-                this.windowLru.Remove(candidate);
-                this.probationLru.AddLast(candidate);
-                candidate.Position = Position.Probation;
-            }
-
-            // return unused quota
-            this.mainProtectedMaximum -= quota;
-            this.windowMaximum += quota;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static double CopySign(double magnitude, double sign)
-        {
-            return (sign < 0) ? -Math.Abs(magnitude) : Math.Abs(magnitude);
-        }
-
         private LfuNode<K, V>? EvictFromWindow()
         {
             LfuNode<K, V>? first = null;
 
-            while (this.windowLru.Count > this.capacity.Window)
+            while (this.windowLru.Count > CountCapacity.Window)
             {
                 var node = this.windowLru.First;
                 this.windowLru.RemoveFirst();
@@ -1505,7 +1349,7 @@ namespace BitFaster.Caching.Lfu
         {
             // If hill climbing decreased protected, there may be too many items
             // - demote overflow to probation.
-            while (this.protectedLru.Count > this.capacity.Protected)
+            while (this.protectedLru.Count > CountCapacity.Protected)
             {
                 var demoted = this.protectedLru.First;
                 this.protectedLru.RemoveFirst();
