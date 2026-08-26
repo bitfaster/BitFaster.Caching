@@ -1,24 +1,17 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
-using Castle.Core.Logging;
 
 namespace BitFaster.Caching.UnitTests.Lfu
 {
     internal class WeightedTest
     {
         private const int DefaultMaxItems = 100000;
-        private const int DefaultMaxItemBytes = 2 * 1024 * 1024;        // 2 MB per-item cap (telemetry: a 1 MB cap drops
-                                                                        // ~446K HOT fetches/day of 1-2 MB resources; 2 MB
-                                                                        // excludes only ~0.28%; the rare multi-MB tail is
-                                                                        // kept out by frequency eviction + the byte budget).
-        private const long DefaultMaxTotalBytes = 250L * 1024 * 1024;  // 250 MB total resident budget
+        private const int DefaultMaxItemBytes = 2 * 1024 * 1024;        
+        private const long DefaultMaxTotalBytes = 250L * 1024 * 1024; 
 
         private const int MinTrimBatch = 16;
         private const int MaxTrimIterations = 64;
@@ -38,8 +31,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
             _maxItemBytes = maxItemBytes > 0 ? maxItemBytes : DefaultMaxItemBytes;
             _maxTotalBytes = maxTotalBytes > 0 ? maxTotalBytes : DefaultMaxTotalBytes;
 
-            // ForegroundScheduler runs maintenance (including the eviction the policy performs) inline on the calling
-            // thread instead of the thread pool, so the trim + size reconciliation below is deterministic.
             _cache = new ConcurrentLfu<string, string>(
                 Environment.ProcessorCount,
                 maxItems > 0 ? maxItems : DefaultMaxItems,
@@ -54,8 +45,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 return;
             }
 
-            // A given key always maps to identical content (content hash, or org+id+version), so if it is already
-            // cached there is nothing to store — the TryGet here also bumps its frequency.
             if (_cache.TryGet(key, out _))
             {
                 return;
@@ -72,10 +61,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         private void EnforceByteBudget()
         {
-            // Single-writer gate: under the parallel retrieve fan-out many threads can Populate over-budget at once.
-            // Without this gate each would independently run the full trim loop (ProcessorCount x the work); here only
-            // the winner trims and reconciles, others return immediately without blocking. Any residual over-budget is
-            // picked up by the next Populate, so eventual convergence holds.
             if (Interlocked.CompareExchange(ref _reconcileInProgress, 1, 0) != 0)
             {
                 return;
@@ -91,11 +76,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
                         int iterations = 0;
                         bool trimmed = false;
 
-                        // Drive the trim loop off an ESTIMATED byte decrement (toTrim * avg) and reconcile the size map
-                        // exactly ONCE after the loop settles — instead of the authoritative O(live-keys) reconcile after
-                        // every Trim. That keeps the reconciliation cost off the inner loop (previously up to
-                        // MaxTrimIterations reconciles per Populate); the final ReconcileSizes restores the exact total,
-                        // and if the estimate left us marginally over budget the next Populate trims the remainder.
                         long estimatedBytes = Interlocked.Read(ref _currentBytes);
                         while (estimatedBytes > _maxTotalBytes && _cache.Count > 0 && iterations++ < MaxTrimIterations)
                         {
@@ -109,16 +89,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
                             trimmed = true;
                         }
 
-                        // Reconcile only when we actually trimmed (i.e. were over budget). Reconciling on every Populate
-                        // would race with concurrent adds — a just-added key may not yet be visible in _cache.Keys, so its
-                        // bytes would be wrongly subtracted — undercounting resident bytes under budget.
                         if (trimmed)
                         {
                             this.ReconcileSizes();
                         }
                     }
 
-                    // Catch silent capacity evictions that may have left stale size entries even while under budget.
                     if (_sizes.Count > _cache.Count)
                     {
                         this.ReconcileSizes();
@@ -129,7 +105,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
 #pragma warning restore CA1031
                 {
                     throw;
-                    //Logger.LogWarning(ex, "WebResourceContentCache.EnforceByteBudget threw; swallowing. Cache may temporarily exceed the byte budget.");
                 }
             }
             finally
