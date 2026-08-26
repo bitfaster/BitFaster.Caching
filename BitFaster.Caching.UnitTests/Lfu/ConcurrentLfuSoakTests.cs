@@ -274,19 +274,16 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         [Theory]
         [Repeat(soakIterations)]
-        public async Task Repro(int iteration)
+        public async Task WhenConcurrentTryGetAddOrUpdateAndTrimCacheEndsInConsistentState(int iteration)
         {
-            const int size = 100;
-            const long budget = 10_000;
-            string value = new string('x', size);
+            const long trimAfter = 100;
+            string value = "x";
 
-            var t = new WeightedTest(maxItems: 1_000_000, maxItemBytes: 1000, maxTotalBytes: budget);
+            var trimmingCache = new TrimmingLfuCache(maxItems: 1_000_000, trimAfter: trimAfter);
+            Parallel.For(0, 5000, i => trimmingCache.AddWithTrim("x" + i, value));
+            trimmingCache.AddWithTrim("y", value);
 
-            Parallel.For(0, 5000, i => t.Populate("k" + i, value, size));
-
-            t.Populate("settle", value, size);
-
-            await RunIntegrityCheckAsync(t._cache, iteration);
+            await RunIntegrityCheckAsync(trimmingCache._cache, iteration);
         }
 
 #if NET9_0_OR_GREATER
