@@ -56,12 +56,12 @@ namespace BitFaster.Caching.UnitTests.Lfu
                     int iterations = 0;
 
                     long currentCount = _cache.Count;
-                    while (currentCount > trimAfter && _cache.Count > 0 && iterations++ < MaxTrimIterations)
+                    while (_cache.Count > trimAfter && currentCount > 0 && iterations++ < MaxTrimIterations)
                     {
                         long over = currentCount - trimAfter;
-                        int toTrim = (int)Math.Min(_cache.Count, Math.Max(MinTrimBatch, (over) + 1));
-
+                        int toTrim = (int)Math.Min(currentCount, Math.Max(MinTrimBatch, (over) + 1));
                         eviction.Trim(toTrim);
+                        currentCount = _cache.Count;
                     }
                 }
             }
