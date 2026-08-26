@@ -112,7 +112,7 @@ namespace BitFaster.Caching.Benchmarks
         /// <param name="value">The value to add.</param>
         public void Add(long value)
         {
-            Cell[]? @as;
+            Cell[] @as;
             long b, v;
             int m;
             Cell a;
@@ -158,7 +158,7 @@ namespace BitFaster.Caching.Benchmarks
         /// <summary>
         /// When non-null, size is a power of 2.
         /// </summary>
-        protected Cell[]? Cells;
+        protected Cell[] Cells;
 
         /**
          * Returns the probe value for the current thread.
@@ -218,7 +218,7 @@ namespace BitFaster.Caching.Benchmarks
             var collide = false;                    // True if last slot nonempty
             for (; ; )
             {
-                Cell[]? @as; Cell a; int n; long v;
+                Cell[] @as; Cell a; int n; long v;
                 if ((@as = this.Cells) != null && (n = @as.Length) > 0)
                 {
                     if ((a = @as[(n - 1) & h]) == null)
@@ -230,7 +230,7 @@ namespace BitFaster.Caching.Benchmarks
                             {
                                 try
                                 {                   // Recheck under lock
-                                    Cell[]? rs; int m, j;
+                                    Cell[] rs; int m, j;
                                     if ((rs = this.Cells) != null &&
                                         (m = rs.Length) > 0 &&
                                         rs[j = (m - 1) & h] == null)
