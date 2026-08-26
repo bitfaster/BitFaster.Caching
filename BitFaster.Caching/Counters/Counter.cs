@@ -41,7 +41,7 @@ namespace BitFaster.Caching.Counters
             long delta = 0;
             foreach (ref PaddedLong i in Deltas.AsSpan())
             { 
-                delta += Interlocked.Exchange(ref i.value, 0);
+                delta += Interlocked.Read(ref i.value);
             }
             return delta;
         }
