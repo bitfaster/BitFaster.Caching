@@ -14,13 +14,13 @@ namespace BitFaster.Caching
         Duration GetExpireAfterCreate(K key, V value);
 
         /// <summary>
-        /// Specify the time to expire after an entry is read. The current time to expire may be
+        /// Specify the time to expire after an entry is read. The current time to expire may
         /// be returned to not modify the expiration time.
         /// </summary>
         Duration GetExpireAfterRead(K key, V value, Duration current);
 
         /// <summary>
-        /// Specify the time to expire after an entry is updated.The current time to expire may be
+        /// Specify the time to expire after an entry is updated.The current time to expire may
         /// be returned to not modify the expiration time.
         /// </summary>
         Duration GetExpireAfterUpdate(K key, V value, Duration current);
