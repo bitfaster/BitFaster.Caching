@@ -12,7 +12,17 @@ namespace BitFaster.Caching.Counters
 
     public sealed class Counter : Striped64
     {
-        private readonly PaddedLong[] Deltas = new PaddedLong[Environment.ProcessorCount];
+        private readonly PaddedLong[] Deltas;
+        private readonly uint mask;
+
+        /// <summary>
+        /// Creates a new Counter with an intial sum of zero.
+        /// </summary>
+        public Counter()
+        {
+            this.Deltas = new PaddedLong[BitOps.CeilingPowerOfTwo(Environment.ProcessorCount)];
+            this.mask = (uint)Deltas.Length - 1;
+        }
 
         /// <summary>
         /// Increment by 1.
@@ -28,7 +38,7 @@ namespace BitFaster.Caching.Counters
         /// <param name="value">The value to add.</param>
         public void Add(long value)
         {
-            ref PaddedLong delta = ref Deltas[(uint)Thread.GetCurrentProcessorId() % (uint)Deltas.Length];
+            ref PaddedLong delta = ref Deltas[(uint)Thread.GetCurrentProcessorId() & mask];
             Interlocked.Add(ref delta.value, value);
         }
 
