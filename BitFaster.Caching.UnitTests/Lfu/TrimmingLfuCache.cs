@@ -29,7 +29,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 EqualityComparer<string>.Default);
         }
 
-        public void AddWithTrim(string key, string? value)
+        public void AddWithTrim(string key, string value)
         {
             if (_cache.TryGet(key, out _))
             {
