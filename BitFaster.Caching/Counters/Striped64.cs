@@ -81,8 +81,11 @@ namespace BitFaster.Caching.Counters
     public abstract class Striped64
     {
         // Number of CPUS, to place bound on table size
+#if NETCOREAPP2_1_OR_GREATER
+        private static readonly int MaxBuckets = Environment.ProcessorCount;
+#else
         private static readonly int MaxBuckets = Environment.ProcessorCount * 4;
-
+#endif
         /// <summary>
         /// The base value used mainly when there is no contention, but also as a fallback 
         /// during table initialization races. Updated via CAS.
@@ -135,7 +138,11 @@ namespace BitFaster.Caching.Counters
         protected static int GetProbe()
         {
             // Note: this results in higher throughput than introducing a random.
+#if NETCOREAPP2_1_OR_GREATER
+            return Thread.GetCurrentProcessorId();
+#else
             return Environment.CurrentManagedThreadId;
+#endif
         }
 
         /**
