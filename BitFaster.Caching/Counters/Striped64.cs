@@ -80,20 +80,11 @@ namespace BitFaster.Caching.Counters
     [ExcludeFromCodeCoverage]
     public abstract class Striped64
     {
-        // Number of CPUS, to place bound on table size
-        private static readonly int MaxBuckets = Environment.ProcessorCount * 4;
-
         /// <summary>
         /// The base value used mainly when there is no contention, but also as a fallback 
         /// during table initialization races. Updated via CAS.
         /// </summary>
         protected PaddedLong @base = new();
-
-        /// <summary>
-        /// When non-null, size is a power of 2.
-        /// </summary>
-        protected Cell[]? Cells;
-        private int cellsBusy;
 
         /// <summary>
         /// A wrapper for PaddedLong.
@@ -115,6 +106,36 @@ namespace BitFaster.Caching.Counters
             }
         }
 
+        /// <summary>
+        /// When non-null, size is a power of 2.
+        /// </summary>
+        protected Cell[]? Cells;
+
+        /**
+         * Returns the probe value for the current thread.
+         * Duplicated from ThreadLocalRandom because of packaging restrictions.
+         */
+        protected static int GetProbe()
+        {
+            // Note: this results in higher throughput than introducing a random.
+            return Environment.CurrentManagedThreadId;
+        }
+
+#if NET9_0_OR_GREATER
+#pragma warning disable CA1822 // Mark members as static
+        /// <summary>
+        /// Not used on .NET 9.0
+        /// </summary>
+        protected void LongAccumulate(long x, bool wasUncontended)
+        {
+        }
+#pragma warning restore CA1822 // Mark members as static
+#else
+        // Number of CPUS, to place bound on table size
+        private static readonly int MaxBuckets = Environment.ProcessorCount * 4;
+
+        private int cellsBusy;
+
         /**
          * CASes the cellsBusy field from 0 to 1 to acquire lock.
          */
@@ -126,16 +147,6 @@ namespace BitFaster.Caching.Counters
         private void VolatileWriteNotBusy()
         {
             Volatile.Write(ref this.cellsBusy, 0);
-        }
-
-        /**
-         * Returns the probe value for the current thread.
-         * Duplicated from ThreadLocalRandom because of packaging restrictions.
-         */
-        protected static int GetProbe()
-        {
-            // Note: this results in higher throughput than introducing a random.
-            return Environment.CurrentManagedThreadId;
         }
 
         /**
@@ -250,5 +261,6 @@ namespace BitFaster.Caching.Counters
                     break;
             }
         }
+#endif
     }
 }
