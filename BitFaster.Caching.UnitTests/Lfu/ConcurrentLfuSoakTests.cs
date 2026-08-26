@@ -272,6 +272,20 @@ namespace BitFaster.Caching.UnitTests.Lfu
             await RunIntegrityCheckAsync(lfu, iteration);
         }
 
+        [Theory]
+        [Repeat(soakIterations)]
+        public async Task WhenConcurrentTryGetAddOrUpdateAndTrimCacheEndsInConsistentState(int iteration)
+        {
+            const long trimAfter = 100;
+            string value = "x";
+
+            var trimmingCache = new TrimmingLfuCache(maxItems: 1_000_000, trimAfter: trimAfter);
+            Parallel.For(0, 5000, i => trimmingCache.AddWithTrim("x" + i, value));
+            trimmingCache.AddWithTrim("y", value);
+
+            await RunIntegrityCheckAsync(trimmingCache._cache, iteration);
+        }
+
 #if NET9_0_OR_GREATER
         [Theory]
         [Repeat(soakIterations)]
