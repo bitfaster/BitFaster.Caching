@@ -12,7 +12,7 @@ namespace BitFaster.Caching.Counters
 
     public sealed class Counter : Striped64
     {
-        private PaddedLong[] Deltas = new PaddedLong[Environment.ProcessorCount];
+        private readonly PaddedLong[] Deltas = new PaddedLong[Environment.ProcessorCount];
 
         /// <summary>
         /// Increment by 1.
