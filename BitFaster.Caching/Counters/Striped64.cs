@@ -82,7 +82,7 @@ namespace BitFaster.Caching.Counters
     {
         // Number of CPUS, to place bound on table size
 #if NETCOREAPP2_1_OR_GREATER
-        private static readonly int MaxBuckets = Environment.ProcessorCount;
+        private static readonly int MaxBuckets = BitOps.CeilingPowerOfTwo(Environment.ProcessorCount);
 #else
         private static readonly int MaxBuckets = Environment.ProcessorCount * 4;
 #endif
