@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Diagnostics.Tracing;
 using System.Threading.Tasks;
+using Benchly;
 using BenchmarkDotNet.Attributes;
 
 namespace BitFaster.Caching.Benchmarks
@@ -11,11 +12,14 @@ namespace BitFaster.Caching.Benchmarks
     [DisassemblyDiagnoser(printSource: true, maxDepth: 5)]
 #endif
     [HideColumns("Job", "Median", "RatioSD", "Alloc Ratio")]
+    [ColumnChart(Title = "Counter Latency ({JOB})", Output = OutputMode.PerJob, Colors = "seagreen,darkgreen,thistle,plum,lightcoral,indianred,lightpink,hotpink")]
     public class CounterBenchmark
     {
         const int Iters = 1_000_000;
 
         private Counters.Counter counter = new Counters.Counter();
+
+        private Striped64Counter striped64Counter = new Striped64Counter();
 
         private Meter meter;
         private Counter<long> metricsCounter;
@@ -54,6 +58,26 @@ namespace BitFaster.Caching.Benchmarks
             {
                 counter.Add(1);
                 counter.Add(1);
+            });
+        }
+
+        [Benchmark]
+        public void Striped64CounterSerial()
+        {
+            for (int i = 0; i < Iters; i++)
+            {
+                striped64Counter.Add(1);
+                striped64Counter.Add(1);
+            }
+        }
+
+        [Benchmark]
+        public void Striped64CounterParallel()
+        {
+            Parallel.For(0, Iters, i =>
+            {
+                striped64Counter.Add(1);
+                striped64Counter.Add(1);
             });
         }
 
