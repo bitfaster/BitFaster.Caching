@@ -4,16 +4,16 @@ using System.Diagnostics;
 namespace BitFaster.Caching.Lfu
 {
     /// <summary>
-    /// Represents the LFU capacity partition. Uses a hill climbing algorithm to optimze partition sizes over time.
+    /// Represents the count-based LFU capacity partition and provides the common hill climbing state
+    /// used by LFU capacity partitions.
     /// </summary>
     [DebuggerDisplay("{Capacity} ({Window}/{Protected}/{Probation})")]
-    public sealed class LfuCapacityPartition
+    public class LfuCapacityPartition
     {
         private readonly int max;
 
-        private int windowCapacity;
-        private int protectedCapacity;
-        private int probationCapacity;
+        private protected long windowMaximum;
+        private protected long mainProtectedMaximum;
 
         private double previousHitRate;
         private long previousHitCount;
@@ -23,10 +23,11 @@ namespace BitFaster.Caching.Lfu
         private double stepSize;
 
         private const double HillClimberRestartThreshold = 0.05d;
-        private const double HillClimberStepPercent = 0.0625d;
+        private protected const double HillClimberStepPercent = 0.0625d;
         private const double HillClimberStepDecayRate = 0.98d;
 
         private const double DefaultMainPercentage = 0.99d;
+        private const double MainProtectedPercentage = 0.8d;
 
         private const double MaxMainPercentage = 0.999d;
         private const double MinMainPercentage = 0.2d;
@@ -36,28 +37,32 @@ namespace BitFaster.Caching.Lfu
         /// </summary>
         /// <param name="totalCapacity">The total capacity.</param>
         public LfuCapacityPartition(int totalCapacity)
+            : this(ValidateCapacity(totalCapacity), HillClimberStepPercent)
+        {
+        }
+
+        private protected LfuCapacityPartition(int totalCapacity, double initialStepSize)
         {
             this.max = totalCapacity;
-            (windowCapacity, protectedCapacity, probationCapacity) = ComputeQueueCapacity(totalCapacity, DefaultMainPercentage);
-            InitializeStepSize();
-
-            previousHitRate = 1.0;
+            this.stepSize = initialStepSize;
+            this.previousHitRate = 1.0d;
+            SetMaximums(DefaultMainPercentage);
         }
 
         /// <summary>
         /// Gets the number of items permitted in the window LRU.
         /// </summary>
-        public int Window => this.windowCapacity;
+        public int Window => (int)this.windowMaximum;
 
         /// <summary>
         /// Gets the number of items permitted in the protected LRU.
         /// </summary>
-        public int Protected => this.protectedCapacity;
+        public int Protected => (int)this.mainProtectedMaximum;
 
         /// <summary>
         /// Gets the number of items permitted in the probation LRU.
         /// </summary>
-        public int Probation => this.probationCapacity;
+        public int Probation => this.max - this.Window - this.Protected;
 
         /// <summary>
         /// Gets the total capacity.
@@ -75,42 +80,52 @@ namespace BitFaster.Caching.Lfu
         /// </remarks>
         public void OptimizePartitioning(ICacheMetrics metrics, int sampleThreshold)
         {
-            long newHits = metrics.Hits;
-            long newMisses = metrics.Misses;
-
-            long sampleHits = newHits - previousHitCount;
-            long sampleMisses = newMisses - previousMissCount;
-            long sampleCount = sampleHits + sampleMisses;
-
-            if (sampleCount < sampleThreshold)
+            if (!TryGetAdjustment(metrics, sampleThreshold, HillClimberStepPercent, out double adjustment))
             {
                 return;
             }
 
-            double sampleHitRate = (double)sampleHits / sampleCount;
-
-            double hitRateChange = sampleHitRate - previousHitRate;
-            double amount = (hitRateChange >= 0) ? stepSize : -stepSize;
-
-            double nextStepSize = (Math.Abs(hitRateChange) >= HillClimberRestartThreshold)
-                  ? HillClimberStepPercent * (amount >= 0 ? 1 : -1)
-                  : HillClimberStepDecayRate * amount;
-
-            stepSize = nextStepSize;
-
-            previousHitCount = newHits;
-            previousMissCount = newMisses;
-            previousHitRate = sampleHitRate;
-
-            mainRatio -= amount;
-            mainRatio = Clamp(mainRatio, MinMainPercentage, MaxMainPercentage);
-
-            (windowCapacity, protectedCapacity, probationCapacity) = ComputeQueueCapacity(max, mainRatio);
+            this.mainRatio = Clamp(this.mainRatio - adjustment, MinMainPercentage, MaxMainPercentage);
+            SetMaximums(this.mainRatio);
         }
 
-        private void InitializeStepSize()
+        private protected bool TryGetAdjustment(ICacheMetrics metrics, int sampleThreshold, double restartStepSize, out double adjustment)
         {
-            stepSize = HillClimberStepPercent;
+            long newHits = metrics.Hits;
+            long newMisses = metrics.Misses;
+
+            long sampleHits = newHits - this.previousHitCount;
+            long sampleMisses = newMisses - this.previousMissCount;
+            long sampleCount = sampleHits + sampleMisses;
+
+            if (sampleCount < sampleThreshold)
+            {
+                adjustment = 0;
+                return false;
+            }
+
+            double sampleHitRate = (double)sampleHits / sampleCount;
+
+            double hitRateChange = sampleHitRate - this.previousHitRate;
+            adjustment = (hitRateChange >= 0) ? this.stepSize : -this.stepSize;
+
+            double nextStepSize = (Math.Abs(hitRateChange) >= HillClimberRestartThreshold)
+                ? CopySign(restartStepSize, adjustment)
+                : HillClimberStepDecayRate * adjustment;
+
+            this.stepSize = nextStepSize;
+
+            this.previousHitCount = newHits;
+            this.previousMissCount = newMisses;
+            this.previousHitRate = sampleHitRate;
+
+            return true;
+        }
+
+        private void SetMaximums(double mainPercentage)
+        {
+            this.windowMaximum = this.max - (long)(mainPercentage * this.max);
+            this.mainProtectedMaximum = (long)(MainProtectedPercentage * (this.max - this.windowMaximum));
         }
 
         private static double Clamp(double input, double min, double max)
@@ -118,16 +133,17 @@ namespace BitFaster.Caching.Lfu
             return Math.Max(min, Math.Min(input, max));
         }
 
-        private static (int window, int mainProtected, int mainProbation) ComputeQueueCapacity(int capacity, double mainPercentage)
+        private static double CopySign(double magnitude, double sign)
+        {
+            return (sign < 0) ? -Math.Abs(magnitude) : Math.Abs(magnitude);
+        }
+
+        private static int ValidateCapacity(int capacity)
         {
             if (capacity < 3)
                 Throw.ArgOutOfRange(nameof(capacity), "Capacity must be greater than or equal to 3.");
 
-            int window = capacity - (int)(mainPercentage * capacity);
-            int mainProtected = (int)(0.8 * (capacity - window));
-            int mainProbation = capacity - window - mainProtected;
-
-            return (window, mainProtected, mainProbation);
+            return capacity;
         }
     }
 }
