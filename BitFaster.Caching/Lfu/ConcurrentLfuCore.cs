@@ -64,12 +64,12 @@ namespace BitFaster.Caching.Lfu
         internal readonly LfuNodeList<K, V> probationLru;
         internal readonly LfuNodeList<K, V> protectedLru;
 
-        private readonly ICapacityPartition capacity;
+        private readonly LfuCapacityPartition capacity;
 
         // Weighted eviction state. Used only when the node policy is weighted (IsWeighted == true);
         // the JIT elides the weighted branches in the count case since IsWeighted folds to a constant.
-        // The window/main weighted maximums and the hill climb live in WeightedLfuCapacityPartition;
-        // the sizes below are runtime accounting and stay in the core (the climb mutates them via ref).
+        // The queue maximums and common hill climb state live in LfuCapacityPartition; the sizes below
+        // are runtime accounting and stay in the core (the weighted climb mutates them via ref).
         private static readonly bool IsWeighted = default(P).IsWeighted;
         private long weightedSize;
         internal long windowWeightedSize;
@@ -162,7 +162,7 @@ namespace BitFaster.Caching.Lfu
         internal long WindowMaximum => WeightedCapacity.WindowMaximum;
         internal long MainProtectedMaximum => WeightedCapacity.MainProtectedMaximum;
 
-        private LfuCapacityPartition CountCapacity => (LfuCapacityPartition)this.capacity;
+        private LfuCapacityPartition CountCapacity => this.capacity;
         private WeightedLfuCapacityPartition WeightedCapacity => (WeightedLfuCapacityPartition)this.capacity;
 
         public Optional<ICacheMetrics> Metrics => new(this.metrics);
