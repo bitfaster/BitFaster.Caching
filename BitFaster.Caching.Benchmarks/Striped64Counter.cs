@@ -1,14 +1,14 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Threading;
-
-/*
+﻿/*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-namespace BitFaster.Caching.Counters
+using System;
+using System.Threading;
+using BitFaster.Caching.Counters;
+
+namespace BitFaster.Caching.Benchmarks
 {
     /*
      * This class maintains a lazily-initialized table of atomically
@@ -72,13 +72,62 @@ namespace BitFaster.Caching.Counters
      * contention levels will recur, so the cells will eventually be
      * needed again; and for short-lived ones, it does not matter.
      */
+    public class Striped64Counter : Striped64Internal
+    {
+        /// <summary>
+        /// Creates a new Counter with an intial sum of zero.
+        /// </summary>
+        public Striped64Counter() { }
 
-    /// <summary>
-    /// Mmaintains a lazily-initialized table of atomically updated variables, plus an extra 
-    /// "base" field. The table size is a power of two. Indexing uses masked thread IDs.
-    /// </summary>
-    [ExcludeFromCodeCoverage]
-    public abstract class Striped64
+        /// <summary>
+        /// Computes the current count.
+        /// </summary>
+        /// <returns>The current count.</returns>
+        public long Count()
+        {
+            var @as = this.Cells; Cell a;
+            var sum = @base.VolatileRead();
+            if (@as != null)
+            {
+                for (var i = 0; i < @as.Length; ++i)
+                {
+                    if ((a = @as[i]) != null)
+                        sum += a.value.VolatileRead();
+                }
+            }
+            return sum;
+        }
+
+        /// <summary>
+        /// Increment by 1.
+        /// </summary>
+        public void Increment()
+        {
+            Add(1L);
+        }
+
+        /// <summary>
+        /// Adds the specified value.
+        /// </summary>
+        /// <param name="value">The value to add.</param>
+        public void Add(long value)
+        {
+            Cell[] @as;
+            long b, v;
+            int m;
+            Cell a;
+            if ((@as = this.Cells) != null || !@base.CompareAndSwap(b = @base.VolatileRead(), b + value))
+            {
+                var uncontended = true;
+                if (@as == null || (m = @as.Length - 1) < 0 || (a = @as[GetProbe() & m]) == null || !(uncontended = a.value.CompareAndSwap(v = a.value.VolatileRead(), v + value)))
+                {
+                    LongAccumulate(value, uncontended);
+                }
+            }
+        }
+    }
+
+    public abstract class Striped64Internal
     {
         /// <summary>
         /// The base value used mainly when there is no contention, but also as a fallback 
@@ -109,7 +158,7 @@ namespace BitFaster.Caching.Counters
         /// <summary>
         /// When non-null, size is a power of 2.
         /// </summary>
-        protected Cell[]? Cells;
+        protected Cell[] Cells;
 
         /**
          * Returns the probe value for the current thread.
@@ -121,16 +170,6 @@ namespace BitFaster.Caching.Counters
             return Environment.CurrentManagedThreadId;
         }
 
-#if NET9_0_OR_GREATER
-#pragma warning disable CA1822 // Mark members as static
-        /// <summary>
-        /// Not used on .NET 9.0
-        /// </summary>
-        protected void LongAccumulate(long x, bool wasUncontended)
-        {
-        }
-#pragma warning restore CA1822 // Mark members as static
-#else
         // Number of CPUS, to place bound on table size
         private static readonly int MaxBuckets = Environment.ProcessorCount * 4;
 
@@ -179,7 +218,7 @@ namespace BitFaster.Caching.Counters
             var collide = false;                    // True if last slot nonempty
             for (; ; )
             {
-                Cell[]? @as; Cell a; int n; long v;
+                Cell[] @as; Cell a; int n; long v;
                 if ((@as = this.Cells) != null && (n = @as.Length) > 0)
                 {
                     if ((a = @as[(n - 1) & h]) == null)
@@ -191,7 +230,7 @@ namespace BitFaster.Caching.Counters
                             {
                                 try
                                 {                   // Recheck under lock
-                                    Cell[]? rs; int m, j;
+                                    Cell[] rs; int m, j;
                                     if ((rs = this.Cells) != null &&
                                         (m = rs.Length) > 0 &&
                                         rs[j = (m - 1) & h] == null)
@@ -261,6 +300,5 @@ namespace BitFaster.Caching.Counters
                     break;
             }
         }
-#endif
     }
 }

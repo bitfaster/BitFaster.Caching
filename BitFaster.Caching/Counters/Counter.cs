@@ -1,15 +1,68 @@
-﻿/*
- * Written by Doug Lea with assistance from members of JCP JSR-166
- * Expert Group and released to the public domain, as explained at
- * http://creativecommons.org/publicdomain/zero/1.0/
- */
+﻿#if NET9_0_OR_GREATER
+using System;
+using System.Threading;
+#endif
 
 namespace BitFaster.Caching.Counters
 {
     /// <summary>
     /// A thread-safe counter suitable for high throuhgput counting across many concurrent threads.
     /// </summary>
-    /// Based on the LongAdder class by Doug Lea.
+#if NET9_0_OR_GREATER
+
+    public sealed class Counter : Striped64
+    {
+        private readonly PaddedLong[] Deltas;
+        private readonly uint mask;
+
+        /// <summary>
+        /// Creates a new Counter with an intial sum of zero.
+        /// </summary>
+        public Counter()
+        {
+            this.Deltas = new PaddedLong[BitOps.CeilingPowerOfTwo(Environment.ProcessorCount)];
+            this.mask = (uint)Deltas.Length - 1;
+        }
+
+        /// <summary>
+        /// Increment by 1.
+        /// </summary>
+        public void Increment()
+        {
+            Add(1L);
+        }
+
+        /// <summary>
+        /// Adds the specified value.
+        /// </summary>
+        /// <param name="value">The value to add.</param>
+        public void Add(long value)
+        {
+            ref PaddedLong delta = ref Deltas[(uint)Thread.GetCurrentProcessorId() & mask];
+            Interlocked.Add(ref delta.value, value);
+        }
+
+        /// <summary>
+        /// Computes the current count.
+        /// </summary>
+        /// <returns>The current count.</returns>
+        public long Count()
+        {
+            long delta = 0;
+            foreach (ref PaddedLong i in Deltas.AsSpan())
+            { 
+                delta += i.VolatileRead();
+            }
+            return delta;
+        }
+    }
+
+#else
+    /*
+     * Written by Doug Lea with assistance from members of JCP JSR-166
+     * Expert Group and released to the public domain, as explained at
+     * http://creativecommons.org/publicdomain/zero/1.0/
+     */
     public sealed class Counter : Striped64
     {
         /// <summary>
@@ -20,7 +73,7 @@ namespace BitFaster.Caching.Counters
         /// <summary>
         /// Computes the current count.
         /// </summary>
-        /// <returns>The current sum.</returns>
+        /// <returns>The current count.</returns>
         public long Count()
         {
             var @as = this.Cells; Cell a;
@@ -64,4 +117,5 @@ namespace BitFaster.Caching.Counters
             }
         }
     }
+#endif
 }
