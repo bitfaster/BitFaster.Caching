@@ -142,7 +142,7 @@ namespace BitFaster.Caching.Lfu
         }
     }
 
-    internal sealed class TimeOrderNode<K, V> : LfuNode<K, V>
+    internal class TimeOrderNode<K, V> : LfuNode<K, V>
         where K : notnull
     {
         TimeOrderNode<K, V> prevTime;
