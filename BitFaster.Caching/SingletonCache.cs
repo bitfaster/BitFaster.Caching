@@ -46,9 +46,23 @@ namespace BitFaster.Caching
         /// <returns>A value lifetime</returns>
         public Lifetime<TValue> Acquire(TKey key, Func<TKey, TValue> valueFactory)
         {
+            var created = new List<TValue>(1);
             var refCount = this.cache.AddOrUpdate(key,
-                    (k) => new ReferenceCount<TValue>(valueFactory(k)),
+                    (k) =>
+                    {
+                        var value = new ReferenceCount<TValue>(valueFactory(k));
+                        created.Add(value.Value);
+                        return value;
+                    },
                     (_, existingRefCount) => existingRefCount.IncrementCopy());
+
+            foreach (var value in created)
+            {
+                if (!ReferenceEquals(value, refCount.Value) && value is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
 
             return new Lifetime<TValue>(refCount, () => this.Release(key));
         }

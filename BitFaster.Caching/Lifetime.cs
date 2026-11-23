@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Threading;
 
 namespace BitFaster.Caching
 {
@@ -13,7 +12,7 @@ namespace BitFaster.Caching
     {
         private readonly Action onDisposeAction;
         private readonly ReferenceCount<T> refCount;
-        private bool isDisposed;
+        private int isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the Lifetime class.
@@ -41,10 +40,9 @@ namespace BitFaster.Caching
         /// </summary>
         public void Dispose()
         {
-            if (!this.isDisposed)
+            if (Interlocked.Exchange(ref this.isDisposed, 1) == 0)
             {
                 this.onDisposeAction();
-                this.isDisposed = true;
             }
         }
     }
