@@ -51,6 +51,17 @@ namespace BitFaster.Caching.Lfu
 
         private const int DefaultBufferSize = 128;
 
+        // Weighted eviction tuning, matching Caffeine.
+        private const double MainPercentage = 0.99d;
+        private const double MainProtectedPercentage = 0.8d;
+        private const int AdmitHashDosThreshold = 6;
+        private const double HillClimberStepPercent = 0.0625d;
+        private const double HillClimberStepDecay = 0.98d;
+        private const double HillClimberRestartThreshold = 0.05d;
+        private const double HillClimberMinStep = 2.0d;
+        private const long SmallCacheThreshold = 512;
+        private const int QueueTransferThreshold = 1000;
+
         private readonly ConcurrentDictionary<K, N> dictionary;
 
         internal readonly StripedMpscBuffer<N> readBuffer;
@@ -65,6 +76,21 @@ namespace BitFaster.Caching.Lfu
         private readonly LfuNodeList<K, V> protectedLru;
 
         private readonly LfuCapacityPartition capacity;
+
+        // Weighted eviction state. Used only when the node policy is weighted (IsWeighted == true);
+        // the JIT elides the weighted branches in the count case since IsWeighted folds to a constant.
+        private static readonly bool IsWeighted = default(P).IsWeighted;
+        private long weightedSize;
+        private long windowWeightedSize;
+        private long mainProtectedWeightedSize;
+        private long maximum;
+        private long windowMaximum;
+        private long mainProtectedMaximum;
+        private double stepSize;
+        private double previousHitRate;
+        private long previousHitCount;
+        private long previousMissCount;
+        private readonly Random? random;
 
         internal readonly DrainStatus drainStatus = new();
 
@@ -121,6 +147,18 @@ namespace BitFaster.Caching.Lfu
 
             this.capacity = new LfuCapacityPartition(capacity);
 
+            if (IsWeighted)
+            {
+                // Mirror Caffeine's initial split: window ~1% of total weight, protected ~80% of main.
+                this.maximum = capacity;
+                this.windowMaximum = this.maximum - (long)(MainPercentage * this.maximum);
+                this.mainProtectedMaximum = (long)(MainProtectedPercentage * (this.maximum - this.windowMaximum));
+                this.previousHitRate = 1.0d;
+                double initialStep = Math.Max(HillClimberStepPercent * this.maximum, HillClimberMinStep);
+                this.stepSize = (this.maximum <= SmallCacheThreshold) ? initialStep : -initialStep;
+                this.random = new Random();
+            }
+
             this.scheduler = scheduler;
 
             this.drainBuffer = new N[this.readBuffer.Capacity];
@@ -136,6 +174,13 @@ namespace BitFaster.Caching.Lfu
         public int Count => this.dictionary.Skip(0).Count();
 
         public int Capacity => this.capacity.Capacity;
+
+        // Weighted size accounting, exposed for tests. Valid only when the policy is weighted.
+        internal long WeightedSize => this.weightedSize;
+        internal long WindowWeightedSize => this.windowWeightedSize;
+        internal long MainProtectedWeightedSize => this.mainProtectedWeightedSize;
+        internal long WindowMaximum => this.windowMaximum;
+        internal long MainProtectedMaximum => this.mainProtectedMaximum;
 
         public Optional<ICacheMetrics> Metrics => new(this.metrics);
 
@@ -642,8 +687,17 @@ namespace BitFaster.Caching.Lfu
 
             policy.ExpireEntries(ref this);
             EvictEntries(reason);
-            this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
-            ReFitProtected();
+
+            if (IsWeighted)
+            {
+                OptimizeWeightedPartitioning();
+                ReFitProtectedWeighted();
+            }
+            else
+            {
+                this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
+                ReFitProtected();
+            }
 
             // Reset to idle if either
             // 1. We drained both input buffers (all work done)
@@ -677,7 +731,14 @@ namespace BitFaster.Caching.Lfu
                     break;
                 case Position.Probation:
                     Debug.Assert(node.list == this.probationLru);
-                    PromoteProbation(node);
+                    if (IsWeighted)
+                    {
+                        PromoteProbationWeighted(node);
+                    }
+                    else
+                    {
+                        PromoteProbation(node);
+                    }
                     break;
                 case Position.Protected:
                     Debug.Assert(node.list == this.protectedLru);
@@ -694,12 +755,26 @@ namespace BitFaster.Caching.Lfu
             // not be added back into the LRU.
             if (node.WasRemoved)
             {
+                bool firstTime = !node.WasDeleted;
+
+                // discount the node's accounted weight exactly once, while it is still linked
+                if (IsWeighted && firstTime && node.list != null)
+                {
+                    DiscountWeighted(node);
+                }
+
                 node.list?.Remove(node);
 
-                if (!node.WasDeleted)
+                if (firstTime)
                 {
                     // if a write is in the buffer and is then removed in the buffer, it will enter OnWrite twice.
                     // we mark as deleted to avoid double counting/disposing it
+                    if (IsWeighted)
+                    {
+                        // deschedule from any timer wheel so a stale timer entry cannot re-evict the node
+                        policy.OnEvict(node);
+                    }
+
                     EventPolicyDispatch.OnRemovedEvent(this, node, ItemRemovedReason.Removed);
                     this.metrics.evictedCount++;
                     Disposer<V>.Dispose(node.Value);
@@ -711,35 +786,165 @@ namespace BitFaster.Caching.Lfu
 
             this.cmSketch.Increment(node.Key);
 
-            // node can already be in one of the queues due to update
+            if (IsWeighted)
+            {
+                OnWriteWeighted(node);
+
+                // OnWriteWeighted may have evicted an overweight entry; do not reschedule a dead node
+                if (node.WasRemoved)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                // node can already be in one of the queues due to update
+                switch (node.Position)
+                {
+                    case Position.Window:
+                        if (node.list == null)
+                        {
+                            this.windowLru.AddLast(node);
+                        }
+                        else
+                        {
+                            Debug.Assert(node.list == this.windowLru);
+                            this.windowLru.MoveToEnd(node);
+                            this.metrics.updatedCount++;
+                        }
+                        break;
+                    case Position.Probation:
+                        Debug.Assert(node.list == this.probationLru);
+                        PromoteProbation(node);
+                        this.metrics.updatedCount++;
+                        break;
+                    case Position.Protected:
+                        Debug.Assert(node.list == this.protectedLru);
+                        this.protectedLru.MoveToEnd(node);
+                        this.metrics.updatedCount++;
+                        break;
+                }
+            }
+
+            policy.AfterWrite(node);
+        }
+
+        private void OnWriteWeighted(N node)
+        {
+            int weight = this.policy.GetWeight(node);
+
             switch (node.Position)
             {
                 case Position.Window:
                     if (node.list == null)
                     {
-                        this.windowLru.AddLast(node);
+                        // new entry: account its weight in the window, then place it
+                        this.policy.SetPolicyWeight(node, weight);
+                        this.weightedSize += weight;
+                        this.windowWeightedSize += weight;
+
+                        if (weight > this.maximum)
+                        {
+                            this.windowLru.AddLast(node);
+                            Evict(node, ItemRemovedReason.Evicted);
+                        }
+                        else if (weight > this.windowMaximum)
+                        {
+                            // too big for the window, place at the LRU position so it leaves next
+                            this.windowLru.AddFirst(node);
+                        }
+                        else
+                        {
+                            this.windowLru.AddLast(node);
+                        }
                     }
                     else
                     {
                         Debug.Assert(node.list == this.windowLru);
-                        this.windowLru.MoveToEnd(node);
+                        ApplyWeightDelta(node, weight, Position.Window);
                         this.metrics.updatedCount++;
+
+                        if (weight > this.maximum)
+                        {
+                            Evict(node, ItemRemovedReason.Evicted);
+                        }
+                        else if (weight <= this.windowMaximum)
+                        {
+                            this.windowLru.MoveToEnd(node);
+                        }
+                        else
+                        {
+                            this.windowLru.MoveToFront(node);
+                        }
                     }
                     break;
                 case Position.Probation:
                     Debug.Assert(node.list == this.probationLru);
-                    PromoteProbation(node);
+                    ApplyWeightDelta(node, weight, Position.Probation);
                     this.metrics.updatedCount++;
+
+                    if (weight <= this.maximum)
+                    {
+                        PromoteProbationWeighted(node);
+                    }
+                    else
+                    {
+                        Evict(node, ItemRemovedReason.Evicted);
+                    }
                     break;
                 case Position.Protected:
                     Debug.Assert(node.list == this.protectedLru);
-                    this.protectedLru.MoveToEnd(node);
+                    ApplyWeightDelta(node, weight, Position.Protected);
                     this.metrics.updatedCount++;
+
+                    if (weight <= this.maximum)
+                    {
+                        this.protectedLru.MoveToEnd(node);
+                    }
+                    else
+                    {
+                        Evict(node, ItemRemovedReason.Evicted);
+                    }
                     break;
             }
-
-            policy.AfterWrite(node);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ApplyWeightDelta(LfuNode<K, V> node, int newWeight, Position position)
+        {
+            int delta = newWeight - this.policy.GetPolicyWeight(node);
+            this.policy.SetPolicyWeight(node, newWeight);
+            this.weightedSize += delta;
+
+            if (position == Position.Window)
+            {
+                this.windowWeightedSize += delta;
+            }
+            else if (position == Position.Protected)
+            {
+                this.mainProtectedWeightedSize += delta;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DiscountWeighted(LfuNode<K, V> node)
+        {
+            int pw = this.policy.GetPolicyWeight(node);
+            this.weightedSize -= pw;
+
+            if (node.Position == Position.Window)
+            {
+                this.windowWeightedSize -= pw;
+            }
+            else if (node.Position == Position.Protected)
+            {
+                this.mainProtectedWeightedSize -= pw;
+            }
+
+            // clear so a stale double eviction cannot discount the same weight twice
+            this.policy.SetPolicyWeight(node, 0);
+        }
+
 
         private void PromoteProbation(LfuNode<K, V> node)
         {
@@ -758,10 +963,388 @@ namespace BitFaster.Caching.Lfu
             }
         }
 
+        private void PromoteProbationWeighted(LfuNode<K, V> node)
+        {
+            int pw = this.policy.GetPolicyWeight(node);
+
+            // An entry that cannot fit in the protected space is kept in probation at the MRU position.
+            if (pw > this.mainProtectedMaximum)
+            {
+                this.probationLru.MoveToEnd(node);
+                return;
+            }
+
+            this.probationLru.Remove(node);
+            this.protectedLru.AddLast(node);
+            node.Position = Position.Protected;
+            this.mainProtectedWeightedSize += pw;
+
+            // If the protected space exceeds its maximum weight, demote LRU items to probation.
+            while (this.mainProtectedWeightedSize > this.mainProtectedMaximum)
+            {
+                var demoted = this.protectedLru.First;
+                if (demoted == null)
+                {
+                    break;
+                }
+
+                this.protectedLru.RemoveFirst();
+                this.mainProtectedWeightedSize -= this.policy.GetPolicyWeight(demoted);
+                demoted.Position = Position.Probation;
+                this.probationLru.AddLast(demoted);
+            }
+        }
+
         private void EvictEntries(ItemRemovedReason reason)
         {
+            if (IsWeighted)
+            {
+                var weightedCandidate = EvictFromWindowWeighted();
+                EvictFromMainWeighted(weightedCandidate, reason);
+                return;
+            }
+
             var candidate = EvictFromWindow();
             EvictFromMain(candidate, reason);
+        }
+
+        private LfuNode<K, V>? EvictFromWindowWeighted()
+        {
+            LfuNode<K, V>? first = null;
+            var node = this.windowLru.First;
+
+            while (this.windowWeightedSize > this.windowMaximum)
+            {
+                if (node == null)
+                {
+                    break;
+                }
+
+                var next = node.Next;
+                int pw = this.policy.GetPolicyWeight(node);
+
+                // zero weight entries are skipped, they do not count against the window size
+                if (pw != 0)
+                {
+                    first ??= node;
+
+                    this.windowLru.Remove(node);
+                    this.probationLru.AddLast(node);
+                    node.Position = Position.Probation;
+
+                    this.windowWeightedSize -= pw;
+                }
+
+                node = next;
+            }
+
+            return first;
+        }
+
+        // Queue identifiers used to walk victims/candidates across the three LRU lists.
+        private const int ProbationQueue = 0;
+        private const int ProtectedQueue = 1;
+        private const int WindowQueue = 2;
+
+        private void EvictFromMainWeighted(LfuNode<K, V>? candidateNode, ItemRemovedReason reason)
+        {
+            int victimQueue = ProbationQueue;
+            int candidateQueue = ProbationQueue;
+
+            var victim = this.probationLru.First; // victims are LRU position in probation
+            var candidate = candidateNode;
+
+            while (this.weightedSize > this.maximum)
+            {
+                // [A] search the admission window for additional candidates
+                if (candidate == null && candidateQueue == ProbationQueue)
+                {
+                    candidate = this.windowLru.First;
+                    candidateQueue = WindowQueue;
+                }
+
+                // [B] try evicting from the protected and window queues
+                if (candidate == null && victim == null)
+                {
+                    if (victimQueue == ProbationQueue)
+                    {
+                        victim = this.protectedLru.First;
+                        victimQueue = ProtectedQueue;
+                        continue;
+                    }
+                    else if (victimQueue == ProtectedQueue)
+                    {
+                        victim = this.windowLru.First;
+                        victimQueue = WindowQueue;
+                        continue;
+                    }
+
+                    // the pending operations will adjust the size to reflect the correct weight
+                    break;
+                }
+
+                // [C] skip over entries with zero weight
+                if (victim != null && this.policy.GetPolicyWeight(victim) == 0)
+                {
+                    victim = victim.Next;
+                    continue;
+                }
+                else if (candidate != null && this.policy.GetPolicyWeight(candidate) == 0)
+                {
+                    candidate = candidate.Next;
+                    continue;
+                }
+
+                // [D] evict immediately if only one of the entries is present
+                if (victim == null)
+                {
+                    var evict = candidate!;
+                    candidate = candidate!.Next;
+                    Evict(evict, reason);
+                    continue;
+                }
+                else if (candidate == null)
+                {
+                    var evict = victim;
+                    victim = victim.Next;
+                    Evict(evict, reason);
+                    continue;
+                }
+
+                // [E] evict immediately if both selected the same entry
+                if (candidate == victim)
+                {
+                    victim = victim.Next;
+                    Evict(candidate, reason);
+                    candidate = null;
+                    continue;
+                }
+
+                // [G] evict immediately if an entry was removed
+                if (victim.WasRemoved)
+                {
+                    var evict = victim;
+                    victim = victim.Next;
+                    Evict(evict, reason);
+                    continue;
+                }
+                else if (candidate.WasRemoved)
+                {
+                    var evict = candidate;
+                    candidate = candidate.Next;
+                    Evict(evict, reason);
+                    continue;
+                }
+
+                // [H] evict immediately if the candidate's weight exceeds the maximum
+                if (this.policy.GetPolicyWeight(candidate) > this.maximum)
+                {
+                    var evict = candidate;
+                    candidate = candidate.Next;
+                    Evict(evict, reason);
+                    continue;
+                }
+
+                // [I] evict the entry with the lowest frequency
+                if (AdmitCandidateWeighted(candidate.Key, victim.Key))
+                {
+                    var evict = victim;
+                    victim = victim.Next;
+                    Evict(evict, reason);
+                    candidate = candidate.Next;
+                }
+                else
+                {
+                    var evict = candidate;
+                    candidate = candidate.Next;
+                    Evict(evict, reason);
+                }
+            }
+        }
+
+        private bool AdmitCandidateWeighted(K candidateKey, K victimKey)
+        {
+            int victimFreq = this.cmSketch.EstimateFrequency(victimKey);
+            int candidateFreq = this.cmSketch.EstimateFrequency(candidateKey);
+
+            if (candidateFreq > victimFreq)
+            {
+                return true;
+            }
+
+            // The maximum frequency is 15 and halved to 7 on reset to age. A candidate with a moderate
+            // frequency is given a small chance to be admitted to defend against hash flooding.
+            if (candidateFreq >= AdmitHashDosThreshold)
+            {
+                return (this.random!.Next() & 127) == 0;
+            }
+
+            return false;
+        }
+
+        private void ReFitProtectedWeighted()
+        {
+            // If hill climbing decreased the protected maximum, demote overflow to probation.
+            while (this.mainProtectedWeightedSize > this.mainProtectedMaximum)
+            {
+                var demoted = this.protectedLru.First;
+                if (demoted == null)
+                {
+                    break;
+                }
+
+                this.protectedLru.RemoveFirst();
+                this.mainProtectedWeightedSize -= this.policy.GetPolicyWeight(demoted);
+
+                demoted.Position = Position.Probation;
+                this.probationLru.AddLast(demoted);
+            }
+        }
+
+        // Adapt the window and main space sizes (in weight units) using a hill climbing algorithm to
+        // iteratively improve hit rate. A larger window favors recency, a larger main favors frequency.
+        private void OptimizeWeightedPartitioning()
+        {
+            long adjustment = DetermineWeightedAdjustment();
+
+            if (adjustment > 0)
+            {
+                IncreaseWindow(adjustment);
+            }
+            else if (adjustment < 0)
+            {
+                DecreaseWindow(-adjustment);
+            }
+        }
+
+        private long DetermineWeightedAdjustment()
+        {
+            long newHits = this.metrics.Hits;
+            long newMisses = this.metrics.Misses;
+
+            long sampleHits = newHits - this.previousHitCount;
+            long sampleMisses = newMisses - this.previousMissCount;
+            long requestCount = sampleHits + sampleMisses;
+
+            if (requestCount < this.cmSketch.ResetSampleSize)
+            {
+                return 0;
+            }
+
+            double hitRate = (double)sampleHits / requestCount;
+            double hitRateChange = hitRate - this.previousHitRate;
+            double amount = (hitRateChange >= 0) ? this.stepSize : -this.stepSize;
+            double nextStepSize = (Math.Abs(hitRateChange) >= HillClimberRestartThreshold)
+                ? CopySign(Math.Max(HillClimberStepPercent * this.maximum, HillClimberMinStep), amount)
+                : HillClimberStepDecay * amount;
+
+            this.previousHitRate = hitRate;
+            this.previousHitCount = newHits;
+            this.previousMissCount = newMisses;
+            this.stepSize = nextStepSize;
+
+            return (long)amount;
+        }
+
+        private void IncreaseWindow(long adjustment)
+        {
+            if (this.mainProtectedMaximum == 0)
+            {
+                return;
+            }
+
+            long quota = Math.Min(adjustment, this.mainProtectedMaximum);
+            this.mainProtectedMaximum -= quota;
+            this.windowMaximum += quota;
+
+            ReFitProtectedWeighted();
+
+            for (int i = 0; i < QueueTransferThreshold; i++)
+            {
+                var candidate = this.probationLru.First;
+                bool probation = true;
+
+                if (candidate == null || quota < this.policy.GetPolicyWeight(candidate))
+                {
+                    candidate = this.protectedLru.First;
+                    probation = false;
+                }
+
+                if (candidate == null)
+                {
+                    break;
+                }
+
+                int weight = this.policy.GetPolicyWeight(candidate);
+                if (quota < weight)
+                {
+                    break;
+                }
+
+                quota -= weight;
+
+                if (probation)
+                {
+                    this.probationLru.Remove(candidate);
+                }
+                else
+                {
+                    this.mainProtectedWeightedSize -= weight;
+                    this.protectedLru.Remove(candidate);
+                }
+
+                this.windowWeightedSize += weight;
+                this.windowLru.AddLast(candidate);
+                candidate.Position = Position.Window;
+            }
+
+            // return unused quota
+            this.mainProtectedMaximum += quota;
+            this.windowMaximum -= quota;
+        }
+
+        private void DecreaseWindow(long adjustment)
+        {
+            if (this.windowMaximum <= 1)
+            {
+                return;
+            }
+
+            long quota = Math.Min(adjustment, Math.Max(0, this.windowMaximum - 1));
+            this.mainProtectedMaximum += quota;
+            this.windowMaximum -= quota;
+
+            for (int i = 0; i < QueueTransferThreshold; i++)
+            {
+                var candidate = this.windowLru.First;
+                if (candidate == null)
+                {
+                    break;
+                }
+
+                int weight = this.policy.GetPolicyWeight(candidate);
+                if (quota < weight)
+                {
+                    break;
+                }
+
+                quota -= weight;
+
+                this.windowWeightedSize -= weight;
+                this.windowLru.Remove(candidate);
+                this.probationLru.AddLast(candidate);
+                candidate.Position = Position.Probation;
+            }
+
+            // return unused quota
+            this.mainProtectedMaximum -= quota;
+            this.windowMaximum += quota;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double CopySign(double magnitude, double sign)
+        {
+            return (sign < 0) ? -Math.Abs(magnitude) : Math.Abs(magnitude);
         }
 
         private LfuNode<K, V>? EvictFromWindow()
@@ -896,6 +1479,11 @@ namespace BitFaster.Caching.Lfu
         {
             evictee.WasRemoved = true;
             evictee.WasDeleted = true;
+
+            if (IsWeighted)
+            {
+                DiscountWeighted(evictee);
+            }
 
             // This handles the case where the same key exists in the write buffer both
             // as added and removed. Remove via KVP ensures we don't remove added nodes.

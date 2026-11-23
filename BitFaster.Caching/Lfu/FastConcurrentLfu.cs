@@ -87,14 +87,12 @@ namespace BitFaster.Caching.Lfu
         ///<inheritdoc/>
         public CachePolicy Policy => CreatePolicy();
 
-        private static readonly bool IsExpireAfterPolicy = typeof(P) == typeof(ExpireAfterPolicy<K, V, NoEventPolicy<K, V>>);
-
         private CachePolicy CreatePolicy()
         {
-            if (IsExpireAfterPolicy)
-            {
-                var calc = Unsafe.As<P, ExpireAfterPolicy<K, V, NoEventPolicy<K, V>>>(ref core.policy).ExpiryCalculator;
+            var calc = core.policy.ExpiryCalculator;
 
+            if (calc != null)
+            {
                 var afterWrite = Optional<ITimePolicy>.None();
                 var afterAccess = Optional<ITimePolicy>.None();
                 var afterCustom = Optional<IDiscreteTimePolicy>.None();
@@ -122,17 +120,12 @@ namespace BitFaster.Caching.Lfu
         {
             get
             {
-                if (IsExpireAfterPolicy)
+                return core.policy.ExpiryCalculator switch
                 {
-                    return Unsafe.As<P, ExpireAfterPolicy<K, V, NoEventPolicy<K, V>>>(ref core.policy).ExpiryCalculator switch
-                    {
-                        ExpireAfterAccess<K, V> aa => aa.TimeToExpire,
-                        ExpireAfterWrite<K, V> aw => aw.TimeToExpire,
-                        _ => TimeSpan.Zero,
-                    };
-                }
-
-                return TimeSpan.Zero;
+                    ExpireAfterAccess<K, V> aa => aa.TimeToExpire,
+                    ExpireAfterWrite<K, V> aw => aw.TimeToExpire,
+                    _ => TimeSpan.Zero,
+                };
             }
         }
 
@@ -141,7 +134,7 @@ namespace BitFaster.Caching.Lfu
         ///<inheritdoc/>
         public bool TryGetTimeToExpire<K1>(K1 key, out TimeSpan timeToExpire)
         {
-            if (IsExpireAfterPolicy && key is K k && core.TryGetNode(k, out N? node) && node is TimeOrderNode<K, V> timeNode)
+            if (core.policy.ExpiryCalculator != null && key is K k && core.TryGetNode(k, out N? node) && node is TimeOrderNode<K, V> timeNode)
             {
                 var tte = new Duration(timeNode.GetTimestamp()) - Duration.SinceEpoch();
                 timeToExpire = tte.ToTimeSpan();
