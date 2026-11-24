@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using BitFaster.Caching.Lfu;
+using BitFaster.Caching.Scheduler;
 using BitFaster.Caching.UnitTests.Retry;
 using FluentAssertions;
 using Xunit;
@@ -199,5 +201,478 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var tlfu = cache as ConcurrentTLfu<K, V>;
             tlfu?.DoMaintenance();
         }
+    }
+
+    public class WeightedConcurrentLfuWrapperTests : ConcurrentLfuCoreTests
+    {
+        public override ICache<K, V> Create<K, V>()
+        {
+            return new ConcurrentLfuBuilder<K, V>()
+                .WithCapacity(capacity)
+                .WithScheduler(new NullScheduler())
+                .WithWeigher(new TestWeightCalculator<K, V>((k, v) => 1))
+                .WithEvents()
+                .Build();
+        }
+
+        public override void DoMaintenance<K, V>(ICache<K, V> cache)
+        {
+            ((WeightedConcurrentLfu<K, V, WeightedAccessOrderNode<K, V>, WeightedAccessOrderPolicy<K, V, EventPolicy<K, V>>>)cache).DoMaintenance();
+        }
+    }
+
+    public class WeightedConcurrentTLfuWrapperTests : ConcurrentLfuCoreTests
+    {
+        public override ICache<K, V> Create<K, V>()
+        {
+            return new ConcurrentLfuBuilder<K, V>()
+                .WithCapacity(capacity)
+                .WithScheduler(new NullScheduler())
+                .WithWeigher(new TestWeightCalculator<K, V>((k, v) => 1))
+                .WithExpireAfterWrite(TimeSpan.FromMinutes(10))
+                .WithEvents()
+                .Build();
+        }
+
+        public override void DoMaintenance<K, V>(ICache<K, V> cache)
+        {
+            ((WeightedConcurrentLfu<K, V, WeightedTimeOrderNode<K, V>, WeightedExpireAfterPolicy<K, V, EventPolicy<K, V>>>)cache).DoMaintenance();
+        }
+    }
+
+    public class WeightedConcurrentLfuCoreTests
+    {
+        [Fact]
+        public void AddOrUpdateWithinWeightBudgetAccountsAllEntries()
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 10);
+            core.AddOrUpdate(2, 20);
+            core.AddOrUpdate(3, 30);
+            core.DoMaintenance();
+
+            core.policy.eviction.WeightedSize.Should().Be(60);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void AddOrUpdateBeyondWeightBudgetEvictsPositiveWeightEntries()
+        {
+            var core = CreateWeighted(10);
+            for (int key = 0; key < 25; key++)
+            {
+                core.AddOrUpdate(key, 0);
+            }
+            for (int key = 25; key < 35; key++)
+            {
+                core.AddOrUpdate(key, 6);
+            }
+            core.DoMaintenance();
+
+            core.Count.Should().BeGreaterThan(core.Capacity);
+            for (int key = 0; key < 25; key++)
+            {
+                core.TryGet(key, out _).Should().BeTrue();
+            }
+            AssertWeightedState(core);
+        }
+
+        [Theory]
+        [InlineData(101)]
+        [InlineData(int.MaxValue)]
+        public void AddOrUpdateOversizedEntryEvictsOnlyThatEntry(int weight)
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 40);
+            core.AddOrUpdate(2, weight);
+            core.DoMaintenance();
+
+            core.TryGet(1, out _).Should().BeTrue();
+            core.TryGet(2, out _).Should().BeFalse();
+            core.policy.eviction.WeightedSize.Should().Be(40);
+            AssertWeightedState(core);
+        }
+
+        [Theory]
+        [InlineData(0, 1)]
+        [InlineData(1, 1)]
+        [InlineData(2, 2)]
+        public void DoMaintenanceAdmitsOnlyMoreFrequentWeightedCandidate(int readKey, int retainedKey)
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 80);
+            core.DoMaintenance();
+            core.AddOrUpdate(2, 80);
+            for (int read = 0; read < 8; read++)
+            {
+                core.TryGet(readKey, out _);
+            }
+
+            core.DoMaintenance();
+
+            core.Keys.Should().ContainSingle().Which.Should().Be(retainedKey);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void TryUpdateOversizedWeightEvictsOnlyUpdatedEntry()
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 10);
+            core.AddOrUpdate(2, 40);
+            core.DoMaintenance();
+            core.TryGet(1, out _);
+            core.DoMaintenance();
+
+            core.TryUpdate(1, int.MaxValue).Should().BeTrue();
+            core.DoMaintenance();
+
+            core.Keys.Should().ContainSingle().Which.Should().Be(2);
+            core.policy.eviction.WeightedSize.Should().Be(40);
+            AssertWeightedState(core);
+        }
+
+        [Theory]
+        [InlineData(0, 50)]
+        [InlineData(50, 0)]
+        [InlineData(30, 70)]
+        [InlineData(70, 30)]
+        public void TryUpdateChangedWeightReconcilesAccounting(int initialWeight, int updatedWeight)
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, initialWeight);
+            core.DoMaintenance();
+
+            core.TryUpdate(1, updatedWeight).Should().BeTrue();
+            core.DoMaintenance();
+
+            core.policy.eviction.WeightedSize.Should().Be(updatedWeight);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void TryUpdateWeightChangedWithFullWriteBufferDoesNotLoseAccounting()
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 30);
+            core.AddOrUpdate(2, 1);
+            core.DoMaintenance();
+            for (int i = 0; i < core.writeBuffer.Capacity; i++)
+            {
+                core.TryUpdate(2, 1);
+            }
+            core.writeBuffer.Count.Should().Be(core.writeBuffer.Capacity);
+
+            core.TryUpdate(1, 50).Should().BeTrue();
+            core.DoMaintenance();
+
+            core.policy.eviction.WeightedSize.Should().Be(51);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void TryGetProbationEntryPromotesItsAccountedWeight()
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 10);
+            core.AddOrUpdate(2, 20);
+            core.DoMaintenance();
+
+            core.TryGet(1, out _).Should().BeTrue();
+            core.DoMaintenance();
+
+            core.policy.eviction.ProtectedWeightedSize.Should().Be(10);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void TryGetEntryTooHeavyForProtectedKeepsItInProbation()
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 80);
+            core.DoMaintenance();
+
+            core.TryGet(1, out _).Should().BeTrue();
+            core.DoMaintenance();
+
+            core.policy.eviction.Probation.Select(n => n.Key).Should().ContainSingle().Which.Should().Be(1);
+            core.policy.eviction.ProtectedWeightedSize.Should().Be(0);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void TryGetProtectedOverflowDemotesLeastRecentlyUsedWeight()
+        {
+            var core = CreateWeighted();
+            for (int key = 1; key <= 3; key++)
+            {
+                core.AddOrUpdate(key, 30);
+            }
+            core.DoMaintenance();
+            for (int key = 1; key <= 3; key++)
+            {
+                core.TryGet(key, out _);
+            }
+            core.DoMaintenance();
+
+            core.policy.eviction.Protected.Select(n => n.Key).Should().Equal(2, 3);
+            core.policy.eviction.ProtectedWeightedSize.Should().Be(60);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void TryUpdateProtectedEntryBeyondProtectedBudgetDemotesIt()
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 10);
+            core.DoMaintenance();
+            core.TryGet(1, out _);
+            core.DoMaintenance();
+
+            core.TryUpdate(1, 90);
+            core.DoMaintenance();
+
+            core.policy.eviction.ProtectedWeightedSize.Should().Be(0);
+            core.policy.eviction.Probation.Select(n => n.Key).Should().ContainSingle().Which.Should().Be(1);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void TryRemoveDuplicatedBufferedWritesDiscountsOldNodeOnlyOnce()
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 10);
+            core.DoMaintenance();
+            core.TryGetNode(1, out var removedNode);
+            core.TryUpdate(1, 20);
+            core.TryUpdate(1, 30);
+            core.TryRemove(1);
+            core.AddOrUpdate(1, 40);
+            core.DoMaintenance();
+
+            removedNode.PolicyWeight.Should().Be(0);
+            core.policy.eviction.WeightedSize.Should().Be(40);
+            core.Metrics.Value.Evicted.Should().Be(1);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void TryRemoveBeforeInsertionDrainsDoesNotSubtractUnaccountedWeight()
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 10);
+            core.TryRemove(1);
+            core.DoMaintenance();
+
+            core.policy.eviction.WeightedSize.Should().Be(0);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void TrimThroughBoxedPolicySharesAccountingWithOriginalCore()
+        {
+            var core = CreateWeighted();
+            for (int key = 0; key < 5; key++)
+            {
+                core.AddOrUpdate(key, 10);
+            }
+            core.DoMaintenance();
+
+            core.Policy.Eviction.Value.Trim(2);
+
+            core.Count.Should().Be(3);
+            core.policy.eviction.WeightedSize.Should().Be(30);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void ClearWithZeroWeightAndPendingUpdatesResetsAllAccounting()
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 10);
+            core.AddOrUpdate(2, 0);
+            core.DoMaintenance();
+            core.TryUpdate(1, 20);
+
+            core.Clear();
+
+            core.Count.Should().Be(0);
+            core.policy.eviction.WeightedSize.Should().Be(0);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void AddOrUpdateNegativeWeightThrowsWithoutInsertingEntry()
+        {
+            var core = CreateWeighted();
+            Action add = () => core.AddOrUpdate(1, -1);
+
+            add.Should().Throw<ArgumentOutOfRangeException>();
+            core.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void TryUpdateNegativeWeightThrowsWithoutChangingValueOrWeight()
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 20);
+            core.DoMaintenance();
+            Action update = () => core.TryUpdate(1, -1);
+
+            update.Should().Throw<ArgumentOutOfRangeException>();
+            core.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be(20);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void DoMaintenanceChangingHitRateTransfersWholeNodesBetweenPartitions()
+        {
+            var core = CreateWeighted(200);
+            for (int key = 0; key < 10; key++)
+            {
+                core.AddOrUpdate(key, 10);
+            }
+            core.DoMaintenance();
+            var partition = core.policy.eviction.Capacity;
+            int initialWindow = partition.Window;
+
+            for (int round = 0; round < 40; round++)
+            {
+                for (int request = 0; request < 100; request++)
+                {
+                    core.TryGet(1, out _);
+                }
+                core.DoMaintenance();
+            }
+
+            int grownWindow = partition.Window;
+            grownWindow.Should().BeGreaterThan(initialWindow);
+            AssertWeightedState(core);
+
+            for (int round = 0; round < 40; round++)
+            {
+                for (int request = 0; request < 100; request++)
+                {
+                    core.TryGet(-1, out _);
+                }
+                core.DoMaintenance();
+            }
+
+            partition.Window.Should().BeLessThan(grownWindow);
+            (partition.Window + partition.Protected + partition.Probation).Should().Be(core.Capacity);
+            AssertWeightedState(core);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RemoveWeightedExpiringEntryDeschedulesAndDiscountsItOnce(bool expireOnRead)
+        {
+            var core = CreateWeightedWithExpiry();
+            core.AddOrUpdate(1, 20);
+            core.DoMaintenance();
+            core.TryGetNode(1, out var node);
+            node.GetNextInTimeOrder().Should().NotBeNull();
+            core.TryUpdate(1, 30);
+
+            if (expireOnRead)
+            {
+                node.TimeToExpire = Duration.Zero;
+                core.TryGet(1, out _).Should().BeFalse();
+            }
+            else
+            {
+                core.TryRemove(1).Should().BeTrue();
+            }
+            core.DoMaintenance();
+            core.DoMaintenance();
+
+            node.GetNextInTimeOrder().Should().BeNull();
+            core.Metrics.Value.Evicted.Should().Be(1);
+            core.policy.eviction.WeightedSize.Should().Be(0);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
+        public void AddOrUpdateOversizedExpiringEntryDoesNotScheduleRemovedNode()
+        {
+            var core = CreateWeightedWithExpiry();
+            core.AddOrUpdate(1, 200);
+            core.TryGetNode(1, out var node);
+            core.DoMaintenance();
+
+            node.GetNextInTimeOrder().Should().BeNull();
+            node.WasDeleted.Should().BeTrue();
+            AssertWeightedState(core);
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        [Fact]
+        public void TryUpdateThrowingEventHandlerStillPublishesWeightChange()
+        {
+            var cache = (WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>>)
+                new ConcurrentLfuBuilder<int, int>()
+                    .WithCapacity(100)
+                    .WithScheduler(new NullScheduler())
+                    .WithWeigher(new TestWeightCalculator<int, int>((k, v) => v))
+                    .WithEvents()
+                    .Build();
+            cache.AddOrUpdate(1, 20);
+            cache.DoMaintenance();
+            cache.Events.Value.ItemUpdated += (sender, args) => throw new InvalidOperationException("Callback failed.");
+
+            Action update = () => cache.TryUpdate(1, 50);
+            update.Should().Throw<InvalidOperationException>();
+            cache.DoMaintenance();
+
+            cache.Core.policy.eviction.WeightedSize.Should().Be(50);
+            AssertWeightedState(cache.Core);
+        }
+#endif
+
+        private static ConcurrentLfuCore<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, NoEventPolicy<int, int>>, NoEventPolicy<int, int>> CreateWeighted(int capacity = 100)
+        {
+            return new(1, capacity, new NullScheduler(), EqualityComparer<int>.Default, () => { },
+                new WeightedAccessOrderPolicy<int, int, NoEventPolicy<int, int>>(new TestWeightCalculator<int, int>((k, v) => v)), default);
+        }
+
+        private static ConcurrentLfuCore<int, int, WeightedTimeOrderNode<int, int>, WeightedExpireAfterPolicy<int, int, NoEventPolicy<int, int>>, NoEventPolicy<int, int>> CreateWeightedWithExpiry()
+        {
+            return new(1, 100, new NullScheduler(), EqualityComparer<int>.Default, () => { },
+                new WeightedExpireAfterPolicy<int, int, NoEventPolicy<int, int>>(
+                    new TestWeightCalculator<int, int>((k, v) => v), new ExpireAfterWrite<int, int>(TimeSpan.FromMinutes(10))), default);
+        }
+
+        internal static void AssertWeightedState<N, P, E>(ConcurrentLfuCore<int, int, N, P, E> core)
+            where N : LfuNode<int, int>
+            where P : struct, INodePolicy<int, int, N, E>, INodeWeight<N>
+            where E : struct, IEventPolicy<int, int>
+        {
+            var eviction = (WeightedEvictionPolicy<int, int, N, P>)core.policy.Eviction;
+            var nodes = eviction.Window.Concat(eviction.Probation).Concat(eviction.Protected).Cast<N>().ToArray();
+
+            eviction.WeightedSize.Should().Be(nodes.Sum(n => (long)core.policy.GetWeight(n)));
+            eviction.WindowWeightedSize.Should().Be(eviction.Window.Sum(n => (long)core.policy.GetPolicyWeight((N)n)));
+            eviction.ProtectedWeightedSize.Should().Be(eviction.Protected.Sum(n => (long)core.policy.GetPolicyWeight((N)n)));
+            eviction.WeightedSize.Should().BeLessThanOrEqualTo(core.Capacity);
+            nodes.Length.Should().Be(core.Count);
+            foreach (var node in nodes)
+            {
+                core.policy.GetPolicyWeight(node).Should().Be(core.policy.GetWeight(node));
+            }
+        }
+    }
+
+    internal sealed class TestWeightCalculator<K, V> : IWeightCalculator<K, V>
+    {
+        private readonly Func<K, V, int> calculate;
+
+        internal TestWeightCalculator(Func<K, V, int> calculate)
+        {
+            this.calculate = calculate;
+        }
+
+        public int GetWeight(K key, V value) => this.calculate(key, value);
     }
 }

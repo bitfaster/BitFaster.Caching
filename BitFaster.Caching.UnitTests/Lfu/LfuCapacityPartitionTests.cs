@@ -155,6 +155,47 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.output.WriteLine($"W: {p.Window} P: {p.Protected}");
         }
 
+        [Fact]
+        public void DetermineWeightedAdjustmentWaitsForCompleteSample()
+        {
+            var partition = new LfuCapacityPartition(100, weighted: true);
+            var metrics = new TestMetrics { Hits = 99 };
+
+            partition.DetermineWeightedAdjustment(metrics, 100).Should().Be(0);
+            metrics.Hits++;
+            partition.DetermineWeightedAdjustment(metrics, 100).Should().BeGreaterThan(0);
+            partition.DetermineWeightedAdjustment(metrics, 100).Should().Be(0);
+        }
+
+        [Fact]
+        public void DetermineWeightedAdjustmentWorseHitRateReversesDirection()
+        {
+            var partition = new LfuCapacityPartition(100, weighted: true);
+            var metrics = new TestMetrics { Hits = 100 };
+
+            partition.DetermineWeightedAdjustment(metrics, 100).Should().BeGreaterThan(0);
+            metrics.Misses = 100;
+            partition.DetermineWeightedAdjustment(metrics, 100).Should().BeLessThan(0);
+        }
+
+        [Theory]
+        [InlineData(3)]
+        [InlineData(100)]
+        [InlineData(int.MaxValue)]
+        public void ResizeWindowClampsTransfersAndPreservesTotalCapacity(int capacity)
+        {
+            var partition = new LfuCapacityPartition(capacity, weighted: true);
+            int initialProbation = partition.Probation;
+
+            partition.ResizeWindow(int.MaxValue);
+            partition.Protected.Should().Be(0);
+            partition.ResizeWindow(int.MinValue);
+
+            partition.Window.Should().Be(1);
+            partition.Probation.Should().Be(initialProbation);
+            (partition.Window + partition.Protected + partition.Probation).Should().Be(capacity);
+        }
+
         private class WindowSnapshot
         {
             private int prev;

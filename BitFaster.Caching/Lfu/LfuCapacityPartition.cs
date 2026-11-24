@@ -25,6 +25,8 @@ namespace BitFaster.Caching.Lfu
         private const double HillClimberRestartThreshold = 0.05d;
         private const double HillClimberStepPercent = 0.0625d;
         private const double HillClimberStepDecayRate = 0.98d;
+        private const double HillClimberMinStep = 2.0d;
+        private const int SmallCacheThreshold = 512;
 
         private const double DefaultMainPercentage = 0.99d;
 
@@ -42,6 +44,16 @@ namespace BitFaster.Caching.Lfu
             InitializeStepSize();
 
             previousHitRate = 1.0;
+        }
+
+        internal LfuCapacityPartition(int totalCapacity, bool weighted)
+            : this(totalCapacity)
+        {
+            if (weighted)
+            {
+                double initialStep = Math.Max(HillClimberStepPercent * totalCapacity, HillClimberMinStep);
+                stepSize = totalCapacity <= SmallCacheThreshold ? initialStep : -initialStep;
+            }
         }
 
         /// <summary>
@@ -75,6 +87,33 @@ namespace BitFaster.Caching.Lfu
         /// </remarks>
         public void OptimizePartitioning(ICacheMetrics metrics, int sampleThreshold)
         {
+            if (!TryDetermineAdjustment(metrics, sampleThreshold, HillClimberStepPercent, out double amount))
+            {
+                return;
+            }
+
+            mainRatio -= amount;
+            mainRatio = Clamp(mainRatio, MinMainPercentage, MaxMainPercentage);
+            (windowCapacity, protectedCapacity, probationCapacity) = ComputeQueueCapacity(max, mainRatio);
+        }
+
+        internal int DetermineWeightedAdjustment(ICacheMetrics metrics, int sampleThreshold)
+        {
+            double restartStep = Math.Max(HillClimberStepPercent * max, HillClimberMinStep);
+            return TryDetermineAdjustment(metrics, sampleThreshold, restartStep, out double amount) ? (int)amount : 0;
+        }
+
+        // Weighted adaptation transfers only whole nodes. The eviction policy returns any unused quota.
+        internal int ResizeWindow(int adjustment)
+        {
+            int amount = Math.Max(1 - windowCapacity, Math.Min(adjustment, protectedCapacity));
+            windowCapacity += amount;
+            protectedCapacity -= amount;
+            return amount;
+        }
+
+        private bool TryDetermineAdjustment(ICacheMetrics metrics, int sampleThreshold, double restartStep, out double amount)
+        {
             long newHits = metrics.Hits;
             long newMisses = metrics.Misses;
 
@@ -84,16 +123,17 @@ namespace BitFaster.Caching.Lfu
 
             if (sampleCount < sampleThreshold)
             {
-                return;
+                amount = 0;
+                return false;
             }
 
             double sampleHitRate = (double)sampleHits / sampleCount;
 
             double hitRateChange = sampleHitRate - previousHitRate;
-            double amount = (hitRateChange >= 0) ? stepSize : -stepSize;
+            amount = (hitRateChange >= 0) ? stepSize : -stepSize;
 
             double nextStepSize = (Math.Abs(hitRateChange) >= HillClimberRestartThreshold)
-                  ? HillClimberStepPercent * (amount >= 0 ? 1 : -1)
+                  ? restartStep * (amount >= 0 ? 1 : -1)
                   : HillClimberStepDecayRate * amount;
 
             stepSize = nextStepSize;
@@ -102,10 +142,7 @@ namespace BitFaster.Caching.Lfu
             previousMissCount = newMisses;
             previousHitRate = sampleHitRate;
 
-            mainRatio -= amount;
-            mainRatio = Clamp(mainRatio, MinMainPercentage, MaxMainPercentage);
-
-            (windowCapacity, protectedCapacity, probationCapacity) = ComputeQueueCapacity(max, mainRatio);
+            return true;
         }
 
         private void InitializeStepSize()

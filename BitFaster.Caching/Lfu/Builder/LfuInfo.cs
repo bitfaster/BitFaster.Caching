@@ -10,6 +10,7 @@ namespace BitFaster.Caching.Lfu.Builder
         where K : notnull
     {
         private object? expiry = null;
+        private object? weigher = null;
 
         public int Capacity { get; set; } = 128;
 
@@ -26,6 +27,25 @@ namespace BitFaster.Caching.Lfu.Builder
         public void SetExpiry<V>(IExpiryCalculator<K, V> expiry) => this.expiry = expiry;
 
         public bool WithEvents { get; set; } = false;
+
+        public void SetWeigher<V>(IWeightCalculator<K, V> weigher)
+        {
+            this.weigher = weigher ?? throw new ArgumentNullException(nameof(weigher));
+        }
+
+        public IWeightCalculator<K, V>? GetWeigher<V>()
+        {
+            if (this.weigher == null)
+            {
+                return null;
+            }
+
+            var calculator = this.weigher as IWeightCalculator<K, V>;
+            if (calculator == null)
+                Throw.InvalidOp($"Incompatible IWeightCalculator value generic type argument, expected {typeof(IWeightCalculator<K, V>)} but found {this.weigher.GetType()}");
+
+            return calculator;
+        }
 
         public IExpiryCalculator<K, V>? GetExpiry<V>()
         {

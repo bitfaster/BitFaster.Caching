@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace BitFaster.Caching.Lfu
@@ -9,24 +8,48 @@ namespace BitFaster.Caching.Lfu
         where N : LfuNode<K, V>
         where E : struct, IEventPolicy<K, V>
     {
+        LfuEvictionPolicy<K, V> Eviction { get; }
+        IExpiryCalculator<K, V>? ExpiryCalculator { get; }
+        void Initialize(int capacity);
         N Create(K key, V value);
+        bool UpdateValue(N node, V value);
         bool IsExpired(N node);
         void OnRead(N node);
         void OnWrite(N node);
         void AfterRead(N node);
-        void AfterWrite(N node);
+        bool AfterWrite<P>(ref ConcurrentLfuCore<K, V, N, P, E> cache, N node) where P : struct, INodePolicy<K, V, N, E>;
         void OnEvict(N node);
         void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, N, P, E> cache) where P : struct, INodePolicy<K, V, N, E>;
+        void EvictEntries<P>(ref ConcurrentLfuCore<K, V, N, P, E> cache, CmSketch<K> sketch, ItemRemovedReason reason) where P : struct, INodePolicy<K, V, N, E>;
+        void OptimizePartitioning(ICacheMetrics metrics, int sampleThreshold);
     }
 
     internal struct AccessOrderPolicy<K, V, E> : INodePolicy<K, V, AccessOrderNode<K, V>, E>
         where K : notnull
         where E : struct, IEventPolicy<K, V>
     {
+        internal UnweightedEvictionPolicy<K, V> eviction;
+
+        public LfuEvictionPolicy<K, V> Eviction => this.eviction;
+
+        public IExpiryCalculator<K, V>? ExpiryCalculator => null;
+
+        public void Initialize(int capacity)
+        {
+            this.eviction = new UnweightedEvictionPolicy<K, V>(capacity);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public AccessOrderNode<K, V> Create(K key, V value)
         {
             return new AccessOrderNode<K, V>(key, value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool UpdateValue(AccessOrderNode<K, V> node, V value)
+        {
+            node.Value = value;
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -48,21 +71,38 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AfterRead(AccessOrderNode<K, V> node)
         {
+            this.eviction.OnAccess(node);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AfterWrite(AccessOrderNode<K, V> node)
+        public bool AfterWrite<P>(ref ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, P, E> cache, AccessOrderNode<K, V> node)
+            where P : struct, INodePolicy<K, V, AccessOrderNode<K, V>, E>
         {
+            return this.eviction.OnWrite(node);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void OnEvict(AccessOrderNode<K, V> node)
         {
+            UnweightedEvictionPolicy<K, V>.Remove(node);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, P, E> cache) where P : struct, INodePolicy<K, V, AccessOrderNode<K, V>, E>
         {
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EvictEntries<P>(ref ConcurrentLfuCore<K, V, AccessOrderNode<K, V>, P, E> cache, CmSketch<K> sketch, ItemRemovedReason reason)
+            where P : struct, INodePolicy<K, V, AccessOrderNode<K, V>, E>
+        {
+            this.eviction.EvictEntries(ref cache, sketch, reason);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void OptimizePartitioning(ICacheMetrics metrics, int sampleThreshold)
+        {
+            this.eviction.OptimizePartitioning(metrics, sampleThreshold);
         }
     }
 
@@ -70,56 +110,149 @@ namespace BitFaster.Caching.Lfu
         where K : notnull
         where E : struct, IEventPolicy<K, V>
     {
-        private readonly IExpiryCalculator<K, V> expiryCalculator;
-        private readonly TimerWheel<K, V> wheel;
-        private Duration current;
+        internal UnweightedEvictionPolicy<K, V> eviction;
+        private ExpiryPolicy<K, V> expiry;
 
         public ExpireAfterPolicy(IExpiryCalculator<K, V> expiryCalculator)
         {
-            this.wheel = new TimerWheel<K, V>();
-            this.expiryCalculator = expiryCalculator;
-            this.current = Duration.SinceEpoch();
-            this.wheel.time = current.raw;
+            this.eviction = null!;
+            this.expiry = new ExpiryPolicy<K, V>(expiryCalculator);
         }
 
-        public IExpiryCalculator<K, V> ExpiryCalculator => expiryCalculator;
+        public LfuEvictionPolicy<K, V> Eviction => this.eviction;
+
+        public IExpiryCalculator<K, V> ExpiryCalculator => this.expiry.Calculator;
+
+        public void Initialize(int capacity)
+        {
+            this.eviction = new UnweightedEvictionPolicy<K, V>(capacity);
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TimeOrderNode<K, V> Create(K key, V value)
         {
-            var expiry = expiryCalculator.GetExpireAfterCreate(key, value);
-            return new TimeOrderNode<K, V>(key, value) { TimeToExpire = Duration.SinceEpoch() + expiry };
+            return new TimeOrderNode<K, V>(key, value) { TimeToExpire = this.expiry.GetExpireAfterCreate(key, value) };
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool UpdateValue(TimeOrderNode<K, V> node, V value)
+        {
+            node.Value = value;
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsExpired(TimeOrderNode<K, V> node)
         {
-            current = Duration.SinceEpoch();
-            return node.TimeToExpire < current;
+            return this.expiry.IsExpired(node);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void OnRead(TimeOrderNode<K, V> node)
         {
-            // we know IsExpired is always called immediate before OnRead, so piggyback on the current time
-            node.TimeToExpire = current + expiryCalculator.GetExpireAfterRead(node.Key, node.Value, node.TimeToExpire - current);
+            this.expiry.OnRead(node);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void OnWrite(TimeOrderNode<K, V> node)
         {
-            var current = Duration.SinceEpoch();
-            node.TimeToExpire = current + expiryCalculator.GetExpireAfterUpdate(node.Key, node.Value, node.TimeToExpire - current);
+            this.expiry.OnWrite(node);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AfterRead(TimeOrderNode<K, V> node)
         {
-            wheel.Reschedule(node);
+            this.eviction.OnAccess(node);
+            this.expiry.AfterRead(node);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AfterWrite(TimeOrderNode<K, V> node)
+        public bool AfterWrite<P>(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, P, E> cache, TimeOrderNode<K, V> node)
+            where P : struct, INodePolicy<K, V, TimeOrderNode<K, V>, E>
+        {
+            bool updated = this.eviction.OnWrite(node);
+            this.expiry.AfterWrite(node);
+            return updated;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void OnEvict(TimeOrderNode<K, V> node)
+        {
+            UnweightedEvictionPolicy<K, V>.Remove(node);
+            TimerWheel<K, V>.Deschedule(node);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, P, E> cache) where P : struct, INodePolicy<K, V, TimeOrderNode<K, V>, E>
+        {
+            this.expiry.ExpireEntries(ref cache);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EvictEntries<P>(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, P, E> cache, CmSketch<K> sketch, ItemRemovedReason reason)
+            where P : struct, INodePolicy<K, V, TimeOrderNode<K, V>, E>
+        {
+            this.eviction.EvictEntries(ref cache, sketch, reason);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void OptimizePartitioning(ICacheMetrics metrics, int sampleThreshold)
+        {
+            this.eviction.OptimizePartitioning(metrics, sampleThreshold);
+        }
+    }
+
+    internal struct ExpiryPolicy<K, V>
+        where K : notnull
+    {
+        private readonly TimerWheel<K, V> wheel;
+        private Duration current;
+
+        internal ExpiryPolicy(IExpiryCalculator<K, V> calculator)
+        {
+            this.Calculator = calculator;
+            this.current = Duration.SinceEpoch();
+            this.wheel = new TimerWheel<K, V> { time = current.raw };
+        }
+
+        internal IExpiryCalculator<K, V> Calculator { get; }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Duration GetExpireAfterCreate(K key, V value)
+        {
+            var duration = this.Calculator.GetExpireAfterCreate(key, value);
+            return Duration.SinceEpoch() + duration;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool IsExpired(TimeOrderNode<K, V> node)
+        {
+            this.current = Duration.SinceEpoch();
+            return node.TimeToExpire < this.current;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void OnRead(TimeOrderNode<K, V> node)
+        {
+            // IsExpired immediately precedes OnRead, so reuse its clock sample.
+            node.TimeToExpire = current + this.Calculator.GetExpireAfterRead(node.Key, node.Value, node.TimeToExpire - current);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void OnWrite(TimeOrderNode<K, V> node)
+        {
+            var now = Duration.SinceEpoch();
+            node.TimeToExpire = now + this.Calculator.GetExpireAfterUpdate(node.Key, node.Value, node.TimeToExpire - now);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void AfterRead(TimeOrderNode<K, V> node)
+        {
+            this.wheel.Reschedule(node);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void AfterWrite(TimeOrderNode<K, V> node)
         {
             // if the node is not yet scheduled, it is being created
             // the time is set on create in case it is read before the buffer is processed
@@ -134,15 +267,12 @@ namespace BitFaster.Caching.Lfu
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void OnEvict(TimeOrderNode<K, V> node)
+        internal void ExpireEntries<N, P, E>(ref ConcurrentLfuCore<K, V, N, P, E> cache)
+            where N : LfuNode<K, V>
+            where P : struct, INodePolicy<K, V, N, E>
+            where E : struct, IEventPolicy<K, V>
         {
-            TimerWheel<K, V>.Deschedule(node);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ExpireEntries<P>(ref ConcurrentLfuCore<K, V, TimeOrderNode<K, V>, P, E> cache) where P : struct, INodePolicy<K, V, TimeOrderNode<K, V>, E>
-        {
-            wheel.Advance<TimeOrderNode<K, V>, P, TimeOrderNode<K, V>, E>(ref cache, Duration.SinceEpoch());
+            wheel.Advance<N, P, N, E>(ref cache, Duration.SinceEpoch());
         }
     }
 }
