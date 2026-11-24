@@ -24,7 +24,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var builder = new ConcurrentLfuBuilder<int, int>()
                 .WithCapacity(10)
                 .WithScheduler(new ForegroundScheduler())
-                .WithWeigher(new TestWeightCalculator<int, int>((k, v) => v));
+                .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v));
             if (withEvents)
             {
                 builder.WithEvents();
@@ -56,6 +56,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.Policy.ExpireAfterWrite.HasValue.Should().Be(expiryMode == 1);
             cache.Policy.ExpireAfterAccess.HasValue.Should().Be(expiryMode == 2);
             cache.Policy.ExpireAfter.HasValue.Should().Be(expiryMode == 3);
+            ((ITimePolicy)cache).TimeToLive.Should().Be(expiryMode == 1 || expiryMode == 2 ? TimeSpan.FromMinutes(10) : TimeSpan.Zero);
             if (withEvents)
             {
                 removed.Should().ContainSingle().Which.Reason.Should().Be(ItemRemovedReason.Evicted);
@@ -65,7 +66,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         [Fact]
         public void WithWeigherNullCalculatorThrows()
         {
-            Action configure = () => new ConcurrentLfuBuilder<int, int>().WithWeigher(null);
+            Action configure = () => new ConcurrentLfuBuilder<int, int>().WithWeightedEntries(null);
 
             configure.Should().Throw<ArgumentNullException>();
         }
@@ -74,7 +75,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void BuildWithWeigherAndAtomicWrapperRejectsIncompatibleValueType()
         {
             var builder = new ConcurrentLfuBuilder<int, int>()
-                .WithWeigher(new TestWeightCalculator<int, int>((k, v) => v))
+                .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v))
                 .WithAtomicGetOrAdd();
             Action build = () => builder.Build();
 
@@ -85,7 +86,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public void BuildWithWeigherAndScopedWrapperRejectsIncompatibleValueType()
         {
             var builder = new ConcurrentLfuBuilder<int, Disposable>()
-                .WithWeigher(new TestWeightCalculator<int, Disposable>((k, v) => 1))
+                .WithWeightedEntries(new TestWeightCalculator<int, Disposable>((k, v) => 1))
                 .AsScopedCache();
             Action build = () => builder.Build();
 

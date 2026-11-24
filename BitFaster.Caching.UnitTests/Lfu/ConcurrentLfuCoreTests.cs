@@ -210,7 +210,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             return new ConcurrentLfuBuilder<K, V>()
                 .WithCapacity(capacity)
                 .WithScheduler(new NullScheduler())
-                .WithWeigher(new TestWeightCalculator<K, V>((k, v) => 1))
+                .WithWeightedEntries(new TestWeightCalculator<K, V>((k, v) => 1))
                 .WithEvents()
                 .Build();
         }
@@ -219,6 +219,146 @@ namespace BitFaster.Caching.UnitTests.Lfu
         {
             ((WeightedConcurrentLfu<K, V, WeightedAccessOrderNode<K, V>, WeightedAccessOrderPolicy<K, V, EventPolicy<K, V>>>)cache).DoMaintenance();
         }
+
+        [Fact]
+        public void AddOrUpdateBufferedWeightsAreEvictedByConfiguredScheduler()
+        {
+            var cache = (WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>>)
+                new ConcurrentLfuBuilder<int, int>()
+                    .WithCapacity(10)
+                    .WithScheduler(new TestScheduler())
+                    .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v))
+                    .WithEvents()
+                    .Build();
+            cache.AddOrUpdate(1, 6);
+            cache.AddOrUpdate(2, 6);
+            cache.Count.Should().Be(2);
+
+            var scheduler = (TestScheduler)cache.Scheduler;
+            scheduler.Work.TryTake(out var maintenance).Should().BeTrue();
+            maintenance();
+
+            cache.Keys.Should().ContainSingle().Which.Should().Be(1);
+            cache.Metrics.Value.Evicted.Should().Be(1);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        [Fact]
+        public void TryRemoveUnsubscribedItemRemovedHandlerReceivesNoFurtherEvents()
+        {
+            var cache = Create<int, int>();
+            cache.AddOrUpdate(1, 1);
+            cache.AddOrUpdate(2, 2);
+            DoMaintenance(cache);
+            var removedItems = new List<ItemRemovedEventArgs<int, int>>();
+            EventHandler<ItemRemovedEventArgs<int, int>> handler = (sender, args) => removedItems.Add(args);
+            cache.Events.Value.ItemRemoved += handler;
+            cache.TryRemove(1).Should().BeTrue();
+            DoMaintenance(cache);
+
+            cache.Events.Value.ItemRemoved -= handler;
+            cache.TryRemove(2).Should().BeTrue();
+            DoMaintenance(cache);
+
+            removedItems.Should().ContainSingle().Which.Key.Should().Be(1);
+            cache.Keys.Should().BeEmpty();
+            cache.Metrics.Value.Evicted.Should().Be(2);
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        [Fact]
+        public void TryUpdateUnsubscribedItemUpdatedHandlerReceivesNoFurtherEvents()
+        {
+            var cache = Create<int, int>();
+            cache.AddOrUpdate(1, 1);
+            DoMaintenance(cache);
+            var updatedItems = new List<ItemUpdatedEventArgs<int, int>>();
+            EventHandler<ItemUpdatedEventArgs<int, int>> handler = (sender, args) => updatedItems.Add(args);
+            cache.Events.Value.ItemUpdated += handler;
+            cache.TryUpdate(1, 2).Should().BeTrue();
+
+            cache.Events.Value.ItemUpdated -= handler;
+            cache.TryUpdate(1, 3).Should().BeTrue();
+            DoMaintenance(cache);
+
+            var update = updatedItems.Should().ContainSingle().Which;
+            update.OldValue.Should().Be(1);
+            update.NewValue.Should().Be(2);
+            cache.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be(3);
+        }
+#endif
+
+        [Fact]
+        public void TryGetTimeToExpireWithoutExpirationReturnsFalseForCachedEntry()
+        {
+            var cache = Create<int, int>();
+            cache.AddOrUpdate(1, 1);
+
+            ((IDiscreteTimePolicy)cache).TryGetTimeToExpire(1, out var timeToExpire).Should().BeFalse();
+
+            timeToExpire.Should().Be(TimeSpan.Zero);
+        }
+
+#if NET9_0_OR_GREATER
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void AlternateLookupIncreasingWeightPastCapacityEvictsEntry(bool useTryGet)
+        {
+            var cache = CreateWeightedStringCache();
+            IAlternateLookup<ReadOnlySpan<char>, string, int> lookup;
+            if (useTryGet)
+            {
+                cache.TryGetAlternateLookup(out lookup).Should().BeTrue();
+            }
+            else
+            {
+                lookup = cache.GetAlternateLookup<ReadOnlySpan<char>>();
+            }
+            lookup.GetOrAdd("entry".AsSpan(), _ => 6).Should().Be(6);
+
+            lookup.TryUpdate("ENTRY".AsSpan(), 11).Should().BeTrue();
+
+            cache.Keys.Should().BeEmpty();
+            cache.Metrics.Value.Evicted.Should().Be(1);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task AsyncAlternateLookupOversizedEntryReturnsValueWithoutEvictingExistingEntry(bool useTryGet)
+        {
+            var cache = CreateWeightedStringCache();
+            cache.AddOrUpdate("retained", 6);
+            IAsyncAlternateLookup<ReadOnlySpan<char>, string, int> lookup;
+            if (useTryGet)
+            {
+                ((IAsyncCache<string, int>)cache).TryGetAsyncAlternateLookup(out lookup).Should().BeTrue();
+            }
+            else
+            {
+                lookup = ((IAsyncCache<string, int>)cache).GetAsyncAlternateLookup<ReadOnlySpan<char>>();
+            }
+
+            var value = await lookup.GetOrAddAsync("oversized".AsSpan(), (key, weight) => Task.FromResult(weight), 11);
+
+            value.Should().Be(11);
+            cache.Keys.Should().ContainSingle().Which.Should().Be("retained");
+            cache.Metrics.Value.Evicted.Should().Be(1);
+        }
+
+        private static ICache<string, int> CreateWeightedStringCache()
+        {
+            return new ConcurrentLfuBuilder<string, int>()
+                .WithCapacity(10)
+                .WithScheduler(new ForegroundScheduler())
+                .WithKeyComparer(StringComparer.OrdinalIgnoreCase)
+                .WithWeightedEntries(new TestWeightCalculator<string, int>((k, v) => v))
+                .WithEvents()
+                .Build();
+        }
+#endif
     }
 
     public class WeightedConcurrentTLfuWrapperTests : ConcurrentLfuCoreTests
@@ -228,7 +368,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             return new ConcurrentLfuBuilder<K, V>()
                 .WithCapacity(capacity)
                 .WithScheduler(new NullScheduler())
-                .WithWeigher(new TestWeightCalculator<K, V>((k, v) => 1))
+                .WithWeightedEntries(new TestWeightCalculator<K, V>((k, v) => 1))
                 .WithExpireAfterWrite(TimeSpan.FromMinutes(10))
                 .WithEvents()
                 .Build();
@@ -237,6 +377,78 @@ namespace BitFaster.Caching.UnitTests.Lfu
         public override void DoMaintenance<K, V>(ICache<K, V> cache)
         {
             ((WeightedConcurrentLfu<K, V, WeightedTimeOrderNode<K, V>, WeightedExpireAfterPolicy<K, V, EventPolicy<K, V>>>)cache).DoMaintenance();
+        }
+
+        [Fact]
+        public void TryGetTimeToExpireCachedEntryReturnsRemainingLifetime()
+        {
+            var configuredLifetime = TimeSpan.FromMinutes(10);
+            var cache = CreateWithExpiry(new TestExpiryCalculator<int, int>((k, v) => Duration.FromTimeSpan(configuredLifetime)));
+            var beforeCreate = Duration.SinceEpoch();
+            cache.AddOrUpdate(1, 20);
+
+            cache.Policy.ExpireAfter.Value.TryGetTimeToExpire(1, out var timeToExpire).Should().BeTrue();
+
+            var elapsed = (Duration.SinceEpoch() - beforeCreate).ToTimeSpan();
+            timeToExpire.Ticks.Should().BeInRange((configuredLifetime - elapsed).Ticks - 1, configuredLifetime.Ticks);
+        }
+
+        [Theory]
+        [InlineData(2)]
+        [InlineData("1")]
+        [InlineData(null)]
+        public void TryGetTimeToExpireMissingOrIncompatibleKeyReturnsNoExpiry(object key)
+        {
+            var cache = CreateWithExpiry(new TestExpiryCalculator<int, int>((k, v) => Duration.FromMinutes(10)));
+            cache.AddOrUpdate(1, 20);
+
+            cache.Policy.ExpireAfter.Value.TryGetTimeToExpire(key, out var timeToExpire).Should().BeFalse();
+
+            timeToExpire.Should().Be(TimeSpan.Zero);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TrimExpiredPendingExpiredRemovalDiscountsWeightAndPreservesLiveEntries(bool customExpiry)
+        {
+            IExpiryCalculator<int, int> expiryCalculator = customExpiry
+                ? new TestExpiryCalculator<int, int>((k, v) => Duration.FromMinutes(10))
+                : new ExpireAfterWrite<int, int>(TimeSpan.FromMinutes(10));
+            var cache = CreateWithExpiry(expiryCalculator);
+            cache.AddOrUpdate(1, 20);
+            cache.AddOrUpdate(2, 30);
+            cache.DoMaintenance();
+            cache.Core.TryGetNode(1, out var expiredNode);
+            expiredNode.TimeToExpire = Duration.Zero;
+            cache.TryGet(1, out _).Should().BeFalse();
+            cache.Core.policy.eviction.WeightedSize.Should().Be(50);
+
+            if (customExpiry)
+            {
+                cache.Policy.ExpireAfter.Value.TrimExpired();
+            }
+            else
+            {
+                cache.Policy.ExpireAfterWrite.Value.TrimExpired();
+            }
+
+            cache.Keys.Should().ContainSingle().Which.Should().Be(2);
+            expiredNode.GetNextInTimeOrder().Should().BeNull();
+            cache.Core.policy.eviction.WeightedSize.Should().Be(30);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        private static WeightedConcurrentLfu<int, int, WeightedTimeOrderNode<int, int>, WeightedExpireAfterPolicy<int, int, EventPolicy<int, int>>> CreateWithExpiry(IExpiryCalculator<int, int> expiryCalculator)
+        {
+            return (WeightedConcurrentLfu<int, int, WeightedTimeOrderNode<int, int>, WeightedExpireAfterPolicy<int, int, EventPolicy<int, int>>>)
+                new ConcurrentLfuBuilder<int, int>()
+                    .WithCapacity(100)
+                    .WithScheduler(new NullScheduler())
+                    .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v))
+                    .WithExpireAfter(expiryCalculator)
+                    .WithEvents()
+                    .Build();
         }
     }
 
@@ -438,6 +650,28 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void TryUpdateProtectedEntryAtCapacityEvictsWindowWhenProbationIsEmpty()
+        {
+            var core = CreateWeighted();
+            core.AddOrUpdate(1, 10);
+            core.DoMaintenance();
+            core.TryGet(1, out _);
+            core.DoMaintenance();
+            core.AddOrUpdate(2, 1);
+            core.DoMaintenance();
+            core.policy.eviction.Probation.Should().BeEmpty();
+            core.policy.eviction.Protected.Select(n => n.Key).Should().ContainSingle().Which.Should().Be(1);
+
+            core.TryUpdate(1, core.Capacity).Should().BeTrue();
+            core.DoMaintenance();
+
+            core.Keys.Should().ContainSingle().Which.Should().Be(1);
+            core.policy.eviction.WindowWeightedSize.Should().Be(0);
+            core.policy.eviction.WeightedSize.Should().Be(core.Capacity);
+            AssertWeightedState(core);
+        }
+
+        [Fact]
         public void TryRemoveDuplicatedBufferedWritesDiscountsOldNodeOnlyOnce()
         {
             var core = CreateWeighted();
@@ -564,6 +798,28 @@ namespace BitFaster.Caching.UnitTests.Lfu
             AssertWeightedState(core);
         }
 
+        [Fact]
+        public void DoMaintenanceIncreasingWindowAtMaximumPreservesEntriesAndCapacity()
+        {
+            var core = CreateWeighted(3);
+            for (int key = 0; key < 3; key++)
+            {
+                core.AddOrUpdate(key, 1);
+            }
+            core.DoMaintenance();
+
+            for (int request = 0; request < 100; request++)
+            {
+                core.TryGet(2, out _);
+                core.DoMaintenance();
+            }
+
+            core.policy.eviction.Capacity.Window.Should().Be(2);
+            core.policy.eviction.Capacity.Protected.Should().Be(0);
+            core.Keys.Should().BeEquivalentTo(new[] { 0, 1, 2 });
+            AssertWeightedState(core);
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
@@ -615,7 +871,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 new ConcurrentLfuBuilder<int, int>()
                     .WithCapacity(100)
                     .WithScheduler(new NullScheduler())
-                    .WithWeigher(new TestWeightCalculator<int, int>((k, v) => v))
+                    .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v))
                     .WithEvents()
                     .Build();
             cache.AddOrUpdate(1, 20);

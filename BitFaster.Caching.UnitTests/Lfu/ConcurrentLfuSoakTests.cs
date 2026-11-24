@@ -36,7 +36,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
             var builder = new ConcurrentLfuBuilder<int, int>()
                 .WithCapacity(100)
                 .WithScheduler(scheduler)
-                .WithWeigher(new TestWeightCalculator<int, int>((k, v) => v))
+                .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v))
                 .WithEvents();
 
             if (withExpiry)

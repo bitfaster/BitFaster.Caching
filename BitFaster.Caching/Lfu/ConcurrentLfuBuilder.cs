@@ -56,7 +56,7 @@ namespace BitFaster.Caching.Lfu
         /// With this option, WithCapacity specifies the maximum total weight. Entries heavier than
         /// the capacity are not retained. Scoped and atomic value wrappers are not supported.
         /// </remarks>
-        public ConcurrentLfuBuilder<K, V> WithWeigher(IWeightCalculator<K, V> weigher)
+        public ConcurrentLfuBuilder<K, V> WithWeightedEntries(IWeightCalculator<K, V> weigher)
         {
             this.info.SetWeigher(weigher);
             return this;
