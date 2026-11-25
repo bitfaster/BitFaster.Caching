@@ -28,6 +28,92 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Theory]
+        [Repeat(soakIterations)]
+        public async Task ConcurrentGetOrAddWithRandomWeightsAndProtectedEntriesPreservesIntegrity(int iteration)
+        {
+            const int capacity = 100;
+            const int keyCount = 128;
+            const int protectedKeyCount = 4;
+            var random = new Random(iteration);
+            var weights = new int[threads][];
+            for (int thread = 0; thread < threads; thread++)
+            {
+                weights[thread] = new int[keyCount];
+                for (int key = 0; key < keyCount; key++)
+                {
+                    // Keep the hot set below half the weight budget so it can be promoted.
+                    int minWeight = key < protectedKeyCount ? 1 : 0;
+                    int maxWeight = key < protectedKeyCount ? capacity / (2 * protectedKeyCount) : capacity;
+                    weights[thread][key] = random.Next(minWeight, maxWeight + 1);
+                }
+            }
+
+            var scheduler = new BackgroundThreadScheduler();
+            var cache = (WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>>)
+                new ConcurrentLfuBuilder<int, int>()
+                    .WithCapacity(capacity)
+                    .WithConcurrencyLevel(threads)
+                    .WithScheduler(scheduler)
+                    .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v))
+                    .WithEvents()
+                    .Build();
+            var eviction = cache.Core.policy.eviction;
+            int evictionsWithProtectedEntries = 0;
+            cache.Events.Value.ItemRemoved += (sender, args) =>
+            {
+                if (args.Reason == ItemRemovedReason.Evicted && eviction.ProtectedWeightedSize > 0)
+                {
+                    Interlocked.Increment(ref evictionsWithProtectedEntries);
+                }
+            };
+
+            try
+            {
+                Func<int, int> warmupFactory = key => weights[0][key];
+                for (int key = 0; key < protectedKeyCount; key++)
+                {
+                    cache.GetOrAdd(key, warmupFactory);
+                }
+                cache.DoMaintenance();
+                for (int key = 0; key < protectedKeyCount; key++)
+                {
+                    cache.GetOrAdd(key, warmupFactory);
+                }
+                cache.DoMaintenance();
+                eviction.ProtectedWeightedSize.Should().BeGreaterThan(0);
+
+                using var startBarrier = new Barrier(threads);
+                await Threaded.Run(threads, thread =>
+                {
+                    var threadWeights = weights[thread];
+                    Func<int, int> valueFactory = key => threadWeights[key];
+                    startBarrier.SignalAndWait();
+                    for (int i = 0; i < loopIterations; i++)
+                    {
+                        int request = i / 2;
+                        int key = i % 2 == 0 ? request % protectedKeyCount : request % keyCount;
+                        cache.GetOrAdd(key, valueFactory);
+                    }
+                });
+            }
+            finally
+            {
+                scheduler.Dispose();
+                await scheduler.Completion;
+            }
+
+            this.output.WriteLine($"iteration {iteration}, evictions with protected entries={evictionsWithProtectedEntries}");
+            evictionsWithProtectedEntries.Should().BeGreaterThan(0);
+            var core = cache.Core;
+            new ConcurrentLfuIntegrityChecker<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>, EventPolicy<int, int>>(core)
+                .Validate(this.output, enforceCountCapacity: false);
+            core.DoMaintenance();
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(core);
+            eviction.WindowWeightedSize.Should().BeLessThanOrEqualTo(eviction.Capacity.Window);
+            eviction.ProtectedWeightedSize.Should().BeLessThanOrEqualTo(eviction.Capacity.Protected);
+        }
+
+        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public async Task ConcurrentWeightedUpdatesRemovalsAndTrimsPreserveAccounting(bool withExpiry)
