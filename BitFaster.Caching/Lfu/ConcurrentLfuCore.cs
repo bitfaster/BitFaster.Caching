@@ -412,7 +412,8 @@ namespace BitFaster.Caching.Lfu
 
                         if (!requiresWrite)
                         {
-                            // Losing an ordering update is safe; accounting updates must be delivered.
+                            // For non-weighted it's ok for this to be lossy, since the node is already tracked
+                            // and we will just lose ordering/hit count, but not orphan the node.
                             this.writeBuffer.TryAdd(node);
                             TryScheduleDrain();
                         }
@@ -430,7 +431,8 @@ namespace BitFaster.Caching.Lfu
             }
             finally
             {
-                // Publish outside the node lock, including when a user callback throws.
+                // Weighted policy may require a write to update the total weight of the cache.
+                // If the value was updated, but the weight did not change, then no write is required.
                 if (requiresWrite)
                 {
                     AfterWrite(node);

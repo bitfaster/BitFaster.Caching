@@ -34,8 +34,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
             const int capacity = 100;
             const int keyCount = 128;
             const int protectedKeyCount = 4;
+
             var random = new Random(iteration);
             var weights = new int[threads][];
+
             for (int thread = 0; thread < threads; thread++)
             {
                 weights[thread] = new int[keyCount];
@@ -57,8 +59,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
                     .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v))
                     .WithEvents()
                     .Build();
+
             var eviction = cache.Core.policy.eviction;
             int evictionsWithProtectedEntries = 0;
+
             cache.Events.Value.ItemRemoved += (sender, args) =>
             {
                 if (args.Reason == ItemRemovedReason.Evicted && eviction.ProtectedWeightedSize > 0)
@@ -82,12 +86,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 cache.DoMaintenance();
                 eviction.ProtectedWeightedSize.Should().BeGreaterThan(0);
 
-                using var startBarrier = new Barrier(threads);
                 await Threaded.Run(threads, thread =>
                 {
                     var threadWeights = weights[thread];
                     Func<int, int> valueFactory = key => threadWeights[key];
-                    startBarrier.SignalAndWait();
                     for (int i = 0; i < loopIterations; i++)
                     {
                         int request = i / 2;
