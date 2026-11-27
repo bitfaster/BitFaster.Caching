@@ -148,6 +148,16 @@ namespace BitFaster.Caching.Lfu
         }
 #endif
 
+#if DEBUG
+        /// <summary>
+        /// Format the LFU as a string by converting all the keys to strings.
+        /// </summary>
+        /// <returns>The LFU formatted as a string.</returns>
+        public string FormatLfuString()
+        {
+            return core.FormatLfuString();
+        }
+#endif
         private CachePolicy CreatePolicy()
         {
             var calculator = core.policy.ExpiryCalculator;
