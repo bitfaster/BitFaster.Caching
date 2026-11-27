@@ -37,6 +37,18 @@ namespace BitFaster.Caching.Lfu
             this.AddLast(node);
         }
 
+        public void MoveToFront(LfuNode<K, V> node)
+        {
+            this.Remove(node);
+            this.AddFirst(node);
+        }
+
+        public void AddFirst(LfuNode<K, V> node)
+        {
+            this.AddLast(node);
+            this.head = node;
+        }
+
         public void AddLast(LfuNode<K, V> node)
         {
 #if DEBUG

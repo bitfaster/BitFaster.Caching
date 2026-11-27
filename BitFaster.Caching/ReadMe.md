@@ -38,6 +38,8 @@ Optionally configure `ConcurrentLfu` with a [time-based eviction policy](https:/
 - Expire after access
 - Calculate an expiry time per item
 
+`ConcurrentLfuBuilder.WithWeigher(IWeightCalculator<K, V>)` optionally bounds total weight rather than item count: `WithCapacity` becomes the weight budget. The calculator must be thread-safe and return non-negative weights on creation and replacement. Oversized entries are not retained; zero-weight entries do not consume the budget, so `Count` can exceed `Capacity`. Weighting composes with events and all LFU expiry modes, but not scoped or atomic value wrappers.
+
 ## Documentation
 
 Please refer to the [wiki](https://github.com/bitfaster/BitFaster.Caching/wiki) for API documentation, and an analysis of hit rate, latency and throughput.

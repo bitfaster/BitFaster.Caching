@@ -10,13 +10,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using BitFaster.Caching.Buffers;
 using BitFaster.Caching.Counters;
-using BitFaster.Caching.Scheduler;
 using BitFaster.Caching.Lru;
+using BitFaster.Caching.Scheduler;
 
-
-#if DEBUG
-using System.Text;
-#endif
 
 namespace BitFaster.Caching.Lfu
 {
@@ -59,12 +55,6 @@ namespace BitFaster.Caching.Lfu
         private readonly CacheMetrics metrics = new();
 
         private readonly CmSketch<K> cmSketch;
-
-        private readonly LfuNodeList<K, V> windowLru;
-        private readonly LfuNodeList<K, V> probationLru;
-        private readonly LfuNodeList<K, V> protectedLru;
-
-        private readonly LfuCapacityPartition capacity;
 
         internal readonly DrainStatus drainStatus = new();
 
@@ -115,12 +105,6 @@ namespace BitFaster.Caching.Lfu
             this.writeBuffer = new(writeBufferSize);
 
             this.cmSketch = new CmSketch<K>(capacity, comparer);
-            this.windowLru = new LfuNodeList<K, V>();
-            this.probationLru = new LfuNodeList<K, V>();
-            this.protectedLru = new LfuNodeList<K, V>();
-
-            this.capacity = new LfuCapacityPartition(capacity);
-
             this.scheduler = scheduler;
 
             this.drainBuffer = new N[this.readBuffer.Capacity];
@@ -128,6 +112,7 @@ namespace BitFaster.Caching.Lfu
             this.drainBuffers = drainBuffers;
 
             this.policy = policy;
+            this.policy.Initialize(capacity);
 
             this.eventPolicy = eventPolicy;
         }
@@ -135,7 +120,7 @@ namespace BitFaster.Caching.Lfu
         // No lock count: https://arbel.net/2013/02/03/best-practices-for-using-concurrentdictionary/
         public int Count => this.dictionary.Skip(0).Count();
 
-        public int Capacity => this.capacity.Capacity;
+        public int Capacity => this.policy.Eviction.Capacity.Capacity;
 
         public Optional<ICacheMetrics> Metrics => new(this.metrics);
 
@@ -186,20 +171,11 @@ namespace BitFaster.Caching.Lfu
 
         private void Trim(int itemCount, ItemRemovedReason reason)
         {
-            List<LfuNode<K, V>> candidates;
             lock (maintenanceLock)
             {
                 Maintenance(reason: reason);
 
-                int lruCount = this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count;
-                itemCount = Math.Min(itemCount, lruCount);
-                candidates = new List<LfuNode<K, V>>(itemCount);
-
-                // Note: this is LRU order eviction, Caffeine is based on frequency
-                // walk in lru order, get itemCount keys to evict
-                TakeCandidatesInLruOrder(this.probationLru, candidates, itemCount);
-                TakeCandidatesInLruOrder(this.protectedLru, candidates, itemCount);
-                TakeCandidatesInLruOrder(this.windowLru, candidates, itemCount);
+                var candidates = this.policy.Eviction.GetTrimCandidates(itemCount);
 
 #if NET6_0_OR_GREATER
             foreach (var candidate in CollectionsMarshal.AsSpan(candidates))
@@ -421,31 +397,47 @@ namespace BitFaster.Caching.Lfu
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryUpdateValue(N node, V value)
         {
-            lock (node)
+            bool requiresWrite = false;
+            try
             {
-                if (!node.WasRemoved)
+                lock (node)
                 {
-                    // backcompat: remove conditional compile
+                    if (!node.WasRemoved)
+                    {
+                        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
-                    V oldValue = node.Value;
+                        V oldValue = node.Value;
 #endif
-                    node.Value = value;
+                        requiresWrite = this.policy.UpdateValue(node, value);
 
-                    // It's ok for this to be lossy, since the node is already tracked
-                    // and we will just lose ordering/hit count, but not orphan the node.
-                    this.writeBuffer.TryAdd(node);
-                    TryScheduleDrain();
-                    this.policy.OnWrite(node);
+                        if (!requiresWrite)
+                        {
+                            // For non-weighted it's ok for this to be lossy, since the node is already tracked
+                            // and we will just lose ordering/hit count, but not orphan the node.
+                            this.writeBuffer.TryAdd(node);
+                            TryScheduleDrain();
+                        }
+                        this.policy.OnWrite(node);
 
-                    // backcompat: remove conditional compile
+                        // backcompat: remove conditional compile
 #if NETCOREAPP3_0_OR_GREATER
-                    EventPolicyDispatch.OnUpdatedEvent(this, node.Key, oldValue, value);
+                        EventPolicyDispatch.OnUpdatedEvent(this, node.Key, oldValue, value);
 #endif
-                    return true;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+            finally
+            {
+                // Weighted policy may require a write to update the total weight of the cache.
+                // If the value was updated, but the weight did not change, then no write is required.
+                if (requiresWrite)
+                {
+                    AfterWrite(node);
                 }
             }
-
-            return false;
         }
 
         public void DoMaintenance()
@@ -458,22 +450,6 @@ namespace BitFaster.Caching.Lfu
             foreach (var kvp in this.dictionary)
             {
                 yield return new KeyValuePair<K, V>(kvp.Key, kvp.Value.Value);
-            }
-        }
-
-        private static void TakeCandidatesInLruOrder(LfuNodeList<K, V> lru, List<LfuNode<K, V>> candidates, int itemCount)
-        {
-            var curr = lru.First;
-
-            while (candidates.Count < itemCount && curr != null)
-            {
-                // LRUs can contain items that are already removed, skip those 
-                if (!curr.WasRemoved)
-                {
-                    candidates.Add(curr);
-                }
-
-                curr = curr.Next;
             }
         }
 
@@ -641,9 +617,8 @@ namespace BitFaster.Caching.Lfu
             }
 
             policy.ExpireEntries(ref this);
-            EvictEntries(reason);
-            this.capacity.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
-            ReFitProtected();
+            policy.EvictEntries(ref this, this.cmSketch, reason);
+            policy.OptimizePartitioning(this.metrics, this.cmSketch.ResetSampleSize);
 
             // Reset to idle if either
             // 1. We drained both input buffers (all work done)
@@ -669,22 +644,6 @@ namespace BitFaster.Caching.Lfu
                 return;
             }
 
-            switch (node.Position)
-            {
-                case Position.Window:
-                    Debug.Assert(node.list == this.windowLru);
-                    this.windowLru.MoveToEnd(node);
-                    break;
-                case Position.Probation:
-                    Debug.Assert(node.list == this.probationLru);
-                    PromoteProbation(node);
-                    break;
-                case Position.Protected:
-                    Debug.Assert(node.list == this.protectedLru);
-                    this.protectedLru.MoveToEnd(node);
-                    break;
-            }
-
             policy.AfterRead(node);
         }
 
@@ -694,7 +653,7 @@ namespace BitFaster.Caching.Lfu
             // not be added back into the LRU.
             if (node.WasRemoved)
             {
-                node.list?.Remove(node);
+                policy.OnEvict(node);
 
                 if (!node.WasDeleted)
                 {
@@ -711,185 +670,10 @@ namespace BitFaster.Caching.Lfu
 
             this.cmSketch.Increment(node.Key);
 
-            // node can already be in one of the queues due to update
-            switch (node.Position)
+            if (policy.AfterWrite(ref this, node))
             {
-                case Position.Window:
-                    if (node.list == null)
-                    {
-                        this.windowLru.AddLast(node);
-                    }
-                    else
-                    {
-                        Debug.Assert(node.list == this.windowLru);
-                        this.windowLru.MoveToEnd(node);
-                        this.metrics.updatedCount++;
-                    }
-                    break;
-                case Position.Probation:
-                    Debug.Assert(node.list == this.probationLru);
-                    PromoteProbation(node);
-                    this.metrics.updatedCount++;
-                    break;
-                case Position.Protected:
-                    Debug.Assert(node.list == this.protectedLru);
-                    this.protectedLru.MoveToEnd(node);
-                    this.metrics.updatedCount++;
-                    break;
+                this.metrics.updatedCount++;
             }
-
-            policy.AfterWrite(node);
-        }
-
-        private void PromoteProbation(LfuNode<K, V> node)
-        {
-            this.probationLru.Remove(node);
-            this.protectedLru.AddLast(node);
-            node.Position = Position.Protected;
-
-            // If the protected space exceeds its maximum, the LRU items are demoted to the probation space.
-            if (this.protectedLru.Count > this.capacity.Protected)
-            {
-                var demoted = this.protectedLru.First;
-                this.protectedLru.RemoveFirst();
-
-                demoted.Position = Position.Probation;
-                this.probationLru.AddLast(demoted);
-            }
-        }
-
-        private void EvictEntries(ItemRemovedReason reason)
-        {
-            var candidate = EvictFromWindow();
-            EvictFromMain(candidate, reason);
-        }
-
-        private LfuNode<K, V>? EvictFromWindow()
-        {
-            LfuNode<K, V>? first = null;
-
-            while (this.windowLru.Count > this.capacity.Window)
-            {
-                var node = this.windowLru.First;
-                this.windowLru.RemoveFirst();
-
-                first ??= node;
-
-                this.probationLru.AddLast(node);
-                node.Position = Position.Probation;
-            }
-
-            return first;
-        }
-
-        private ref struct EvictIterator
-        {
-            private readonly CmSketch<K> sketch;
-            public LfuNode<K, V>? node;
-            public int freq;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public EvictIterator(CmSketch<K> sketch, LfuNode<K, V>? node)
-            {
-                this.sketch = sketch;
-                this.node = node;
-                freq = node == null ? -1 : sketch.EstimateFrequency(node.Key);
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Next()
-            {
-                node = node!.Next;
-
-                if (node != null)
-                {
-                    freq = sketch.EstimateFrequency(node.Key);
-                }
-            }
-        }
-
-        private void EvictFromMain(LfuNode<K, V>? candidateNode, ItemRemovedReason reason)
-        {
-            var victim = new EvictIterator(this.cmSketch, this.probationLru.First); // victims are LRU position in probation
-            var candidate = new EvictIterator(this.cmSketch, candidateNode);
-
-            // first pass: admit candidates
-            while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
-            {
-                // bail when we run out of options
-                if (candidate.node == null | victim.node == null)
-                {
-                    break;
-                }
-
-                if (victim.node == candidate.node)
-                {
-                    Evict(candidate.node!, reason);
-                    break;
-                }
-
-                if (candidate.node!.WasRemoved)
-                {
-                    var evictee = candidate.node;
-                    candidate.Next();
-                    Evict(evictee, reason);
-                    continue;
-                }
-
-                if (victim.node!.WasRemoved)
-                {
-                    var evictee = victim.node;
-                    victim.Next();
-                    Evict(evictee, reason);
-                    continue;
-                }
-
-                // Evict the entry with the lowest frequency
-                if (candidate.freq > victim.freq)
-                {
-                    var evictee = victim.node;
-
-                    // victim is initialized to first, and iterates forwards
-                    victim.Next();
-                    candidate.Next();
-
-                    Evict(evictee, reason);
-                }
-                else
-                {
-                    var evictee = candidate.node;
-
-                    // candidate is initialized to first cand, and iterates forwards
-                    candidate.Next();
-
-                    Evict(evictee, reason);
-                }
-            }
-
-            // 2nd pass: remove probation items in LRU order, evict lowest frequency
-            while (this.windowLru.Count + this.probationLru.Count + this.protectedLru.Count > this.Capacity)
-            {
-                var victim1 = this.probationLru.First;
-                var victim2 = victim1.Next;
-
-                if (AdmitCandidate(victim1.Key, victim2.Key))
-                {
-                    Evict(victim2, reason);
-                }
-                else
-                {
-                    Evict(victim1, reason);
-                }
-            }
-        }
-
-        private bool AdmitCandidate(K candidateKey, K victimKey)
-        {
-            int victimFreq = this.cmSketch.EstimateFrequency(victimKey);
-            int candidateFreq = this.cmSketch.EstimateFrequency(candidateKey);
-
-            // TODO: random factor when candidate freq < 5
-            return candidateFreq > victimFreq;
         }
 
         internal void Evict(LfuNode<K, V> evictee, ItemRemovedReason reason)
@@ -905,26 +689,10 @@ namespace BitFaster.Caching.Lfu
 #else
             ((ICollection<KeyValuePair<K, N>>)this.dictionary).Remove(kvp);
 #endif
-            evictee.list?.Remove(evictee);
+            this.policy.OnEvict((N)evictee);
             EventPolicyDispatch.OnRemovedEvent(this, evictee, reason);
             Disposer<V>.Dispose(evictee.Value);
             this.metrics.evictedCount++;
-
-            this.policy.OnEvict((N)evictee);
-        }
-
-        private void ReFitProtected()
-        {
-            // If hill climbing decreased protected, there may be too many items
-            // - demote overflow to probation.
-            while (this.protectedLru.Count > this.capacity.Protected)
-            {
-                var demoted = this.protectedLru.First;
-                this.protectedLru.RemoveFirst();
-
-                demoted.Position = Position.Probation;
-                this.probationLru.AddLast(demoted);
-            }
         }
 
         [DebuggerDisplay("{Format(),nq}")]
@@ -1269,25 +1037,13 @@ namespace BitFaster.Caching.Lfu
 #endif
 
 #if DEBUG
-        private const int maxDebugLruDisplay = 99;
-
         /// <summary>
         /// Format the LFU as a string by converting all the keys to strings.
         /// </summary>
         /// <returns>The LFU formatted as a string.</returns>
         public string FormatLfuString()
         {
-            var sb = new StringBuilder();
-
-            sb.Append("W [");
-            sb.Append(string.Join(",", this.windowLru.Select(n => n.Key.ToString()).Take(maxDebugLruDisplay)));
-            sb.Append("] Protected [");
-            sb.Append(string.Join(",", this.protectedLru.Select(n => n.Key.ToString()).Take(maxDebugLruDisplay)));
-            sb.Append("] Probation [");
-            sb.Append(string.Join(",", this.probationLru.Select(n => n.Key.ToString()).Take(maxDebugLruDisplay)));
-            sb.Append(']');
-
-            return sb.ToString();
+            return this.policy.Eviction.FormatLfuString();
         }
 #endif
     }

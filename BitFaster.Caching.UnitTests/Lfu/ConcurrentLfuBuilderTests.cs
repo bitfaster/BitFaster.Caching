@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using BitFaster.Caching.Atomic;
 using BitFaster.Caching.Lfu;
 using BitFaster.Caching.Scheduler;
@@ -9,6 +10,89 @@ namespace BitFaster.Caching.UnitTests.Lfu
 {
     public class ConcurrentLfuBuilderTests
     {
+        [Theory]
+        [InlineData(false, 0)]
+        [InlineData(true, 0)]
+        [InlineData(false, 1)]
+        [InlineData(true, 1)]
+        [InlineData(false, 2)]
+        [InlineData(true, 2)]
+        [InlineData(false, 3)]
+        [InlineData(true, 3)]
+        public void BuildWithWeigherComposesWeightBudgetExpiryAndEvents(bool withEvents, int expiryMode)
+        {
+            var builder = new ConcurrentLfuBuilder<int, int>()
+                .WithCapacity(10)
+                .WithScheduler(new ForegroundScheduler())
+                .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v));
+            if (withEvents)
+            {
+                builder.WithEvents();
+            }
+            switch (expiryMode)
+            {
+                case 1:
+                    builder.WithExpireAfterWrite(TimeSpan.FromMinutes(10));
+                    break;
+                case 2:
+                    builder.WithExpireAfterAccess(TimeSpan.FromMinutes(10));
+                    break;
+                case 3:
+                    builder.WithExpireAfter(new TestExpiryCalculator<int, int>((k, v) => Duration.FromMinutes(10)));
+                    break;
+            }
+
+            var cache = builder.Build();
+            var removed = new List<ItemRemovedEventArgs<int, int>>();
+            if (withEvents)
+            {
+                cache.Events.Value.ItemRemoved += (sender, args) => removed.Add(args);
+            }
+            cache.AddOrUpdate(1, 6);
+            cache.AddOrUpdate(2, 6);
+
+            cache.Count.Should().Be(1);
+            cache.Events.HasValue.Should().Be(withEvents);
+            cache.Policy.ExpireAfterWrite.HasValue.Should().Be(expiryMode == 1);
+            cache.Policy.ExpireAfterAccess.HasValue.Should().Be(expiryMode == 2);
+            cache.Policy.ExpireAfter.HasValue.Should().Be(expiryMode == 3);
+            ((ITimePolicy)cache).TimeToLive.Should().Be(expiryMode == 1 || expiryMode == 2 ? TimeSpan.FromMinutes(10) : TimeSpan.Zero);
+            if (withEvents)
+            {
+                removed.Should().ContainSingle().Which.Reason.Should().Be(ItemRemovedReason.Evicted);
+            }
+        }
+
+        [Fact]
+        public void WithWeigherNullCalculatorThrows()
+        {
+            Action configure = () => new ConcurrentLfuBuilder<int, int>().WithWeightedEntries(null);
+
+            configure.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact]
+        public void BuildWithWeigherAndAtomicWrapperRejectsIncompatibleValueType()
+        {
+            var builder = new ConcurrentLfuBuilder<int, int>()
+                .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v))
+                .WithAtomicGetOrAdd();
+            Action build = () => builder.Build();
+
+            build.Should().Throw<InvalidOperationException>().WithMessage("*IWeightCalculator*");
+        }
+
+        [Fact]
+        public void BuildWithWeigherAndScopedWrapperRejectsIncompatibleValueType()
+        {
+            var builder = new ConcurrentLfuBuilder<int, Disposable>()
+                .WithWeightedEntries(new TestWeightCalculator<int, Disposable>((k, v) => 1))
+                .AsScopedCache();
+            Action build = () => builder.Build();
+
+            build.Should().Throw<InvalidOperationException>().WithMessage("*IWeightCalculator*");
+        }
+
         [Fact]
         public void TestConcurrencyLevel()
         {

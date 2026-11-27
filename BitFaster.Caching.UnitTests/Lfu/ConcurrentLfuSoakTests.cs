@@ -27,6 +27,151 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.output = testOutputHelper;
         }
 
+        [Theory]
+        [Repeat(soakIterations)]
+        public async Task WhenWeightedConcurrentGetCacheEndsInConsistentState(int iteration)
+        {
+            var lfu = CreateWeightedWithBackground(9, (k, v) => 1);
+
+            await Threaded.Run(threads, () =>
+            {
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    lfu.GetOrAdd(i + 1, i => i);
+                }
+            });
+
+            await RunWeightedIntegrityCheckAsync(lfu, iteration);
+        }
+
+        [Theory]
+        [Repeat(soakIterations)]
+        public async Task ConcurrentGetOrAddWithRandomWeightsAndProtectedEntriesPreservesIntegrity(int iteration)
+        {
+            const int capacity = 100;
+            const int keyCount = 128;
+            const int protectedKeyCount = 4;
+
+            var random = new Random(iteration);
+            var weights = new int[threads][];
+
+            for (int thread = 0; thread < threads; thread++)
+            {
+                weights[thread] = new int[keyCount];
+                for (int key = 0; key < keyCount; key++)
+                {
+                    // Keep the hot set below half the weight budget so it can be promoted.
+                    int minWeight = key < protectedKeyCount ? 1 : 0;
+                    int maxWeight = key < protectedKeyCount ? capacity / (2 * protectedKeyCount) : capacity;
+                    weights[thread][key] = random.Next(minWeight, maxWeight + 1);
+                }
+            }
+
+            var cache = CreateWeightedWithBackground(capacity, (k, v) => v);
+
+            var eviction = cache.Core.policy.eviction;
+            int evictionsWithProtectedEntries = 0;
+
+            cache.Events.Value.ItemRemoved += (sender, args) =>
+            {
+                if (args.Reason == ItemRemovedReason.Evicted && eviction.ProtectedWeightedSize > 0)
+                {
+                    Interlocked.Increment(ref evictionsWithProtectedEntries);
+                }
+            };
+
+            Func<int, int> warmupFactory = key => weights[0][key];
+            for (int key = 0; key < protectedKeyCount; key++)
+            {
+                cache.GetOrAdd(key, warmupFactory);
+            }
+            cache.DoMaintenance();
+            for (int key = 0; key < protectedKeyCount; key++)
+            {
+                cache.GetOrAdd(key, warmupFactory);
+            }
+            cache.DoMaintenance();
+            eviction.ProtectedWeightedSize.Should().BeGreaterThan(0);
+
+            await Threaded.Run(threads, thread =>
+            {
+                var threadWeights = weights[thread];
+                Func<int, int> valueFactory = key => threadWeights[key];
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    int request = i / 2;
+                    int key = i % 2 == 0 ? request % protectedKeyCount : request % keyCount;
+                    cache.GetOrAdd(key, valueFactory);
+                }
+            });
+
+            await RunWeightedIntegrityCheckAsync(cache, iteration);
+
+            this.output.WriteLine($"iteration {iteration}, evictions with protected entries={evictionsWithProtectedEntries}");
+            evictionsWithProtectedEntries.Should().BeGreaterThan(0);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ConcurrentWeightedUpdatesRemovalsAndTrimsPreserveAccounting(bool withExpiry)
+        {
+            var scheduler = new BackgroundThreadScheduler();
+            var builder = new ConcurrentLfuBuilder<int, int>()
+                .WithCapacity(100)
+                .WithScheduler(scheduler)
+                .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v))
+                .WithEvents();
+
+            if (withExpiry)
+            {
+                var cache = (WeightedConcurrentLfu<int, int, WeightedTimeOrderNode<int, int>, WeightedExpireAfterPolicy<int, int, EventPolicy<int, int>>>)
+                    builder.WithExpireAfterWrite(TimeSpan.FromMinutes(10)).Build();
+                await VerifyWeightedConcurrency(cache.Core, scheduler);
+            }
+            else
+            {
+                var cache = (WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>>)builder.Build();
+                await VerifyWeightedConcurrency(cache.Core, scheduler);
+            }
+        }
+
+        private async Task VerifyWeightedConcurrency<N, P>(ConcurrentLfuCore<int, int, N, P, EventPolicy<int, int>> core, BackgroundThreadScheduler scheduler)
+            where N : LfuNode<int, int>
+            where P : struct, INodePolicy<int, int, N, EventPolicy<int, int>>, INodeWeight<N>
+        {
+            try
+            {
+                await Threaded.Run(threads, () =>
+                {
+                    for (int i = 0; i < loopIterations; i++)
+                    {
+                        int key = (i + Thread.CurrentThread.ManagedThreadId) % 128;
+                        core.AddOrUpdate(key, i % 8);
+                        core.TryUpdate(key, (i + 1) % 12);
+                        core.TryGet(key, out _);
+                        if (i % 3 == 0)
+                        {
+                            core.TryRemove(key);
+                        }
+                        if (i % 1000 == 0)
+                        {
+                            core.Trim(3);
+                        }
+                    }
+                });
+            }
+            finally
+            {
+                scheduler.Dispose();
+                await scheduler.Completion;
+            }
+
+            new ConcurrentLfuIntegrityChecker<int, int, N, P, EventPolicy<int, int>>(core).Validate(this.output, enforceCountCapacity: false);
+            core.DoMaintenance();
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(core);
+        }
+
         //Elapsed 411.6918ms - 0.0004116918ns/op
         //Cache hits 1689839 (sampled 16.89839%)
         //Maintenance ops 31
@@ -495,6 +640,20 @@ namespace BitFaster.Caching.UnitTests.Lfu
             return new ConcurrentLfu<string, string>(1, 9, scheduler, StringComparer.Ordinal);
         }
 
+        private static WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>> CreateWeightedWithBackground(int capacity, Func<int, int, int> calculate)
+        {
+            var scheduler = new BackgroundThreadScheduler();
+            var lfu = (WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>>)
+                new ConcurrentLfuBuilder<int, int>()
+                    .WithCapacity(capacity)
+                    .WithConcurrencyLevel(threads)
+                    .WithScheduler(scheduler)
+                    .WithWeightedEntries(new TestWeightCalculator<int, int>(calculate))
+                    .WithEvents()
+                    .Build();
+            return lfu;
+        }
+
         private async Task RunIntegrityCheckAsync(ConcurrentLfu<int, string> lfu, int iteration)
         {
             Log(lfu, iteration, "before");
@@ -523,7 +682,35 @@ namespace BitFaster.Caching.UnitTests.Lfu
             RunIntegrityCheck(lfu, this.output);
         }
 
+        private async Task RunWeightedIntegrityCheckAsync(WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>> lfu, int iteration)
+        {
+            Log(lfu, iteration, "before");
+            if (lfu.Scheduler is BackgroundThreadScheduler s)
+            {
+                s.Dispose();
+                await s.Completion;
+            }
+
+            Log(lfu, iteration, "after");
+            var core = lfu.Core;
+            new ConcurrentLfuIntegrityChecker<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>, EventPolicy<int, int>>(core)
+                .Validate(this.output, enforceCountCapacity: false);
+
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(core);
+            var eviction = lfu.Core.policy.eviction;
+            eviction.WindowWeightedSize.Should().BeLessThanOrEqualTo(eviction.Capacity.Window);
+            eviction.ProtectedWeightedSize.Should().BeLessThanOrEqualTo(eviction.Capacity.Protected);
+        }
+
         private void Log<K>(ConcurrentLfu<K, string> lfu, int iteration, string stage)
+        {
+            this.output.WriteLine($"{stage} iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
+#if DEBUG
+            this.output.WriteLine(lfu.FormatLfuString());
+#endif
+        }
+
+        private void Log<K>(WeightedConcurrentLfu<K, int, WeightedAccessOrderNode<K, int>, WeightedAccessOrderPolicy<K, int, EventPolicy<K, int>>> lfu, int iteration, string stage)
         {
             this.output.WriteLine($"{stage} iteration {iteration} keys={string.Join(" ", lfu.Keys)}");
 #if DEBUG
@@ -561,10 +748,6 @@ namespace BitFaster.Caching.UnitTests.Lfu
         private static FieldInfo dictionaryField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("dictionary", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo lockField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("maintenanceLock", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        private static FieldInfo windowLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("windowLru", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static FieldInfo probationLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("probationLru", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static FieldInfo protectedLruField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("protectedLru", BindingFlags.NonPublic | BindingFlags.Instance);
-
         private static FieldInfo readBufferField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("readBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
         private static FieldInfo writeBufferField = typeof(ConcurrentLfuCore<K, V, N, P, E>).GetField("writeBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -580,16 +763,15 @@ namespace BitFaster.Caching.UnitTests.Lfu
             this.maintenanceLock = lockField.GetValue(cache);
 #endif
 
-            // get lrus via reflection
-            this.windowLru = (LfuNodeList<K, V>)windowLruField.GetValue(cache);
-            this.probationLru = (LfuNodeList<K, V>)probationLruField.GetValue(cache);
-            this.protectedLru = (LfuNodeList<K, V>)protectedLruField.GetValue(cache);
+            this.windowLru = cache.policy.Eviction.Window;
+            this.probationLru = cache.policy.Eviction.Probation;
+            this.protectedLru = cache.policy.Eviction.Protected;
 
             this.readBuffer = (StripedMpscBuffer<N>)readBufferField.GetValue(cache);
             this.writeBuffer = (MpscBoundedBuffer<N>)writeBufferField.GetValue(cache);
         }
 
-        public void Validate(ITestOutputHelper output)
+        public void Validate(ITestOutputHelper output, bool enforceCountCapacity = true)
         {
             cache.DoMaintenance();
 
@@ -625,7 +807,10 @@ namespace BitFaster.Caching.UnitTests.Lfu
             }
 
             // cache must be within capacity
-            cache.Count.Should().BeLessThanOrEqualTo(cache.Capacity, "capacity out of valid range");
+            if (enforceCountCapacity)
+            {
+                cache.Count.Should().BeLessThanOrEqualTo(cache.Capacity, "capacity out of valid range");
+            }
         }
 
         private void AssertLruCountMatchesEnumeration(LfuNodeList<K, V> lfuNodes, string lruName)

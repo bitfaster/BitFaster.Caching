@@ -49,3 +49,26 @@ var lfu = new ConcurrentLfu<string, SomeItem>(capacity);
 
 var value = lfu.GetOrAdd("key", (key) => new SomeItem(key));
 ```
+
+### Weight-based eviction
+
+Use `WithWeigher` to bound the cache by total weight instead of item count:
+
+```csharp
+using BitFaster.Caching;
+using BitFaster.Caching.Lfu;
+
+var cache = new ConcurrentLfuBuilder<string, byte[]>()
+    .WithCapacity(1_000_000)
+    .WithWeigher(new ByteArrayWeightCalculator())
+    .Build();
+
+sealed class ByteArrayWeightCalculator : IWeightCalculator<string, byte[]>
+{
+    public int GetWeight(string key, byte[] value) => value.Length;
+}
+```
+
+The calculator must be thread-safe and return non-negative weights. Weights are calculated on creation and replacement, not when a value is mutated in place. Entries heavier than the budget are not retained. Zero-weight entries are exempt from capacity eviction, so `Count` can exceed `Capacity`. As with count-based eviction, the budget is enforced asynchronously.
+
+`WithWeigher` composes with `WithEvents`, `WithExpireAfterWrite`, `WithExpireAfterAccess`, and `WithExpireAfter`. Scoped and atomic value wrappers are not supported.

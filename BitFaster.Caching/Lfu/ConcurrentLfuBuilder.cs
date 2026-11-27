@@ -46,6 +46,22 @@ namespace BitFaster.Caching.Lfu
             return this;
         }
 
+        /// <summary>
+        /// Bound the cache by total weight instead of item count. Weights are calculated on creation
+        /// and replacement, and must be non-negative. Zero-weight entries do not consume capacity.
+        /// </summary>
+        /// <param name="weigher">The thread-safe calculator that determines each entry's weight.</param>
+        /// <returns>A ConcurrentLfuBuilder.</returns>
+        /// <remarks>
+        /// With this option, WithCapacity specifies the maximum total weight. Entries heavier than
+        /// the capacity are not retained. Scoped and atomic value wrappers are not supported.
+        /// </remarks>
+        public ConcurrentLfuBuilder<K, V> WithWeightedEntries(IWeightCalculator<K, V> weigher)
+        {
+            this.info.SetWeigher(weigher);
+            return this;
+        }
+
         ///<inheritdoc/>
         public override ICache<K, V> Build()
         {
@@ -69,6 +85,12 @@ namespace BitFaster.Caching.Lfu
             if (info.TimeToExpireAfterAccess.HasValue && expiry != null)
                 Throw.InvalidOp("Specifying both ExpireAfterAccess and ExpireAfter is not supported.");
 
+            var weigher = info.GetWeigher<V>();
+            if (weigher != null)
+            {
+                return CreateWeighted(info, weigher, expiry);
+            }
+
             return (info.TimeToExpireAfterWrite.HasValue, info.TimeToExpireAfterAccess.HasValue, expiry != null, info.WithEvents) switch
             {
                 // time expiry, with events
@@ -86,6 +108,27 @@ namespace BitFaster.Caching.Lfu
 
                 // no time expiry, with events
                 _ => new ConcurrentLfu<K, V>(info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer)
+            };
+        }
+
+        private static ICache<K, V> CreateWeighted<K, V>(LfuInfo<K> info, IWeightCalculator<K, V> weigher, IExpiryCalculator<K, V>? expiry)
+            where K : notnull
+        {
+            IExpiryCalculator<K, V>? calculator =
+                info.TimeToExpireAfterWrite.HasValue ? new ExpireAfterWrite<K, V>(info.TimeToExpireAfterWrite.Value)
+                : info.TimeToExpireAfterAccess.HasValue ? new ExpireAfterAccess<K, V>(info.TimeToExpireAfterAccess.Value)
+                : expiry;
+
+            return (calculator != null, info.WithEvents) switch
+            {
+                (false, false) => new FastConcurrentLfu<K, V, WeightedAccessOrderNode<K, V>, WeightedAccessOrderPolicy<K, V, NoEventPolicy<K, V>>>(
+                    info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new WeightedAccessOrderPolicy<K, V, NoEventPolicy<K, V>>(weigher)),
+                (true, false) => new FastConcurrentLfu<K, V, WeightedTimeOrderNode<K, V>, WeightedExpireAfterPolicy<K, V, NoEventPolicy<K, V>>>(
+                    info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new WeightedExpireAfterPolicy<K, V, NoEventPolicy<K, V>>(weigher, calculator!)),
+                (false, true) => new WeightedConcurrentLfu<K, V, WeightedAccessOrderNode<K, V>, WeightedAccessOrderPolicy<K, V, EventPolicy<K, V>>>(
+                    info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new WeightedAccessOrderPolicy<K, V, EventPolicy<K, V>>(weigher)),
+                (true, true) => new WeightedConcurrentLfu<K, V, WeightedTimeOrderNode<K, V>, WeightedExpireAfterPolicy<K, V, EventPolicy<K, V>>>(
+                    info.ConcurrencyLevel, info.Capacity, info.Scheduler, info.KeyComparer, new WeightedExpireAfterPolicy<K, V, EventPolicy<K, V>>(weigher, calculator!)),
             };
         }
     }
