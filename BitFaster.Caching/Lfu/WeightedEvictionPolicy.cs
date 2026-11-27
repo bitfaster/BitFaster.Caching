@@ -196,7 +196,6 @@ namespace BitFaster.Caching.Lfu
             where E : struct, IEventPolicy<K, V>
         {
             var victim = this.probationLru.First;
-            var victimQueue = Position.Probation;
             var candidateQueue = Position.Probation;
 
             while (this.weightedSize > this.Capacity.Capacity)
@@ -209,21 +208,9 @@ namespace BitFaster.Caching.Lfu
 
                 if (candidate == null && victim == null)
                 {
-                    if (victimQueue == Position.Probation)
-                    {
-                        victim = this.protectedLru.First;
-                        victimQueue = Position.Protected;
-                        continue;
-                    }
-
-                    if (victimQueue == Position.Protected)
-                    {
-                        victim = this.windowLru.First;
-                        victimQueue = Position.Window;
-                        continue;
-                    }
-
-                    break;
+                    // Exhausting protected leaves only bounded window weight, so the loop ends.
+                    victim = this.protectedLru.First;
+                    continue;
                 }
 
                 if (victim != null && GetPolicyWeight(victim) == 0)
