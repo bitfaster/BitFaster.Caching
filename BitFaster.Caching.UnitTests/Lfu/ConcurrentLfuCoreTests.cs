@@ -748,6 +748,60 @@ namespace BitFaster.Caching.UnitTests.Lfu
             cache.Core.policy.eviction.WeightedSize.Should().Be(5);
         }
 
+        // Ported directly from Caffeine's EvictionTest.java
+        [Fact]
+        public void WeightedEvictionScenario()
+        {
+            var capacity = 10;
+            var cache = CreateWeighted<List<int>>((k, v) => v.Count, capacity);
+
+            // Enforce full initialization of internal structures
+            for (int i = 0; i < 10; i++)
+            {
+                cache.AddOrUpdate(i, new List<int> { i });
+            }
+            cache.Clear();
+
+            var value1 = new List<int> { 8, 9, 10 };
+            var value2 = new List<int> { 3, 4, 5, 6, 7 };
+            var value3 = new List<int> { 1, 2 };
+            var value4 = new List<int> { 11 };
+            var value5 = new List<int> { 12, 13, 14, 15, 16, 17, 18, 19, 20 };
+
+            // Never evicted
+            cache.AddOrUpdate(0, new List<int>() { });
+
+            cache.AddOrUpdate(1, value1);
+            cache.AddOrUpdate(2, value2);
+            cache.AddOrUpdate(3, value3);
+            cache.Count.Should().Be(4);
+            cache.Capacity.Should().Be(capacity);
+
+            // [0(0) | 1(3), 2(5), 3(2)] -> [4(1), 0(0) | 3(2), 2(5), 1(3)] -> [0(0) | 3(2), 2(5), 1(3)]
+            // #1: candidate=0 vs victim=1 -> skip candidate due to zero weight
+            // #2: candidate=4 vs victim=1 -> f(4) == f(1) -> evict candidate
+            cache.AddOrUpdate(4, value4);
+            cache.Count.Should().Be(4);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(10);
+            cache.TryGet(4, out var _).Should().BeFalse();
+
+            // [0(0) | 3(2), 2(5), 1(3)] -> [4(1), 0(0) | 3(2), 2(5), 1(3)] -> [4(1), 0(0) | 3(2), 2(5)]
+            // #1: candidate=0 vs victim=1 => skip candidate due to zero weight
+            // #2: candidate=4 vs victim=1 -> f(4) > f(1) -> evict victim
+            cache.AddOrUpdate(4, value4);
+            cache.Count.Should().Be(4);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(8);
+            cache.TryGet(1, out var _).Should().BeFalse();
+
+            // [4(1), 0(0) | 3(2), 2(5)] -> [4(1), 0(0), 5(9) | 3(2), 2(5)] -> [4(1), 0(0) | 3(2), 2(5)]
+            // 5 exceeds window (9 >> 1), so it is inserted at the LRU position for immediate promotion
+            // #1: candidate=5 vs victim=2 => f(5) == f(2) -> evict candidate
+            cache.AddOrUpdate(5, value5);
+            cache.Count.Should().Be(4);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(8);
+            cache.TryGet(5, out var _).Should().BeFalse();
+        }
+
         private static WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>> CreateFullWeightedCache()
         {
             var cache = CreateWeighted();
