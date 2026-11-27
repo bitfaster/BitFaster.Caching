@@ -87,7 +87,7 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         }
 
         [Fact]
-        public async Task CompletionBeforeDisposalRemainsIncompleteAfterWorkRuns()
+        public async Task CompletionWhenSchedulerIsRunningRemainsIncompleteAfterWorkRuns()
         {
             var workRan = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             scheduler.Run(() => workRan.SetResult(true));
@@ -113,6 +113,7 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         {
             var workStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var releaseWork = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
             scheduler.Run(() =>
             {
                 workStarted.SetResult(true);
