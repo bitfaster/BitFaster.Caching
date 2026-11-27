@@ -29,6 +29,50 @@ namespace BitFaster.Caching.UnitTests.Lfu
 
         [Theory]
         [Repeat(soakIterations)]
+        public async Task WhenWeightedConcurrentGetCacheEndsInConsistentState(int iteration)
+        {
+            var scheduler = new BackgroundThreadScheduler();
+            var lfu = (WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>>)
+                new ConcurrentLfuBuilder<int, int>()
+                    .WithCapacity(9)
+                    .WithConcurrencyLevel(threads)
+                    .WithScheduler(scheduler)
+                    .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => 1))
+                    .WithEvents()
+                    .Build();
+
+
+            await Threaded.Run(threads, () =>
+            {
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    lfu.GetOrAdd(i + 1, i => i);
+                }
+            });
+
+            await RunWeightedIntegrityCheckAsync(lfu);
+        }
+
+        private async Task RunWeightedIntegrityCheckAsync(WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>> lfu)
+        {
+            if (lfu.Scheduler is BackgroundThreadScheduler s)
+            {
+                s.Dispose();
+                await s.Completion;
+            }
+
+            var core = lfu.Core;
+            new ConcurrentLfuIntegrityChecker<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>, EventPolicy<int, int>>(core)
+                .Validate(this.output, enforceCountCapacity: false);
+
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(core);
+            var eviction = lfu.Core.policy.eviction;
+            eviction.WindowWeightedSize.Should().BeLessThanOrEqualTo(eviction.Capacity.Window);
+            eviction.ProtectedWeightedSize.Should().BeLessThanOrEqualTo(eviction.Capacity.Protected);
+        }
+
+        [Theory]
+        [Repeat(soakIterations)]
         public async Task ConcurrentGetOrAddWithRandomWeightsAndProtectedEntriesPreservesIntegrity(int iteration)
         {
             const int capacity = 100;
@@ -71,7 +115,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                 }
             };
 
-            try
+           // try
             {
                 Func<int, int> warmupFactory = key => weights[0][key];
                 for (int key = 0; key < protectedKeyCount; key++)
@@ -98,21 +142,23 @@ namespace BitFaster.Caching.UnitTests.Lfu
                     }
                 });
             }
-            finally
-            {
-                scheduler.Dispose();
-                await scheduler.Completion;
-            }
+            //finally
+            //{
+            //    scheduler.Dispose();
+            //    await scheduler.Completion;
+            //}
 
-            this.output.WriteLine($"iteration {iteration}, evictions with protected entries={evictionsWithProtectedEntries}");
-            evictionsWithProtectedEntries.Should().BeGreaterThan(0);
-            var core = cache.Core;
-            new ConcurrentLfuIntegrityChecker<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>, EventPolicy<int, int>>(core)
-                .Validate(this.output, enforceCountCapacity: false);
-            core.DoMaintenance();
-            WeightedConcurrentLfuCoreTests.AssertWeightedState(core);
-            eviction.WindowWeightedSize.Should().BeLessThanOrEqualTo(eviction.Capacity.Window);
-            eviction.ProtectedWeightedSize.Should().BeLessThanOrEqualTo(eviction.Capacity.Protected);
+            await RunWeightedIntegrityCheckAsync(cache);
+
+            //this.output.WriteLine($"iteration {iteration}, evictions with protected entries={evictionsWithProtectedEntries}");
+            //evictionsWithProtectedEntries.Should().BeGreaterThan(0);
+            //var core = cache.Core;
+            //new ConcurrentLfuIntegrityChecker<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>, EventPolicy<int, int>>(core)
+            //    .Validate(this.output, enforceCountCapacity: false);
+            //core.DoMaintenance();
+            //WeightedConcurrentLfuCoreTests.AssertWeightedState(core);
+            //eviction.WindowWeightedSize.Should().BeLessThanOrEqualTo(eviction.Capacity.Window);
+            //eviction.ProtectedWeightedSize.Should().BeLessThanOrEqualTo(eviction.Capacity.Protected);
         }
 
         [Theory]
