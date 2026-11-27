@@ -221,20 +221,20 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void DoMaintenanceProtectedEntriesExceedCapacityEvictsLeastRecentlyUsedEntry()
+        public void WhenItemUpdatedToExceedCapacityExistingItemsAreDeleted()
         {
             var cache = new ConcurrentLfuBuilder<int, int>()
                 .WithCapacity(10)
-                .WithScheduler(new NullScheduler())
+                .WithScheduler(new ForegroundScheduler())
                 .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v))
                 .WithEvents()
                 .Build();
+
             cache.AddOrUpdate(1, 2);
             cache.AddOrUpdate(2, 2);
-            DoMaintenance(cache);
+
             cache.TryGet(1, out _);
             cache.TryGet(2, out _);
-            DoMaintenance(cache);
 
             cache.TryUpdate(1, 6);
             cache.TryUpdate(2, 6);
@@ -244,7 +244,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
-        public void AddOrUpdateBufferedWeightsAreEvictedByConfiguredScheduler()
+        public void WhenEntrySizeExceedsCapacityExistingItemsAreDeleted()
         {
             var cache = (WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>>)
                 new ConcurrentLfuBuilder<int, int>()
@@ -253,6 +253,7 @@ namespace BitFaster.Caching.UnitTests.Lfu
                     .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v))
                     .WithEvents()
                     .Build();
+
             cache.AddOrUpdate(1, 6);
             cache.AddOrUpdate(2, 6);
             cache.Count.Should().Be(2);
@@ -321,6 +322,457 @@ namespace BitFaster.Caching.UnitTests.Lfu
             ((IDiscreteTimePolicy)cache).TryGetTimeToExpire(1, out var timeToExpire).Should().BeFalse();
 
             timeToExpire.Should().Be(TimeSpan.Zero);
+        }
+
+        // Behavioral scenarios from Caffeine's EvictionTest.java (Apache-2.0):
+        // https://github.com/ben-manes/caffeine/blob/master/caffeine/src/test/java/com/github/benmanes/caffeine/cache/EvictionTest.java
+        [Fact]
+        public void AddOrUpdateConstantWeightEvictsExcessEntriesAndReportsRemovals()
+        {
+            var cache = CreateWeighted<int>((k, v) => 2);
+            var removedItems = new List<ItemRemovedEventArgs<int, int>>();
+            cache.Events.Value.ItemRemoved += (sender, args) => removedItems.Add(args);
+            for (int key = 0; key < 5; key++)
+            {
+                cache.AddOrUpdate(key, key);
+            }
+
+            for (int key = 5; key < 10; key++)
+            {
+                cache.AddOrUpdate(key, key);
+            }
+
+            cache.Count.Should().Be(5);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(10);
+            cache.Metrics.Value.Evicted.Should().Be(5);
+            removedItems.Select(item => item.Key).Should().BeEquivalentTo(Enumerable.Range(0, 10).Except(cache.Keys));
+            removedItems.Should().OnlyContain(item => item.Reason == ItemRemovedReason.Evicted);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        [Fact]
+        public void AddOrUpdateTiedCandidatePreservesResidentAndZeroWeightEntries()
+        {
+            var cache = CreateFullWeightedCache();
+
+            cache.AddOrUpdate(4, 1);
+
+            cache.Keys.Should().BeEquivalentTo(new[] { 0, 1, 2, 3 });
+            cache.Core.policy.eviction.WeightedSize.Should().Be(10);
+            cache.Metrics.Value.Evicted.Should().Be(1);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        [Fact]
+        public void AddOrUpdateMoreFrequentCandidateReplacesProbationVictim()
+        {
+            var cache = CreateFullWeightedCache();
+            cache.AddOrUpdate(4, 1);
+
+            cache.AddOrUpdate(4, 1);
+
+            cache.Keys.Should().BeEquivalentTo(new[] { 0, 2, 3, 4 });
+            cache.Core.policy.eviction.WeightedSize.Should().Be(8);
+            cache.Metrics.Value.Evicted.Should().Be(2);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        [Fact]
+        public void AddOrUpdateHeavyCandidatePreservesAdmittedWindowEntry()
+        {
+            var cache = CreateFullWeightedCache();
+            var removedItems = new List<ItemRemovedEventArgs<int, int>>();
+            cache.Events.Value.ItemRemoved += (sender, args) => removedItems.Add(args);
+            cache.AddOrUpdate(4, 1);
+            cache.AddOrUpdate(4, 1);
+
+            cache.AddOrUpdate(5, 9);
+
+            cache.Keys.Should().BeEquivalentTo(new[] { 0, 2, 3, 4 });
+            cache.Core.policy.eviction.WeightedSize.Should().Be(8);
+            cache.Metrics.Value.Evicted.Should().Be(3);
+            removedItems.Select(item => item.Key).Should().Equal(4, 1, 5);
+            removedItems.Sum(item => item.Value).Should().Be(13);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        [Fact]
+        public void TryUpdateGrowingEntryReordersEvictionCandidates()
+        {
+            var cache = CreateWeighted(3);
+            cache.AddOrUpdate(1, 1);
+            cache.AddOrUpdate(2, 1);
+            cache.AddOrUpdate(3, 1);
+
+            cache.TryUpdate(1, 2).Should().BeTrue();
+
+            cache.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be(2);
+            cache.Count.Should().Be(2);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(3);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        [Fact]
+        public void AddOrUpdateOversizedEntryPreservesResidentsAndReportsOnlyItsEviction()
+        {
+            var cache = CreateWeighted();
+            cache.AddOrUpdate(9, 9);
+            cache.AddOrUpdate(1, 1);
+            var removedItems = new List<ItemRemovedEventArgs<int, int>>();
+            cache.Events.Value.ItemRemoved += (sender, args) => removedItems.Add(args);
+
+            cache.AddOrUpdate(20, 20);
+
+            cache.Keys.Should().BeEquivalentTo(new[] { 9, 1 });
+            cache.Core.policy.eviction.WeightedSize.Should().Be(10);
+            var removed = removedItems.Should().ContainSingle().Which;
+            removed.Key.Should().Be(20);
+            removed.Value.Should().Be(20);
+            removed.Reason.Should().Be(ItemRemovedReason.Evicted);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        [Fact]
+        public async Task GetOrAddAsyncCompletedValueEnforcesWeightBudget()
+        {
+            var cache = CreateWeighted();
+            cache.AddOrUpdate(5, 5);
+            cache.AddOrUpdate(4, 4);
+            var removedItems = new List<ItemRemovedEventArgs<int, int>>();
+            cache.Events.Value.ItemRemoved += (sender, args) => removedItems.Add(args);
+            var valueSource = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var pending = cache.GetOrAddAsync(6, _ => valueSource.Task);
+            cache.Count.Should().Be(2);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(9);
+            valueSource.SetResult(6);
+            (await pending).Should().Be(6);
+
+            cache.Count.Should().Be(2);
+            var removed = removedItems.Should().ContainSingle().Which;
+            removed.Value.Should().Be(15 - cache.Sum(item => item.Value));
+            removed.Reason.Should().Be(ItemRemovedReason.Evicted);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        [Fact]
+        public async Task GetOrAddAsyncOversizedValueIsReturnedButNotRetained()
+        {
+            var cache = CreateWeighted(3);
+            var removedItems = new List<ItemRemovedEventArgs<int, int>>();
+            cache.Events.Value.ItemRemoved += (sender, args) => removedItems.Add(args);
+            var valueSource = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var pending = cache.GetOrAddAsync(1, _ => valueSource.Task);
+            valueSource.SetResult(5);
+            (await pending).Should().Be(5);
+
+            cache.Should().BeEmpty();
+            cache.Core.policy.eviction.WeightedSize.Should().Be(0);
+            var removed = removedItems.Should().ContainSingle().Which;
+            removed.Value.Should().Be(5);
+            removed.Reason.Should().Be(ItemRemovedReason.Evicted);
+        }
+
+        [Fact]
+        public void AddOrUpdateNegativeWeightDoesNotInsertEntry()
+        {
+            var cache = CreateWeighted();
+
+            Action add = () => cache.AddOrUpdate(1, -1);
+
+            add.Should().Throw<ArgumentOutOfRangeException>();
+            cache.Should().BeEmpty();
+            cache.Core.policy.eviction.WeightedSize.Should().Be(0);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void AddOrUpdateThrowingWeightCalculatorLeavesCacheUnchanged(bool existingKey)
+        {
+            var cache = CreateWeighted<int>((k, v) => v == 99 ? throw new InvalidOperationException() : v);
+            cache.AddOrUpdate(2, 1);
+            if (existingKey)
+            {
+                cache.AddOrUpdate(1, 3);
+            }
+            var originalEntries = cache.ToArray();
+            var originalWeight = cache.Core.policy.eviction.WeightedSize;
+
+            Action write = () => cache.AddOrUpdate(1, 99);
+
+            write.Should().Throw<InvalidOperationException>();
+            cache.Should().BeEquivalentTo(originalEntries);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(originalWeight);
+        }
+
+        [Fact]
+        public void TryUpdateThrowingWeightCalculatorPreservesValueAndWeight()
+        {
+            var cache = CreateWeighted<int>((k, v) => v == 99 ? throw new InvalidOperationException() : v);
+            cache.AddOrUpdate(1, 3);
+            cache.AddOrUpdate(2, 1);
+            var originalEntries = cache.ToArray();
+
+            Action update = () => cache.TryUpdate(1, 99);
+
+            update.Should().Throw<InvalidOperationException>();
+            cache.Should().BeEquivalentTo(originalEntries);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(4);
+        }
+
+        [Fact]
+        public void TryUpdateMissingEntryDoesNotInvokeWeightCalculator()
+        {
+            var cache = CreateWeighted<int>((k, v) => throw new InvalidOperationException());
+
+            cache.TryUpdate(1, 3).Should().BeFalse();
+
+            cache.Should().BeEmpty();
+            cache.Core.policy.eviction.WeightedSize.Should().Be(0);
+        }
+
+        [Fact]
+        public void GetOrAddThrowingWeightCalculatorDoesNotCacheValue()
+        {
+            var cache = CreateWeighted<int>((k, v) => throw new InvalidOperationException());
+
+            Action get = () => cache.GetOrAdd(1, _ => 3);
+
+            get.Should().Throw<InvalidOperationException>();
+            cache.Should().BeEmpty();
+            cache.Core.policy.eviction.WeightedSize.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task GetOrAddAsyncThrowingWeightCalculatorDoesNotCacheValue()
+        {
+            var cache = CreateWeighted<int>((k, v) => throw new InvalidOperationException());
+            var valueSource = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var pending = cache.GetOrAddAsync(1, _ => valueSource.Task).AsTask();
+
+            valueSource.SetResult(3);
+            Func<Task> get = () => pending;
+
+            await get.Should().ThrowAsync<InvalidOperationException>();
+            cache.Should().BeEmpty();
+            cache.Core.policy.eviction.WeightedSize.Should().Be(0);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task GetOrAddCachedEntrySkipsFactoryAndWeightCalculator(bool useAsync)
+        {
+            bool rejectWeightCalculation = false;
+            var cache = CreateWeighted<int>((k, v) => rejectWeightCalculation ? throw new InvalidOperationException() : v);
+            cache.AddOrUpdate(1, 3);
+            rejectWeightCalculation = true;
+
+            int value = useAsync
+                ? await cache.GetOrAddAsync(1, _ => throw new InvalidOperationException())
+                : cache.GetOrAdd(1, _ => throw new InvalidOperationException());
+
+            value.Should().Be(3);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(3);
+        }
+
+        [Fact]
+        public void AddOrUpdateZeroWeightEntriesCanExceedCountCapacity()
+        {
+            var cache = CreateWeighted<int>((k, v) => 0, capacity: 3);
+
+            for (int key = 0; key < 4; key++)
+            {
+                cache.AddOrUpdate(key, key);
+            }
+
+            cache.Count.Should().Be(4);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(0);
+            cache.Metrics.Value.Evicted.Should().Be(0);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        [Fact]
+        public void AddOrUpdateNewEntryUsesCalculatedWeight()
+        {
+            var cache = CreateWeighted<string>((k, v) => v.Length);
+
+            cache.AddOrUpdate(1, "abc");
+
+            cache.Count.Should().Be(1);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(3);
+        }
+
+        [Theory]
+        [InlineData("xyz", 4)]
+        [InlineData("wxyz", 5)]
+        [InlineData("", 1)]
+        public void AddOrUpdateReplacementRecalculatesWeight(string updatedValue, int expectedWeight)
+        {
+            var cache = CreateWeighted<string>((k, v) => v.Length);
+            cache.AddOrUpdate(1, "abc");
+            cache.AddOrUpdate(2, "d");
+
+            cache.AddOrUpdate(1, updatedValue);
+
+            cache.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be(updatedValue);
+            cache.Count.Should().Be(2);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(expectedWeight);
+        }
+
+        [Theory]
+        [InlineData("xyz", 4)]
+        [InlineData("wxyz", 5)]
+        [InlineData("", 1)]
+        public void TryUpdateReplacementRecalculatesWeight(string updatedValue, int expectedWeight)
+        {
+            var cache = CreateWeighted<string>((k, v) => v.Length);
+            cache.AddOrUpdate(1, "abc");
+            cache.AddOrUpdate(2, "d");
+
+            cache.TryUpdate(1, updatedValue).Should().BeTrue();
+
+            cache.TryGet(1, out var value).Should().BeTrue();
+            value.Should().Be(updatedValue);
+            cache.Count.Should().Be(2);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(expectedWeight);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void UpdateMutatedValueRecalculatesWeightForSameInstance(bool useTryUpdate)
+        {
+            var cache = CreateWeighted<List<int>>((k, v) => v.Count);
+            var value = new List<int> { 1 };
+            cache.AddOrUpdate(1, value);
+            value.AddRange(new[] { 2, 3 });
+
+            if (useTryUpdate)
+            {
+                cache.TryUpdate(1, value).Should().BeTrue();
+            }
+            else
+            {
+                cache.AddOrUpdate(1, value);
+            }
+
+            cache.TryGet(1, out var cachedValue).Should().BeTrue();
+            cachedValue.Should().BeSameAs(value);
+            cache.Count.Should().Be(1);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(3);
+        }
+
+        [Fact]
+        public void TryRemoveExistingEntrySubtractsItsWeight()
+        {
+            var cache = CreateWeighted();
+            cache.AddOrUpdate(1, 3);
+            cache.AddOrUpdate(2, 1);
+
+            cache.TryRemove(1, out var removedValue).Should().BeTrue();
+
+            removedValue.Should().Be(3);
+            cache.Keys.Should().ContainSingle().Which.Should().Be(2);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(1);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        [Theory]
+        [InlineData(3, true, 1)]
+        [InlineData(4, false, 4)]
+        public void TryRemoveOnlyMatchingValueDiscountsEntryWeight(int value, bool expectedRemoval, int expectedWeight)
+        {
+            var cache = CreateWeighted();
+            cache.AddOrUpdate(1, 3);
+            cache.AddOrUpdate(2, 1);
+
+            cache.TryRemove(new KeyValuePair<int, int>(1, value)).Should().Be(expectedRemoval);
+
+            cache.Keys.Should().BeEquivalentTo(expectedRemoval ? new[] { 2 } : new[] { 1, 2 });
+            cache.Core.policy.eviction.WeightedSize.Should().Be(expectedWeight);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        [Fact]
+        public void ClearWeightedEntriesResetsAllAccounting()
+        {
+            var cache = CreateWeighted();
+            cache.AddOrUpdate(1, 3);
+            cache.AddOrUpdate(2, 1);
+            cache.AddOrUpdate(3, 0);
+            cache.TryGet(1, out _);
+            cache.DoMaintenance();
+
+            cache.Clear();
+
+            cache.Should().BeEmpty();
+            cache.Core.policy.eviction.WeightedSize.Should().Be(0);
+            WeightedConcurrentLfuCoreTests.AssertWeightedState(cache.Core);
+        }
+
+        [Fact]
+        public void GetOrAddNewEntryUsesCalculatedWeight()
+        {
+            var cache = CreateWeighted<int>((k, v) => 10);
+
+            cache.GetOrAdd(1, _ => 42).Should().Be(42);
+
+            cache.Count.Should().Be(1);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(10);
+        }
+
+        [Fact]
+        public async Task GetOrAddAsyncDoesNotWeighValueUntilFactoryCompletes()
+        {
+            int weightCalculations = 0;
+            var cache = CreateWeighted<int>((k, v) =>
+            {
+                weightCalculations++;
+                return v;
+            });
+            var valueSource = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var pending = cache.GetOrAddAsync(1, _ => valueSource.Task);
+            cache.Should().BeEmpty();
+            weightCalculations.Should().Be(0);
+            valueSource.SetResult(5);
+            (await pending).Should().Be(5);
+
+            cache.Count.Should().Be(1);
+            weightCalculations.Should().Be(1);
+            cache.Core.policy.eviction.WeightedSize.Should().Be(5);
+        }
+
+        private static WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>> CreateFullWeightedCache()
+        {
+            var cache = CreateWeighted();
+            cache.AddOrUpdate(0, 0);
+            cache.AddOrUpdate(1, 3);
+            cache.AddOrUpdate(2, 5);
+            cache.AddOrUpdate(3, 2);
+            return cache;
+        }
+
+        private static WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>> CreateWeighted(int capacity = 10)
+        {
+            return CreateWeighted<int>((k, v) => v, capacity);
+        }
+
+        private static WeightedConcurrentLfu<int, V, WeightedAccessOrderNode<int, V>, WeightedAccessOrderPolicy<int, V, EventPolicy<int, V>>> CreateWeighted<V>(Func<int, V, int> calculateWeight, int capacity = 10)
+        {
+            return (WeightedConcurrentLfu<int, V, WeightedAccessOrderNode<int, V>, WeightedAccessOrderPolicy<int, V, EventPolicy<int, V>>>)
+                new ConcurrentLfuBuilder<int, V>()
+                    .WithConcurrencyLevel(1)
+                    .WithCapacity(capacity)
+                    .WithScheduler(new ForegroundScheduler())
+                    .WithWeightedEntries(new TestWeightCalculator<int, V>(calculateWeight))
+                    .WithEvents()
+                    .Build();
         }
 
 #if NET9_0_OR_GREATER
