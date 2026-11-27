@@ -221,6 +221,29 @@ namespace BitFaster.Caching.UnitTests.Lfu
         }
 
         [Fact]
+        public void DoMaintenanceProtectedEntriesExceedCapacityEvictsLeastRecentlyUsedEntry()
+        {
+            var cache = new ConcurrentLfuBuilder<int, int>()
+                .WithCapacity(10)
+                .WithScheduler(new NullScheduler())
+                .WithWeightedEntries(new TestWeightCalculator<int, int>((k, v) => v))
+                .WithEvents()
+                .Build();
+            cache.AddOrUpdate(1, 2);
+            cache.AddOrUpdate(2, 2);
+            DoMaintenance(cache);
+            cache.TryGet(1, out _);
+            cache.TryGet(2, out _);
+            DoMaintenance(cache);
+
+            cache.TryUpdate(1, 6);
+            cache.TryUpdate(2, 6);
+            DoMaintenance(cache);
+
+            cache.Keys.Should().ContainSingle().Which.Should().Be(2);
+        }
+
+        [Fact]
         public void AddOrUpdateBufferedWeightsAreEvictedByConfiguredScheduler()
         {
             var cache = (WeightedConcurrentLfu<int, int, WeightedAccessOrderNode<int, int>, WeightedAccessOrderPolicy<int, int, EventPolicy<int, int>>>)
