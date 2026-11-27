@@ -34,11 +34,13 @@ namespace BitFaster.Caching.Scheduler
         /// </summary>
         public BackgroundThreadScheduler()
         {
-            // dedicated thread
-            this.completion = Task.Factory.StartNew(async () => await Background().ConfigureAwait(false), cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            // Unwrap so Completion waits for the worker, not just its asynchronous startup.
+            this.completion = Task.Factory.StartNew(async () => await Background().ConfigureAwait(false), cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
         }
 
-        ///<inheritdoc/>
+        /// <summary>
+        /// Gets the task that completes when background processing stops.
+        /// </summary>
         public Task Completion => completion;
 
         ///<inheritdoc/>

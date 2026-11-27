@@ -86,6 +86,57 @@ namespace BitFaster.Caching.UnitTests.Scheduler
             scheduler.RunCount.Should().BeCloseTo(BackgroundThreadScheduler.MaxBacklog, 1);
         }
 
+        [Fact]
+        public async Task CompletionBeforeDisposalRemainsIncompleteAfterWorkRuns()
+        {
+            var workRan = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            scheduler.Run(() => workRan.SetResult(true));
+
+            try
+            {
+                await WaitForCompletionAsync(workRan.Task);
+
+                var completion = scheduler.Completion;
+                var completed = await Task.WhenAny(completion, Task.Delay(TimeSpan.FromMilliseconds(100)));
+
+                completed.Should().NotBeSameAs(completion);
+            }
+            finally
+            {
+                scheduler.Dispose();
+                await WaitForCompletionAsync(scheduler.Completion);
+            }
+        }
+
+        [Fact]
+        public async Task CompletionWhenDisposedDuringWorkWaitsForWorkToFinish()
+        {
+            var workStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var releaseWork = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            scheduler.Run(() =>
+            {
+                workStarted.SetResult(true);
+                releaseWork.Task.GetAwaiter().GetResult();
+            });
+
+            try
+            {
+                await WaitForCompletionAsync(workStarted.Task);
+
+                scheduler.Dispose();
+                var completion = scheduler.Completion;
+                var completed = await Task.WhenAny(completion, Task.Delay(TimeSpan.FromMilliseconds(100)));
+
+                completed.Should().NotBeSameAs(completion);
+            }
+            finally
+            {
+                releaseWork.SetResult(true);
+                scheduler.Dispose();
+                await WaitForCompletionAsync(scheduler.Completion);
+            }
+        }
+
         [Theory]
         [Repeat(10)]
         public async Task WhenDisposedRunsToCompletion(int _)
@@ -145,6 +196,13 @@ namespace BitFaster.Caching.UnitTests.Scheduler
         public void Dispose()
         {
             this?.scheduler.Dispose();
+        }
+
+        private static async Task WaitForCompletionAsync(Task task)
+        {
+            var completed = await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(10)));
+            completed.Should().BeSameAs(task, "the operation should finish within the timeout");
+            await task;
         }
     }
 }
