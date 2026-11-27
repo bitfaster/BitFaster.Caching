@@ -12,7 +12,7 @@ namespace BitFaster.Caching.Lfu
 
         internal WeightedAccessOrderPolicy(IWeightCalculator<K, V> weigher)
         {
-            this.weigher = weigher ?? throw new ArgumentNullException(nameof(weigher));
+            this.weigher = weigher;
             this.eviction = null!;
         }
 
@@ -111,7 +111,7 @@ namespace BitFaster.Caching.Lfu
 
         internal WeightedExpireAfterPolicy(IWeightCalculator<K, V> weigher, IExpiryCalculator<K, V> expiryCalculator)
         {
-            this.weigher = weigher ?? throw new ArgumentNullException(nameof(weigher));
+            this.weigher = weigher;
             this.expiry = new ExpiryPolicy<K, V>(expiryCalculator);
             this.eviction = null!;
         }
